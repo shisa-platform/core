@@ -1,4 +1,4 @@
-package logx
+package log
 
 import "log"
 
@@ -15,16 +15,6 @@ func (l *null) Error(string, string)                  {}
 func (l *null) Errorf(string, string, ...interface{}) {}
 func (l *null) Trace(string, string)                  {}
 func (l *null) Tracef(string, string, ...interface{}) {}
-
-func (l *null) SentryError(data SentryMetadata, err error) {}
-
-func (l *null) Stdout() *log.Logger {
-	return nullLogger
-}
-
-func (l *null) Stderr() *log.Logger {
-	return nullLogger
-}
 
 func (l *null) Close() {}
 

@@ -6,25 +6,20 @@ import (
 	"net/http"
 
 	"github.com/percolate/shisa/env"
-	"github.com/percolate/shisa/x/log"
+	"github.com/percolate/shisa/log"
 )
 
 // xxx - need configuration object with setter helpers
 // gateway.New(name, configuration)
 
 type Service struct {
-	Name         string
-	port         int
-	debugPort    int
-	server       *http.Server
-	logger       logx.Logger
-	healthchecks map[string]func() error
+	Name   string
+	logger log.Logger
 }
 
-func New(port, debugPort int, trace bool) *Service {
+func New(name string) *Service {
 	return &Service{
-		port:      port,
-		debugPort: debugPort,
+		Name: name,
 	}
 }
 
@@ -50,7 +45,7 @@ func (s *Service) openDependencies() error {
 }
 
 func (s *Service) openLogging() error {
-	logger, err := logx.New(serviceName)
+	logger, err := log.New(s.Name)
 	if err != nil {
 		return err
 	}
