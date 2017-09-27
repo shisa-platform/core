@@ -1,8 +1,10 @@
-package log
+package logx
 
 import "log"
 
 type null struct{}
+
+type SentryMetadata struct{}
 
 var (
 	NULL       = new(null)
