@@ -1,13 +1,19 @@
+# Shisa
+
 [![Circle CI](https://circleci.com/gh/percolate/api-gw.svg?style=svg&circle-token=)](https://circleci.com/gh/percolate/shisa)
 [![codecov.io](https://codecov.io/github/percolate/api-gw/coverage.svg?token=&branch=master)](https://codecov.io/github/percolate/shisa?branch=master)
 
 ## Overview
 
-Shisa is Percolate's Enterprise API Gateway Platform.
+Percolate's Enterprise API Gateway Platform.
 
-## Philosophy
-
-This project provides a platform for building API Gateway services within your organization.  We understand that each enterprise has unique challenges to consider when introducing as an API Gateway and one size does not fit all.  To accommodate that this project allows you to tailor the functionality to suit your environment.  A minimally customized service can created quickly and rich options for advanced configuration offer adaptability for most environments.
+This project provides a platform for building API Gateway services
+within your organization.  We understand that each enterprise has
+unique challenges to consider when introducing as an API Gateway and
+one size does not fit all.  To accommodate that this project allows
+you to tailor the functionality to suit your environment.  A minimally
+customized service can created quickly and rich options for advanced
+configuration offer adaptability for most environments.
 
 The project has these high-level goals:
 
@@ -21,6 +27,8 @@ The project has these high-level goals:
 
 ## Contributing
 
-To propose a change please open a pull request.  To report a problem please open an issue.
+To propose a change please open a pull request.  To report a problem
+please open an issue.
 
-All of the important build commands are in the [`Makefile`](Makefile), please use those recipes.
+All of the important build commands are in the [Makefile](Makefile),
+please use those recipes.
