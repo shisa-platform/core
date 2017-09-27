@@ -1,11 +1,6 @@
 package gateway
 
 import (
-	"expvar"
-	"fmt"
-	"net/http"
-
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/log"
 )
 
@@ -54,5 +49,10 @@ func (s *Service) openLogging() error {
 	return nil
 }
 
-func (s *Service) close() {
+func (s *Service) serve() error {
+	return nil
+}
+
+func (s *Service) close() error {
+	return nil
 }

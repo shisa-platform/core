@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
-	"net/http"
 	"os"
 )
 

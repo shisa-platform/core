@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"ctx"
-	"responses"
+	"net/http"
+
+	"github.com/percolate/shisa/context"
 )
 
 // xxx - fake proxy
@@ -13,5 +14,5 @@ type Rules struct {
 }
 
 type Handler interface {
-	Handle(ctx.Context, *http.Request) responses.Responder
+	Handle(context.Context, *http.Request) //responses.Responder
 }
