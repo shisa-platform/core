@@ -1,0 +1,46 @@
+# https://circleci.com/docs/2.0/
+
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.9.0
+    steps:
+      - checkout
+      - run: make test
+
+  mdl:
+    docker:
+      - image: prclt/cci-mdl:1.0.0
+    steps:
+      - checkout
+      - run:
+        name: Validate Markdown
+        command: |
+          mdl $(find . -type f -name '*.md')
+
+  release:
+    docker:
+      - image: prclt/cci-release:1.0.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - deploy:
+          name: Deploy to GitHub Releases
+          command: |
+            artifacts=$(find /tmp/workspace/artifacts -type f 2>/dev/null)
+            ci-make-release $(cat VERSION.txt) ${artifacts}
+
+workflows:
+  version: 2
+  build_release:
+    jobs:
+      - mdl
+      - build
+      - release:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
