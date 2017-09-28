@@ -15,9 +15,9 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Validate Markdown
-        command: |
-          mdl $(find . -type f -name '*.md')
+          name: Validate Markdown
+          command: |
+            mdl $(find . -type f -name '*.md')
 
   release:
     docker:
