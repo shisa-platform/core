@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
-	"net/http"
 	"os"
 )
 
@@ -17,9 +16,6 @@ type Logger interface {
 	Errorf(requestID, format string, args ...interface{})
 	Trace(requestID, message string)
 	Tracef(requestID, format string, args ...interface{})
-	// xxx - remove stdout, stderr here?
-	Stdout() *log.Logger
-	Stderr() *log.Logger
 	Close()
 }
 

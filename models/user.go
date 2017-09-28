@@ -1,6 +1,10 @@
 package models
 
+import (
+	"fmt"
+)
+
 type User interface {
-	Stringer
+	fmt.Stringer
 	ID() string
 }
