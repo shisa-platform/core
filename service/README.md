@@ -1,3 +1,4 @@
+# Services
 
 - services are plugins
 - services handle n endpoints
@@ -9,3 +10,5 @@ parameters
 - the policy object may be customized to control automated behavior
 - handlers service requests to routes
 - handlers may use a built-in backend or do its own thing
+
+That is all
