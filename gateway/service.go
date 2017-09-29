@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"github.com/percolate/shisa/log"
+	log "github.com/percolate/shisa/log"
 )
 
 // xxx - need configuration object with setter helpers

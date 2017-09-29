@@ -1,9 +1,9 @@
 package context
 
 import (
+	"context"
 	"testing"
 	"time"
-	"context"
 
 	"github.com/percolate/shisa/log"
 	"github.com/percolate/shisa/models"
@@ -82,7 +82,6 @@ func (c *FakeContext) Value(key interface{}) interface{} {
 	c.Called(key)
 	return c.val
 }
-
 
 func createParentContext() *FakeContext {
 	return &FakeContext{
@@ -220,9 +219,9 @@ func TestDeadline(t *testing.T) {
 func TestDone(t *testing.T) {
 	parent := &FakeContext{}
 	c := getContextForParent(parent)
-	parent.On("Done").Return(struct {}{})
+	parent.On("Done").Return(struct{}{})
 
-	d := <- c.Done()
+	d := <-c.Done()
 
 	parent.AssertCalled(t, "Done")
 	assert.Equal(t, d, struct{}{})
