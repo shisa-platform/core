@@ -8,6 +8,7 @@ jobs:
     steps:
       - checkout
       - run: make test
+      - run: sbin/codecov
 
   mdl:
     docker:
