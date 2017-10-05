@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+
 set -e +o pipefail
 
-VERSION="8fda091"
+VERSION="d109cc7"
+# NOTE modified with max upload size
 
 url="https://codecov.io"
 env="$CODECOV_ENV"
@@ -31,8 +33,8 @@ ft_coveragepy="1"
 ft_fix="1"
 ft_search="1"
 ft_s3="1"
-ft_xcode="1"
 ft_network="1"
+ft_xcodellvm="1"
 ft_xcodeplist="0"
 
 _git_root=$(git rev-parse --show-toplevel 2>/dev/null || hg root 2>/dev/null || echo $PWD)
@@ -186,7 +188,7 @@ urlencode() {
 
 
 swiftcov() {
-  _dir=$(dirname "$1")
+  _dir=$(dirname "$1" | sed 's/\(Build\).*/\1/g')
   for _type in app framework xctest
   do
     find "$_dir" -name "*.$_type" | while read f
@@ -366,16 +368,21 @@ $OPTARG"
         elif [ "$OPTARG" = "coveragepy" ] || [ "$OPTARG" = "py" ];
         then
           ft_coveragepy="0"
+        elif [ "$OPTARG" = "xcodellvm" ];
+        then
+          ft_xcodellvm="1"
+          ft_xcodeplist="0"
         elif [ "$OPTARG" = "xcodeplist" ];
         then
+          ft_xcodellvm="0"
           ft_xcodeplist="1"
-          ft_xcode="0"
         elif [ "$OPTARG" = "fix" ] || [ "$OPTARG" = "fixes" ];
         then
           ft_fix="0"
         elif [ "$OPTARG" = "xcode" ];
         then
-          ft_xcode="0"
+          ft_xcodellvm="0"
+          ft_xcodeplist="0"
         elif [ "$OPTARG" = "search" ];
         then
           ft_search="0"
@@ -451,6 +458,16 @@ then
   build="$CI_BUILD_NUMBER"
   build_url=$(urlencode "$CI_BUILD_URL")
   commit="$CI_COMMIT_ID"
+
+elif [ ! -z "$CF_BUILD_URL" ] && [ ! -z "$CF_BUILD_ID" ];
+then
+  say "$e==>$x Codefresh CI detected."
+  # https://docs.codefresh.io/v1.0/docs/variables
+  service="codefresh"
+  branch="$CF_BRANCH"
+  build="$CF_BUILD_ID"
+  build_url=$(urlencode "$CF_BUILD_URL")
+  commit="$CF_REVISION"
 
 elif [ "$TEAMCITY_VERSION" != "" ];
 then
@@ -667,10 +684,10 @@ then
   say "$e==>$x GitLab CI detected."
   # http://doc.gitlab.com/ce/ci/variables/README.html
   service="gitlab"
-  branch="$CI_BUILD_REF_NAME"
-  build="$CI_BUILD_ID"
+  branch="${CI_BUILD_REF_NAME:-$CI_COMMIT_REF_NAME}"
+  build="${CI_BUILD_ID:-$CI_JOB_ID}"
   remote_addr="${CI_BUILD_REPO:-$CI_REPOSITORY_URL}"
-  commit="$CI_BUILD_REF"
+  commit="${CI_BUILD_REF:-$CI_COMMIT_SHA}"
 
 else
   say "${r}x>${x} No CI provider detected."
@@ -824,9 +841,9 @@ then
   fi
 
   # Swift Coverage
-  if [ "$ft_xcode" = "1" ] && [ -d "$ddp" ];
+  if [ "$ft_xcodellvm" = "1" ] && [ -d "$ddp" ];
   then
-    say "${e}==>${x} Processing Xcode reports"
+    say "${e}==>${x} Processing Xcode reports via llvm-cov"
     say "    DerivedData folder: $ddp"
     profdata_files=$(find "$ddp" -name '*.profdata' 2>/dev/null || echo '')
     if [ "$profdata_files" != "" ];
@@ -959,6 +976,7 @@ $PWD/coverage.xml"
                     -not -name '*.profdata' \
                     -not -name 'coverage-summary.json' \
                     -not -name 'phpunit-code-coverage.xml' \
+                    -not -name '*/classycle/report.xml' \
                     -not -name 'remapInstanbul.coverage*.json' \
                     -not -name 'phpunit-coverage.xml' \
                     -not -name '*codecov.yml' \
@@ -968,6 +986,7 @@ $PWD/coverage.xml"
                     -not -name '*.sh' \
                     -not -name '*.bat' \
                     -not -name '*.ps1' \
+                    -not -name '*.env' \
                     -not -name '*.cmake' \
                     -not -name '*.dox' \
                     -not -name '*.ec' \
@@ -1051,6 +1070,7 @@ $PWD/coverage.xml"
                     -not -path '*/.env/*' \
                     -not -path '*/.envs/*' \
                     -not -path '*/env/*' \
+                    -not -path '*/.yarn-cache/*' \
                     -not -path '*/envs/*' \
                     -not -path '*/.venv/*' \
                     -not -path '*/.venvs/*' \
@@ -1151,7 +1171,7 @@ if [ "$ft_network" == "1" ];
 then
   i="woff|eot|otf"  # fonts
   i="$i|gif|png|jpg|jpeg|psd"  # images
-  i="$i|ptt|pptx|numbers|pages|md|txt|xlsx|docx|doc|pdf"  # docs
+  i="$i|ptt|pptx|numbers|pages|md|txt|xlsx|docx|doc|pdf|html|csv"  # docs
   i="$i|yml|yaml|.gitignore"  # supporting docs
   echo "$network" | grep -vwE "($i)$" >> $upload_file
   echo "<<<<<< network" >> $upload_file
@@ -1187,6 +1207,15 @@ do
     fi
   fi
 done <<< "$(echo -e "$files")"
+
+if [[ $(find $upload_file -type f -size +104857600c 2>/dev/null) ]]; then
+  say "${r}-->${x} Sorry, the resulting file is to large for uploading."
+  say "    We are working on a solution for large files and will remove this message"
+  say "    when we have resolved the issue. Thank you for your patience."
+  say "    Max upload size is 100mb."
+  curl https://codecov.io/log?$query 2>/dev/null >/dev/null
+  exit ${exit_with};
+fi
 
 if [ "$fr" = "0" ];
 then
@@ -1248,8 +1277,8 @@ then
   if echo "$network" | grep -m1 '.go$' 1>/dev/null;
   then
     # skip empty lines, comments, and brackets
-    find "$git_root" -type f \
-                     -not -path '*/vendor/*' \
+    find "$git_root" -not -path ./vendor/* \
+                     -type f \
                      -name '*.go' \
                      -exec \
       grep -nIHE \
@@ -1263,28 +1292,11 @@ then
       || echo ''
   fi
 
-  if echo "$network" | grep -m1 '.jsx$' 1>/dev/null;
-  then
-    # skip empty lines, comments, and brackets
-    find "$git_root" -type f \
-                     -name '*.jsx' \
-                     $skip_dirs \
-                     -exec \
-      grep -nIHE \
-           -e $empty_line \
-           -e $syntax_comment \
-           -e $syntax_bracket \
-           {} \; \
-      | cut_and_join \
-      >> $adjustments_file \
-      || echo ''
-  fi
-
   if echo "$network" | grep -m1 '.php$' 1>/dev/null;
   then
     # skip empty lines, comments, and brackets
-    find "$git_root" -type f \
-                     -not -path '*/vendor/*' \
+    find "$git_root" -not -path ./vendor/* \
+                     -type f \
                      -name '*.php' \
                      -exec \
       grep -nIHE \
@@ -1396,7 +1408,7 @@ else
           say "    ${g}->${x} View reports at ${b}$(echo "$res" | sed -n 1p)${x}"
           exit 0
         else
-          say "    ${r}X>${x} Failed to upload to S3"
+          say "    ${r}X>${x} Failed to upload"
         fi
       elif [ "$status" = "400" ];
       then

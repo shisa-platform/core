@@ -14,30 +14,14 @@ const (
 	LoggerKey = "ContextLoggerKey"
 )
 
-type IContext interface {
-	context.Context
-}
-
-type ILoggableContext interface {
-	IContext
-	Info(string)
-	Infof(string, ...interface{})
-	Error(string)
-	Errorf(string, ...interface{})
-	Trace(string)
-	Tracef(string, ...interface{})
-}
-
 type Context struct {
 	context.Context
 	RequestID string
 	Actor     models.User
-	Logger    logx.Logger
+	Logger    log.Logger
 }
 
-var _ IContext = &Context{}
-
-func New(parent IContext, id string, actor models.User, log logx.Logger) *Context {
+func New(parent context.Context, id string, actor models.User, log log.Logger) *Context {
 	return &Context{
 		Context:   parent,
 		RequestID: id,
