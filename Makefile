@@ -10,7 +10,7 @@ DIAGRAMS := $(DIAGRAM_DIR)/architecture.png
 BUILD_DIR := build
 COVERAGE_DIR := $(BUILD_DIR)/coverage
 
-SHISA_PKGS := $(shell go list ./... | grep -v examples)
+SHISA_PKGS := $(shell go list ./... | grep -Ev 'examples|test')
 SHISA_TEST_PKGS := $(addprefix coverage/,$(SHISA_PKGS))
 
 all: test

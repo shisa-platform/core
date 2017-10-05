@@ -1,4 +1,4 @@
-package logx
+package log
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 
 // xxx - LoggingProvider.writeLog(context, level, message), Syslog
 
+//go:generate charlatan -interfaces=Logger -output=./logtest/charlatanlogger.go
 type Logger interface {
 	Info(requestID, message string)
 	Infof(requestID, format string, args ...interface{})

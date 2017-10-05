@@ -1,4 +1,4 @@
-package logx
+package log
 
 import "log"
 
