@@ -38,9 +38,9 @@ workflows:
     jobs:
       - mdl
       - build
-      - release:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
+      # - release:
+      #     requires:
+      #       - build
+      #     filters:
+      #       branches:
+      #         only: master
