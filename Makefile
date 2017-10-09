@@ -36,9 +36,9 @@ fmt:
 vet:
 	go vet ./...
 
-test: ${BUILD_DIR} ${SHISA_TEST_PKGS}
+test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
 
-coverage/%: $(BUILD_DIR) $(COVERAGE_DIR)
-	cd $(TOP_DIR)/$(@F) && go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic
+coverage/%:
+	go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic github.com/percolate/shisa/$(@F)
 
 .PHONY: clean doc vet fmt test
