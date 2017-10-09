@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"context"
 )
 
 func printChildren(n *node, prefix string) {
@@ -25,7 +26,7 @@ func printChildren(n *node, prefix string) {
 var fakeHandlerValue string
 
 func fakeHandler(val string) HandlersChain {
-	return HandlersChain{func(c *Context) {
+	return HandlersChain{func(c *context.Context) {
 		fakeHandlerValue = val
 	}}
 }
