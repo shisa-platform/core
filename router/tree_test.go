@@ -5,11 +5,11 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
-	"context"
 )
 
 func printChildren(n *node, prefix string) {
