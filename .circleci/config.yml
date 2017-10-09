@@ -24,7 +24,7 @@ jobs:
 
   release:
     docker:
-      - image: prclt/cci-release:1.0.1
+      - image: prclt/cci-release:1.0.2
     steps:
       - checkout
       - deploy:
@@ -40,9 +40,9 @@ workflows:
     jobs:
       - mdl
       - build
-      # - release:
-      #     requires:
-      #       - build
-      #     filters:
-      #       branches:
-      #         only: master
+      - release:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
