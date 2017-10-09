@@ -24,16 +24,15 @@ jobs:
 
   release:
     docker:
-      - image: prclt/cci-release:1.0.0
+      - image: prclt/cci-release:1.0.2
     steps:
       - checkout
-      - attach_workspace:
-          at: /tmp/workspace
       - deploy:
           name: Deploy to GitHub Releases
+          environment:
+            GITHUB_TOKEN: ${GITHUB_OAUTH_TOKEN}
           command: |
-            artifacts=$(find /tmp/workspace/artifacts -type f 2>/dev/null)
-            ci-make-release $(cat VERSION.txt) ${artifacts}
+            ci-make-release $(cat VERSION.txt)
 
 workflows:
   version: 2
