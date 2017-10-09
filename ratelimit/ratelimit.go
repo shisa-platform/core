@@ -9,11 +9,13 @@ import (
 
 var limitRegex = regexp.MustCompile(`(\d+)/(d|h|m|s)`)
 
+// RateLimit encodes a maximum number of repititions allowed over a time interval.
 type RateLimit struct {
 	Limit  int
 	Period time.Duration
 }
 
+// FromString parses a rate limit string in the form of "<limit>/<duration>".
 func FromString(value string) (r RateLimit, err error) {
 	matches := limitRegex.FindAllStringSubmatch(value, 2)
 	if matches == nil || len(matches) == 0 || len(matches[0]) != 3 {

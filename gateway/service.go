@@ -1,15 +1,10 @@
 package gateway
 
-import (
-	log "github.com/percolate/shisa/log"
-)
-
 // xxx - need configuration object with setter helpers
 // gateway.New(name, configuration)
 
 type Service struct {
-	Name   string
-	logger log.Logger
+	Name string
 }
 
 func New(name string) *Service {
@@ -40,12 +35,6 @@ func (s *Service) openDependencies() error {
 }
 
 func (s *Service) openLogging() error {
-	logger, err := log.New(s.Name)
-	if err != nil {
-		return err
-	}
-	s.logger = logger
-
 	return nil
 }
 
