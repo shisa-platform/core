@@ -10,8 +10,6 @@ jobs:
 
     steps:
       - checkout
-      - run: ln -s ./ /usr/local/go/src/github.com/percolate/shisa
-      - run: ln -s ./ /go/src/github.com/percolate/shisa
       - run: make test
       - run: sbin/codecov
 
