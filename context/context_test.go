@@ -7,187 +7,39 @@ import (
 
 	"errors"
 	"github.com/percolate/shisa/context/contexttest"
-	"github.com/percolate/shisa/log/logtest"
 	"github.com/percolate/shisa/models/modelstest"
 	"github.com/stretchr/testify/assert"
 )
 
 var _ context.Context = &contexttest.FakeContext{}
 
-func getContextForLogging(requestID string, logger *logtest.FakeLogger) *Context {
+func makeContext(requestID string) *Context {
 	actor := &modelstest.FakeUser{}
 	parent := &contexttest.FakeContext{}
 
-	c := New(parent, requestID, actor, logger)
+	c := New(parent, requestID, actor)
 
 	return c
 }
 
 func getContextForParent(parent context.Context) *Context {
 	actor := &modelstest.FakeUser{}
-	logger := &logtest.FakeLogger{}
 
-	c := New(parent, "999999", actor, logger)
+	c := New(parent, "999999", actor)
 
 	return c
 }
 
 func TestNew(t *testing.T) {
 	actor := &modelstest.FakeUser{}
-	logger := &logtest.FakeLogger{}
 	parent := &contexttest.FakeContext{}
 	id := "555"
 
-	c := New(parent, id, actor, logger)
+	c := New(parent, id, actor)
 
 	assert.Equal(t, parent, c.Context)
 	assert.Equal(t, id, c.RequestID)
 	assert.Equal(t, actor, c.Actor)
-	assert.Equal(t, logger, c.Logger)
-}
-
-func TestInfo(t *testing.T) {
-	requestID := "555"
-	message := "Hello test"
-
-	logger := &logtest.FakeLogger{
-		InfoHook: func(requestID string, message string) {},
-	}
-
-	c := getContextForLogging(requestID, logger)
-
-	c.Info(message)
-
-	assert.Equal(t, len(logger.InfoCalls), 1)
-
-	invocation := logger.InfoCalls[0]
-
-	assert.Equal(t, invocation.Parameters.RequestID, requestID)
-	assert.Equal(t, invocation.Parameters.Message, message)
-}
-
-func TestInfof(t *testing.T) {
-	requestID := "555"
-	format := "Hello test %s"
-
-	// lol no generics
-	s := []string{"arg"}
-	args := make([]interface{}, len(s))
-	for i, v := range s {
-		args[i] = v
-	}
-
-	logger := &logtest.FakeLogger{
-		InfofHook: func(requestID string, format string, args ...interface{}) {},
-	}
-
-	c := getContextForLogging(requestID, logger)
-
-	c.Infof(format, args...)
-
-	assert.Equal(t, len(logger.InfofCalls), 1)
-
-	invocation := logger.InfofCalls[0]
-
-	assert.Equal(t, invocation.Parameters.RequestID, requestID)
-	assert.Equal(t, invocation.Parameters.Format, format)
-	assert.Equal(t, invocation.Parameters.Args, args)
-}
-
-func TestError(t *testing.T) {
-	requestID := "555"
-	message := "Hello test"
-
-	logger := &logtest.FakeLogger{
-		ErrorHook: func(requestID string, message string) {},
-	}
-
-	c := getContextForLogging(requestID, logger)
-
-	c.Error(message)
-
-	assert.Equal(t, len(logger.ErrorCalls), 1)
-
-	invocation := logger.ErrorCalls[0]
-
-	assert.Equal(t, invocation.Parameters.RequestID, requestID)
-	assert.Equal(t, invocation.Parameters.Message, message)
-}
-
-func TestErrorf(t *testing.T) {
-	requestID := "555"
-	format := "Hello test %s"
-
-	// lol no generics
-	s := []string{"arg"}
-	args := make([]interface{}, len(s))
-	for i, v := range s {
-		args[i] = v
-	}
-
-	logger := &logtest.FakeLogger{
-		ErrorfHook: func(requestID string, format string, args ...interface{}) {},
-	}
-
-	c := getContextForLogging(requestID, logger)
-
-	c.Errorf(format, args...)
-
-	assert.Equal(t, len(logger.ErrorfCalls), 1)
-
-	invocation := logger.ErrorfCalls[0]
-
-	assert.Equal(t, invocation.Parameters.RequestID, requestID)
-	assert.Equal(t, invocation.Parameters.Format, format)
-	assert.Equal(t, invocation.Parameters.Args, args)
-}
-
-func TestTrace(t *testing.T) {
-	requestID := "555"
-	message := "Hello test"
-
-	logger := &logtest.FakeLogger{
-		TraceHook: func(requestID string, message string) {},
-	}
-
-	c := getContextForLogging(requestID, logger)
-
-	c.Trace(message)
-
-	assert.Equal(t, len(logger.TraceCalls), 1)
-
-	invocation := logger.TraceCalls[0]
-
-	assert.Equal(t, invocation.Parameters.RequestID, requestID)
-	assert.Equal(t, invocation.Parameters.Message, message)
-}
-
-func TestTracef(t *testing.T) {
-	requestID := "555"
-	format := "Hello test %s"
-
-	// lol no generics
-	s := []string{"arg"}
-	args := make([]interface{}, len(s))
-	for i, v := range s {
-		args[i] = v
-	}
-
-	logger := &logtest.FakeLogger{
-		TracefHook: func(requestID string, format string, args ...interface{}) {},
-	}
-
-	c := getContextForLogging(requestID, logger)
-
-	c.Tracef(format, args...)
-
-	assert.Equal(t, len(logger.TracefCalls), 1)
-
-	invocation := logger.TracefCalls[0]
-
-	assert.Equal(t, invocation.Parameters.RequestID, requestID)
-	assert.Equal(t, invocation.Parameters.Format, format)
-	assert.Equal(t, invocation.Parameters.Args, args)
 }
 
 func TestDeadline(t *testing.T) {
@@ -258,12 +110,10 @@ func TestValueID(t *testing.T) {
 
 	idVal := c.Value(IDKey)
 	actorVal := c.Value(ActorKey)
-	loggerVal := c.Value(LoggerKey)
 	parentVal := c.Value(pkey)
 
 	assert.Equal(t, idVal, c.RequestID)
 	assert.Equal(t, actorVal, c.Actor)
-	assert.Equal(t, loggerVal, c.Logger)
 
 	assert.Equal(t, len(parent.ValueCalls), 1)
 	invocation := parent.ValueCalls[0]
