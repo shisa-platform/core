@@ -8,7 +8,12 @@ import (
 	"net/url"
 	"strings"
 	"unicode"
+
+	"context"
 )
+
+type HandlerFunc func(*context.Context)
+type HandlersChain []HandlerFunc
 
 // Param is a single URL parameter, consisting of a key and a value.
 type Param struct {
