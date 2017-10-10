@@ -11,6 +11,7 @@ jobs:
     steps:
       - checkout
       - run: make test
+      - run: sbin/codecov
 
   mdl:
     docker:
@@ -20,7 +21,7 @@ jobs:
       - run:
           name: Validate Markdown
           command: |
-            mdl $(find . -type f -name '*.md')
+            mdl $(find . -path ./vendor -prune -o -type f -name '*.md' -print)
 
   release:
     docker:

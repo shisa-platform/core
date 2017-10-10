@@ -12,6 +12,7 @@ const (
 	ActorKey = "ContextActorKey"
 )
 
+//go:generate charlatan -interfaces=Context -output=./contexttest/charlatancontext.go /usr/local/go/src/context/context.go
 type Context struct {
 	context.Context
 	RequestID string
