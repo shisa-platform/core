@@ -1,7 +1,7 @@
 # Shisa
 
-[![Circle CI](https://circleci.com/gh/percolate/api-gw.svg?style=svg&circle-token=)](https://circleci.com/gh/percolate/shisa)
-[![codecov.io](https://codecov.io/github/percolate/api-gw/coverage.svg?token=&branch=master)](https://codecov.io/github/percolate/shisa?branch=master)
+[![Circle CI](https://circleci.com/gh/percolate/shisa.svg?style=svg&circle-token=)](https://circleci.com/gh/percolate/shisa)
+[![codecov.io](https://codecov.io/github/percolate/shisa/coverage.svg?token=&branch=master)](https://codecov.io/github/percolate/shisa?branch=master)
 
 ## Overview
 
