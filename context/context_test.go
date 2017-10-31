@@ -118,5 +118,5 @@ func TestValueID(t *testing.T) {
 	assert.Equal(t, len(parent.ValueCalls), 1)
 	invocation := parent.ValueCalls[0]
 	assert.Equal(t, invocation.Parameters.Key, pkey)
-	assert.Equal(t, invocation.Results.Ret0, parentVal)
+	assert.Equal(t, invocation.Results.Ident3, parentVal)
 }
