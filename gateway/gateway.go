@@ -3,20 +3,27 @@ package gateway
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"expvar"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/percolate/shisa/server"
 )
 
 var (
-	stats := expvar.NewMap("gateway")
+	stats               = expvar.NewMap("gateway")
+	AlreadyStartedError = errors.New("Server already started, cannot register auxillary server.")
 )
 
 type Gateway struct {
 	Name             string        // The name of the Gateway for in logging
-	Addr             string        // TCP address to listen on, ":http" if empty
+	Address          string        // TCP address to listen on, ":http" if empty
 	Trace            bool          // Should trace-level logging be enabled?
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
@@ -66,49 +73,63 @@ type Gateway struct {
 	// automatically closed when the function returns.
 	// If TLSNextProto is not nil, HTTP/2 support is not enabled
 	// automatically.
-	TLSNextProto map[string]func(*Server, *tls.Conn, Handler)
+	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
 	// xxx - logger, factory?
-	base http.Server
+	base    http.Server
+	aux     []server.Server
+	started bool
+}
+
+func (s *Gateway) RegisterAuxillary(aux server.Server) error {
+	if s.started {
+		return AlreadyStartedError
+	}
+
+	s.aux = append(s.aux, aux)
+
+	return nil
 }
 
 func (s *Gateway) Serve() error {
-	s.init()
-
-	// xxx - log("starting gateway on %s", s.addrOrDefault())
-	err := base.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		return err
-	}
-
-	return nil
+	return s.serve(false)
 }
 
 func (s *Gateway) ServeTLS() error {
-	s.init()
+	return s.serve(true)
+}
 
-	// xxx - log("starting gateway on %s", s.addrOrDefault())
-	err := base.ListenAndServeTLS("", "")
-	if err != nil && err != http.ErrServerClosed {
-		return err
+func (s *Gateway) Shutdown() error {
+	// xxx - log("shutting down service...")
+	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
+	defer cancel()
+	err := s.base.Shutdown(ctx)
+
+	errs := make([]error, len(s.aux))
+	for i, aux := range s.aux {
+		errs[i] = aux.Shutdown(s.GracePeriod)
 	}
+	// xxx - gather all shutdown errors into a compound error
 
-	return nil
+	s.started = false
+	return err
 }
 
 func (s *Gateway) init() {
-	base.Addr = s.Addr
-	base.TLSConfig = s.TLSConfig
-	base.ReadTimeout = s.ReadTimeout
-	base.ReadHeaderTimeout = s.ReadHeaderTimeout
-	base.WriteTimeout = s.WriteTimeout
-	base.IdleTimeout = s.IdleTimeout
-	base.MaxHeaderBytes = s.MaxHeaderBytes
-	base.TLSNextProto = s.TLSNextProto
-	base.ConnState = connstate
+	s.started = true
+	stats = stats.Init()
+	s.base.Addr = s.Address
+	s.base.TLSConfig = s.TLSConfig
+	s.base.ReadTimeout = s.ReadTimeout
+	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
+	s.base.WriteTimeout = s.WriteTimeout
+	s.base.IdleTimeout = s.IdleTimeout
+	s.base.MaxHeaderBytes = s.MaxHeaderBytes
+	s.base.TLSNextProto = s.TLSNextProto
+	s.base.ConnState = connstate
 
 	if s.DisableKeepAlive {
-		base.SetKeepAlivesEnabled(false)
+		s.base.SetKeepAlivesEnabled(false)
 	}
 
 	if s.HandleInterrupt {
@@ -118,37 +139,58 @@ func (s *Gateway) init() {
 	}
 }
 
-func (s *Gateway) Shutdown() error {
-	// xxx - log("shutting down service...")
-	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
-	defer cancel()
-	return base.Shutdown(ctx)
+func (s *Gateway) serve(tls bool) (err error) {
+	s.init()
+
+	errs := make([]error, len(s.aux))
+	for i, aux := range s.aux {
+		go func() {
+			errs[i] = aux.Serve()
+		}()
+	}
+
+	for i, auxErr := range errs {
+		// xxx - make this a compound error of all sub-errors
+		if auxErr != nil {
+			err = fmt.Errorf("service %q failed to start: %v", s.aux[i].Name(), auxErr)
+			return
+		}
+	}
+
+	s.base.Handler = http.HandlerFunc(dummy)
+
+	// xxx - log("starting gateway on %s", s.addrOrDefault())
+	if tls {
+		err = s.base.ListenAndServeTLS("", "")
+	} else {
+		err = s.base.ListenAndServe()
+	}
+
+	if err == http.ErrServerClosed {
+		err = nil
+	}
+
+	return
 }
 
-func (s *Gateway) openDependencies() error {
-	// xxx - do something
-	// xxx - configure pingables for healthcheck, HealthcheckProvider? RegisterHealthcheck(name, Pinger)
-	// xxx - PingerAdapter struct {func() error} has Ping() method?
-	// Gateway{Name(), Ping()} -> RegisterHealthcheck(s.Name(), s.Ping()) ?
-	// xxx - Pinger{Ping()} are DownstreamProviders{Ping(), Close()}, harvested from pipeline participants
-
-	return nil
-}
-
-func connstate(con net.Conn, state ConnState) {
+func connstate(con net.Conn, state http.ConnState) {
 	switch state {
 	case http.StateNew:
 		stats.Add("total_connections", 1)
 		stats.Add("connected", 1)
 	case http.StateClosed, http.StateHijacked:
 		stats.Add("connected", -1)
-	}	
+	}
 }
 
-func (s *Service) handleInterrupt(interrupt chan os.Signal) {
+func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
 	select {
 	case <-interrupt:
 		// xxx - log("interrupt received!")
 		s.Shutdown()
 	}
+}
+
+func dummy(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("hello, world"))
 }
