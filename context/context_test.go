@@ -55,7 +55,7 @@ func TestDeadline(t *testing.T) {
 
 	d, y := c.Deadline()
 
-	assert.Equal(t, len(parent.DeadlineCalls), 1)
+	parent.AssertDeadlineCalledOnce(t)
 
 	assert.Equal(t, d, deadline)
 	assert.Equal(t, y, ok)
@@ -78,7 +78,7 @@ func TestDone(t *testing.T) {
 
 	result := <-c.Done()
 
-	assert.Equal(t, len(parent.DoneCalls), 1)
+	parent.AssertDoneCalledOnce(t)
 	assert.Equal(t, result, channelval)
 }
 
@@ -93,7 +93,7 @@ func TestErr(t *testing.T) {
 
 	result := c.Err()
 
-	assert.Equal(t, len(parent.ErrCalls), 1)
+	parent.AssertErrCalledOnce(t)
 	assert.Equal(t, result, err)
 }
 
@@ -115,8 +115,9 @@ func TestValueID(t *testing.T) {
 	assert.Equal(t, idVal, c.RequestID)
 	assert.Equal(t, actorVal, c.Actor)
 
-	assert.Equal(t, len(parent.ValueCalls), 1)
-	invocation := parent.ValueCalls[0]
-	assert.Equal(t, invocation.Parameters.Key, pkey)
-	assert.Equal(t, invocation.Results.Ret0, parentVal)
+	parent.AssertValueOnceCalledWith(t, pkey)
+
+	calledVal, found := parent.ValueResultsForCall(pkey)
+	assert.True(t, found)
+	assert.Equal(t, calledVal, parentVal)
 }
