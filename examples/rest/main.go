@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"expvar"
 	"flag"
+	"fmt"
 	"time"
 
 	"github.com/percolate/shisa/gateway"
@@ -27,10 +27,10 @@ func main() {
 	flag.Parse()
 
 	gw := &gateway.Gateway{
-		Name: "hello",
-		Address: fmt.Sprintf(":%d", *port),
+		Name:            "hello",
+		Address:         fmt.Sprintf(":%d", *port),
 		HandleInterrupt: true,
-		GracePeriod: 2 * time.Second,
+		GracePeriod:     2 * time.Second,
 	}
 	debug := &server.DebugServer{
 		Address: fmt.Sprintf(":%d", *debugPort),
