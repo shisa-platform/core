@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/percolate/shisa/server"
+	"go.uber.org/zap"
 )
 
 var (
@@ -75,7 +76,7 @@ type Gateway struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
-	// xxx - logger, factory?
+	Logger  *zap.Logger
 	base    http.Server
 	aux     []server.Server
 	started bool
@@ -100,7 +101,7 @@ func (s *Gateway) ServeTLS() error {
 }
 
 func (s *Gateway) Shutdown() error {
-	// xxx - log("shutting down service...")
+	s.Logger.Info("shutting down service...")
 	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
 	defer cancel()
 	err := s.base.Shutdown(ctx)
@@ -132,6 +133,10 @@ func (s *Gateway) init() {
 		s.base.SetKeepAlivesEnabled(false)
 	}
 
+	if s.Logger == nil {
+		s.Logger = zap.NewNop()
+	}
+
 	if s.HandleInterrupt {
 		interrupt := make(chan os.Signal, 1)
 		go s.handleInterrupt(interrupt)
@@ -159,7 +164,7 @@ func (s *Gateway) serve(tls bool) (err error) {
 
 	s.base.Handler = http.HandlerFunc(dummy)
 
-	// xxx - log("starting gateway on %s", s.addrOrDefault())
+	s.Logger.Info("starting gateway...")
 	if tls {
 		err = s.base.ListenAndServeTLS("", "")
 	} else {
@@ -186,7 +191,7 @@ func connstate(con net.Conn, state http.ConnState) {
 func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
 	select {
 	case <-interrupt:
-		// xxx - log("interrupt received!")
+		s.Logger.Info("interrupt received!")
 		s.Shutdown()
 	}
 }

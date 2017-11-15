@@ -8,6 +8,7 @@ import (
 
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/server"
+	"go.uber.org/zap"
 )
 
 const (
@@ -26,11 +27,14 @@ func main() {
 
 	flag.Parse()
 
+	logger, _ := zap.NewProduction()
+
 	gw := &gateway.Gateway{
 		Name:            "hello",
 		Address:         fmt.Sprintf(":%d", *port),
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
+		Logger: logger,
 	}
 	debug := &server.DebugServer{
 		Address: fmt.Sprintf(":%d", *debugPort),

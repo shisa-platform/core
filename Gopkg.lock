@@ -18,9 +18,27 @@
   packages = ["assert"]
   revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
 
+[[projects]]
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  revision = "54f72d32435d760d5604f17a82e2435b28dc4ba5"
+  version = "v1.3.0"
+
+[[projects]]
+  name = "go.uber.org/multierr"
+  packages = ["."]
+  revision = "3c4937480c32f4c13a875a1829af76c98ca3d40a"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "go.uber.org/zap"
+  packages = [".","buffer","internal/bufferpool","internal/color","internal/exit","zapcore"]
+  revision = "35aad584952c3e7020db7b839f6b102de6271f89"
+  version = "v1.7.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b9b438f715f4855c261f98d85b11d6846ee1c6346d5b3adb707df83a7d1aa910"
+  inputs-digest = "08dd6d7885e065498fbcd343b175e02116c2df931907af91ca14dba2784b95ff"
   solver-name = "gps-cdcl"
   solver-version = 1
