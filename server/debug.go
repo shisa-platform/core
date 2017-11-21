@@ -6,6 +6,9 @@ import (
 	"expvar"
 	"net/http"
 	"time"
+
+	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 )
 
 const (
@@ -67,6 +70,8 @@ type DebugServer struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
+	Logger *zap.Logger
+
 	base http.Server
 }
 
@@ -111,5 +116,5 @@ func (s *DebugServer) Serve() error {
 func (s *DebugServer) Shutdown(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return s.base.Shutdown(ctx)
+	return merry.Wrap(s.base.Shutdown(ctx))
 }

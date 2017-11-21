@@ -28,14 +28,16 @@ func main() {
 	flag.Parse()
 
 	logger, _ := zap.NewProduction()
+	defer logger.Sync()
 
 	gw := &gateway.Gateway{
 		Name:            "hello",
 		Address:         fmt.Sprintf(":%d", *port),
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
-		Logger: logger,
+		Logger:          logger,
 	}
+
 	debug := &server.DebugServer{
 		Address: fmt.Sprintf(":%d", *debugPort),
 	}
