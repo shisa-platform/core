@@ -1,8 +1,6 @@
-package handler
+package service
 
 import (
-	"net/http"
-
 	"github.com/percolate/shisa/context"
 )
 
@@ -10,9 +8,8 @@ import (
 // w.Header().Set("Content-Type", "text/plain")
 // w.Write([]byte("hello, world"))
 
-type Rules struct {
-}
+//go:generate charlatan -output=./handler_charlatan.go Handler
 
 type Handler interface {
-	Handle(context.Context, *http.Request) //responses.Responder
+	Handle(context.Context, *Request) Response
 }
