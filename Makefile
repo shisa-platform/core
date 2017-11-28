@@ -36,6 +36,9 @@ fmt:
 vet:
 	go vet ./...
 
+gen:
+	go generate ./...
+
 test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
 
 coverage/%:
