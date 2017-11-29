@@ -5,14 +5,18 @@ import (
 	"time"
 
 	"github.com/percolate/shisa/server"
+	"go.uber.org/zap"
 )
 
 func TestAuxillaryServer(t *testing.T) {
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
 		Name:        "test",
 		Address:     ":9001", // it's over 9000!
 		GracePeriod: expectedGracePeriod,
+		Logger:      logger,
 	}
 	fake := &server.FakeServer{
 		ServeHook: func() error {

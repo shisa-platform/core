@@ -183,19 +183,20 @@ func (s *Gateway) serve(tls bool) (err error) {
 	case err = <-ach:
 		if err == http.ErrServerClosed {
 			err = nil
-		} else {
+			return
+		} else if err != nil {
 			err = merry.Wrap(err)
 			s.Logger.Fatal("error in auxillary service", zap.Error(err))
+			return
 		}
-		return
-	case err = <-gch:
-		if err == http.ErrServerClosed {
-			err = nil
-		} else {
-			err = merry.Wrap(err)
-			s.Logger.Fatal("error in gateway service", zap.Error(err))
-		}
-		return
+	}
+
+	err = <-gch
+	if err == http.ErrServerClosed {
+		err = nil
+	} else if err != nil {
+		err = merry.Wrap(err)
+		s.Logger.Fatal("error in gateway service", zap.Error(err))
 	}
 	return
 }
