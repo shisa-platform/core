@@ -50,9 +50,9 @@ func (c *ctx) Value(key interface{}) interface{} {
 	if name, ok := key.(string); ok {
 		switch name {
 		case IDKey:
-			return c.RequestID
+			return c.requestID
 		case ActorKey:
-			return c.Actor
+			return c.actor
 		}
 	}
 

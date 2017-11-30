@@ -2,51 +2,43 @@ package context
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
-	"errors"
-	"github.com/percolate/shisa/context/contexttest"
-	"github.com/percolate/shisa/models/modelstest"
+	"github.com/percolate/shisa/models"
+
 	"github.com/stretchr/testify/assert"
 )
 
-var _ context.Context = &contexttest.FakeContext{}
+var _ context.Context = &FakeContext{}
+var _ Context = &FakeContext{}
 
-func makeContext(requestID string) *Context {
-	actor := &modelstest.FakeUser{}
-	parent := &contexttest.FakeContext{}
+var (
+	expectedUser      = &models.FakeUser{IDHook: func() string { return "123" }}
+	expectedRequestID = "999999"
+)
 
-	c := New(parent, requestID, actor)
-
-	return c
-}
-
-func getContextForParent(parent context.Context) *Context {
-	actor := &modelstest.FakeUser{}
-
-	c := New(parent, "999999", actor)
-
-	return c
+func getContextForParent(parent context.Context) Context {
+	return New(parent, expectedRequestID, expectedUser)
 }
 
 func TestNew(t *testing.T) {
-	actor := &modelstest.FakeUser{}
-	parent := &contexttest.FakeContext{}
+	actor := &models.FakeUser{}
+	parent := context.Background()
 	id := "555"
 
 	c := New(parent, id, actor)
 
-	assert.Equal(t, parent, c.Context)
-	assert.Equal(t, id, c.RequestID)
-	assert.Equal(t, actor, c.Actor)
+	assert.Equal(t, id, c.RequestID())
+	assert.Equal(t, actor, c.Actor())
 }
 
 func TestDeadline(t *testing.T) {
 	deadline := time.Time{}
 	ok := false
 
-	parent := &contexttest.FakeContext{
+	parent := &FakeContext{
 		DeadlineHook: func() (deadline time.Time, ok bool) {
 			return deadline, ok
 		},
@@ -59,12 +51,12 @@ func TestDeadline(t *testing.T) {
 
 	assert.Equal(t, d, deadline)
 	assert.Equal(t, y, ok)
-
 }
 
 func TestDone(t *testing.T) {
 	channelval := struct{}{}
-	parent := &contexttest.FakeContext{
+
+	parent := &FakeContext{
 		DoneHook: func() (ret0 <-chan struct{}) {
 			d := make(chan struct{})
 			go func() {
@@ -84,7 +76,8 @@ func TestDone(t *testing.T) {
 
 func TestErr(t *testing.T) {
 	err := errors.New("New Error")
-	parent := &contexttest.FakeContext{
+
+	parent := &FakeContext{
 		ErrHook: func() (ret0 error) {
 			return err
 		},
@@ -97,10 +90,11 @@ func TestErr(t *testing.T) {
 	assert.Equal(t, result, err)
 }
 
-func TestValueID(t *testing.T) {
+func TestValue(t *testing.T) {
 	pkey := "ParentKey"
 	pval := true
-	parent := &contexttest.FakeContext{
+
+	parent := &FakeContext{
 		ValueHook: func(key interface{}) (ret0 interface{}) {
 			return pval
 		},
@@ -112,10 +106,10 @@ func TestValueID(t *testing.T) {
 	actorVal := c.Value(ActorKey)
 	parentVal := c.Value(pkey)
 
-	assert.Equal(t, idVal, c.RequestID)
-	assert.Equal(t, actorVal, c.Actor)
+	assert.Equal(t, idVal, c.RequestID())
+	assert.Equal(t, actorVal, c.Actor())
 
-	parent.AssertValueOnceCalledWith(t, pkey)
+	parent.AssertValueCalledOnceWith(t, pkey)
 
 	calledVal, found := parent.ValueResultsForCall(pkey)
 	assert.True(t, found)
