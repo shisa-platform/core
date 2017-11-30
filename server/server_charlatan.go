@@ -60,7 +60,7 @@ Use it in your tests as in this example:
 	}
 
 Create anonymous function implementations for only those interface methods that
-should be called in the code under test.  This will force a painc if any
+should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeName.
 */
 type FakeServer struct {
@@ -80,19 +80,15 @@ func NewFakeServerDefaultPanic() *FakeServer {
 	return &FakeServer{
 		NameHook: func() (ident30 string) {
 			panic("Unexpected call to Server.Name")
-			return
 		},
 		AddrHook: func() (ident31 string) {
 			panic("Unexpected call to Server.Addr")
-			return
 		},
 		ServeHook: func() (ident32 error) {
 			panic("Unexpected call to Server.Serve")
-			return
 		},
 		ShutdownHook: func(time.Duration) (ident34 error) {
 			panic("Unexpected call to Server.Shutdown")
-			return
 		},
 	}
 }

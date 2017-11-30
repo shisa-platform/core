@@ -61,7 +61,7 @@ Use it in your tests as in this example:
 	}
 
 Create anonymous function implementations for only those interface methods that
-should be called in the code under test.  This will force a painc if any
+should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeStatusCode.
 */
 type FakeResponse struct {
@@ -81,19 +81,15 @@ func NewFakeResponseDefaultPanic() *FakeResponse {
 	return &FakeResponse{
 		StatusCodeHook: func() (ident90 int) {
 			panic("Unexpected call to Response.StatusCode")
-			return
 		},
 		HeaderHook: func() (ident91 http.Header) {
 			panic("Unexpected call to Response.Header")
-			return
 		},
 		TrailerHook: func() (ident92 http.Header) {
 			panic("Unexpected call to Response.Trailer")
-			return
 		},
 		SerializeHook: func(io.Writer) (ident94 error) {
 			panic("Unexpected call to Response.Serialize")
-			return
 		},
 	}
 }

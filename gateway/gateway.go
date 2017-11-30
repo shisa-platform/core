@@ -144,8 +144,9 @@ func (s *Gateway) serve(tls bool) (err error) {
 
 	errs := make([]error, len(s.aux))
 	for i, aux := range s.aux {
+		y, a := i, aux
 		go func() {
-			errs[i] = aux.Serve()
+			errs[y] = a.Serve()
 		}()
 	}
 

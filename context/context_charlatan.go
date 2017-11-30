@@ -77,7 +77,7 @@ Use it in your tests as in this example:
 	}
 
 Create anonymous function implementations for only those interface methods that
-should be called in the code under test.  This will force a painc if any
+should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeDeadline.
 */
 type FakeContext struct {
@@ -101,27 +101,21 @@ func NewFakeContextDefaultPanic() *FakeContext {
 	return &FakeContext{
 		DeadlineHook: func() (deadline time.Time, ok bool) {
 			panic("Unexpected call to Context.Deadline")
-			return
 		},
 		DoneHook: func() (ident1 <-chan struct{}) {
 			panic("Unexpected call to Context.Done")
-			return
 		},
 		ErrHook: func() (ident2 error) {
 			panic("Unexpected call to Context.Err")
-			return
 		},
 		ValueHook: func(interface{}) (ident3 interface{}) {
 			panic("Unexpected call to Context.Value")
-			return
 		},
 		RequestIDHook: func() (ident6 string) {
 			panic("Unexpected call to Context.RequestID")
-			return
 		},
 		ActorHook: func() (ident7 models.User) {
 			panic("Unexpected call to Context.Actor")
-			return
 		},
 	}
 }
