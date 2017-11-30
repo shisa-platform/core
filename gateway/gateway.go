@@ -94,11 +94,6 @@ func (s *Gateway) RegisterAuxillary(aux server.Server) error {
 }
 
 func (s *Gateway) Serve() (err error) {
-	defer func() {
-		if err != nil {
-			s.Logger.Fatal("fatal error serving gateway", zap.Error(err))
-		}
-	}()
 	err = s.serve(false)
 	return
 }
