@@ -4,7 +4,6 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/percolate/shisa/gateway"
@@ -38,7 +37,7 @@ func main() {
 		Address: fmt.Sprintf(":%d", *debugPort),
 	}
 
-	services := []Service{NewService()}
+	services := []service.Service{&HelloService{}}
 	if err := gw.Serve(services, debug); err != nil {
 		fmt.Printf("uh oh! %v", err)
 	}

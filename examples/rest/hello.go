@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/percolate/shisa/context"
@@ -11,22 +13,11 @@ type Greeting struct {
 	Message string `json:"greeting"`
 }
 
-type HelloService struct {
-	endpoints []Endpoint
+func (g Greeting) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("{\"greeting\": %q}", g.Message)), nil
 }
 
-func NewService() *HelloService {
-	s := &HelloService{
-		endpoints: []service.Endpoint{
-			service.Endpoint{
-				Method:  http.MethodGet,
-				Route:   "/greeting",
-				Handler: s.Greeting,
-			},
-		},
-	}
-
-	return s
+type HelloService struct {
 }
 
 func (s *HelloService) Name() string {
@@ -34,7 +25,14 @@ func (s *HelloService) Name() string {
 }
 
 func (s *HelloService) Endpoints() []service.Endpoint {
-	return s.endpoints
+	return []service.Endpoint{
+		service.Endpoint{
+			Method:  http.MethodGet,
+			Route:   "/greeting",
+			Handler: s.Greeting,
+		},
+	}
+
 }
 
 func (s *HelloService) Greeting(context.Context, *service.Request) service.Response {

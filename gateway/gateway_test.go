@@ -15,10 +15,8 @@ func TestAuxillaryServer(t *testing.T) {
 	dummyEndpoint := service.Endpoint{
 		Method: http.MethodGet,
 		Route: "/",
-		Handler: &service.FakeHandler{
-			HandleHook: func(context.Context, *service.Request) service.Response {
-				return service.NewOK(nil)
-			},
+		Handler: func(context.Context, *service.Request) service.Response {
+			return service.NewOK(nil)
 		},
 	}
 	gw := &Gateway{
