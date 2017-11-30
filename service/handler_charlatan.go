@@ -12,11 +12,11 @@ import (
 // HandleInvocation represents a single call of FakeHandler.Handle
 type HandleInvocation struct {
 	Parameters struct {
-		Ident1 context.Context
-		Ident2 *Request
+		Ident6 context.Context
+		Ident7 *Request
 	}
 	Results struct {
-		Ident3 Response
+		Ident8 Response
 	}
 }
 
@@ -28,7 +28,7 @@ Use it in your tests as in this example:
 
 	func TestWithHandler(t *testing.T) {
 		f := &service.FakeHandler{
-			HandleHook: func(ident1 context.Context, ident2 *Request) (ident3 Response) {
+			HandleHook: func(ident6 context.Context, ident7 *Request) (ident8 Response) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -53,7 +53,7 @@ type FakeHandler struct {
 // NewFakeHandlerDefaultPanic returns an instance of FakeHandler with all hooks configured to panic
 func NewFakeHandlerDefaultPanic() *FakeHandler {
 	return &FakeHandler{
-		HandleHook: func(context.Context, *Request) (ident3 Response) {
+		HandleHook: func(context.Context, *Request) (ident8 Response) {
 			panic("Unexpected call to Handler.Handle")
 			return
 		},
@@ -63,7 +63,7 @@ func NewFakeHandlerDefaultPanic() *FakeHandler {
 // NewFakeHandlerDefaultFatal returns an instance of FakeHandler with all hooks configured to call t.Fatal
 func NewFakeHandlerDefaultFatal(t *testing.T) *FakeHandler {
 	return &FakeHandler{
-		HandleHook: func(context.Context, *Request) (ident3 Response) {
+		HandleHook: func(context.Context, *Request) (ident8 Response) {
 			t.Fatal("Unexpected call to Handler.Handle")
 			return
 		},
@@ -73,22 +73,22 @@ func NewFakeHandlerDefaultFatal(t *testing.T) *FakeHandler {
 // NewFakeHandlerDefaultError returns an instance of FakeHandler with all hooks configured to call t.Error
 func NewFakeHandlerDefaultError(t *testing.T) *FakeHandler {
 	return &FakeHandler{
-		HandleHook: func(context.Context, *Request) (ident3 Response) {
+		HandleHook: func(context.Context, *Request) (ident8 Response) {
 			t.Error("Unexpected call to Handler.Handle")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeHandler) Handle(ident1 context.Context, ident2 *Request) (ident3 Response) {
+func (_f1 *FakeHandler) Handle(ident6 context.Context, ident7 *Request) (ident8 Response) {
 	invocation := new(HandleInvocation)
 
-	invocation.Parameters.Ident1 = ident1
-	invocation.Parameters.Ident2 = ident2
+	invocation.Parameters.Ident6 = ident6
+	invocation.Parameters.Ident7 = ident7
 
-	ident3 = _f1.HandleHook(ident1, ident2)
+	ident8 = _f1.HandleHook(ident6, ident7)
 
-	invocation.Results.Ident3 = ident3
+	invocation.Results.Ident8 = ident8
 
 	_f1.HandleCalls = append(_f1.HandleCalls, invocation)
 
@@ -148,9 +148,9 @@ func (f *FakeHandler) AssertHandleCalledN(t *testing.T, n int) {
 }
 
 // HandleCalledWith returns true if FakeHandler.Handle was called with the given values
-func (_f2 *FakeHandler) HandleCalledWith(ident1 context.Context, ident2 *Request) (found bool) {
+func (_f2 *FakeHandler) HandleCalledWith(ident6 context.Context, ident7 *Request) (found bool) {
 	for _, call := range _f2.HandleCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+		if reflect.DeepEqual(call.Parameters.Ident6, ident6) && reflect.DeepEqual(call.Parameters.Ident7, ident7) {
 			found = true
 			break
 		}
@@ -160,11 +160,11 @@ func (_f2 *FakeHandler) HandleCalledWith(ident1 context.Context, ident2 *Request
 }
 
 // AssertHandleCalledWith calls t.Error if FakeHandler.Handle was not called with the given values
-func (_f3 *FakeHandler) AssertHandleCalledWith(t *testing.T, ident1 context.Context, ident2 *Request) {
+func (_f3 *FakeHandler) AssertHandleCalledWith(t *testing.T, ident6 context.Context, ident7 *Request) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.HandleCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+		if reflect.DeepEqual(call.Parameters.Ident6, ident6) && reflect.DeepEqual(call.Parameters.Ident7, ident7) {
 			found = true
 			break
 		}
@@ -176,10 +176,10 @@ func (_f3 *FakeHandler) AssertHandleCalledWith(t *testing.T, ident1 context.Cont
 }
 
 // HandleCalledOnceWith returns true if FakeHandler.Handle was called exactly once with the given values
-func (_f4 *FakeHandler) HandleCalledOnceWith(ident1 context.Context, ident2 *Request) bool {
+func (_f4 *FakeHandler) HandleCalledOnceWith(ident6 context.Context, ident7 *Request) bool {
 	var count int
 	for _, call := range _f4.HandleCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+		if reflect.DeepEqual(call.Parameters.Ident6, ident6) && reflect.DeepEqual(call.Parameters.Ident7, ident7) {
 			count++
 		}
 	}
@@ -188,11 +188,11 @@ func (_f4 *FakeHandler) HandleCalledOnceWith(ident1 context.Context, ident2 *Req
 }
 
 // AssertHandleCalledOnceWith calls t.Error if FakeHandler.Handle was not called exactly once with the given values
-func (_f5 *FakeHandler) AssertHandleCalledOnceWith(t *testing.T, ident1 context.Context, ident2 *Request) {
+func (_f5 *FakeHandler) AssertHandleCalledOnceWith(t *testing.T, ident6 context.Context, ident7 *Request) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.HandleCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+		if reflect.DeepEqual(call.Parameters.Ident6, ident6) && reflect.DeepEqual(call.Parameters.Ident7, ident7) {
 			count++
 		}
 	}
@@ -203,10 +203,10 @@ func (_f5 *FakeHandler) AssertHandleCalledOnceWith(t *testing.T, ident1 context.
 }
 
 // HandleResultsForCall returns the result values for the first call to FakeHandler.Handle with the given values
-func (_f6 *FakeHandler) HandleResultsForCall(ident1 context.Context, ident2 *Request) (ident3 Response, found bool) {
+func (_f6 *FakeHandler) HandleResultsForCall(ident6 context.Context, ident7 *Request) (ident8 Response, found bool) {
 	for _, call := range _f6.HandleCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
-			ident3 = call.Results.Ident3
+		if reflect.DeepEqual(call.Parameters.Ident6, ident6) && reflect.DeepEqual(call.Parameters.Ident7, ident7) {
+			ident8 = call.Results.Ident8
 			found = true
 			break
 		}

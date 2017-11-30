@@ -9,14 +9,14 @@ import (
 // NameInvocation represents a single call of FakeService.Name
 type NameInvocation struct {
 	Results struct {
-		Ident9 string
+		Ident95 string
 	}
 }
 
 // EndpointsInvocation represents a single call of FakeService.Endpoints
 type EndpointsInvocation struct {
 	Results struct {
-		Ident10 []Endpoint
+		Ident96 []Endpoint
 	}
 }
 
@@ -28,7 +28,7 @@ Use it in your tests as in this example:
 
 	func TestWithService(t *testing.T) {
 		f := &service.FakeService{
-			NameHook: func() (ident9 string) {
+			NameHook: func() (ident95 string) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -55,11 +55,11 @@ type FakeService struct {
 // NewFakeServiceDefaultPanic returns an instance of FakeService with all hooks configured to panic
 func NewFakeServiceDefaultPanic() *FakeService {
 	return &FakeService{
-		NameHook: func() (ident9 string) {
+		NameHook: func() (ident95 string) {
 			panic("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident10 []Endpoint) {
+		EndpointsHook: func() (ident96 []Endpoint) {
 			panic("Unexpected call to Service.Endpoints")
 			return
 		},
@@ -69,11 +69,11 @@ func NewFakeServiceDefaultPanic() *FakeService {
 // NewFakeServiceDefaultFatal returns an instance of FakeService with all hooks configured to call t.Fatal
 func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 	return &FakeService{
-		NameHook: func() (ident9 string) {
+		NameHook: func() (ident95 string) {
 			t.Fatal("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident10 []Endpoint) {
+		EndpointsHook: func() (ident96 []Endpoint) {
 			t.Fatal("Unexpected call to Service.Endpoints")
 			return
 		},
@@ -83,23 +83,23 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 // NewFakeServiceDefaultError returns an instance of FakeService with all hooks configured to call t.Error
 func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 	return &FakeService{
-		NameHook: func() (ident9 string) {
+		NameHook: func() (ident95 string) {
 			t.Error("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident10 []Endpoint) {
+		EndpointsHook: func() (ident96 []Endpoint) {
 			t.Error("Unexpected call to Service.Endpoints")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeService) Name() (ident9 string) {
+func (_f1 *FakeService) Name() (ident95 string) {
 	invocation := new(NameInvocation)
 
-	ident9 = _f1.NameHook()
+	ident95 = _f1.NameHook()
 
-	invocation.Results.Ident9 = ident9
+	invocation.Results.Ident95 = ident95
 
 	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
@@ -158,12 +158,12 @@ func (f *FakeService) AssertNameCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeService) Endpoints() (ident10 []Endpoint) {
+func (_f2 *FakeService) Endpoints() (ident96 []Endpoint) {
 	invocation := new(EndpointsInvocation)
 
-	ident10 = _f2.EndpointsHook()
+	ident96 = _f2.EndpointsHook()
 
-	invocation.Results.Ident10 = ident10
+	invocation.Results.Ident96 = ident96
 
 	_f2.EndpointsCalls = append(_f2.EndpointsCalls, invocation)
 
