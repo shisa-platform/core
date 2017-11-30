@@ -161,37 +161,42 @@ func (s *Gateway) serve(tls bool) (err error) {
 	s.Logger.Info("starting gateway...", zap.String("addr", s.Address))
 
 	ach := make(chan error, len(s.aux))
+	gch := make(chan error, 1)
 	for _, aux := range s.aux {
 		go func() {
 			ach <- aux.Serve()
 		}()
 	}
 
-	select {
-	case err = <-ach:
-		if err == http.ErrServerClosed {
-			err = nil
-			return
-		} else if err != nil {
-			err = merry.Wrap(err)
-			s.Logger.Fatal("error in auxillary service", zap.Error(err))
+	go func() {
+		if tls {
+			gch <- s.base.ListenAndServeTLS("", "")
+		} else {
+			gch <- s.base.ListenAndServe()
+		}
+	}()
+
+	aerrs := make([]error, len(s.aux))
+	for {
+		select {
+		case aerr := <-ach:
+			if aerr == http.ErrServerClosed {
+				s.Logger.Info("auxillary service closed")
+			} else if err != nil {
+				s.Logger.Error("error in auxillary service", zap.Error(aerr))
+				aerrs = append(aerrs, merry.Wrap(aerr))
+			}
+		case gerr := <-gch:
+			err = multierr.Combine(aerrs...)
+			if gerr == http.ErrServerClosed {
+				s.Logger.Info("gateway service closed")
+			} else if err != nil {
+				s.Logger.Fatal("error in gateway service", zap.Error(gerr))
+				err = multierr.Append(err, merry.Wrap(gerr))
+			}
 			return
 		}
 	}
-
-	if tls {
-		err = s.base.ListenAndServeTLS("", "")
-	} else {
-		err = s.base.ListenAndServe()
-	}
-
-	if err == http.ErrServerClosed {
-		err = nil
-	} else if err != nil {
-		err = merry.Wrap(err)
-		s.Logger.Fatal("error in gateway service", zap.Error(err))
-	}
-	return
 }
 
 func connstate(con net.Conn, state http.ConnState) {
