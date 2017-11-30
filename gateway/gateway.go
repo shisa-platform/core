@@ -1,16 +1,10 @@
 package gateway
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
 	"expvar"
-	"fmt"
-	"net"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/percolate/shisa/server"
@@ -75,123 +69,7 @@ type Gateway struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
-	// xxx - logger, factory?
 	base    http.Server
 	aux     []server.Server
 	started bool
-}
-
-func (s *Gateway) RegisterAuxillary(aux server.Server) error {
-	if s.started {
-		return AlreadyStartedError
-	}
-
-	s.aux = append(s.aux, aux)
-
-	return nil
-}
-
-func (s *Gateway) Serve() error {
-	return s.serve(false)
-}
-
-func (s *Gateway) ServeTLS() error {
-	return s.serve(true)
-}
-
-func (s *Gateway) Shutdown() error {
-	// xxx - log("shutting down service...")
-	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
-	defer cancel()
-	err := s.base.Shutdown(ctx)
-
-	errs := make([]error, len(s.aux))
-	for i, aux := range s.aux {
-		errs[i] = aux.Shutdown(s.GracePeriod)
-	}
-	// xxx - gather all shutdown errors into a compound error
-
-	s.started = false
-	return err
-}
-
-func (s *Gateway) init() {
-	s.started = true
-	stats = stats.Init()
-	s.base.Addr = s.Address
-	s.base.TLSConfig = s.TLSConfig
-	s.base.ReadTimeout = s.ReadTimeout
-	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
-	s.base.WriteTimeout = s.WriteTimeout
-	s.base.IdleTimeout = s.IdleTimeout
-	s.base.MaxHeaderBytes = s.MaxHeaderBytes
-	s.base.TLSNextProto = s.TLSNextProto
-	s.base.ConnState = connstate
-
-	if s.DisableKeepAlive {
-		s.base.SetKeepAlivesEnabled(false)
-	}
-
-	if s.HandleInterrupt {
-		interrupt := make(chan os.Signal, 1)
-		go s.handleInterrupt(interrupt)
-		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	}
-}
-
-func (s *Gateway) serve(tls bool) (err error) {
-	s.init()
-
-	errs := make([]error, len(s.aux))
-	for i, aux := range s.aux {
-		y, a := i, aux
-		go func() {
-			errs[y] = a.Serve()
-		}()
-	}
-
-	for i, auxErr := range errs {
-		// xxx - make this a compound error of all sub-errors
-		if auxErr != nil {
-			err = fmt.Errorf("service %q failed to start: %v", s.aux[i].Name(), auxErr)
-			return
-		}
-	}
-
-	s.base.Handler = http.HandlerFunc(dummy)
-
-	// xxx - log("starting gateway on %s", s.addrOrDefault())
-	if tls {
-		err = s.base.ListenAndServeTLS("", "")
-	} else {
-		err = s.base.ListenAndServe()
-	}
-
-	if err == http.ErrServerClosed {
-		err = nil
-	}
-
-	return
-}
-
-func connstate(con net.Conn, state http.ConnState) {
-	switch state {
-	case http.StateNew:
-		stats.Add("total_connections", 1)
-		stats.Add("connected", 1)
-	case http.StateClosed, http.StateHijacked:
-		stats.Add("connected", -1)
-	}
-}
-
-func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
-	select {
-	case <-interrupt:
-		// xxx - log("interrupt received!")
-		s.Shutdown()
-	}
-}
-
-func dummy(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello, world"))
 }
