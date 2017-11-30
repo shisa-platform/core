@@ -110,6 +110,12 @@ func (s *DebugServer) Serve() error {
 		return s.base.ListenAndServeTLS("", "")
 	}
 
+	if s.Logger == nil {
+		s.Logger = zap.NewNop()
+	}
+
+	s.Logger.Info("starting debug server...", zap.String("addr", s.Address))
+
 	return s.base.ListenAndServe()
 }
 

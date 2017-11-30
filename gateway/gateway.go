@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"expvar"
 	"net"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 
 var (
 	stats               = expvar.NewMap("gateway")
-	AlreadyStartedError = merry.New("Server already started, cannot register auxillary server.")
+	AlreadyStartedError = errors.New("server already started, cannot register auxillary server.")
 )
 
 type Gateway struct {
@@ -103,28 +104,21 @@ func (s *Gateway) Serve() (err error) {
 }
 
 func (s *Gateway) ServeTLS() (err error) {
-	defer func() {
-		if err != nil {
-			s.Logger.Fatal("fatal error serving gateway", zap.Error(err))
-		}
-	}()
 	err = s.serve(true)
 	return
 }
 
 func (s *Gateway) Shutdown() error {
-	s.Logger.Info("shutting down service...")
+	s.Logger.Info("shutting down gateway...")
 	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
 	defer cancel()
 
 	err := merry.Wrap(s.base.Shutdown(ctx))
 
-	errs := make([]error, len(s.aux))
-	for i, aux := range s.aux {
-		errs[i] = merry.Wrap(aux.Shutdown(s.GracePeriod))
+	for _, aux := range s.aux {
+		e := multierr.Append(err, merry.Wrap(aux.Shutdown(s.GracePeriod)))
+		err = merry.Wrap(e)
 	}
-
-	err = merry.Wrap(multierr.Append(err, multierr.Combine(errs...)))
 
 	s.started = false
 	return err
@@ -152,31 +146,30 @@ func (s *Gateway) init() {
 		go s.handleInterrupt(interrupt)
 		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	}
-}
-
-func (s *Gateway) serve(tls bool) (err error) {
-	s.init()
 
 	if s.Logger == nil {
 		s.Logger = zap.NewNop()
-		defer s.Logger.Sync()
 	}
+}
+
+func (s *Gateway) serve(tls bool) (err error) {
+	defer func() {
+		if err != nil {
+			s.Logger.Fatal("fatal error serving gateway", zap.Error(err))
+		}
+	}()
+
+	s.init()
+	defer s.Logger.Sync()
+
+	s.base.Handler = http.HandlerFunc(dummy)
+	s.Logger.Info("starting gateway...", zap.String("addr", s.Address))
 
 	ach := make(chan error, len(s.aux))
-	gch := make(chan error, 1)
 	for _, aux := range s.aux {
 		go func() {
 			ach <- aux.Serve()
 		}()
-	}
-
-	s.base.Handler = http.HandlerFunc(dummy)
-
-	s.Logger.Info("starting gateway...")
-	if tls {
-		go func() { gch <- s.base.ListenAndServeTLS("", "") }()
-	} else {
-		go func() { gch <- s.base.ListenAndServe() }()
 	}
 
 	select {
@@ -191,7 +184,12 @@ func (s *Gateway) serve(tls bool) (err error) {
 		}
 	}
 
-	err = <-gch
+	if tls {
+		err = s.base.ListenAndServeTLS("", "")
+	} else {
+		err = s.base.ListenAndServe()
+	}
+
 	if err == http.ErrServerClosed {
 		err = nil
 	} else if err != nil {

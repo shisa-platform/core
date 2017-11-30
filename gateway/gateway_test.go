@@ -9,7 +9,10 @@ import (
 )
 
 func TestAuxillaryServer(t *testing.T) {
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		t.Errorf("unexpected logger error: %v", err)
+	}
 	defer logger.Sync()
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
@@ -33,7 +36,7 @@ func TestAuxillaryServer(t *testing.T) {
 
 	timer := time.AfterFunc(50*time.Millisecond, func() { gw.Shutdown() })
 	defer timer.Stop()
-	err := gw.Serve()
+	err = gw.Serve()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
