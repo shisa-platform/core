@@ -4,10 +4,12 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/server"
+	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -36,10 +38,8 @@ func main() {
 		Address: fmt.Sprintf(":%d", *debugPort),
 	}
 
-	gw.RegisterAuxillary(debug)
-
-	err := gw.Serve()
-	if err != nil {
+	services := []Service{NewService()}
+	if err := gw.Serve(services, debug); err != nil {
 		fmt.Printf("uh oh! %v", err)
 	}
 }
