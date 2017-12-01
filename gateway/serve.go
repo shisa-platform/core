@@ -12,7 +12,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-const (
+var (
 	supportedMethods = []string{
 		http.MethodGet,
 		http.MethodHead,
@@ -134,12 +134,16 @@ func (s *Gateway) installServices(services []service.Service) error {
 			}
 
 			s.Logger.Debug("adding endpoint", zap.String("method", endpoint.Method), zap.String("route", endpoint.Route))
-			s.trees.AddEndpoint(endpoint)
+			if err := s.trees.addEndpoint(&endpoint); err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
-func (s *Gateway) dispatch(w ResponseWriter, r *Request) {
+func (s *Gateway) dispatch(w http.ResponseWriter, r *http.Request) {
 
 }
 

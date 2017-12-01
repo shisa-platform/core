@@ -54,14 +54,14 @@ func newTreeSet() treeSet {
 	return make(treeSet, 0, 9)
 }
 
-func (s *treeSet) addEndpoint(endpoint service.Endpoint) error {
+func (s *treeSet) addEndpoint(endpoint *service.Endpoint) error {
 	root := s.get(endpoint.Method)
 	if root == nil {
 		root = new(node)
 		*s = append(*s, methodTree{method: endpoint.Method, root: root})
 	}
 
-	return root.addPath(endpoint.Route, endpoint)
+	return root.addRoute(endpoint.Route, endpoint)
 
 }
 
@@ -116,7 +116,7 @@ type node struct {
 }
 
 // addRoute adds a node with the given handle to the path. Not concurrency-safe!
-func (n *node) addRoute(path string, endpoint service.Endpoint) error {
+func (n *node) addRoute(path string, endpoint *service.Endpoint) error {
 	fullPath := path
 	n.priority++
 	numParams := countParams(path)
@@ -225,7 +225,7 @@ func (n *node) addRoute(path string, endpoint service.Endpoint) error {
 
 			} else if i == len(path) { // Make node a (in-path) leaf
 				if n.endpoint != nil {
-					merry.New("path handler conflict").WithUserMessagef("endpoint already registered for path %q", fullPath)
+					return merry.New("path handler conflict").WithUserMessagef("endpoint already registered for path %q", fullPath)
 				}
 				n.endpoint = endpoint
 			}
@@ -264,7 +264,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	return newPos
 }
 
-func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint service.Endpoint) error {
+func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint *service.Endpoint) error {
 	var offset int // already handled bytes of the path
 
 	// find prefix until first wildcard (beginning with ':'' or '*'')
@@ -371,13 +371,15 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 			}
 			n.children = []*node{child}
 
-			return
+			return nil
 		}
 	}
 
 	// insert remaining path part and handle to the leaf
 	n.path = path[offset:]
 	n.endpoint = endpoint
+
+	return nil
 }
 
 // getValue returns the handle registered with the given path (key). The values of
@@ -385,7 +387,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, po Params, unescape bool) (endpoint service.Endpoint, p Params, tsr bool, err error) {
+func (n *node) getValue(path string, po Params, unescape bool) (endpoint *service.Endpoint, p Params, tsr bool, err error) {
 	p = po
 walk: // Outer loop for walking the tree
 	for {
@@ -458,7 +460,7 @@ walk: // Outer loop for walking the tree
 						// No handle found. Check if a handle for this path + a
 						// trailing slash exists for TSR recommendation
 						n = n.children[0]
-						tsr = (n.path == "/" && n.endoint != nil)
+						tsr = (n.path == "/" && n.endpoint != nil)
 					}
 
 					return
@@ -583,34 +585,35 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 
 					// ... but we can't
 					if fixTrailingSlash && len(path) == k+1 {
-						return ciPath, true
+						return ciPath, true, nil
 					}
 					return
 				}
 
 				if n.endpoint != nil {
-					return ciPath, true
+					return ciPath, true, nil
 				} else if fixTrailingSlash && len(n.children) == 1 {
 					// No handle found. Check if a handle for this path + a
 					// trailing slash exists
 					n = n.children[0]
 					if n.path == "/" && n.endpoint != nil {
-						return append(ciPath, '/'), true
+						return append(ciPath, '/'), true, nil
 					}
 				}
 				return
 
 			case catchAll:
-				return append(ciPath, path...), true
+				return append(ciPath, path...), true, nil
 
 			default:
 				err = merry.New("internal error").WithUserMessage("internal error: invalid node type")
+				return
 			}
 		} else {
 			// We should have reached the node containing the handle.
 			// Check if this node has a handle registered.
 			if n.endpoint != nil {
-				return ciPath, true
+				return ciPath, true, nil
 			}
 
 			// No handle found.
@@ -621,7 +624,7 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 						n = n.children[i]
 						if (len(n.path) == 1 && n.endpoint != nil) ||
 							(n.nType == catchAll && n.children[0].endpoint != nil) {
-							return append(ciPath, '/'), true
+							return append(ciPath, '/'), true, nil
 						}
 						return
 					}
@@ -635,12 +638,12 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 	// Try to fix the path by adding / removing a trailing slash
 	if fixTrailingSlash {
 		if path == "/" {
-			return ciPath, true
+			return ciPath, true, nil
 		}
 		if len(path)+1 == len(n.path) && n.path[len(path)] == '/' &&
 			strings.ToLower(path) == strings.ToLower(n.path[:len(path)]) &&
 			n.endpoint != nil {
-			return append(ciPath, n.path...), true
+			return append(ciPath, n.path...), true, nil
 		}
 	}
 	return

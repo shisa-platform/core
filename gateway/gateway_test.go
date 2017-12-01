@@ -22,8 +22,10 @@ func TestAuxillaryServer(t *testing.T) {
 	dummyEndpoint := service.Endpoint{
 		Method: http.MethodGet,
 		Route:  "/",
-		Handler: func(context.Context, *service.Request) service.Response {
-			return service.NewOK(nil)
+		Pipeline: []service.Handler{
+			func(context.Context, *service.Request) service.Response {
+				return service.NewOK(nil)
+			},
 		},
 	}
 	gw := &Gateway{
