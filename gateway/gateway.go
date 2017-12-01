@@ -73,8 +73,8 @@ type Gateway struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
-	// Logger optionally specifieds the logger to use by the
-	// Gateway and all of its services.  Leave this as  nil to
+	// Logger optionally specifies the logger to use by the
+	// Gateway and all of its services.  Leave this as nil to
 	// disable all logging.
 	Logger *zap.Logger
 

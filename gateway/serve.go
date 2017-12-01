@@ -53,9 +53,9 @@ func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []serv
 
 	ach := make(chan error, len(s.auxiliaries))
 	for _, aux := range s.auxiliaries {
-		go func() {
-			ach <- aux.Serve()
-		}()
+		go func(server server.Server) {
+			ach <- server.Serve()
+		}(aux)
 	}
 
 	s.Logger.Info("starting gateway...", zap.String("addr", s.Address))
