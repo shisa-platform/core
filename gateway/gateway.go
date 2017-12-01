@@ -93,30 +93,27 @@ func (s *Gateway) RegisterAuxillary(aux server.Server) error {
 	return nil
 }
 
-func (s *Gateway) Serve() (err error) {
-	err = s.serve(false)
-	return
+func (s *Gateway) Serve() error {
+	return s.serve(false)
 }
 
-func (s *Gateway) ServeTLS() (err error) {
-	err = s.serve(true)
-	return
+func (s *Gateway) ServeTLS() error {
+	return s.serve(true)
 }
 
-func (s *Gateway) Shutdown() error {
+func (s *Gateway) Shutdown() (err error) {
 	s.Logger.Info("shutting down gateway...")
 	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
 	defer cancel()
 
-	err := merry.Wrap(s.base.Shutdown(ctx))
+	err = merry.Wrap(s.base.Shutdown(ctx))
 
 	for _, aux := range s.aux {
-		e := multierr.Append(err, merry.Wrap(aux.Shutdown(s.GracePeriod)))
-		err = merry.Wrap(e)
+		err = multierr.Append(err, merry.Wrap(aux.Shutdown(s.GracePeriod)))
 	}
 
 	s.started = false
-	return err
+	return
 }
 
 func (s *Gateway) init() {
