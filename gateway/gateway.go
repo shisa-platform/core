@@ -2,17 +2,21 @@ package gateway
 
 import (
 	"crypto/tls"
-	"errors"
 	"expvar"
+	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/server"
 )
 
 var (
-	stats               = expvar.NewMap("gateway")
-	AlreadyStartedError = errors.New("Server already started, cannot register auxillary server.")
+	stats = expvar.NewMap("gateway")
 )
 
 type Gateway struct {
@@ -69,7 +73,58 @@ type Gateway struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
-	base    http.Server
-	aux     []server.Server
-	started bool
+	// Logger optionally specifieds the logger to use by the
+	// Gateway and all of its services.  Leave this as  nil to
+	// disable all logging.
+	Logger *zap.Logger
+
+	base        http.Server
+	auxiliaries []server.Server
+	started     bool
+}
+
+func (s *Gateway) init() {
+	s.started = true
+	stats = stats.Init()
+	s.base.Addr = s.Address
+	s.base.TLSConfig = s.TLSConfig
+	s.base.ReadTimeout = s.ReadTimeout
+	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
+	s.base.WriteTimeout = s.WriteTimeout
+	s.base.IdleTimeout = s.IdleTimeout
+	s.base.MaxHeaderBytes = s.MaxHeaderBytes
+	s.base.TLSNextProto = s.TLSNextProto
+	s.base.ConnState = connstate
+
+	if s.DisableKeepAlive {
+		s.base.SetKeepAlivesEnabled(false)
+	}
+
+	if s.HandleInterrupt {
+		interrupt := make(chan os.Signal, 1)
+		go s.handleInterrupt(interrupt)
+		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+	}
+
+	if s.Logger == nil {
+		s.Logger = zap.NewNop()
+	}
+}
+
+func connstate(con net.Conn, state http.ConnState) {
+	switch state {
+	case http.StateNew:
+		stats.Add("total_connections", 1)
+		stats.Add("connected", 1)
+	case http.StateClosed, http.StateHijacked:
+		stats.Add("connected", -1)
+	}
+}
+
+func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
+	select {
+	case <-interrupt:
+		s.Logger.Info("interrupt received!")
+		s.Shutdown()
+	}
 }

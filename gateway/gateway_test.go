@@ -5,16 +5,23 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
 	"github.com/percolate/shisa/server"
+	"github.com/percolate/shisa/service"
 )
 
 func TestAuxillaryServer(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		t.Errorf("unexpected logger error: %v", err)
+	}
+	defer logger.Sync()
 	expectedGracePeriod := 2 * time.Second
 	dummyEndpoint := service.Endpoint{
 		Method: http.MethodGet,
-		Route: "/",
+		Route:  "/",
 		Handler: func(context.Context, *service.Request) service.Response {
 			return service.NewOK(nil)
 		},
@@ -23,6 +30,7 @@ func TestAuxillaryServer(t *testing.T) {
 		Name:        "test",
 		Address:     ":9001", // it's over 9000!
 		GracePeriod: expectedGracePeriod,
+		Logger:      logger,
 	}
 	svc := &service.FakeService{
 		NameHook: func() string {
@@ -46,8 +54,8 @@ func TestAuxillaryServer(t *testing.T) {
 
 	timer := time.AfterFunc(50*time.Millisecond, func() { gw.Shutdown() })
 	defer timer.Stop()
-	err := gw.Serve([]service.Service{svc}, aux)
-	if err != nil {
+
+	if err := gw.Serve([]service.Service{svc}, aux); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

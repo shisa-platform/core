@@ -6,6 +6,9 @@ import (
 	"expvar"
 	"net/http"
 	"time"
+
+	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 )
 
 const (
@@ -67,6 +70,8 @@ type DebugServer struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
+	Logger *zap.Logger
+
 	base http.Server
 }
 
@@ -105,11 +110,17 @@ func (s *DebugServer) Serve() error {
 		return s.base.ListenAndServeTLS("", "")
 	}
 
+	if s.Logger == nil {
+		s.Logger = zap.NewNop()
+	}
+
+	s.Logger.Info("starting debug server...", zap.String("addr", s.Address))
+
 	return s.base.ListenAndServe()
 }
 
 func (s *DebugServer) Shutdown(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return s.base.Shutdown(ctx)
+	return merry.Wrap(s.base.Shutdown(ctx))
 }
