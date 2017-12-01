@@ -8,6 +8,9 @@ import (
 
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/server"
+	"go.uber.org/zap"
+	"log"
+	"os"
 )
 
 const (
@@ -26,19 +29,30 @@ func main() {
 
 	flag.Parse()
 
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("error initializing zap logger: %v", err)
+		os.Exit(1)
+	}
+
+	defer logger.Sync()
+
 	gw := &gateway.Gateway{
 		Name:            "hello",
 		Address:         fmt.Sprintf(":%d", *port),
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
+		Logger:          logger,
 	}
+
 	debug := &server.DebugServer{
 		Address: fmt.Sprintf(":%d", *debugPort),
+		Logger:  logger,
 	}
 
 	gw.RegisterAuxillary(debug)
 
-	err := gw.Serve()
+	err = gw.Serve()
 	if err != nil {
 		fmt.Printf("uh oh! %v", err)
 	}
