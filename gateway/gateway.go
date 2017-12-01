@@ -80,6 +80,7 @@ type Gateway struct {
 
 	base        http.Server
 	auxiliaries []server.Server
+	trees       treeSet
 	started     bool
 }
 
@@ -109,6 +110,8 @@ func (s *Gateway) init() {
 	if s.Logger == nil {
 		s.Logger = zap.NewNop()
 	}
+
+	s.trees = newTreeSet()
 }
 
 func connstate(con net.Conn, state http.ConnState) {

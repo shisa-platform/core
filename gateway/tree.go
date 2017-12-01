@@ -2,18 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be found
 // at https://github.com/julienschmidt/httprouter/blob/master/LICENSE
 
-package router
+package gateway
 
 import (
 	"net/url"
 	"strings"
 	"unicode"
 
-	"context"
-)
+	"github.com/percolate/shisa/service"
 
-type HandlerFunc func(*context.Context)
-type HandlersChain []HandlerFunc
+	"github.com/ansel1/merry"
+)
 
 // Param is a single URL parameter, consisting of a key and a value.
 type Param struct {
@@ -49,9 +48,24 @@ type methodTree struct {
 	root   *node
 }
 
-type methodTrees []methodTree
+type treeSet []methodTree
 
-func (trees methodTrees) get(method string) *node {
+func newTreeSet() treeSet {
+	return make(treeSet, 0, 9)
+}
+
+func (s *treeSet) addEndpoint(endpoint service.Endpoint) error {
+	root := s.get(endpoint.Method)
+	if root == nil {
+		root = new(node)
+		*s = append(*s, methodTree{method: endpoint.Method, root: root})
+	}
+
+	return root.addPath(endpoint.Route, endpoint)
+
+}
+
+func (trees treeSet) get(method string) *node {
 	for _, tree := range trees {
 		if tree.method == method {
 			return tree.root
@@ -97,37 +111,12 @@ type node struct {
 	maxParams uint8
 	indices   string
 	children  []*node
-	handlers  HandlersChain
+	endpoint  *service.Endpoint
 	priority  uint32
 }
 
-// increments priority of the given child and reorders if necessary.
-func (n *node) incrementChildPrio(pos int) int {
-	n.children[pos].priority++
-	prio := n.children[pos].priority
-
-	// adjust position (move to front)
-	newPos := pos
-	for newPos > 0 && n.children[newPos-1].priority < prio {
-		// swap node positions
-		n.children[newPos-1], n.children[newPos] = n.children[newPos], n.children[newPos-1]
-
-		newPos--
-	}
-
-	// build new index char string
-	if newPos != pos {
-		n.indices = n.indices[:newPos] + // unchanged prefix, might be empty
-			n.indices[pos:pos+1] + // the index char we move
-			n.indices[newPos:pos] + n.indices[pos+1:] // rest without char at 'pos'
-	}
-
-	return newPos
-}
-
-// addRoute adds a node with the given handle to the path.
-// Not concurrency-safe!
-func (n *node) addRoute(path string, handlers HandlersChain) {
+// addRoute adds a node with the given handle to the path. Not concurrency-safe!
+func (n *node) addRoute(path string, endpoint service.Endpoint) error {
 	fullPath := path
 	n.priority++
 	numParams := countParams(path)
@@ -157,7 +146,7 @@ func (n *node) addRoute(path string, handlers HandlersChain) {
 					wildChild: n.wildChild,
 					indices:   n.indices,
 					children:  n.children,
-					handlers:  n.handlers,
+					endpoint:  n.endpoint,
 					priority:  n.priority - 1,
 				}
 
@@ -172,7 +161,7 @@ func (n *node) addRoute(path string, handlers HandlersChain) {
 				// []byte for proper unicode char conversion, see #65
 				n.indices = string([]byte{n.path[i]})
 				n.path = path[:i]
-				n.handlers = nil
+				n.endpoint = nil
 				n.wildChild = false
 			}
 
@@ -198,9 +187,9 @@ func (n *node) addRoute(path string, handlers HandlersChain) {
 						}
 					}
 
-					panic("path segment '" + path +
-						"' conflicts with existing wildcard '" + n.path +
-						"' in path '" + fullPath + "'")
+					return merry.New("path expression conflict").WithUserMessagef(
+						"path segment %q conflicts with existing wildcard %q in path %q",
+						path, n.path, fullPath)
 				}
 
 				c := path[0]
@@ -232,24 +221,50 @@ func (n *node) addRoute(path string, handlers HandlersChain) {
 					n.incrementChildPrio(len(n.indices) - 1)
 					n = child
 				}
-				n.insertChild(numParams, path, fullPath, handlers)
-				return
+				return n.insertChild(numParams, path, fullPath, endpoint)
 
 			} else if i == len(path) { // Make node a (in-path) leaf
-				if n.handlers != nil {
-					panic("handlers are already registered for path ''" + fullPath + "'")
+				if n.endpoint != nil {
+					merry.New("path handler conflict").WithUserMessagef("endpoint already registered for path %q", fullPath)
 				}
-				n.handlers = handlers
+				n.endpoint = endpoint
 			}
-			return
+			return nil
 		}
 	} else { // Empty tree
-		n.insertChild(numParams, path, fullPath, handlers)
+		err := n.insertChild(numParams, path, fullPath, endpoint)
 		n.nType = root
+		return err
 	}
+
+	return nil
 }
 
-func (n *node) insertChild(numParams uint8, path string, fullPath string, handlers HandlersChain) {
+// increments priority of the given child and reorders if necessary.
+func (n *node) incrementChildPrio(pos int) int {
+	n.children[pos].priority++
+	prio := n.children[pos].priority
+
+	// adjust position (move to front)
+	newPos := pos
+	for newPos > 0 && n.children[newPos-1].priority < prio {
+		// swap node positions
+		n.children[newPos-1], n.children[newPos] = n.children[newPos], n.children[newPos-1]
+
+		newPos--
+	}
+
+	// build new index char string
+	if newPos != pos {
+		n.indices = n.indices[:newPos] + // unchanged prefix, might be empty
+			n.indices[pos:pos+1] + // the index char we move
+			n.indices[newPos:pos] + n.indices[pos+1:] // rest without char at 'pos'
+	}
+
+	return newPos
+}
+
+func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint service.Endpoint) error {
 	var offset int // already handled bytes of the path
 
 	// find prefix until first wildcard (beginning with ':'' or '*'')
@@ -265,8 +280,8 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, handle
 			switch path[end] {
 			// the wildcard name must not contain ':' and '*'
 			case ':', '*':
-				panic("only one wildcard per path segment is allowed, has: '" +
-					path[i:] + "' in path '" + fullPath + "'")
+				return merry.New("path wildcard conflict").WithUserMessagef(
+					"only one wildcard per path segment is allowed, have: %q in path %q", path[i:], fullPath)
 			default:
 				end++
 			}
@@ -275,13 +290,14 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, handle
 		// check if this Node existing children which would be
 		// unreachable if we insert the wildcard here
 		if len(n.children) > 0 {
-			panic("wildcard route '" + path[i:end] +
-				"' conflicts with existing children in path '" + fullPath + "'")
+			return merry.New("path wildcard conflict").WithUserMessagef(
+				"wildcard route %q conflicts with existing children in path %q", path[i:end], fullPath)
 		}
 
 		// check if the wildcard has a name
 		if end-i < 2 {
-			panic("wildcards must be named with a non-empty name in path '" + fullPath + "'")
+			return merry.New("invalid path wildcard").WithUserMessagef(
+				"wildcards must be named with a non-empty name in path %q", fullPath)
 		}
 
 		if c == ':' { // param
@@ -317,17 +333,19 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, handle
 
 		} else { // catchAll
 			if end != max || numParams > 1 {
-				panic("catch-all routes are only allowed at the end of the path in path '" + fullPath + "'")
+				return merry.New("invalid path catch-all").WithUserMessagef(
+					"catch-all routes are only allowed at the end of the path in path %q", fullPath)
 			}
 
 			if len(n.path) > 0 && n.path[len(n.path)-1] == '/' {
-				panic("catch-all conflicts with existing handle for the path segment root in path '" + fullPath + "'")
+				return merry.New("catch-all conflict").WithUserMessagef(
+					"catch-all conflicts with existing handle for the path segment root in path %q", fullPath)
 			}
 
 			// currently fixed width 1 for '/'
 			i--
 			if path[i] != '/' {
-				panic("no / before catch-all in path '" + fullPath + "'")
+				return merry.New("invalid path catch-all").WithUserMessagef("no / before catch-all in path %q", fullPath)
 			}
 
 			n.path = path[offset:i]
@@ -348,7 +366,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, handle
 				path:      path[i:],
 				nType:     catchAll,
 				maxParams: 1,
-				handlers:  handlers,
+				endpoint:  endpoint,
 				priority:  1,
 			}
 			n.children = []*node{child}
@@ -359,7 +377,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, handle
 
 	// insert remaining path part and handle to the leaf
 	n.path = path[offset:]
-	n.handlers = handlers
+	n.endpoint = endpoint
 }
 
 // getValue returns the handle registered with the given path (key). The values of
@@ -367,7 +385,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, handle
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, po Params, unescape bool) (handlers HandlersChain, p Params, tsr bool) {
+func (n *node) getValue(path string, po Params, unescape bool) (endpoint service.Endpoint, p Params, tsr bool, err error) {
 	p = po
 walk: // Outer loop for walking the tree
 	for {
@@ -389,7 +407,7 @@ walk: // Outer loop for walking the tree
 					// Nothing found.
 					// We can recommend to redirect to the same URL without a
 					// trailing slash if a leaf exists for that path.
-					tsr = (path == "/" && n.handlers != nil)
+					tsr = (path == "/" && n.endpoint != nil)
 					return
 				}
 
@@ -433,14 +451,14 @@ walk: // Outer loop for walking the tree
 						return
 					}
 
-					if handlers = n.handlers; handlers != nil {
+					if endpoint = n.endpoint; endpoint != nil {
 						return
 					}
 					if len(n.children) == 1 {
 						// No handle found. Check if a handle for this path + a
 						// trailing slash exists for TSR recommendation
 						n = n.children[0]
-						tsr = (n.path == "/" && n.handlers != nil)
+						tsr = (n.path == "/" && n.endoint != nil)
 					}
 
 					return
@@ -462,17 +480,18 @@ walk: // Outer loop for walking the tree
 						p[i].Value = path
 					}
 
-					handlers = n.handlers
+					endpoint = n.endpoint
 					return
 
 				default:
-					panic("invalid node type")
+					err = merry.New("internal error").WithUserMessage("internal error: invalid node type")
+					return
 				}
 			}
 		} else if path == n.path {
 			// We should have reached the node containing the handle.
 			// Check if this node has a handle registered.
-			if handlers = n.handlers; handlers != nil {
+			if endpoint = n.endpoint; endpoint != nil {
 				return
 			}
 
@@ -486,8 +505,8 @@ walk: // Outer loop for walking the tree
 			for i := 0; i < len(n.indices); i++ {
 				if n.indices[i] == '/' {
 					n = n.children[i]
-					tsr = (len(n.path) == 1 && n.handlers != nil) ||
-						(n.nType == catchAll && n.children[0].handlers != nil)
+					tsr = (len(n.path) == 1 && n.endpoint != nil) ||
+						(n.nType == catchAll && n.children[0].endpoint != nil)
 					return
 				}
 			}
@@ -499,7 +518,7 @@ walk: // Outer loop for walking the tree
 		// extra trailing slash if a leaf exists for that path
 		tsr = (path == "/") ||
 			(len(n.path) == len(path)+1 && n.path[len(path)] == '/' &&
-				path == n.path[:len(n.path)-1] && n.handlers != nil)
+				path == n.path[:len(n.path)-1] && n.endpoint != nil)
 		return
 	}
 }
@@ -508,7 +527,7 @@ walk: // Outer loop for walking the tree
 // It can optionally also fix trailing slashes.
 // It returns the case-corrected path and a bool indicating whether the lookup
 // was successful.
-func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPath []byte, found bool) {
+func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPath []byte, found bool, err error) {
 	ciPath = make([]byte, 0, len(path)+1) // preallocate enough memory
 
 	// Outer loop for walking the tree
@@ -526,16 +545,19 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 					// must use recursive approach since both index and
 					// ToLower(index) could exist. We must check both.
 					if r == unicode.ToLower(index) {
-						out, found := n.children[i].findCaseInsensitivePath(path, fixTrailingSlash)
+						out, found, err := n.children[i].findCaseInsensitivePath(path, fixTrailingSlash)
+						if err != nil {
+							return nil, false, err
+						}
 						if found {
-							return append(ciPath, out...), true
+							return append(ciPath, out...), true, nil
 						}
 					}
 				}
 
 				// Nothing found. We can recommend to redirect to the same URL
 				// without a trailing slash if a leaf exists for that path
-				found = (fixTrailingSlash && path == "/" && n.handlers != nil)
+				found = (fixTrailingSlash && path == "/" && n.endpoint != nil)
 				return
 			}
 
@@ -566,13 +588,13 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 					return
 				}
 
-				if n.handlers != nil {
+				if n.endpoint != nil {
 					return ciPath, true
 				} else if fixTrailingSlash && len(n.children) == 1 {
 					// No handle found. Check if a handle for this path + a
 					// trailing slash exists
 					n = n.children[0]
-					if n.path == "/" && n.handlers != nil {
+					if n.path == "/" && n.endpoint != nil {
 						return append(ciPath, '/'), true
 					}
 				}
@@ -582,12 +604,12 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 				return append(ciPath, path...), true
 
 			default:
-				panic("invalid node type")
+				err = merry.New("internal error").WithUserMessage("internal error: invalid node type")
 			}
 		} else {
 			// We should have reached the node containing the handle.
 			// Check if this node has a handle registered.
-			if n.handlers != nil {
+			if n.endpoint != nil {
 				return ciPath, true
 			}
 
@@ -597,8 +619,8 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 				for i := 0; i < len(n.indices); i++ {
 					if n.indices[i] == '/' {
 						n = n.children[i]
-						if (len(n.path) == 1 && n.handlers != nil) ||
-							(n.nType == catchAll && n.children[0].handlers != nil) {
+						if (len(n.path) == 1 && n.endpoint != nil) ||
+							(n.nType == catchAll && n.children[0].endpoint != nil) {
 							return append(ciPath, '/'), true
 						}
 						return
@@ -617,7 +639,7 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 		}
 		if len(path)+1 == len(n.path) && n.path[len(path)] == '/' &&
 			strings.ToLower(path) == strings.ToLower(n.path[:len(path)]) &&
-			n.handlers != nil {
+			n.endpoint != nil {
 			return append(ciPath, n.path...), true
 		}
 	}
