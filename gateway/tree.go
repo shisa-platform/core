@@ -207,8 +207,6 @@ func (n *node) addRoute(path string, endpoint *service.Endpoint) error {
 		n.nType = root
 		return err
 	}
-
-	return nil
 }
 
 // increments priority of the given child and reorders if necessary.
