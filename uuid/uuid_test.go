@@ -13,8 +13,8 @@ func TestStringer(t *testing.T) {
 		t.Fatalf("Unexpected url string: %s", NamespaceURL.String())
 	}
 
-	if "d24eb514-1c92-5ac6-8d10-61569d14c180" != PercolateNS.String() {
-		t.Fatalf("Unexpected ns string: %s", PercolateNS.String())
+	if "e06bac7c-4f4b-5c54-a632-d48a16695027" != ShisaNS.String() {
+		t.Fatalf("Unexpected ns string: %s", ShisaNS.String())
 	}
 }
 

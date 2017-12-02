@@ -11,6 +11,7 @@ import (
 
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/server"
+	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -51,6 +52,6 @@ func main() {
 
 	services := []service.Service{&HelloService{}}
 	if err := gw.Serve(services, debug); err != nil {
-		log.Fatalf("gateway error: %v", err)
+		logger.Fatal("gateway error", zap.Error(err))
 	}
 }

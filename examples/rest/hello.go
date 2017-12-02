@@ -27,9 +27,13 @@ func (s *HelloService) Name() string {
 func (s *HelloService) Endpoints() []service.Endpoint {
 	return []service.Endpoint{
 		service.Endpoint{
-			Method:  http.MethodGet,
-			Route:   "/greeting",
-			Handler: s.Greeting,
+			Method:   http.MethodGet,
+			Route:    "/greeting",
+			Pipeline: []service.Handler{s.Greeting},
+			Policy: service.Policy{
+				RequestBudget:     time.Millisecond * 5,
+				GenerateRequestID: true,
+			},
 		},
 	}
 
