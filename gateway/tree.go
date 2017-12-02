@@ -14,35 +14,6 @@ import (
 	"github.com/ansel1/merry"
 )
 
-// Param is a single URL parameter, consisting of a key and a value.
-type Param struct {
-	Key   string
-	Value string
-}
-
-// Params is a Param-slice, as returned by the router.
-// The slice is ordered, the first URL parameter is also the first slice value.
-// It is therefore safe to read values by the index.
-type Params []Param
-
-// Get returns the value of the first Param which key matches the given name.
-// If no matching Param is found, an empty string is returned.
-func (ps Params) Get(name string) (string, bool) {
-	for _, entry := range ps {
-		if entry.Key == name {
-			return entry.Value, true
-		}
-	}
-	return "", false
-}
-
-// ByName returns the value of the first Param which key matches the given name.
-// If no matching Param is found, an empty string is returned.
-func (ps Params) ByName(name string) (va string) {
-	va, _ = ps.Get(name)
-	return
-}
-
 type methodTree struct {
 	method string
 	root   *node
@@ -387,8 +358,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, po Params, unescape bool) (endpoint *service.Endpoint, p Params, tsr bool, err error) {
-	p = po
+func (n *node) getValue(path string, unescape bool) (endpoint *service.Endpoint, p Params, tsr bool, err error) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {

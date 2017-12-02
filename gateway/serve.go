@@ -1,15 +1,20 @@
 package gateway
 
 import (
-	"context"
+	stdctx "context"
+	"crypto/rand"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/server"
 	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/uuid"
 )
 
 var (
@@ -36,7 +41,7 @@ func (s *Gateway) ServeTLS(services []service.Service, auxiliaries ...server.Ser
 
 func (s *Gateway) Shutdown() (err error) {
 	s.Logger.Info("shutting down gateway...")
-	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
+	ctx, cancel := stdctx.WithTimeout(stdctx.Background(), s.GracePeriod)
 	defer cancel()
 
 	err = merry.Wrap(s.base.Shutdown(ctx))
@@ -74,7 +79,7 @@ func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []serv
 
 	s.installServices(services)
 
-	s.base.Handler = http.HandlerFunc(s.dispatch)
+	s.base.Handler = s
 
 	s.Logger.Info("starting gateway...", zap.String("addr", s.Address))
 	gch := make(chan error, 1)
@@ -143,8 +148,74 @@ func (s *Gateway) installServices(services []service.Service) error {
 	return nil
 }
 
-func (s *Gateway) dispatch(w http.ResponseWriter, r *http.Request) {
+func (s *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
+	// xxx - escape path ?
+
+	method := r.Method
+	root := s.trees.get(method)
+	if root == nil {
+		// xxx - support custom method not allowed handler
+		s.Logger.Info("no tree for method", zap.String("method", method))
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	path := r.URL.Path
+	// xxx - use params
+	// xxx - handle tsr
+	endpoint, _, _, err := root.getValue(path, false)
+	if err != nil {
+		// xxx - be better
+		s.Logger.Error("internal error", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if endpoint == nil {
+		if method != http.MethodConnect && path != "/" {
+			// xxx - redirect?
+		}
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	requestID := ""
+	if endpoint.Policy.GenerateRequestID {
+		now := time.Now().UnixNano()
+		nonce := make([]byte, 3)
+		rand.Read(nonce)
+		clientAddr := GetClientIP(r)
+		name := fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)
+		requestID = uuid.New(uuid.ShisaNS, name).String()
+	}
+
+	request := &service.Request{Request: r}
+
+	parent := stdctx.Background()
+	if endpoint.Policy.RequestBudget != 0 {
+		// xxx - watch for timeout and kill pipeline, return
+		var cancel stdctx.CancelFunc
+		parent, cancel = stdctx.WithTimeout(parent, endpoint.Policy.RequestBudget)
+		defer cancel()
+	}
+
+	// xxx - fetch context from pool
+	ctx := context.New(parent)
+	ctx.SetRequestID(requestID)
+	response := endpoint.Pipeline[0](ctx, request)
+
+	for k, vs := range response.Header() {
+		w.Header()[k] = vs
+	}
+	if endpoint.Policy.GenerateRequestID {
+		w.Header().Add("X-Request-ID", requestID)
+	}
+	// xxx - write trailers
+
+	w.WriteHeader(response.StatusCode())
+	// xxx - handle error here
+	response.Serialize(w)
 }
 
 func isSupportedMethod(method string) bool {
