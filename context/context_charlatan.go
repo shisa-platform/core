@@ -49,10 +49,24 @@ type RequestIDInvocation struct {
 	}
 }
 
+// SetRequestIDInvocation represents a single call of FakeContext.SetRequestID
+type SetRequestIDInvocation struct {
+	Parameters struct {
+		V string
+	}
+}
+
 // ActorInvocation represents a single call of FakeContext.Actor
 type ActorInvocation struct {
 	Results struct {
 		Ident7 models.User
+	}
+}
+
+// SetActorInvocation represents a single call of FakeContext.SetActor
+type SetActorInvocation struct {
+	Parameters struct {
+		V models.User
 	}
 }
 
@@ -81,19 +95,23 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeDeadline.
 */
 type FakeContext struct {
-	DeadlineHook  func() (time.Time, bool)
-	DoneHook      func() <-chan struct{}
-	ErrHook       func() error
-	ValueHook     func(interface{}) interface{}
-	RequestIDHook func() string
-	ActorHook     func() models.User
+	DeadlineHook     func() (time.Time, bool)
+	DoneHook         func() <-chan struct{}
+	ErrHook          func() error
+	ValueHook        func(interface{}) interface{}
+	RequestIDHook    func() string
+	SetRequestIDHook func(string)
+	ActorHook        func() models.User
+	SetActorHook     func(models.User)
 
-	DeadlineCalls  []*DeadlineInvocation
-	DoneCalls      []*DoneInvocation
-	ErrCalls       []*ErrInvocation
-	ValueCalls     []*ValueInvocation
-	RequestIDCalls []*RequestIDInvocation
-	ActorCalls     []*ActorInvocation
+	DeadlineCalls     []*DeadlineInvocation
+	DoneCalls         []*DoneInvocation
+	ErrCalls          []*ErrInvocation
+	ValueCalls        []*ValueInvocation
+	RequestIDCalls    []*RequestIDInvocation
+	SetRequestIDCalls []*SetRequestIDInvocation
+	ActorCalls        []*ActorInvocation
+	SetActorCalls     []*SetActorInvocation
 }
 
 // NewFakeContextDefaultPanic returns an instance of FakeContext with all hooks configured to panic
@@ -114,8 +132,14 @@ func NewFakeContextDefaultPanic() *FakeContext {
 		RequestIDHook: func() (ident6 string) {
 			panic("Unexpected call to Context.RequestID")
 		},
+		SetRequestIDHook: func(string) {
+			panic("Unexpected call to Context.SetRequestID")
+		},
 		ActorHook: func() (ident7 models.User) {
 			panic("Unexpected call to Context.Actor")
+		},
+		SetActorHook: func(models.User) {
+			panic("Unexpected call to Context.SetActor")
 		},
 	}
 }
@@ -143,8 +167,16 @@ func NewFakeContextDefaultFatal(t *testing.T) *FakeContext {
 			t.Fatal("Unexpected call to Context.RequestID")
 			return
 		},
+		SetRequestIDHook: func(string) {
+			t.Fatal("Unexpected call to Context.SetRequestID")
+			return
+		},
 		ActorHook: func() (ident7 models.User) {
 			t.Fatal("Unexpected call to Context.Actor")
+			return
+		},
+		SetActorHook: func(models.User) {
+			t.Fatal("Unexpected call to Context.SetActor")
 			return
 		},
 	}
@@ -173,8 +205,16 @@ func NewFakeContextDefaultError(t *testing.T) *FakeContext {
 			t.Error("Unexpected call to Context.RequestID")
 			return
 		},
+		SetRequestIDHook: func(string) {
+			t.Error("Unexpected call to Context.SetRequestID")
+			return
+		},
 		ActorHook: func() (ident7 models.User) {
 			t.Error("Unexpected call to Context.Actor")
+			return
+		},
+		SetActorHook: func(models.User) {
+			t.Error("Unexpected call to Context.SetActor")
 			return
 		},
 	}
@@ -571,14 +611,133 @@ func (f *FakeContext) AssertRequestIDCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f11 *FakeContext) Actor() (ident7 models.User) {
+func (_f11 *FakeContext) SetRequestID(v string) {
+	invocation := new(SetRequestIDInvocation)
+
+	invocation.Parameters.V = v
+
+	_f11.SetRequestIDHook(v)
+
+	_f11.SetRequestIDCalls = append(_f11.SetRequestIDCalls, invocation)
+
+	return
+}
+
+// SetRequestIDCalled returns true if FakeContext.SetRequestID was called
+func (f *FakeContext) SetRequestIDCalled() bool {
+	return len(f.SetRequestIDCalls) != 0
+}
+
+// AssertSetRequestIDCalled calls t.Error if FakeContext.SetRequestID was not called
+func (f *FakeContext) AssertSetRequestIDCalled(t *testing.T) {
+	t.Helper()
+	if len(f.SetRequestIDCalls) == 0 {
+		t.Error("FakeContext.SetRequestID not called, expected at least one")
+	}
+}
+
+// SetRequestIDNotCalled returns true if FakeContext.SetRequestID was not called
+func (f *FakeContext) SetRequestIDNotCalled() bool {
+	return len(f.SetRequestIDCalls) == 0
+}
+
+// AssertSetRequestIDNotCalled calls t.Error if FakeContext.SetRequestID was called
+func (f *FakeContext) AssertSetRequestIDNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.SetRequestIDCalls) != 0 {
+		t.Error("FakeContext.SetRequestID called, expected none")
+	}
+}
+
+// SetRequestIDCalledOnce returns true if FakeContext.SetRequestID was called exactly once
+func (f *FakeContext) SetRequestIDCalledOnce() bool {
+	return len(f.SetRequestIDCalls) == 1
+}
+
+// AssertSetRequestIDCalledOnce calls t.Error if FakeContext.SetRequestID was not called exactly once
+func (f *FakeContext) AssertSetRequestIDCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.SetRequestIDCalls) != 1 {
+		t.Errorf("FakeContext.SetRequestID called %d times, expected 1", len(f.SetRequestIDCalls))
+	}
+}
+
+// SetRequestIDCalledN returns true if FakeContext.SetRequestID was called at least n times
+func (f *FakeContext) SetRequestIDCalledN(n int) bool {
+	return len(f.SetRequestIDCalls) >= n
+}
+
+// AssertSetRequestIDCalledN calls t.Error if FakeContext.SetRequestID was called less than n times
+func (f *FakeContext) AssertSetRequestIDCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.SetRequestIDCalls) < n {
+		t.Errorf("FakeContext.SetRequestID called %d times, expected >= %d", len(f.SetRequestIDCalls), n)
+	}
+}
+
+// SetRequestIDCalledWith returns true if FakeContext.SetRequestID was called with the given values
+func (_f12 *FakeContext) SetRequestIDCalledWith(v string) (found bool) {
+	for _, call := range _f12.SetRequestIDCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+// AssertSetRequestIDCalledWith calls t.Error if FakeContext.SetRequestID was not called with the given values
+func (_f13 *FakeContext) AssertSetRequestIDCalledWith(t *testing.T, v string) {
+	t.Helper()
+	var found bool
+	for _, call := range _f13.SetRequestIDCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("FakeContext.SetRequestID not called with expected parameters")
+	}
+}
+
+// SetRequestIDCalledOnceWith returns true if FakeContext.SetRequestID was called exactly once with the given values
+func (_f14 *FakeContext) SetRequestIDCalledOnceWith(v string) bool {
+	var count int
+	for _, call := range _f14.SetRequestIDCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			count++
+		}
+	}
+
+	return count == 1
+}
+
+// AssertSetRequestIDCalledOnceWith calls t.Error if FakeContext.SetRequestID was not called exactly once with the given values
+func (_f15 *FakeContext) AssertSetRequestIDCalledOnceWith(t *testing.T, v string) {
+	t.Helper()
+	var count int
+	for _, call := range _f15.SetRequestIDCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("FakeContext.SetRequestID called %d times with expected parameters, expected one", count)
+	}
+}
+
+func (_f16 *FakeContext) Actor() (ident7 models.User) {
 	invocation := new(ActorInvocation)
 
-	ident7 = _f11.ActorHook()
+	ident7 = _f16.ActorHook()
 
 	invocation.Results.Ident7 = ident7
 
-	_f11.ActorCalls = append(_f11.ActorCalls, invocation)
+	_f16.ActorCalls = append(_f16.ActorCalls, invocation)
 
 	return
 }
@@ -632,5 +791,124 @@ func (f *FakeContext) AssertActorCalledN(t *testing.T, n int) {
 	t.Helper()
 	if len(f.ActorCalls) < n {
 		t.Errorf("FakeContext.Actor called %d times, expected >= %d", len(f.ActorCalls), n)
+	}
+}
+
+func (_f17 *FakeContext) SetActor(v models.User) {
+	invocation := new(SetActorInvocation)
+
+	invocation.Parameters.V = v
+
+	_f17.SetActorHook(v)
+
+	_f17.SetActorCalls = append(_f17.SetActorCalls, invocation)
+
+	return
+}
+
+// SetActorCalled returns true if FakeContext.SetActor was called
+func (f *FakeContext) SetActorCalled() bool {
+	return len(f.SetActorCalls) != 0
+}
+
+// AssertSetActorCalled calls t.Error if FakeContext.SetActor was not called
+func (f *FakeContext) AssertSetActorCalled(t *testing.T) {
+	t.Helper()
+	if len(f.SetActorCalls) == 0 {
+		t.Error("FakeContext.SetActor not called, expected at least one")
+	}
+}
+
+// SetActorNotCalled returns true if FakeContext.SetActor was not called
+func (f *FakeContext) SetActorNotCalled() bool {
+	return len(f.SetActorCalls) == 0
+}
+
+// AssertSetActorNotCalled calls t.Error if FakeContext.SetActor was called
+func (f *FakeContext) AssertSetActorNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.SetActorCalls) != 0 {
+		t.Error("FakeContext.SetActor called, expected none")
+	}
+}
+
+// SetActorCalledOnce returns true if FakeContext.SetActor was called exactly once
+func (f *FakeContext) SetActorCalledOnce() bool {
+	return len(f.SetActorCalls) == 1
+}
+
+// AssertSetActorCalledOnce calls t.Error if FakeContext.SetActor was not called exactly once
+func (f *FakeContext) AssertSetActorCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.SetActorCalls) != 1 {
+		t.Errorf("FakeContext.SetActor called %d times, expected 1", len(f.SetActorCalls))
+	}
+}
+
+// SetActorCalledN returns true if FakeContext.SetActor was called at least n times
+func (f *FakeContext) SetActorCalledN(n int) bool {
+	return len(f.SetActorCalls) >= n
+}
+
+// AssertSetActorCalledN calls t.Error if FakeContext.SetActor was called less than n times
+func (f *FakeContext) AssertSetActorCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.SetActorCalls) < n {
+		t.Errorf("FakeContext.SetActor called %d times, expected >= %d", len(f.SetActorCalls), n)
+	}
+}
+
+// SetActorCalledWith returns true if FakeContext.SetActor was called with the given values
+func (_f18 *FakeContext) SetActorCalledWith(v models.User) (found bool) {
+	for _, call := range _f18.SetActorCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+// AssertSetActorCalledWith calls t.Error if FakeContext.SetActor was not called with the given values
+func (_f19 *FakeContext) AssertSetActorCalledWith(t *testing.T, v models.User) {
+	t.Helper()
+	var found bool
+	for _, call := range _f19.SetActorCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("FakeContext.SetActor not called with expected parameters")
+	}
+}
+
+// SetActorCalledOnceWith returns true if FakeContext.SetActor was called exactly once with the given values
+func (_f20 *FakeContext) SetActorCalledOnceWith(v models.User) bool {
+	var count int
+	for _, call := range _f20.SetActorCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			count++
+		}
+	}
+
+	return count == 1
+}
+
+// AssertSetActorCalledOnceWith calls t.Error if FakeContext.SetActor was not called exactly once with the given values
+func (_f21 *FakeContext) AssertSetActorCalledOnceWith(t *testing.T, v models.User) {
+	t.Helper()
+	var count int
+	for _, call := range _f21.SetActorCalls {
+		if reflect.DeepEqual(call.Parameters.V, v) {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("FakeContext.SetActor called %d times with expected parameters, expected one", count)
 	}
 }
