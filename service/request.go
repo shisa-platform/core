@@ -1,10 +1,15 @@
 package service
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
+
+	"github.com/percolate/shisa/uuid"
 )
 
 var (
@@ -74,4 +79,14 @@ func (r *Request) PathArgInt(name string) (int, error) {
 	}
 
 	return 0, ParameterNotPresented
+}
+
+func (r *Request) GenerateID() string {
+	now := time.Now().UnixNano()
+	nonce := make([]byte, 3)
+	rand.Read(nonce)
+	clientAddr := GetClientIP(r.Request)
+	name := fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)
+
+	return uuid.New(uuid.ShisaNS, name).String()
 }

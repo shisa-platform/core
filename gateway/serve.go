@@ -2,10 +2,7 @@ package gateway
 
 import (
 	stdctx "context"
-	"crypto/rand"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
@@ -14,7 +11,6 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/server"
 	"github.com/percolate/shisa/service"
-	"github.com/percolate/shisa/uuid"
 )
 
 var (
@@ -180,17 +176,12 @@ func (s *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	request := &service.Request{Request: r}
+
 	requestID := ""
 	if endpoint.Policy.GenerateRequestID {
-		now := time.Now().UnixNano()
-		nonce := make([]byte, 3)
-		rand.Read(nonce)
-		clientAddr := GetClientIP(r)
-		name := fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)
-		requestID = uuid.New(uuid.ShisaNS, name).String()
+		requestID = request.GenerateID()
 	}
-
-	request := &service.Request{Request: r}
 
 	parent := stdctx.Background()
 	if endpoint.Policy.RequestBudget != 0 {

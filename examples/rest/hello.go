@@ -43,6 +43,7 @@ func (s *HelloService) Greeting(context.Context, *service.Request) service.Respo
 	now := time.Now().UTC().Format(time.RFC1123)
 
 	response := service.NewOK(Greeting{"hello, world"})
+
 	response.Header().Set("Cache-Control", "private, max-age=0")
 	response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	response.Header().Set("Date", now)
