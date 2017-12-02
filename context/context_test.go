@@ -20,15 +20,19 @@ var (
 )
 
 func getContextForParent(parent context.Context) Context {
-	return New(parent, expectedRequestID, expectedUser)
+	c := New(parent)
+	c.SetRequestID(expectedRequestID)
+	c.SetActor(expectedUser)
+	return c
 }
 
 func TestNew(t *testing.T) {
 	actor := &models.FakeUser{}
-	parent := context.Background()
 	id := "555"
 
-	c := New(parent, id, actor)
+	c := New(context.Background())
+	c.SetRequestID(id)
+	c.SetActor(actor)
 
 	assert.Equal(t, id, c.RequestID())
 	assert.Equal(t, actor, c.Actor())

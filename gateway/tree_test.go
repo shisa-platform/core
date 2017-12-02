@@ -53,7 +53,7 @@ func checkRequests(t *testing.T, tree *node, requests testRequests, unescapes ..
 	}
 
 	for _, request := range requests {
-		endpoint, ps, _, err := tree.getValue(request.path, nil, unescape)
+		endpoint, ps, _, err := tree.getValue(request.path, unescape)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -456,7 +456,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/doc/",
 	}
 	for _, route := range tsrRoutes {
-		endpoint, _, tsr, err := tree.getValue(route, nil, false)
+		endpoint, _, tsr, err := tree.getValue(route, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -476,7 +476,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/api/world/abc",
 	}
 	for _, route := range noTsrRoutes {
-		endpoint, _, tsr, err := tree.getValue(route, nil, false)
+		endpoint, _, tsr, err := tree.getValue(route, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -495,7 +495,7 @@ func TestTreeRootTrailingSlashRedirect(t *testing.T) {
 		t.Fatalf("unexpected error inserting test route: %v", err)
 	}
 
-	endpoint, _, tsr, err := tree.getValue("/", nil, false)
+	endpoint, _, tsr, err := tree.getValue("/", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -661,7 +661,7 @@ func TestTreeInvalidNodeType(t *testing.T) {
 	tree.children[0].nType = 42
 
 	// normal lookup
-	if _, _, _, err := tree.getValue("/test", nil, false); err == nil {
+	if _, _, _, err := tree.getValue("/test", false); err == nil {
 		t.Fatalf("expected error")
 	}
 

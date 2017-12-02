@@ -17,7 +17,9 @@ const (
 type Context interface {
 	context.Context
 	RequestID() string
+	SetRequestID(v string)
 	Actor() models.User
+	SetActor(v models.User)
 }
 
 type ctx struct {
@@ -26,12 +28,8 @@ type ctx struct {
 	actor     models.User
 }
 
-func New(parent context.Context, id string, actor models.User) Context {
-	return &ctx{
-		Context:   parent,
-		requestID: id,
-		actor:     actor,
-	}
+func New(parent context.Context) Context {
+	return &ctx{Context: parent}
 }
 
 func (c *ctx) Deadline() (deadline time.Time, ok bool) {
@@ -63,6 +61,14 @@ func (c *ctx) RequestID() string {
 	return c.requestID
 }
 
+func (c *ctx) SetRequestID(v string) {
+	c.requestID = v
+}
+
 func (c *ctx) Actor() models.User {
 	return c.actor
+}
+
+func (c *ctx) SetActor(v models.User) {
+	c.actor = v
 }
