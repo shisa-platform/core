@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/percolate/shisa/auxillary"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/server"
 	"github.com/percolate/shisa/service"
 )
 
@@ -42,7 +42,7 @@ func TestAuxillaryServer(t *testing.T) {
 			return []service.Endpoint{dummyEndpoint}
 		},
 	}
-	aux := &server.FakeServer{
+	aux := &auxillary.FakeServer{
 		ServeHook: func() error {
 			return nil
 		},

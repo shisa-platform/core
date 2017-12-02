@@ -9,8 +9,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/percolate/shisa/auxillary"
 	"github.com/percolate/shisa/gateway"
-	"github.com/percolate/shisa/server"
 	"github.com/percolate/shisa/service"
 )
 
@@ -45,7 +45,7 @@ func main() {
 		Logger:          logger,
 	}
 
-	debug := &server.DebugServer{
+	debug := &auxillary.DebugServer{
 		Address: fmt.Sprintf(":%d", *debugPort),
 		Logger:  logger,
 	}

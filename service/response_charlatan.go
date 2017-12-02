@@ -12,31 +12,31 @@ import (
 // StatusCodeInvocation represents a single call of FakeResponse.StatusCode
 type StatusCodeInvocation struct {
 	Results struct {
-		Ident54 int
+		Ident59 int
 	}
 }
 
 // HeaderInvocation represents a single call of FakeResponse.Header
 type HeaderInvocation struct {
 	Results struct {
-		Ident55 http.Header
+		Ident60 http.Header
 	}
 }
 
 // TrailerInvocation represents a single call of FakeResponse.Trailer
 type TrailerInvocation struct {
 	Results struct {
-		Ident56 http.Header
+		Ident61 http.Header
 	}
 }
 
 // SerializeInvocation represents a single call of FakeResponse.Serialize
 type SerializeInvocation struct {
 	Parameters struct {
-		Ident57 io.Writer
+		Ident62 io.Writer
 	}
 	Results struct {
-		Ident58 error
+		Ident63 error
 	}
 }
 
@@ -48,7 +48,7 @@ Use it in your tests as in this example:
 
 	func TestWithResponse(t *testing.T) {
 		f := &service.FakeResponse{
-			StatusCodeHook: func() (ident54 int) {
+			StatusCodeHook: func() (ident59 int) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -79,16 +79,16 @@ type FakeResponse struct {
 // NewFakeResponseDefaultPanic returns an instance of FakeResponse with all hooks configured to panic
 func NewFakeResponseDefaultPanic() *FakeResponse {
 	return &FakeResponse{
-		StatusCodeHook: func() (ident54 int) {
+		StatusCodeHook: func() (ident59 int) {
 			panic("Unexpected call to Response.StatusCode")
 		},
-		HeaderHook: func() (ident55 http.Header) {
+		HeaderHook: func() (ident60 http.Header) {
 			panic("Unexpected call to Response.Header")
 		},
-		TrailerHook: func() (ident56 http.Header) {
+		TrailerHook: func() (ident61 http.Header) {
 			panic("Unexpected call to Response.Trailer")
 		},
-		SerializeHook: func(io.Writer) (ident58 error) {
+		SerializeHook: func(io.Writer) (ident63 error) {
 			panic("Unexpected call to Response.Serialize")
 		},
 	}
@@ -97,19 +97,19 @@ func NewFakeResponseDefaultPanic() *FakeResponse {
 // NewFakeResponseDefaultFatal returns an instance of FakeResponse with all hooks configured to call t.Fatal
 func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
 	return &FakeResponse{
-		StatusCodeHook: func() (ident54 int) {
+		StatusCodeHook: func() (ident59 int) {
 			t.Fatal("Unexpected call to Response.StatusCode")
 			return
 		},
-		HeaderHook: func() (ident55 http.Header) {
+		HeaderHook: func() (ident60 http.Header) {
 			t.Fatal("Unexpected call to Response.Header")
 			return
 		},
-		TrailerHook: func() (ident56 http.Header) {
+		TrailerHook: func() (ident61 http.Header) {
 			t.Fatal("Unexpected call to Response.Trailer")
 			return
 		},
-		SerializeHook: func(io.Writer) (ident58 error) {
+		SerializeHook: func(io.Writer) (ident63 error) {
 			t.Fatal("Unexpected call to Response.Serialize")
 			return
 		},
@@ -119,31 +119,31 @@ func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
 // NewFakeResponseDefaultError returns an instance of FakeResponse with all hooks configured to call t.Error
 func NewFakeResponseDefaultError(t *testing.T) *FakeResponse {
 	return &FakeResponse{
-		StatusCodeHook: func() (ident54 int) {
+		StatusCodeHook: func() (ident59 int) {
 			t.Error("Unexpected call to Response.StatusCode")
 			return
 		},
-		HeaderHook: func() (ident55 http.Header) {
+		HeaderHook: func() (ident60 http.Header) {
 			t.Error("Unexpected call to Response.Header")
 			return
 		},
-		TrailerHook: func() (ident56 http.Header) {
+		TrailerHook: func() (ident61 http.Header) {
 			t.Error("Unexpected call to Response.Trailer")
 			return
 		},
-		SerializeHook: func(io.Writer) (ident58 error) {
+		SerializeHook: func(io.Writer) (ident63 error) {
 			t.Error("Unexpected call to Response.Serialize")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeResponse) StatusCode() (ident54 int) {
+func (_f1 *FakeResponse) StatusCode() (ident59 int) {
 	invocation := new(StatusCodeInvocation)
 
-	ident54 = _f1.StatusCodeHook()
+	ident59 = _f1.StatusCodeHook()
 
-	invocation.Results.Ident54 = ident54
+	invocation.Results.Ident59 = ident59
 
 	_f1.StatusCodeCalls = append(_f1.StatusCodeCalls, invocation)
 
@@ -202,12 +202,12 @@ func (f *FakeResponse) AssertStatusCodeCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeResponse) Header() (ident55 http.Header) {
+func (_f2 *FakeResponse) Header() (ident60 http.Header) {
 	invocation := new(HeaderInvocation)
 
-	ident55 = _f2.HeaderHook()
+	ident60 = _f2.HeaderHook()
 
-	invocation.Results.Ident55 = ident55
+	invocation.Results.Ident60 = ident60
 
 	_f2.HeaderCalls = append(_f2.HeaderCalls, invocation)
 
@@ -266,12 +266,12 @@ func (f *FakeResponse) AssertHeaderCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f3 *FakeResponse) Trailer() (ident56 http.Header) {
+func (_f3 *FakeResponse) Trailer() (ident61 http.Header) {
 	invocation := new(TrailerInvocation)
 
-	ident56 = _f3.TrailerHook()
+	ident61 = _f3.TrailerHook()
 
-	invocation.Results.Ident56 = ident56
+	invocation.Results.Ident61 = ident61
 
 	_f3.TrailerCalls = append(_f3.TrailerCalls, invocation)
 
@@ -330,14 +330,14 @@ func (f *FakeResponse) AssertTrailerCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f4 *FakeResponse) Serialize(ident57 io.Writer) (ident58 error) {
+func (_f4 *FakeResponse) Serialize(ident62 io.Writer) (ident63 error) {
 	invocation := new(SerializeInvocation)
 
-	invocation.Parameters.Ident57 = ident57
+	invocation.Parameters.Ident62 = ident62
 
-	ident58 = _f4.SerializeHook(ident57)
+	ident63 = _f4.SerializeHook(ident62)
 
-	invocation.Results.Ident58 = ident58
+	invocation.Results.Ident63 = ident63
 
 	_f4.SerializeCalls = append(_f4.SerializeCalls, invocation)
 
@@ -397,9 +397,9 @@ func (f *FakeResponse) AssertSerializeCalledN(t *testing.T, n int) {
 }
 
 // SerializeCalledWith returns true if FakeResponse.Serialize was called with the given values
-func (_f5 *FakeResponse) SerializeCalledWith(ident57 io.Writer) (found bool) {
+func (_f5 *FakeResponse) SerializeCalledWith(ident62 io.Writer) (found bool) {
 	for _, call := range _f5.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident57, ident57) {
+		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
 			found = true
 			break
 		}
@@ -409,11 +409,11 @@ func (_f5 *FakeResponse) SerializeCalledWith(ident57 io.Writer) (found bool) {
 }
 
 // AssertSerializeCalledWith calls t.Error if FakeResponse.Serialize was not called with the given values
-func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident57 io.Writer) {
+func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident62 io.Writer) {
 	t.Helper()
 	var found bool
 	for _, call := range _f6.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident57, ident57) {
+		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
 			found = true
 			break
 		}
@@ -425,10 +425,10 @@ func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident57 io.Writ
 }
 
 // SerializeCalledOnceWith returns true if FakeResponse.Serialize was called exactly once with the given values
-func (_f7 *FakeResponse) SerializeCalledOnceWith(ident57 io.Writer) bool {
+func (_f7 *FakeResponse) SerializeCalledOnceWith(ident62 io.Writer) bool {
 	var count int
 	for _, call := range _f7.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident57, ident57) {
+		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
 			count++
 		}
 	}
@@ -437,11 +437,11 @@ func (_f7 *FakeResponse) SerializeCalledOnceWith(ident57 io.Writer) bool {
 }
 
 // AssertSerializeCalledOnceWith calls t.Error if FakeResponse.Serialize was not called exactly once with the given values
-func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident57 io.Writer) {
+func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident62 io.Writer) {
 	t.Helper()
 	var count int
 	for _, call := range _f8.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident57, ident57) {
+		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
 			count++
 		}
 	}
@@ -452,10 +452,10 @@ func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident57 io.
 }
 
 // SerializeResultsForCall returns the result values for the first call to FakeResponse.Serialize with the given values
-func (_f9 *FakeResponse) SerializeResultsForCall(ident57 io.Writer) (ident58 error, found bool) {
+func (_f9 *FakeResponse) SerializeResultsForCall(ident62 io.Writer) (ident63 error, found bool) {
 	for _, call := range _f9.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident57, ident57) {
-			ident58 = call.Results.Ident58
+		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
+			ident63 = call.Results.Ident63
 			found = true
 			break
 		}

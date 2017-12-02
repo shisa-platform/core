@@ -8,8 +8,8 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
+	"github.com/percolate/shisa/auxillary"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/server"
 	"github.com/percolate/shisa/service"
 )
 
@@ -27,11 +27,11 @@ var (
 	}
 )
 
-func (s *Gateway) Serve(services []service.Service, auxiliaries ...server.Server) error {
+func (s *Gateway) Serve(services []service.Service, auxiliaries ...auxillary.Server) error {
 	return s.serve(false, services, auxiliaries)
 }
 
-func (s *Gateway) ServeTLS(services []service.Service, auxiliaries ...server.Server) error {
+func (s *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxillary.Server) error {
 	return s.serve(true, services, auxiliaries)
 }
 
@@ -50,7 +50,7 @@ func (s *Gateway) Shutdown() (err error) {
 	return
 }
 
-func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []server.Server) (err error) {
+func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxillary.Server) (err error) {
 	if len(services) == 0 {
 		return merry.New("services must not be empty")
 	}
@@ -68,7 +68,7 @@ func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []serv
 
 	ach := make(chan error, len(s.auxiliaries))
 	for _, aux := range s.auxiliaries {
-		go func(server server.Server) {
+		go func(server auxillary.Server) {
 			ach <- server.Serve()
 		}(aux)
 	}
