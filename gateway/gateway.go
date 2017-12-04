@@ -1,9 +1,7 @@
 package gateway
 
 import (
-	"context"
 	"crypto/tls"
-	"errors"
 	"expvar"
 	"net"
 	"net/http"
@@ -12,15 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ansel1/merry"
-	"github.com/percolate/shisa/server"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
+
+	"github.com/percolate/shisa/auxillary"
 )
 
 var (
-	stats               = expvar.NewMap("gateway")
-	AlreadyStartedError = errors.New("server already started, cannot register auxillary server.")
+	stats = expvar.NewMap("gateway")
 )
 
 type Gateway struct {
@@ -77,43 +73,15 @@ type Gateway struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
-	Logger  *zap.Logger
-	base    http.Server
-	aux     []server.Server
-	started bool
-}
+	// Logger optionally specifies the logger to use by the
+	// Gateway and all of its services.  Leave this as nil to
+	// disable all logging.
+	Logger *zap.Logger
 
-func (s *Gateway) RegisterAuxillary(aux server.Server) error {
-	if s.started {
-		return AlreadyStartedError
-	}
-
-	s.aux = append(s.aux, aux)
-
-	return nil
-}
-
-func (s *Gateway) Serve() error {
-	return s.serve(false)
-}
-
-func (s *Gateway) ServeTLS() error {
-	return s.serve(true)
-}
-
-func (s *Gateway) Shutdown() (err error) {
-	s.Logger.Info("shutting down gateway...")
-	ctx, cancel := context.WithTimeout(context.Background(), s.GracePeriod)
-	defer cancel()
-
-	err = merry.Wrap(s.base.Shutdown(ctx))
-
-	for _, aux := range s.aux {
-		err = multierr.Append(err, merry.Wrap(aux.Shutdown(s.GracePeriod)))
-	}
-
-	s.started = false
-	return
+	base        http.Server
+	auxiliaries []auxillary.Server
+	trees       treeSet
+	started     bool
 }
 
 func (s *Gateway) init() {
@@ -142,58 +110,8 @@ func (s *Gateway) init() {
 	if s.Logger == nil {
 		s.Logger = zap.NewNop()
 	}
-}
 
-func (s *Gateway) serve(tls bool) (err error) {
-	defer func() {
-		if err != nil {
-			s.Logger.Fatal("fatal error serving gateway", zap.Error(err))
-		}
-	}()
-
-	s.init()
-	defer s.Logger.Sync()
-
-	s.base.Handler = http.HandlerFunc(dummy)
-	s.Logger.Info("starting gateway...", zap.String("addr", s.Address))
-
-	ach := make(chan error, len(s.aux))
-	gch := make(chan error, 1)
-	for _, aux := range s.aux {
-		go func() {
-			ach <- aux.Serve()
-		}()
-	}
-
-	go func() {
-		if tls {
-			gch <- s.base.ListenAndServeTLS("", "")
-		} else {
-			gch <- s.base.ListenAndServe()
-		}
-	}()
-
-	aerrs := make([]error, len(s.aux))
-	for {
-		select {
-		case aerr := <-ach:
-			if aerr == http.ErrServerClosed {
-				s.Logger.Info("auxillary service closed")
-			} else if err != nil {
-				s.Logger.Error("error in auxillary service", zap.Error(aerr))
-				aerrs = append(aerrs, merry.Wrap(aerr))
-			}
-		case gerr := <-gch:
-			err = multierr.Combine(aerrs...)
-			if gerr == http.ErrServerClosed {
-				s.Logger.Info("gateway service closed")
-			} else if err != nil {
-				s.Logger.Fatal("error in gateway service", zap.Error(gerr))
-				err = multierr.Append(err, merry.Wrap(gerr))
-			}
-			return
-		}
-	}
+	s.trees = newTreeSet()
 }
 
 func connstate(con net.Conn, state http.ConnState) {
@@ -212,8 +130,4 @@ func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
 		s.Logger.Info("interrupt received!")
 		s.Shutdown()
 	}
-}
-
-func dummy(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello, world"))
 }

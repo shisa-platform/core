@@ -1,11 +1,15 @@
 package gateway
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
-	"github.com/percolate/shisa/server"
 	"go.uber.org/zap"
+
+	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/service"
 )
 
 func TestAuxillaryServer(t *testing.T) {
@@ -15,13 +19,30 @@ func TestAuxillaryServer(t *testing.T) {
 	}
 	defer logger.Sync()
 	expectedGracePeriod := 2 * time.Second
+	dummyEndpoint := service.Endpoint{
+		Method: http.MethodGet,
+		Route:  "/",
+		Pipeline: []service.Handler{
+			func(context.Context, *service.Request) service.Response {
+				return service.NewOK(nil)
+			},
+		},
+	}
 	gw := &Gateway{
 		Name:        "test",
 		Address:     ":9001", // it's over 9000!
 		GracePeriod: expectedGracePeriod,
 		Logger:      logger,
 	}
-	fake := &server.FakeServer{
+	svc := &service.FakeService{
+		NameHook: func() string {
+			return "fake"
+		},
+		EndpointsHook: func() []service.Endpoint {
+			return []service.Endpoint{dummyEndpoint}
+		},
+	}
+	aux := &auxillary.FakeServer{
 		ServeHook: func() error {
 			return nil
 		},
@@ -32,15 +53,14 @@ func TestAuxillaryServer(t *testing.T) {
 			return nil
 		},
 	}
-	gw.RegisterAuxillary(fake)
 
 	timer := time.AfterFunc(50*time.Millisecond, func() { gw.Shutdown() })
 	defer timer.Stop()
-	err = gw.Serve()
-	if err != nil {
+
+	if err := gw.Serve([]service.Service{svc}, aux); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	fake.AssertServeCalledOnce(t)
-	fake.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
+	aux.AssertServeCalledOnce(t)
+	aux.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
 }

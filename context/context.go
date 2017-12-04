@@ -12,42 +12,63 @@ const (
 	ActorKey = "ContextActorKey"
 )
 
-//go:generate charlatan -file=/usr/local/go/src/context/context.go -output=./contexttest/charlatancontext.go -package=contexttest Context
-type Context struct {
+//go:generate charlatan -output=./context_charlatan.go Context
+
+type Context interface {
 	context.Context
-	RequestID string
-	Actor     models.User
+	RequestID() string
+	SetRequestID(v string)
+	Actor() models.User
+	SetActor(v models.User)
 }
 
-func New(parent context.Context, id string, actor models.User) *Context {
-	return &Context{
-		Context:   parent,
-		RequestID: id,
-		Actor:     actor,
-	}
+type ctx struct {
+	context.Context
+	requestID string
+	actor     models.User
 }
 
-func (c *Context) Deadline() (deadline time.Time, ok bool) {
+func New(parent context.Context) Context {
+	return &ctx{Context: parent}
+}
+
+func (c *ctx) Deadline() (deadline time.Time, ok bool) {
 	return c.Context.Deadline()
 }
 
-func (c *Context) Done() <-chan struct{} {
+func (c *ctx) Done() <-chan struct{} {
 	return c.Context.Done()
 }
 
-func (c *Context) Err() error {
+func (c *ctx) Err() error {
 	return c.Context.Err()
 }
 
-func (c *Context) Value(key interface{}) interface{} {
+func (c *ctx) Value(key interface{}) interface{} {
 	if name, ok := key.(string); ok {
 		switch name {
 		case IDKey:
-			return c.RequestID
+			return c.requestID
 		case ActorKey:
-			return c.Actor
+			return c.actor
 		}
 	}
 
 	return c.Context.Value(key)
+}
+
+func (c *ctx) RequestID() string {
+	return c.requestID
+}
+
+func (c *ctx) SetRequestID(v string) {
+	c.requestID = v
+}
+
+func (c *ctx) Actor() models.User {
+	return c.actor
+}
+
+func (c *ctx) SetActor(v models.User) {
+	c.actor = v
 }

@@ -1,10 +1,10 @@
-package server
+package auxillary
 
 import (
 	"time"
 )
 
-//go:generate charlatan Server
+//go:generate charlatan -output=./server_charlatan.go Server
 
 type Server interface {
 	Name() string
