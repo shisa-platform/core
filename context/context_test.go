@@ -181,7 +181,7 @@ func TestWithDeadline(t *testing.T) {
 }
 
 func TestWithTimeout(t *testing.T) {
-	c, cancel := WithTimeout(context.WithValue(context.Background(), "mnky", "fnky"), time.Second * 5)
+	c, cancel := WithTimeout(context.WithValue(context.Background(), "mnky", "fnky"), time.Second*5)
 	defer cancel()
 
 	assert.NotNil(t, c)

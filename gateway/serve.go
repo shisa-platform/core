@@ -192,8 +192,7 @@ func (s *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// xxx - fetch context from pool
-	ctx := context.New(parent)
-	ctx.SetRequestID(requestID)
+	ctx := context.WithRequestID(parent, requestID)
 	response := endpoint.Pipeline[0](ctx, request)
 
 	for k, vs := range response.Header() {
