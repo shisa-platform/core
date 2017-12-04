@@ -84,34 +84,34 @@ type Gateway struct {
 	started     bool
 }
 
-func (s *Gateway) init() {
-	s.started = true
+func (g *Gateway) init() {
+	g.started = true
 	stats = stats.Init()
-	s.base.Addr = s.Address
-	s.base.TLSConfig = s.TLSConfig
-	s.base.ReadTimeout = s.ReadTimeout
-	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
-	s.base.WriteTimeout = s.WriteTimeout
-	s.base.IdleTimeout = s.IdleTimeout
-	s.base.MaxHeaderBytes = s.MaxHeaderBytes
-	s.base.TLSNextProto = s.TLSNextProto
-	s.base.ConnState = connstate
+	g.base.Addr = g.Address
+	g.base.TLSConfig = g.TLSConfig
+	g.base.ReadTimeout = g.ReadTimeout
+	g.base.ReadHeaderTimeout = g.ReadHeaderTimeout
+	g.base.WriteTimeout = g.WriteTimeout
+	g.base.IdleTimeout = g.IdleTimeout
+	g.base.MaxHeaderBytes = g.MaxHeaderBytes
+	g.base.TLSNextProto = g.TLSNextProto
+	g.base.ConnState = connstate
 
-	if s.DisableKeepAlive {
-		s.base.SetKeepAlivesEnabled(false)
+	if g.DisableKeepAlive {
+		g.base.SetKeepAlivesEnabled(false)
 	}
 
-	if s.HandleInterrupt {
+	if g.HandleInterrupt {
 		interrupt := make(chan os.Signal, 1)
-		go s.handleInterrupt(interrupt)
+		go g.handleInterrupt(interrupt)
 		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	}
 
-	if s.Logger == nil {
-		s.Logger = zap.NewNop()
+	if g.Logger == nil {
+		g.Logger = zap.NewNop()
 	}
 
-	s.trees = newTreeSet()
+	g.trees = newTreeSet()
 }
 
 func connstate(con net.Conn, state http.ConnState) {
@@ -124,10 +124,10 @@ func connstate(con net.Conn, state http.ConnState) {
 	}
 }
 
-func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
+func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
 	select {
 	case <-interrupt:
-		s.Logger.Info("interrupt received!")
-		s.Shutdown()
+		g.Logger.Info("interrupt received!")
+		g.Shutdown()
 	}
 }

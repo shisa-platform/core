@@ -27,82 +27,82 @@ var (
 	}
 )
 
-func (s *Gateway) Serve(services []service.Service, auxiliaries ...auxillary.Server) error {
-	return s.serve(false, services, auxiliaries)
+func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxillary.Server) error {
+	return g.serve(false, services, auxiliaries)
 }
 
-func (s *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxillary.Server) error {
-	return s.serve(true, services, auxiliaries)
+func (g *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxillary.Server) error {
+	return g.serve(true, services, auxiliaries)
 }
 
-func (s *Gateway) Shutdown() (err error) {
-	s.Logger.Info("shutting down gateway...")
-	ctx, cancel := stdctx.WithTimeout(stdctx.Background(), s.GracePeriod)
+func (g *Gateway) Shutdown() (err error) {
+	g.Logger.Info("shutting down gateway...")
+	ctx, cancel := stdctx.WithTimeout(stdctx.Background(), g.GracePeriod)
 	defer cancel()
 
-	err = merry.Wrap(s.base.Shutdown(ctx))
+	err = merry.Wrap(g.base.Shutdown(ctx))
 
-	for _, aux := range s.auxiliaries {
-		err = multierr.Append(err, merry.Wrap(aux.Shutdown(s.GracePeriod)))
+	for _, aux := range g.auxiliaries {
+		err = multierr.Append(err, merry.Wrap(aux.Shutdown(g.GracePeriod)))
 	}
 
-	s.started = false
+	g.started = false
 	return
 }
 
-func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxillary.Server) (err error) {
+func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxillary.Server) (err error) {
 	if len(services) == 0 {
 		return merry.New("services must not be empty")
 	}
 
 	defer func() {
 		if err != nil {
-			s.Logger.Error("fatal error serving gateway", zap.Error(err))
+			g.Logger.Error("fatal error serving gateway", zap.Error(err))
 		}
 	}()
 
-	s.init()
-	defer s.Logger.Sync()
+	g.init()
+	defer g.Logger.Sync()
 
-	s.auxiliaries = auxiliaries
+	g.auxiliaries = auxiliaries
 
-	ach := make(chan error, len(s.auxiliaries))
-	for _, aux := range s.auxiliaries {
+	ach := make(chan error, len(g.auxiliaries))
+	for _, aux := range g.auxiliaries {
 		go func(server auxillary.Server) {
 			ach <- server.Serve()
 		}(aux)
 	}
 
-	s.installServices(services)
+	g.installServices(services)
 
-	s.base.Handler = s
+	g.base.Handler = s
 
-	s.Logger.Info("starting gateway...", zap.String("addr", s.Address))
+	g.Logger.Info("starting gateway...", zap.String("addr", g.Address))
 	gch := make(chan error, 1)
 	go func() {
 		if tls {
-			gch <- s.base.ListenAndServeTLS("", "")
+			gch <- g.base.ListenAndServeTLS("", "")
 		} else {
-			gch <- s.base.ListenAndServe()
+			gch <- g.base.ListenAndServe()
 		}
 	}()
 
-	aerrs := make([]error, len(s.auxiliaries))
+	aerrs := make([]error, len(g.auxiliaries))
 	for {
 		select {
 		case aerr := <-ach:
 			if aerr == http.ErrServerClosed {
-				s.Logger.Info("auxillary service closed")
+				g.Logger.Info("auxillary service closed")
 			} else if err != nil {
-				s.Logger.Error("error in auxillary service", zap.Error(aerr))
+				g.Logger.Error("error in auxillary service", zap.Error(aerr))
 				aerrs = append(aerrs, merry.Wrap(aerr))
 			}
 		case gerr := <-gch:
-			err = multierr.Combine(aerrs...)
+			err = multierr.Combine(aerrg...)
 			if gerr == http.ErrServerClosed {
-				s.Logger.Info("gateway service closed")
+				g.Logger.Info("gateway service closed")
 			} else if err != nil {
-				s.Logger.Fatal("error in gateway service", zap.Error(gerr))
+				g.Logger.Fatal("error in gateway service", zap.Error(gerr))
 				err = multierr.Append(err, merry.Wrap(gerr))
 			}
 			return
@@ -110,7 +110,7 @@ func (s *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	}
 }
 
-func (s *Gateway) installServices(services []service.Service) error {
+func (g *Gateway) installServices(services []service.Service) error {
 	for _, service := range services {
 		if service.Name() == "" {
 			return merry.New("service name cannot be empty")
@@ -119,7 +119,7 @@ func (s *Gateway) installServices(services []service.Service) error {
 			return merry.New("service endpoints cannot be empty").WithValue("service", service.Name())
 		}
 
-		s.Logger.Info("installing service", zap.String("name", service.Name()))
+		g.Logger.Info("installing service", zap.String("name", service.Name()))
 		for _, endpoint := range service.Endpoints() {
 			if endpoint.Method == "" {
 				return merry.New("endpoint method cannot be emtpy").WithValue("service", service.Name())
@@ -134,8 +134,8 @@ func (s *Gateway) installServices(services []service.Service) error {
 				return merry.New("endpoint route must begin with '/'").WithValue("service", service.Name())
 			}
 
-			s.Logger.Debug("adding endpoint", zap.String("method", endpoint.Method), zap.String("route", endpoint.Route))
-			if err := s.trees.addEndpoint(&endpoint); err != nil {
+			g.Logger.Debug("adding endpoint", zap.String("method", endpoint.Method), zap.String("route", endpoint.Route))
+			if err := g.treeg.addEndpoint(&endpoint); err != nil {
 				return err
 			}
 		}
@@ -144,15 +144,15 @@ func (s *Gateway) installServices(services []service.Service) error {
 	return nil
 }
 
-func (s *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// xxx - escape path ?
 
 	method := r.Method
-	root := s.trees.get(method)
+	root := g.trees.get(method)
 	if root == nil {
 		// xxx - support custom method not allowed handler
-		s.Logger.Info("no tree for method", zap.String("method", method))
+		g.Logger.Info("no tree for method", zap.String("method", method))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -163,7 +163,7 @@ func (s *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	endpoint, _, _, err := root.getValue(path, false)
 	if err != nil {
 		// xxx - be better
-		s.Logger.Error("internal error", zap.Error(err))
+		g.Logger.Error("internal error", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
