@@ -17,9 +17,10 @@ const (
 type Context interface {
 	context.Context
 	RequestID() string
-	SetRequestID(v string)
 	Actor() models.User
-	SetActor(v models.User)
+	WithActor(value models.User) Context
+	WithRequestID(value string) Context
+	WithValue(key, value interface{}) Context
 }
 
 type ctx struct {
@@ -30,6 +31,29 @@ type ctx struct {
 
 func New(parent context.Context) Context {
 	return &ctx{Context: parent}
+}
+
+func WithActor(parent context.Context, value models.User) Context {
+	return &ctx{Context: parent, actor: value}
+}
+
+func WithRequestID(parent context.Context, value string) Context {
+	return &ctx{Context: parent, requestID: value}
+}
+
+func WithValue(parent context.Context, key, value interface{}) Context {
+	c := &ctx{}
+	switch key {
+	case IDKey:
+		c.requestID = value.(string)
+	case ActorKey:
+		c.actor = value.(models.User)
+	default:
+		parent = context.WithValue(parent, key, value)
+	}
+
+	c.Context = parent
+	return c
 }
 
 func (c *ctx) Deadline() (deadline time.Time, ok bool) {
@@ -44,31 +68,62 @@ func (c *ctx) Err() error {
 	return c.Context.Err()
 }
 
-func (c *ctx) Value(key interface{}) interface{} {
-	if name, ok := key.(string); ok {
-		switch name {
-		case IDKey:
-			return c.requestID
-		case ActorKey:
-			return c.actor
-		}
-	}
-
-	return c.Context.Value(key)
-}
-
 func (c *ctx) RequestID() string {
 	return c.requestID
-}
-
-func (c *ctx) SetRequestID(v string) {
-	c.requestID = v
 }
 
 func (c *ctx) Actor() models.User {
 	return c.actor
 }
 
-func (c *ctx) SetActor(v models.User) {
-	c.actor = v
+func (c *ctx) Value(key interface{}) interface{} {
+	switch key {
+	case IDKey:
+		return c.requestID
+	case ActorKey:
+		return c.actor
+	}
+
+	return c.Context.Value(key)
+}
+
+func (c *ctx) WithActor(value models.User) Context {
+	c.actor = value
+	return c
+}
+
+func (c *ctx) WithRequestID(value string) Context {
+	c.requestID = value
+	return c
+}
+
+func (c *ctx) WithValue(key, value interface{}) Context {
+	switch key {
+	case IDKey:
+		c.requestID = value.(string)
+	case ActorKey:
+		c.actor = value.(models.User)
+	default:
+		c.Context = context.WithValue(c.Context, key, value)
+	}
+
+	return c
+}
+
+func WithCancel(grandParent context.Context) (Context, context.CancelFunc) {
+	parent, cancel := context.WithCancel(grandParent)
+	c := &ctx{Context: parent}
+	return c, cancel
+}
+
+func WithDeadline(grandParent context.Context, deadline time.Time) (Context, context.CancelFunc) {
+	parent, cancel := context.WithDeadline(grandParent, deadline)
+	c := &ctx{Context: parent}
+	return c, cancel
+}
+
+func WithTimeout(grandParent context.Context, timeout time.Duration) (Context, context.CancelFunc) {
+	parent, cancel := context.WithTimeout(grandParent, timeout)
+	c := &ctx{Context: parent}
+	return c, cancel
 }
