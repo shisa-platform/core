@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/percolate/shisa/uuid"
@@ -81,12 +82,30 @@ func (r *Request) PathArgInt(name string) (int, error) {
 	return 0, ParameterNotPresented
 }
 
+// GenerateID creates a globally unique string for the request.
+// It creates a version 5 UUID with the concatenation of current unix nanos,
+// three bytes of random data, the client ip address, the request method and the
+// request URI.
 func (r *Request) GenerateID() string {
 	now := time.Now().UnixNano()
 	nonce := make([]byte, 3)
 	rand.Read(nonce)
-	clientAddr := GetClientIP(r.Request)
+	clientAddr := r.ClientIP()
 	name := fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)
 
 	return uuid.New(uuid.ShisaNS, name).String()
+}
+
+func (r *Request) ClientIP() string {
+	ip := r.Header.Get("X-Real-IP")
+	if ip == "" {
+		if ip = r.Header.Get("X-Forwarded-For"); ip == "" {
+			ip = r.RemoteAddr
+		}
+	}
+	if colon := strings.LastIndex(ip, ":"); colon != -1 {
+		ip = ip[:colon]
+	}
+
+	return ip
 }

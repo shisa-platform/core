@@ -9,14 +9,35 @@ import (
 // NameInvocation represents a single call of FakeService.Name
 type NameInvocation struct {
 	Results struct {
-		Ident104 string
+		Ident121 string
 	}
 }
 
 // EndpointsInvocation represents a single call of FakeService.Endpoints
 type EndpointsInvocation struct {
 	Results struct {
-		Ident105 []Endpoint
+		Ident122 []Endpoint
+	}
+}
+
+// HandlersInvocation represents a single call of FakeService.Handlers
+type HandlersInvocation struct {
+	Results struct {
+		Ident123 []Handler
+	}
+}
+
+// MethodNotAllowedHandlerInvocation represents a single call of FakeService.MethodNotAllowedHandler
+type MethodNotAllowedHandlerInvocation struct {
+	Results struct {
+		Ident124 Handler
+	}
+}
+
+// InternalServerErrorHandlerInvocation represents a single call of FakeService.InternalServerErrorHandler
+type InternalServerErrorHandlerInvocation struct {
+	Results struct {
+		Ident125 ErrorHandler
 	}
 }
 
@@ -28,7 +49,7 @@ Use it in your tests as in this example:
 
 	func TestWithService(t *testing.T) {
 		f := &service.FakeService{
-			NameHook: func() (ident104 string) {
+			NameHook: func() (ident121 string) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -45,21 +66,36 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeName.
 */
 type FakeService struct {
-	NameHook      func() string
-	EndpointsHook func() []Endpoint
+	NameHook                       func() string
+	EndpointsHook                  func() []Endpoint
+	HandlersHook                   func() []Handler
+	MethodNotAllowedHandlerHook    func() Handler
+	InternalServerErrorHandlerHook func() ErrorHandler
 
-	NameCalls      []*NameInvocation
-	EndpointsCalls []*EndpointsInvocation
+	NameCalls                       []*NameInvocation
+	EndpointsCalls                  []*EndpointsInvocation
+	HandlersCalls                   []*HandlersInvocation
+	MethodNotAllowedHandlerCalls    []*MethodNotAllowedHandlerInvocation
+	InternalServerErrorHandlerCalls []*InternalServerErrorHandlerInvocation
 }
 
 // NewFakeServiceDefaultPanic returns an instance of FakeService with all hooks configured to panic
 func NewFakeServiceDefaultPanic() *FakeService {
 	return &FakeService{
-		NameHook: func() (ident104 string) {
+		NameHook: func() (ident121 string) {
 			panic("Unexpected call to Service.Name")
 		},
-		EndpointsHook: func() (ident105 []Endpoint) {
+		EndpointsHook: func() (ident122 []Endpoint) {
 			panic("Unexpected call to Service.Endpoints")
+		},
+		HandlersHook: func() (ident123 []Handler) {
+			panic("Unexpected call to Service.Handlers")
+		},
+		MethodNotAllowedHandlerHook: func() (ident124 Handler) {
+			panic("Unexpected call to Service.MethodNotAllowedHandler")
+		},
+		InternalServerErrorHandlerHook: func() (ident125 ErrorHandler) {
+			panic("Unexpected call to Service.InternalServerErrorHandler")
 		},
 	}
 }
@@ -67,12 +103,24 @@ func NewFakeServiceDefaultPanic() *FakeService {
 // NewFakeServiceDefaultFatal returns an instance of FakeService with all hooks configured to call t.Fatal
 func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 	return &FakeService{
-		NameHook: func() (ident104 string) {
+		NameHook: func() (ident121 string) {
 			t.Fatal("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident105 []Endpoint) {
+		EndpointsHook: func() (ident122 []Endpoint) {
 			t.Fatal("Unexpected call to Service.Endpoints")
+			return
+		},
+		HandlersHook: func() (ident123 []Handler) {
+			t.Fatal("Unexpected call to Service.Handlers")
+			return
+		},
+		MethodNotAllowedHandlerHook: func() (ident124 Handler) {
+			t.Fatal("Unexpected call to Service.MethodNotAllowedHandler")
+			return
+		},
+		InternalServerErrorHandlerHook: func() (ident125 ErrorHandler) {
+			t.Fatal("Unexpected call to Service.InternalServerErrorHandler")
 			return
 		},
 	}
@@ -81,23 +129,35 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 // NewFakeServiceDefaultError returns an instance of FakeService with all hooks configured to call t.Error
 func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 	return &FakeService{
-		NameHook: func() (ident104 string) {
+		NameHook: func() (ident121 string) {
 			t.Error("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident105 []Endpoint) {
+		EndpointsHook: func() (ident122 []Endpoint) {
 			t.Error("Unexpected call to Service.Endpoints")
+			return
+		},
+		HandlersHook: func() (ident123 []Handler) {
+			t.Error("Unexpected call to Service.Handlers")
+			return
+		},
+		MethodNotAllowedHandlerHook: func() (ident124 Handler) {
+			t.Error("Unexpected call to Service.MethodNotAllowedHandler")
+			return
+		},
+		InternalServerErrorHandlerHook: func() (ident125 ErrorHandler) {
+			t.Error("Unexpected call to Service.InternalServerErrorHandler")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeService) Name() (ident104 string) {
+func (_f1 *FakeService) Name() (ident121 string) {
 	invocation := new(NameInvocation)
 
-	ident104 = _f1.NameHook()
+	ident121 = _f1.NameHook()
 
-	invocation.Results.Ident104 = ident104
+	invocation.Results.Ident121 = ident121
 
 	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
@@ -156,12 +216,12 @@ func (f *FakeService) AssertNameCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeService) Endpoints() (ident105 []Endpoint) {
+func (_f2 *FakeService) Endpoints() (ident122 []Endpoint) {
 	invocation := new(EndpointsInvocation)
 
-	ident105 = _f2.EndpointsHook()
+	ident122 = _f2.EndpointsHook()
 
-	invocation.Results.Ident105 = ident105
+	invocation.Results.Ident122 = ident122
 
 	_f2.EndpointsCalls = append(_f2.EndpointsCalls, invocation)
 
@@ -217,5 +277,197 @@ func (f *FakeService) AssertEndpointsCalledN(t *testing.T, n int) {
 	t.Helper()
 	if len(f.EndpointsCalls) < n {
 		t.Errorf("FakeService.Endpoints called %d times, expected >= %d", len(f.EndpointsCalls), n)
+	}
+}
+
+func (_f3 *FakeService) Handlers() (ident123 []Handler) {
+	invocation := new(HandlersInvocation)
+
+	ident123 = _f3.HandlersHook()
+
+	invocation.Results.Ident123 = ident123
+
+	_f3.HandlersCalls = append(_f3.HandlersCalls, invocation)
+
+	return
+}
+
+// HandlersCalled returns true if FakeService.Handlers was called
+func (f *FakeService) HandlersCalled() bool {
+	return len(f.HandlersCalls) != 0
+}
+
+// AssertHandlersCalled calls t.Error if FakeService.Handlers was not called
+func (f *FakeService) AssertHandlersCalled(t *testing.T) {
+	t.Helper()
+	if len(f.HandlersCalls) == 0 {
+		t.Error("FakeService.Handlers not called, expected at least one")
+	}
+}
+
+// HandlersNotCalled returns true if FakeService.Handlers was not called
+func (f *FakeService) HandlersNotCalled() bool {
+	return len(f.HandlersCalls) == 0
+}
+
+// AssertHandlersNotCalled calls t.Error if FakeService.Handlers was called
+func (f *FakeService) AssertHandlersNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.HandlersCalls) != 0 {
+		t.Error("FakeService.Handlers called, expected none")
+	}
+}
+
+// HandlersCalledOnce returns true if FakeService.Handlers was called exactly once
+func (f *FakeService) HandlersCalledOnce() bool {
+	return len(f.HandlersCalls) == 1
+}
+
+// AssertHandlersCalledOnce calls t.Error if FakeService.Handlers was not called exactly once
+func (f *FakeService) AssertHandlersCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.HandlersCalls) != 1 {
+		t.Errorf("FakeService.Handlers called %d times, expected 1", len(f.HandlersCalls))
+	}
+}
+
+// HandlersCalledN returns true if FakeService.Handlers was called at least n times
+func (f *FakeService) HandlersCalledN(n int) bool {
+	return len(f.HandlersCalls) >= n
+}
+
+// AssertHandlersCalledN calls t.Error if FakeService.Handlers was called less than n times
+func (f *FakeService) AssertHandlersCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.HandlersCalls) < n {
+		t.Errorf("FakeService.Handlers called %d times, expected >= %d", len(f.HandlersCalls), n)
+	}
+}
+
+func (_f4 *FakeService) MethodNotAllowedHandler() (ident124 Handler) {
+	invocation := new(MethodNotAllowedHandlerInvocation)
+
+	ident124 = _f4.MethodNotAllowedHandlerHook()
+
+	invocation.Results.Ident124 = ident124
+
+	_f4.MethodNotAllowedHandlerCalls = append(_f4.MethodNotAllowedHandlerCalls, invocation)
+
+	return
+}
+
+// MethodNotAllowedHandlerCalled returns true if FakeService.MethodNotAllowedHandler was called
+func (f *FakeService) MethodNotAllowedHandlerCalled() bool {
+	return len(f.MethodNotAllowedHandlerCalls) != 0
+}
+
+// AssertMethodNotAllowedHandlerCalled calls t.Error if FakeService.MethodNotAllowedHandler was not called
+func (f *FakeService) AssertMethodNotAllowedHandlerCalled(t *testing.T) {
+	t.Helper()
+	if len(f.MethodNotAllowedHandlerCalls) == 0 {
+		t.Error("FakeService.MethodNotAllowedHandler not called, expected at least one")
+	}
+}
+
+// MethodNotAllowedHandlerNotCalled returns true if FakeService.MethodNotAllowedHandler was not called
+func (f *FakeService) MethodNotAllowedHandlerNotCalled() bool {
+	return len(f.MethodNotAllowedHandlerCalls) == 0
+}
+
+// AssertMethodNotAllowedHandlerNotCalled calls t.Error if FakeService.MethodNotAllowedHandler was called
+func (f *FakeService) AssertMethodNotAllowedHandlerNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.MethodNotAllowedHandlerCalls) != 0 {
+		t.Error("FakeService.MethodNotAllowedHandler called, expected none")
+	}
+}
+
+// MethodNotAllowedHandlerCalledOnce returns true if FakeService.MethodNotAllowedHandler was called exactly once
+func (f *FakeService) MethodNotAllowedHandlerCalledOnce() bool {
+	return len(f.MethodNotAllowedHandlerCalls) == 1
+}
+
+// AssertMethodNotAllowedHandlerCalledOnce calls t.Error if FakeService.MethodNotAllowedHandler was not called exactly once
+func (f *FakeService) AssertMethodNotAllowedHandlerCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.MethodNotAllowedHandlerCalls) != 1 {
+		t.Errorf("FakeService.MethodNotAllowedHandler called %d times, expected 1", len(f.MethodNotAllowedHandlerCalls))
+	}
+}
+
+// MethodNotAllowedHandlerCalledN returns true if FakeService.MethodNotAllowedHandler was called at least n times
+func (f *FakeService) MethodNotAllowedHandlerCalledN(n int) bool {
+	return len(f.MethodNotAllowedHandlerCalls) >= n
+}
+
+// AssertMethodNotAllowedHandlerCalledN calls t.Error if FakeService.MethodNotAllowedHandler was called less than n times
+func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.MethodNotAllowedHandlerCalls) < n {
+		t.Errorf("FakeService.MethodNotAllowedHandler called %d times, expected >= %d", len(f.MethodNotAllowedHandlerCalls), n)
+	}
+}
+
+func (_f5 *FakeService) InternalServerErrorHandler() (ident125 ErrorHandler) {
+	invocation := new(InternalServerErrorHandlerInvocation)
+
+	ident125 = _f5.InternalServerErrorHandlerHook()
+
+	invocation.Results.Ident125 = ident125
+
+	_f5.InternalServerErrorHandlerCalls = append(_f5.InternalServerErrorHandlerCalls, invocation)
+
+	return
+}
+
+// InternalServerErrorHandlerCalled returns true if FakeService.InternalServerErrorHandler was called
+func (f *FakeService) InternalServerErrorHandlerCalled() bool {
+	return len(f.InternalServerErrorHandlerCalls) != 0
+}
+
+// AssertInternalServerErrorHandlerCalled calls t.Error if FakeService.InternalServerErrorHandler was not called
+func (f *FakeService) AssertInternalServerErrorHandlerCalled(t *testing.T) {
+	t.Helper()
+	if len(f.InternalServerErrorHandlerCalls) == 0 {
+		t.Error("FakeService.InternalServerErrorHandler not called, expected at least one")
+	}
+}
+
+// InternalServerErrorHandlerNotCalled returns true if FakeService.InternalServerErrorHandler was not called
+func (f *FakeService) InternalServerErrorHandlerNotCalled() bool {
+	return len(f.InternalServerErrorHandlerCalls) == 0
+}
+
+// AssertInternalServerErrorHandlerNotCalled calls t.Error if FakeService.InternalServerErrorHandler was called
+func (f *FakeService) AssertInternalServerErrorHandlerNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.InternalServerErrorHandlerCalls) != 0 {
+		t.Error("FakeService.InternalServerErrorHandler called, expected none")
+	}
+}
+
+// InternalServerErrorHandlerCalledOnce returns true if FakeService.InternalServerErrorHandler was called exactly once
+func (f *FakeService) InternalServerErrorHandlerCalledOnce() bool {
+	return len(f.InternalServerErrorHandlerCalls) == 1
+}
+
+// AssertInternalServerErrorHandlerCalledOnce calls t.Error if FakeService.InternalServerErrorHandler was not called exactly once
+func (f *FakeService) AssertInternalServerErrorHandlerCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.InternalServerErrorHandlerCalls) != 1 {
+		t.Errorf("FakeService.InternalServerErrorHandler called %d times, expected 1", len(f.InternalServerErrorHandlerCalls))
+	}
+}
+
+// InternalServerErrorHandlerCalledN returns true if FakeService.InternalServerErrorHandler was called at least n times
+func (f *FakeService) InternalServerErrorHandlerCalledN(n int) bool {
+	return len(f.InternalServerErrorHandlerCalls) >= n
+}
+
+// AssertInternalServerErrorHandlerCalledN calls t.Error if FakeService.InternalServerErrorHandler was called less than n times
+func (f *FakeService) AssertInternalServerErrorHandlerCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.InternalServerErrorHandlerCalls) < n {
+		t.Errorf("FakeService.InternalServerErrorHandler called %d times, expected >= %d", len(f.InternalServerErrorHandlerCalls), n)
 	}
 }

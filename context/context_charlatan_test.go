@@ -3,6 +3,7 @@
 package context
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -87,6 +88,28 @@ type WithValueInvocation struct {
 	}
 }
 
+// WithDeadlineInvocation represents a single call of FakeContext.WithDeadline
+type WithDeadlineInvocation struct {
+	Parameters struct {
+		Deadline time.Time
+	}
+	Results struct {
+		Ident11 Context
+		Ident12 context.CancelFunc
+	}
+}
+
+// WithTimeoutInvocation represents a single call of FakeContext.WithTimeout
+type WithTimeoutInvocation struct {
+	Parameters struct {
+		Timeout time.Duration
+	}
+	Results struct {
+		Ident13 Context
+		Ident14 context.CancelFunc
+	}
+}
+
 /*
 FakeContext is a mock implementation of Context for testing.
 Use it in your tests as in this example:
@@ -121,6 +144,8 @@ type FakeContext struct {
 	WithActorHook     func(models.User) Context
 	WithRequestIDHook func(string) Context
 	WithValueHook     func(interface{}, interface{}) Context
+	WithDeadlineHook  func(time.Time) (Context, context.CancelFunc)
+	WithTimeoutHook   func(time.Duration) (Context, context.CancelFunc)
 
 	DeadlineCalls      []*DeadlineInvocation
 	DoneCalls          []*DoneInvocation
@@ -131,6 +156,8 @@ type FakeContext struct {
 	WithActorCalls     []*WithActorInvocation
 	WithRequestIDCalls []*WithRequestIDInvocation
 	WithValueCalls     []*WithValueInvocation
+	WithDeadlineCalls  []*WithDeadlineInvocation
+	WithTimeoutCalls   []*WithTimeoutInvocation
 }
 
 // NewFakeContextDefaultPanic returns an instance of FakeContext with all hooks configured to panic
@@ -162,6 +189,12 @@ func NewFakeContextDefaultPanic() *FakeContext {
 		},
 		WithValueHook: func(interface{}, interface{}) (ident10 Context) {
 			panic("Unexpected call to Context.WithValue")
+		},
+		WithDeadlineHook: func(time.Time) (ident11 Context, ident12 context.CancelFunc) {
+			panic("Unexpected call to Context.WithDeadline")
+		},
+		WithTimeoutHook: func(time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+			panic("Unexpected call to Context.WithTimeout")
 		},
 	}
 }
@@ -205,6 +238,14 @@ func NewFakeContextDefaultFatal(t *testing.T) *FakeContext {
 			t.Fatal("Unexpected call to Context.WithValue")
 			return
 		},
+		WithDeadlineHook: func(time.Time) (ident11 Context, ident12 context.CancelFunc) {
+			t.Fatal("Unexpected call to Context.WithDeadline")
+			return
+		},
+		WithTimeoutHook: func(time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+			t.Fatal("Unexpected call to Context.WithTimeout")
+			return
+		},
 	}
 }
 
@@ -245,6 +286,14 @@ func NewFakeContextDefaultError(t *testing.T) *FakeContext {
 		},
 		WithValueHook: func(interface{}, interface{}) (ident10 Context) {
 			t.Error("Unexpected call to Context.WithValue")
+			return
+		},
+		WithDeadlineHook: func(time.Time) (ident11 Context, ident12 context.CancelFunc) {
+			t.Error("Unexpected call to Context.WithDeadline")
+			return
+		},
+		WithTimeoutHook: func(time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+			t.Error("Unexpected call to Context.WithTimeout")
 			return
 		},
 	}
@@ -1100,6 +1149,278 @@ func (_f29 *FakeContext) WithValueResultsForCall(key interface{}, value interfac
 	for _, call := range _f29.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
 			ident10 = call.Results.Ident10
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+func (_f30 *FakeContext) WithDeadline(deadline time.Time) (ident11 Context, ident12 context.CancelFunc) {
+	invocation := new(WithDeadlineInvocation)
+
+	invocation.Parameters.Deadline = deadline
+
+	ident11, ident12 = _f30.WithDeadlineHook(deadline)
+
+	invocation.Results.Ident11 = ident11
+	invocation.Results.Ident12 = ident12
+
+	_f30.WithDeadlineCalls = append(_f30.WithDeadlineCalls, invocation)
+
+	return
+}
+
+// WithDeadlineCalled returns true if FakeContext.WithDeadline was called
+func (f *FakeContext) WithDeadlineCalled() bool {
+	return len(f.WithDeadlineCalls) != 0
+}
+
+// AssertWithDeadlineCalled calls t.Error if FakeContext.WithDeadline was not called
+func (f *FakeContext) AssertWithDeadlineCalled(t *testing.T) {
+	t.Helper()
+	if len(f.WithDeadlineCalls) == 0 {
+		t.Error("FakeContext.WithDeadline not called, expected at least one")
+	}
+}
+
+// WithDeadlineNotCalled returns true if FakeContext.WithDeadline was not called
+func (f *FakeContext) WithDeadlineNotCalled() bool {
+	return len(f.WithDeadlineCalls) == 0
+}
+
+// AssertWithDeadlineNotCalled calls t.Error if FakeContext.WithDeadline was called
+func (f *FakeContext) AssertWithDeadlineNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.WithDeadlineCalls) != 0 {
+		t.Error("FakeContext.WithDeadline called, expected none")
+	}
+}
+
+// WithDeadlineCalledOnce returns true if FakeContext.WithDeadline was called exactly once
+func (f *FakeContext) WithDeadlineCalledOnce() bool {
+	return len(f.WithDeadlineCalls) == 1
+}
+
+// AssertWithDeadlineCalledOnce calls t.Error if FakeContext.WithDeadline was not called exactly once
+func (f *FakeContext) AssertWithDeadlineCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.WithDeadlineCalls) != 1 {
+		t.Errorf("FakeContext.WithDeadline called %d times, expected 1", len(f.WithDeadlineCalls))
+	}
+}
+
+// WithDeadlineCalledN returns true if FakeContext.WithDeadline was called at least n times
+func (f *FakeContext) WithDeadlineCalledN(n int) bool {
+	return len(f.WithDeadlineCalls) >= n
+}
+
+// AssertWithDeadlineCalledN calls t.Error if FakeContext.WithDeadline was called less than n times
+func (f *FakeContext) AssertWithDeadlineCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.WithDeadlineCalls) < n {
+		t.Errorf("FakeContext.WithDeadline called %d times, expected >= %d", len(f.WithDeadlineCalls), n)
+	}
+}
+
+// WithDeadlineCalledWith returns true if FakeContext.WithDeadline was called with the given values
+func (_f31 *FakeContext) WithDeadlineCalledWith(deadline time.Time) (found bool) {
+	for _, call := range _f31.WithDeadlineCalls {
+		if reflect.DeepEqual(call.Parameters.Deadline, deadline) {
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+// AssertWithDeadlineCalledWith calls t.Error if FakeContext.WithDeadline was not called with the given values
+func (_f32 *FakeContext) AssertWithDeadlineCalledWith(t *testing.T, deadline time.Time) {
+	t.Helper()
+	var found bool
+	for _, call := range _f32.WithDeadlineCalls {
+		if reflect.DeepEqual(call.Parameters.Deadline, deadline) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("FakeContext.WithDeadline not called with expected parameters")
+	}
+}
+
+// WithDeadlineCalledOnceWith returns true if FakeContext.WithDeadline was called exactly once with the given values
+func (_f33 *FakeContext) WithDeadlineCalledOnceWith(deadline time.Time) bool {
+	var count int
+	for _, call := range _f33.WithDeadlineCalls {
+		if reflect.DeepEqual(call.Parameters.Deadline, deadline) {
+			count++
+		}
+	}
+
+	return count == 1
+}
+
+// AssertWithDeadlineCalledOnceWith calls t.Error if FakeContext.WithDeadline was not called exactly once with the given values
+func (_f34 *FakeContext) AssertWithDeadlineCalledOnceWith(t *testing.T, deadline time.Time) {
+	t.Helper()
+	var count int
+	for _, call := range _f34.WithDeadlineCalls {
+		if reflect.DeepEqual(call.Parameters.Deadline, deadline) {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("FakeContext.WithDeadline called %d times with expected parameters, expected one", count)
+	}
+}
+
+// WithDeadlineResultsForCall returns the result values for the first call to FakeContext.WithDeadline with the given values
+func (_f35 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident11 Context, ident12 context.CancelFunc, found bool) {
+	for _, call := range _f35.WithDeadlineCalls {
+		if reflect.DeepEqual(call.Parameters.Deadline, deadline) {
+			ident11 = call.Results.Ident11
+			ident12 = call.Results.Ident12
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+func (_f36 *FakeContext) WithTimeout(timeout time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+	invocation := new(WithTimeoutInvocation)
+
+	invocation.Parameters.Timeout = timeout
+
+	ident13, ident14 = _f36.WithTimeoutHook(timeout)
+
+	invocation.Results.Ident13 = ident13
+	invocation.Results.Ident14 = ident14
+
+	_f36.WithTimeoutCalls = append(_f36.WithTimeoutCalls, invocation)
+
+	return
+}
+
+// WithTimeoutCalled returns true if FakeContext.WithTimeout was called
+func (f *FakeContext) WithTimeoutCalled() bool {
+	return len(f.WithTimeoutCalls) != 0
+}
+
+// AssertWithTimeoutCalled calls t.Error if FakeContext.WithTimeout was not called
+func (f *FakeContext) AssertWithTimeoutCalled(t *testing.T) {
+	t.Helper()
+	if len(f.WithTimeoutCalls) == 0 {
+		t.Error("FakeContext.WithTimeout not called, expected at least one")
+	}
+}
+
+// WithTimeoutNotCalled returns true if FakeContext.WithTimeout was not called
+func (f *FakeContext) WithTimeoutNotCalled() bool {
+	return len(f.WithTimeoutCalls) == 0
+}
+
+// AssertWithTimeoutNotCalled calls t.Error if FakeContext.WithTimeout was called
+func (f *FakeContext) AssertWithTimeoutNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.WithTimeoutCalls) != 0 {
+		t.Error("FakeContext.WithTimeout called, expected none")
+	}
+}
+
+// WithTimeoutCalledOnce returns true if FakeContext.WithTimeout was called exactly once
+func (f *FakeContext) WithTimeoutCalledOnce() bool {
+	return len(f.WithTimeoutCalls) == 1
+}
+
+// AssertWithTimeoutCalledOnce calls t.Error if FakeContext.WithTimeout was not called exactly once
+func (f *FakeContext) AssertWithTimeoutCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.WithTimeoutCalls) != 1 {
+		t.Errorf("FakeContext.WithTimeout called %d times, expected 1", len(f.WithTimeoutCalls))
+	}
+}
+
+// WithTimeoutCalledN returns true if FakeContext.WithTimeout was called at least n times
+func (f *FakeContext) WithTimeoutCalledN(n int) bool {
+	return len(f.WithTimeoutCalls) >= n
+}
+
+// AssertWithTimeoutCalledN calls t.Error if FakeContext.WithTimeout was called less than n times
+func (f *FakeContext) AssertWithTimeoutCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.WithTimeoutCalls) < n {
+		t.Errorf("FakeContext.WithTimeout called %d times, expected >= %d", len(f.WithTimeoutCalls), n)
+	}
+}
+
+// WithTimeoutCalledWith returns true if FakeContext.WithTimeout was called with the given values
+func (_f37 *FakeContext) WithTimeoutCalledWith(timeout time.Duration) (found bool) {
+	for _, call := range _f37.WithTimeoutCalls {
+		if reflect.DeepEqual(call.Parameters.Timeout, timeout) {
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+// AssertWithTimeoutCalledWith calls t.Error if FakeContext.WithTimeout was not called with the given values
+func (_f38 *FakeContext) AssertWithTimeoutCalledWith(t *testing.T, timeout time.Duration) {
+	t.Helper()
+	var found bool
+	for _, call := range _f38.WithTimeoutCalls {
+		if reflect.DeepEqual(call.Parameters.Timeout, timeout) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("FakeContext.WithTimeout not called with expected parameters")
+	}
+}
+
+// WithTimeoutCalledOnceWith returns true if FakeContext.WithTimeout was called exactly once with the given values
+func (_f39 *FakeContext) WithTimeoutCalledOnceWith(timeout time.Duration) bool {
+	var count int
+	for _, call := range _f39.WithTimeoutCalls {
+		if reflect.DeepEqual(call.Parameters.Timeout, timeout) {
+			count++
+		}
+	}
+
+	return count == 1
+}
+
+// AssertWithTimeoutCalledOnceWith calls t.Error if FakeContext.WithTimeout was not called exactly once with the given values
+func (_f40 *FakeContext) AssertWithTimeoutCalledOnceWith(t *testing.T, timeout time.Duration) {
+	t.Helper()
+	var count int
+	for _, call := range _f40.WithTimeoutCalls {
+		if reflect.DeepEqual(call.Parameters.Timeout, timeout) {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("FakeContext.WithTimeout called %d times with expected parameters, expected one", count)
+	}
+}
+
+// WithTimeoutResultsForCall returns the result values for the first call to FakeContext.WithTimeout with the given values
+func (_f41 *FakeContext) WithTimeoutResultsForCall(timeout time.Duration) (ident13 Context, ident14 context.CancelFunc, found bool) {
+	for _, call := range _f41.WithTimeoutCalls {
+		if reflect.DeepEqual(call.Parameters.Timeout, timeout) {
+			ident13 = call.Results.Ident13
+			ident14 = call.Results.Ident14
 			found = true
 			break
 		}

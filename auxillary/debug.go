@@ -29,7 +29,7 @@ func (s *DebugServer) Name() string {
 }
 
 func (s *DebugServer) Serve() error {
-	s.base.Addr = s.Address
+	s.base.Addr = s.Addr
 	s.base.TLSConfig = s.TLSConfig
 	s.base.ReadTimeout = s.ReadTimeout
 	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
@@ -53,9 +53,8 @@ func (s *DebugServer) Serve() error {
 
 	if s.Logger == nil {
 		s.Logger = zap.NewNop()
+		defer s.Logger.Sync()
 	}
-
-	s.Logger.Info("starting debug server...", zap.String("addr", s.Address))
 
 	if s.UseTLS {
 		return s.base.ListenAndServeTLS("", "")

@@ -8,7 +8,7 @@ import (
 
 type Server interface {
 	Name() string
-	Addr() string
+	Address() string
 	Serve() error
 	Shutdown(time.Duration) error
 }

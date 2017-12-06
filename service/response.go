@@ -10,28 +10,36 @@ import (
 
 type Response interface {
 	StatusCode() int
-	Header() http.Header
-	Trailer() http.Header
+	Headers() http.Header
+	Trailers() http.Header
 	Serialize(io.Writer) error
 }
 
-type jsonResponse struct {
+type basicResponse struct {
 	status   int
 	headers  http.Header
 	trailers http.Header
-	payload  json.Marshaler
 }
 
-func (r *jsonResponse) StatusCode() int {
+func (r *basicResponse) StatusCode() int {
 	return r.status
 }
 
-func (r *jsonResponse) Header() http.Header {
+func (r *basicResponse) Headers() http.Header {
 	return r.headers
 }
 
-func (r *jsonResponse) Trailer() http.Header {
+func (r *basicResponse) Trailers() http.Header {
 	return r.trailers
+}
+
+func (r *basicResponse) Serialize(io.Writer) error {
+	return nil
+}
+
+type jsonResponse struct {
+	basicResponse
+	payload json.Marshaler
 }
 
 func (r *jsonResponse) Serialize(w io.Writer) error {
@@ -42,11 +50,21 @@ func (r *jsonResponse) Serialize(w io.Writer) error {
 	return encoder.Encode(r.payload)
 }
 
-func NewOK(body json.Marshaler) Response {
-	return &jsonResponse{
-		status:   http.StatusOK,
+func NewEmpty(status int) Response {
+	return &basicResponse{
+		status:   status,
 		headers:  make(http.Header),
 		trailers: make(http.Header),
-		payload:  body,
+	}
+}
+
+func NewOK(body json.Marshaler) Response {
+	return &jsonResponse{
+		basicResponse: basicResponse{
+			status:   http.StatusOK,
+			headers:  make(http.Header),
+			trailers: make(http.Header),
+		},
+		payload: body,
 	}
 }

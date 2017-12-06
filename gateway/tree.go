@@ -43,37 +43,6 @@ func (ps Params) ByName(name string) (va string) {
 	return
 }
 
-type methodTree struct {
-	method string
-	root   *node
-}
-
-type treeSet []methodTree
-
-func newTreeSet() treeSet {
-	return make(treeSet, 0, 9)
-}
-
-func (s *treeSet) addEndpoint(endpoint *service.Endpoint) error {
-	root := s.get(endpoint.Method)
-	if root == nil {
-		root = new(node)
-		*s = append(*s, methodTree{method: endpoint.Method, root: root})
-	}
-
-	return root.addRoute(endpoint.Route, endpoint)
-
-}
-
-func (trees treeSet) get(method string) *node {
-	for _, tree := range trees {
-		if tree.method == method {
-			return tree.root
-		}
-	}
-	return nil
-}
-
 func min(a, b int) int {
 	if a <= b {
 		return a
@@ -116,7 +85,7 @@ type node struct {
 }
 
 // addRoute adds a node with the given handle to the path. Not concurrency-safe!
-func (n *node) addRoute(path string, endpoint *service.Endpoint) error {
+func (n *node) addRoute(path string, endpoint *service.Endpoint) merry.Error {
 	fullPath := path
 	n.priority++
 	numParams := countParams(path)
@@ -262,7 +231,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	return newPos
 }
 
-func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint *service.Endpoint) error {
+func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint *service.Endpoint) merry.Error {
 	var offset int // already handled bytes of the path
 
 	// find prefix until first wildcard (beginning with ':'' or '*'')
@@ -385,7 +354,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, unescape bool) (endpoint *service.Endpoint, p Params, tsr bool, err error) {
+func (n *node) getValue(path string, unescape bool) (endpoint *service.Endpoint, p Params, tsr bool, err merry.Error) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {
@@ -526,7 +495,7 @@ walk: // Outer loop for walking the tree
 // It can optionally also fix trailing slashes.
 // It returns the case-corrected path and a bool indicating whether the lookup
 // was successful.
-func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPath []byte, found bool, err error) {
+func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPath []byte, found bool, err merry.Error) {
 	ciPath = make([]byte, 0, len(path)+1) // preallocate enough memory
 
 	// Outer loop for walking the tree

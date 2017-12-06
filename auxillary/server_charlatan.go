@@ -15,8 +15,8 @@ type NameInvocation struct {
 	}
 }
 
-// AddrInvocation represents a single call of FakeServer.Addr
-type AddrInvocation struct {
+// AddressInvocation represents a single call of FakeServer.Address
+type AddressInvocation struct {
 	Results struct {
 		Ident44 string
 	}
@@ -65,12 +65,12 @@ unexpected calls are made to FakeName.
 */
 type FakeServer struct {
 	NameHook     func() string
-	AddrHook     func() string
+	AddressHook  func() string
 	ServeHook    func() error
 	ShutdownHook func(time.Duration) error
 
 	NameCalls     []*NameInvocation
-	AddrCalls     []*AddrInvocation
+	AddressCalls  []*AddressInvocation
 	ServeCalls    []*ServeInvocation
 	ShutdownCalls []*ShutdownInvocation
 }
@@ -81,8 +81,8 @@ func NewFakeServerDefaultPanic() *FakeServer {
 		NameHook: func() (ident43 string) {
 			panic("Unexpected call to Server.Name")
 		},
-		AddrHook: func() (ident44 string) {
-			panic("Unexpected call to Server.Addr")
+		AddressHook: func() (ident44 string) {
+			panic("Unexpected call to Server.Address")
 		},
 		ServeHook: func() (ident45 error) {
 			panic("Unexpected call to Server.Serve")
@@ -100,8 +100,8 @@ func NewFakeServerDefaultFatal(t *testing.T) *FakeServer {
 			t.Fatal("Unexpected call to Server.Name")
 			return
 		},
-		AddrHook: func() (ident44 string) {
-			t.Fatal("Unexpected call to Server.Addr")
+		AddressHook: func() (ident44 string) {
+			t.Fatal("Unexpected call to Server.Address")
 			return
 		},
 		ServeHook: func() (ident45 error) {
@@ -122,8 +122,8 @@ func NewFakeServerDefaultError(t *testing.T) *FakeServer {
 			t.Error("Unexpected call to Server.Name")
 			return
 		},
-		AddrHook: func() (ident44 string) {
-			t.Error("Unexpected call to Server.Addr")
+		AddressHook: func() (ident44 string) {
+			t.Error("Unexpected call to Server.Address")
 			return
 		},
 		ServeHook: func() (ident45 error) {
@@ -201,67 +201,67 @@ func (f *FakeServer) AssertNameCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeServer) Addr() (ident44 string) {
-	invocation := new(AddrInvocation)
+func (_f2 *FakeServer) Address() (ident44 string) {
+	invocation := new(AddressInvocation)
 
-	ident44 = _f2.AddrHook()
+	ident44 = _f2.AddressHook()
 
 	invocation.Results.Ident44 = ident44
 
-	_f2.AddrCalls = append(_f2.AddrCalls, invocation)
+	_f2.AddressCalls = append(_f2.AddressCalls, invocation)
 
 	return
 }
 
-// AddrCalled returns true if FakeServer.Addr was called
-func (f *FakeServer) AddrCalled() bool {
-	return len(f.AddrCalls) != 0
+// AddressCalled returns true if FakeServer.Address was called
+func (f *FakeServer) AddressCalled() bool {
+	return len(f.AddressCalls) != 0
 }
 
-// AssertAddrCalled calls t.Error if FakeServer.Addr was not called
-func (f *FakeServer) AssertAddrCalled(t *testing.T) {
+// AssertAddressCalled calls t.Error if FakeServer.Address was not called
+func (f *FakeServer) AssertAddressCalled(t *testing.T) {
 	t.Helper()
-	if len(f.AddrCalls) == 0 {
-		t.Error("FakeServer.Addr not called, expected at least one")
+	if len(f.AddressCalls) == 0 {
+		t.Error("FakeServer.Address not called, expected at least one")
 	}
 }
 
-// AddrNotCalled returns true if FakeServer.Addr was not called
-func (f *FakeServer) AddrNotCalled() bool {
-	return len(f.AddrCalls) == 0
+// AddressNotCalled returns true if FakeServer.Address was not called
+func (f *FakeServer) AddressNotCalled() bool {
+	return len(f.AddressCalls) == 0
 }
 
-// AssertAddrNotCalled calls t.Error if FakeServer.Addr was called
-func (f *FakeServer) AssertAddrNotCalled(t *testing.T) {
+// AssertAddressNotCalled calls t.Error if FakeServer.Address was called
+func (f *FakeServer) AssertAddressNotCalled(t *testing.T) {
 	t.Helper()
-	if len(f.AddrCalls) != 0 {
-		t.Error("FakeServer.Addr called, expected none")
+	if len(f.AddressCalls) != 0 {
+		t.Error("FakeServer.Address called, expected none")
 	}
 }
 
-// AddrCalledOnce returns true if FakeServer.Addr was called exactly once
-func (f *FakeServer) AddrCalledOnce() bool {
-	return len(f.AddrCalls) == 1
+// AddressCalledOnce returns true if FakeServer.Address was called exactly once
+func (f *FakeServer) AddressCalledOnce() bool {
+	return len(f.AddressCalls) == 1
 }
 
-// AssertAddrCalledOnce calls t.Error if FakeServer.Addr was not called exactly once
-func (f *FakeServer) AssertAddrCalledOnce(t *testing.T) {
+// AssertAddressCalledOnce calls t.Error if FakeServer.Address was not called exactly once
+func (f *FakeServer) AssertAddressCalledOnce(t *testing.T) {
 	t.Helper()
-	if len(f.AddrCalls) != 1 {
-		t.Errorf("FakeServer.Addr called %d times, expected 1", len(f.AddrCalls))
+	if len(f.AddressCalls) != 1 {
+		t.Errorf("FakeServer.Address called %d times, expected 1", len(f.AddressCalls))
 	}
 }
 
-// AddrCalledN returns true if FakeServer.Addr was called at least n times
-func (f *FakeServer) AddrCalledN(n int) bool {
-	return len(f.AddrCalls) >= n
+// AddressCalledN returns true if FakeServer.Address was called at least n times
+func (f *FakeServer) AddressCalledN(n int) bool {
+	return len(f.AddressCalls) >= n
 }
 
-// AssertAddrCalledN calls t.Error if FakeServer.Addr was called less than n times
-func (f *FakeServer) AssertAddrCalledN(t *testing.T, n int) {
+// AssertAddressCalledN calls t.Error if FakeServer.Address was called less than n times
+func (f *FakeServer) AssertAddressCalledN(t *testing.T, n int) {
 	t.Helper()
-	if len(f.AddrCalls) < n {
-		t.Errorf("FakeServer.Addr called %d times, expected >= %d", len(f.AddrCalls), n)
+	if len(f.AddressCalls) < n {
+		t.Errorf("FakeServer.Address called %d times, expected >= %d", len(f.AddressCalls), n)
 	}
 }
 

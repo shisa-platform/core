@@ -7,7 +7,7 @@ import (
 )
 
 type HTTPServer struct {
-	Address          string // TCP address to listen on, ":http" if empty
+	Addr             string // TCP address to listen on, ":http" if empty
 	UseTLS           bool   // should this server use TLS?
 	DisableKeepAlive bool   // Should TCP keep alive be disabled?
 
@@ -61,6 +61,6 @@ type HTTPServer struct {
 	base http.Server
 }
 
-func (s *HTTPServer) Addr() string {
-	return s.Address
+func (s *HTTPServer) Address() string {
+	return s.Addr
 }

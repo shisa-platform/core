@@ -13,11 +13,15 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/service"
 )
 
 var (
 	stats = expvar.NewMap("gateway")
 )
+
+// RequestIDGenerator creates a globally unique string for the given request.
+type RequestIDGenerator func(*service.Request) string
 
 type Gateway struct {
 	Name             string        // The name of the Gateway for in logging
@@ -74,14 +78,29 @@ type Gateway struct {
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
 	// Logger optionally specifies the logger to use by the
-	// Gateway and all of its services.  Leave this as nil to
-	// disable all logging.
+	// Gateway and all of its services.
+	// If nil all logging is disabled.
 	Logger *zap.Logger
+
+	// RequestIDGenerator optionally customizes how request ids
+	// are generated.
+	// If nil then `service.Request.GenerateID` will be used.
+	RequestIDGenerator RequestIDGenerator
+
+	// NotFoundHandler optionally customizes the response
+	// returned to the user agent when no endpoint is configured
+	// service a request path.
+	// If nil the default handler will return a 404 status code
+	// with an empty body.
+	NotFoundHandler service.Handler
 
 	base        http.Server
 	auxiliaries []auxillary.Server
-	trees       treeSet
-	started     bool
+	tree        *node
+
+	requestLog *zap.Logger
+	panicLog   *zap.Logger
+	started    bool
 }
 
 func (g *Gateway) init() {
@@ -96,22 +115,34 @@ func (g *Gateway) init() {
 	g.base.MaxHeaderBytes = g.MaxHeaderBytes
 	g.base.TLSNextProto = g.TLSNextProto
 	g.base.ConnState = connstate
+	g.base.Handler = g
 
 	if g.DisableKeepAlive {
 		g.base.SetKeepAlivesEnabled(false)
 	}
 
+	// xxx - need to handle early shutdown before startup is completed
 	if g.HandleInterrupt {
 		interrupt := make(chan os.Signal, 1)
 		go g.handleInterrupt(interrupt)
 		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	}
 
+	if g.RequestIDGenerator == nil {
+		g.RequestIDGenerator = defaultRequestIDGenerator
+	}
+
+	if g.NotFoundHandler == nil {
+		g.NotFoundHandler = defaultNotFoundHandler
+	}
+
 	if g.Logger == nil {
 		g.Logger = zap.NewNop()
 	}
+	g.requestLog = g.Logger.Named("request")
+	g.panicLog = g.Logger.Named("panic")
 
-	g.trees = newTreeSet()
+	g.tree = new(node)
 }
 
 func connstate(con net.Conn, state http.ConnState) {
