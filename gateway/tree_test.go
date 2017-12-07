@@ -29,10 +29,13 @@ var fakeHandlerValue string
 
 func fakeEndpoint(s string) *service.Endpoint {
 	return &service.Endpoint{
-		Pipeline: []service.Handler{
-			func(context.Context, *service.Request) service.Response {
-				fakeHandlerValue = s
-				return nil
+		Route: s,
+		Get: &service.Pipeline{
+			Handlers: []service.Handler{
+				func(context.Context, *service.Request) service.Response {
+					fakeHandlerValue = s
+					return nil
+				},
 			},
 		},
 	}
@@ -65,7 +68,7 @@ func checkRequests(t *testing.T, tree *node, requests testRequests, unescapes ..
 		} else if request.nilEndpoint {
 			t.Errorf("endpoint mismatch for route %q: Expected nil endpoint", request.path)
 		} else {
-			endpoint.Pipeline[0](nil, nil)
+			endpoint.Get.Handlers[0](nil, nil)
 			if fakeHandlerValue != request.route {
 				t.Errorf("handle mismatch for route %q: Wrong handle (%s != %s)", request.path, fakeHandlerValue, request.route)
 			}

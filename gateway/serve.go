@@ -117,14 +117,23 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 			}
 			switch {
 			case endpoint.Head != nil:
+				endpoint.Head.Handlers = append(service.Handlers(), endpoint.Head.Handlers...)
 			case endpoint.Get != nil:
+				endpoint.Get.Handlers = append(service.Handlers(), endpoint.Get.Handlers...)
 			case endpoint.Put != nil:
+				endpoint.Put.Handlers = append(service.Handlers(), endpoint.Put.Handlers...)
 			case endpoint.Post != nil:
+				endpoint.Post.Handlers = append(service.Handlers(), endpoint.Post.Handlers...)
 			case endpoint.Patch != nil:
+				endpoint.Patch.Handlers = append(service.Handlers(), endpoint.Patch.Handlers...)
 			case endpoint.Delete != nil:
+				endpoint.Delete.Handlers = append(service.Handlers(), endpoint.Delete.Handlers...)
 			case endpoint.Connect != nil:
+				endpoint.Connect.Handlers = append(service.Handlers(), endpoint.Connect.Handlers...)
 			case endpoint.Options != nil:
+				endpoint.Options.Handlers = append(service.Handlers(), endpoint.Options.Handlers...)
 			case endpoint.Trace != nil:
+				endpoint.Trace.Handlers = append(service.Handlers(), endpoint.Trace.Handlers...)
 			default:
 				return merry.New("endpoint requires least one method").WithValue("service", service.Name()).WithValue("index", i)
 			}

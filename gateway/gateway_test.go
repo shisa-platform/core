@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"net/http"
 	"testing"
 	"time"
 
@@ -18,13 +17,15 @@ func TestAuxillaryServer(t *testing.T) {
 		t.Errorf("unexpected logger error: %v", err)
 	}
 	defer logger.Sync()
+
 	expectedGracePeriod := 2 * time.Second
 	dummyEndpoint := service.Endpoint{
-		Method: http.MethodGet,
-		Route:  "/",
-		Pipeline: []service.Handler{
-			func(context.Context, *service.Request) service.Response {
-				return service.NewOK(nil)
+		Route: "/dummy",
+		Get: &service.Pipeline{
+			Handlers: []service.Handler{
+				func(context.Context, *service.Request) service.Response {
+					return service.NewOK(nil)
+				},
 			},
 		},
 	}
@@ -41,8 +42,25 @@ func TestAuxillaryServer(t *testing.T) {
 		EndpointsHook: func() []service.Endpoint {
 			return []service.Endpoint{dummyEndpoint}
 		},
+		HandlersHook: func() []service.Handler {
+			return nil
+		},
+		MethodNotAllowedHandlerHook: func() service.Handler {
+			return nil
+		},
+		InternalServerErrorHandlerHook: func() service.ErrorHandler {
+			return nil
+		},
 	}
+	dummyEndpoint.Service = svc
+
 	aux := &auxillary.FakeServer{
+		AddressHook: func() string {
+			return ":9002"
+		},
+		NameHook: func() string {
+			return "fake"
+		},
 		ServeHook: func() error {
 			return nil
 		},
