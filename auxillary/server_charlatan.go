@@ -11,31 +11,31 @@ import (
 // NameInvocation represents a single call of FakeServer.Name
 type NameInvocation struct {
 	Results struct {
-		Ident43 string
+		Ident1 string
 	}
 }
 
 // AddressInvocation represents a single call of FakeServer.Address
 type AddressInvocation struct {
 	Results struct {
-		Ident44 string
+		Ident1 string
 	}
 }
 
 // ServeInvocation represents a single call of FakeServer.Serve
 type ServeInvocation struct {
 	Results struct {
-		Ident45 error
+		Ident1 error
 	}
 }
 
 // ShutdownInvocation represents a single call of FakeServer.Shutdown
 type ShutdownInvocation struct {
 	Parameters struct {
-		Ident46 time.Duration
+		Ident1 time.Duration
 	}
 	Results struct {
-		Ident47 error
+		Ident2 error
 	}
 }
 
@@ -47,7 +47,7 @@ Use it in your tests as in this example:
 
 	func TestWithServer(t *testing.T) {
 		f := &auxillary.FakeServer{
-			NameHook: func() (ident43 string) {
+			NameHook: func() (ident1 string) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -78,16 +78,16 @@ type FakeServer struct {
 // NewFakeServerDefaultPanic returns an instance of FakeServer with all hooks configured to panic
 func NewFakeServerDefaultPanic() *FakeServer {
 	return &FakeServer{
-		NameHook: func() (ident43 string) {
+		NameHook: func() (ident1 string) {
 			panic("Unexpected call to Server.Name")
 		},
-		AddressHook: func() (ident44 string) {
+		AddressHook: func() (ident1 string) {
 			panic("Unexpected call to Server.Address")
 		},
-		ServeHook: func() (ident45 error) {
+		ServeHook: func() (ident1 error) {
 			panic("Unexpected call to Server.Serve")
 		},
-		ShutdownHook: func(time.Duration) (ident47 error) {
+		ShutdownHook: func(time.Duration) (ident2 error) {
 			panic("Unexpected call to Server.Shutdown")
 		},
 	}
@@ -96,19 +96,19 @@ func NewFakeServerDefaultPanic() *FakeServer {
 // NewFakeServerDefaultFatal returns an instance of FakeServer with all hooks configured to call t.Fatal
 func NewFakeServerDefaultFatal(t *testing.T) *FakeServer {
 	return &FakeServer{
-		NameHook: func() (ident43 string) {
+		NameHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to Server.Name")
 			return
 		},
-		AddressHook: func() (ident44 string) {
+		AddressHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to Server.Address")
 			return
 		},
-		ServeHook: func() (ident45 error) {
+		ServeHook: func() (ident1 error) {
 			t.Fatal("Unexpected call to Server.Serve")
 			return
 		},
-		ShutdownHook: func(time.Duration) (ident47 error) {
+		ShutdownHook: func(time.Duration) (ident2 error) {
 			t.Fatal("Unexpected call to Server.Shutdown")
 			return
 		},
@@ -118,31 +118,38 @@ func NewFakeServerDefaultFatal(t *testing.T) *FakeServer {
 // NewFakeServerDefaultError returns an instance of FakeServer with all hooks configured to call t.Error
 func NewFakeServerDefaultError(t *testing.T) *FakeServer {
 	return &FakeServer{
-		NameHook: func() (ident43 string) {
+		NameHook: func() (ident1 string) {
 			t.Error("Unexpected call to Server.Name")
 			return
 		},
-		AddressHook: func() (ident44 string) {
+		AddressHook: func() (ident1 string) {
 			t.Error("Unexpected call to Server.Address")
 			return
 		},
-		ServeHook: func() (ident45 error) {
+		ServeHook: func() (ident1 error) {
 			t.Error("Unexpected call to Server.Serve")
 			return
 		},
-		ShutdownHook: func(time.Duration) (ident47 error) {
+		ShutdownHook: func(time.Duration) (ident2 error) {
 			t.Error("Unexpected call to Server.Shutdown")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeServer) Name() (ident43 string) {
+func (f *FakeServer) Reset() {
+	f.NameCalls = []*NameInvocation{}
+	f.AddressCalls = []*AddressInvocation{}
+	f.ServeCalls = []*ServeInvocation{}
+	f.ShutdownCalls = []*ShutdownInvocation{}
+}
+
+func (_f1 *FakeServer) Name() (ident1 string) {
 	invocation := new(NameInvocation)
 
-	ident43 = _f1.NameHook()
+	ident1 = _f1.NameHook()
 
-	invocation.Results.Ident43 = ident43
+	invocation.Results.Ident1 = ident1
 
 	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
@@ -201,12 +208,12 @@ func (f *FakeServer) AssertNameCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeServer) Address() (ident44 string) {
+func (_f2 *FakeServer) Address() (ident1 string) {
 	invocation := new(AddressInvocation)
 
-	ident44 = _f2.AddressHook()
+	ident1 = _f2.AddressHook()
 
-	invocation.Results.Ident44 = ident44
+	invocation.Results.Ident1 = ident1
 
 	_f2.AddressCalls = append(_f2.AddressCalls, invocation)
 
@@ -265,12 +272,12 @@ func (f *FakeServer) AssertAddressCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f3 *FakeServer) Serve() (ident45 error) {
+func (_f3 *FakeServer) Serve() (ident1 error) {
 	invocation := new(ServeInvocation)
 
-	ident45 = _f3.ServeHook()
+	ident1 = _f3.ServeHook()
 
-	invocation.Results.Ident45 = ident45
+	invocation.Results.Ident1 = ident1
 
 	_f3.ServeCalls = append(_f3.ServeCalls, invocation)
 
@@ -329,14 +336,14 @@ func (f *FakeServer) AssertServeCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f4 *FakeServer) Shutdown(ident46 time.Duration) (ident47 error) {
+func (_f4 *FakeServer) Shutdown(ident1 time.Duration) (ident2 error) {
 	invocation := new(ShutdownInvocation)
 
-	invocation.Parameters.Ident46 = ident46
+	invocation.Parameters.Ident1 = ident1
 
-	ident47 = _f4.ShutdownHook(ident46)
+	ident2 = _f4.ShutdownHook(ident1)
 
-	invocation.Results.Ident47 = ident47
+	invocation.Results.Ident2 = ident2
 
 	_f4.ShutdownCalls = append(_f4.ShutdownCalls, invocation)
 
@@ -396,9 +403,9 @@ func (f *FakeServer) AssertShutdownCalledN(t *testing.T, n int) {
 }
 
 // ShutdownCalledWith returns true if FakeServer.Shutdown was called with the given values
-func (_f5 *FakeServer) ShutdownCalledWith(ident46 time.Duration) (found bool) {
+func (_f5 *FakeServer) ShutdownCalledWith(ident1 time.Duration) (found bool) {
 	for _, call := range _f5.ShutdownCalls {
-		if reflect.DeepEqual(call.Parameters.Ident46, ident46) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
 		}
@@ -408,11 +415,11 @@ func (_f5 *FakeServer) ShutdownCalledWith(ident46 time.Duration) (found bool) {
 }
 
 // AssertShutdownCalledWith calls t.Error if FakeServer.Shutdown was not called with the given values
-func (_f6 *FakeServer) AssertShutdownCalledWith(t *testing.T, ident46 time.Duration) {
+func (_f6 *FakeServer) AssertShutdownCalledWith(t *testing.T, ident1 time.Duration) {
 	t.Helper()
 	var found bool
 	for _, call := range _f6.ShutdownCalls {
-		if reflect.DeepEqual(call.Parameters.Ident46, ident46) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
 		}
@@ -424,10 +431,10 @@ func (_f6 *FakeServer) AssertShutdownCalledWith(t *testing.T, ident46 time.Durat
 }
 
 // ShutdownCalledOnceWith returns true if FakeServer.Shutdown was called exactly once with the given values
-func (_f7 *FakeServer) ShutdownCalledOnceWith(ident46 time.Duration) bool {
+func (_f7 *FakeServer) ShutdownCalledOnceWith(ident1 time.Duration) bool {
 	var count int
 	for _, call := range _f7.ShutdownCalls {
-		if reflect.DeepEqual(call.Parameters.Ident46, ident46) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
 	}
@@ -436,11 +443,11 @@ func (_f7 *FakeServer) ShutdownCalledOnceWith(ident46 time.Duration) bool {
 }
 
 // AssertShutdownCalledOnceWith calls t.Error if FakeServer.Shutdown was not called exactly once with the given values
-func (_f8 *FakeServer) AssertShutdownCalledOnceWith(t *testing.T, ident46 time.Duration) {
+func (_f8 *FakeServer) AssertShutdownCalledOnceWith(t *testing.T, ident1 time.Duration) {
 	t.Helper()
 	var count int
 	for _, call := range _f8.ShutdownCalls {
-		if reflect.DeepEqual(call.Parameters.Ident46, ident46) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
 	}
@@ -451,10 +458,10 @@ func (_f8 *FakeServer) AssertShutdownCalledOnceWith(t *testing.T, ident46 time.D
 }
 
 // ShutdownResultsForCall returns the result values for the first call to FakeServer.Shutdown with the given values
-func (_f9 *FakeServer) ShutdownResultsForCall(ident46 time.Duration) (ident47 error, found bool) {
+func (_f9 *FakeServer) ShutdownResultsForCall(ident1 time.Duration) (ident2 error, found bool) {
 	for _, call := range _f9.ShutdownCalls {
-		if reflect.DeepEqual(call.Parameters.Ident46, ident46) {
-			ident47 = call.Results.Ident47
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			ident2 = call.Results.Ident2
 			found = true
 			break
 		}

@@ -9,35 +9,35 @@ import (
 // NameInvocation represents a single call of FakeService.Name
 type NameInvocation struct {
 	Results struct {
-		Ident121 string
+		Ident1 string
 	}
 }
 
 // EndpointsInvocation represents a single call of FakeService.Endpoints
 type EndpointsInvocation struct {
 	Results struct {
-		Ident122 []Endpoint
+		Ident1 []Endpoint
 	}
 }
 
 // HandlersInvocation represents a single call of FakeService.Handlers
 type HandlersInvocation struct {
 	Results struct {
-		Ident123 []Handler
+		Ident1 []Handler
 	}
 }
 
 // MethodNotAllowedHandlerInvocation represents a single call of FakeService.MethodNotAllowedHandler
 type MethodNotAllowedHandlerInvocation struct {
 	Results struct {
-		Ident124 Handler
+		Ident1 Handler
 	}
 }
 
 // InternalServerErrorHandlerInvocation represents a single call of FakeService.InternalServerErrorHandler
 type InternalServerErrorHandlerInvocation struct {
 	Results struct {
-		Ident125 ErrorHandler
+		Ident1 ErrorHandler
 	}
 }
 
@@ -49,7 +49,7 @@ Use it in your tests as in this example:
 
 	func TestWithService(t *testing.T) {
 		f := &service.FakeService{
-			NameHook: func() (ident121 string) {
+			NameHook: func() (ident1 string) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -82,19 +82,19 @@ type FakeService struct {
 // NewFakeServiceDefaultPanic returns an instance of FakeService with all hooks configured to panic
 func NewFakeServiceDefaultPanic() *FakeService {
 	return &FakeService{
-		NameHook: func() (ident121 string) {
+		NameHook: func() (ident1 string) {
 			panic("Unexpected call to Service.Name")
 		},
-		EndpointsHook: func() (ident122 []Endpoint) {
+		EndpointsHook: func() (ident1 []Endpoint) {
 			panic("Unexpected call to Service.Endpoints")
 		},
-		HandlersHook: func() (ident123 []Handler) {
+		HandlersHook: func() (ident1 []Handler) {
 			panic("Unexpected call to Service.Handlers")
 		},
-		MethodNotAllowedHandlerHook: func() (ident124 Handler) {
+		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			panic("Unexpected call to Service.MethodNotAllowedHandler")
 		},
-		InternalServerErrorHandlerHook: func() (ident125 ErrorHandler) {
+		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
 			panic("Unexpected call to Service.InternalServerErrorHandler")
 		},
 	}
@@ -103,23 +103,23 @@ func NewFakeServiceDefaultPanic() *FakeService {
 // NewFakeServiceDefaultFatal returns an instance of FakeService with all hooks configured to call t.Fatal
 func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 	return &FakeService{
-		NameHook: func() (ident121 string) {
+		NameHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident122 []Endpoint) {
+		EndpointsHook: func() (ident1 []Endpoint) {
 			t.Fatal("Unexpected call to Service.Endpoints")
 			return
 		},
-		HandlersHook: func() (ident123 []Handler) {
+		HandlersHook: func() (ident1 []Handler) {
 			t.Fatal("Unexpected call to Service.Handlers")
 			return
 		},
-		MethodNotAllowedHandlerHook: func() (ident124 Handler) {
+		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			t.Fatal("Unexpected call to Service.MethodNotAllowedHandler")
 			return
 		},
-		InternalServerErrorHandlerHook: func() (ident125 ErrorHandler) {
+		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
 			t.Fatal("Unexpected call to Service.InternalServerErrorHandler")
 			return
 		},
@@ -129,35 +129,43 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 // NewFakeServiceDefaultError returns an instance of FakeService with all hooks configured to call t.Error
 func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 	return &FakeService{
-		NameHook: func() (ident121 string) {
+		NameHook: func() (ident1 string) {
 			t.Error("Unexpected call to Service.Name")
 			return
 		},
-		EndpointsHook: func() (ident122 []Endpoint) {
+		EndpointsHook: func() (ident1 []Endpoint) {
 			t.Error("Unexpected call to Service.Endpoints")
 			return
 		},
-		HandlersHook: func() (ident123 []Handler) {
+		HandlersHook: func() (ident1 []Handler) {
 			t.Error("Unexpected call to Service.Handlers")
 			return
 		},
-		MethodNotAllowedHandlerHook: func() (ident124 Handler) {
+		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			t.Error("Unexpected call to Service.MethodNotAllowedHandler")
 			return
 		},
-		InternalServerErrorHandlerHook: func() (ident125 ErrorHandler) {
+		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
 			t.Error("Unexpected call to Service.InternalServerErrorHandler")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeService) Name() (ident121 string) {
+func (f *FakeService) Reset() {
+	f.NameCalls = []*NameInvocation{}
+	f.EndpointsCalls = []*EndpointsInvocation{}
+	f.HandlersCalls = []*HandlersInvocation{}
+	f.MethodNotAllowedHandlerCalls = []*MethodNotAllowedHandlerInvocation{}
+	f.InternalServerErrorHandlerCalls = []*InternalServerErrorHandlerInvocation{}
+}
+
+func (_f1 *FakeService) Name() (ident1 string) {
 	invocation := new(NameInvocation)
 
-	ident121 = _f1.NameHook()
+	ident1 = _f1.NameHook()
 
-	invocation.Results.Ident121 = ident121
+	invocation.Results.Ident1 = ident1
 
 	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
@@ -216,12 +224,12 @@ func (f *FakeService) AssertNameCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeService) Endpoints() (ident122 []Endpoint) {
+func (_f2 *FakeService) Endpoints() (ident1 []Endpoint) {
 	invocation := new(EndpointsInvocation)
 
-	ident122 = _f2.EndpointsHook()
+	ident1 = _f2.EndpointsHook()
 
-	invocation.Results.Ident122 = ident122
+	invocation.Results.Ident1 = ident1
 
 	_f2.EndpointsCalls = append(_f2.EndpointsCalls, invocation)
 
@@ -280,12 +288,12 @@ func (f *FakeService) AssertEndpointsCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f3 *FakeService) Handlers() (ident123 []Handler) {
+func (_f3 *FakeService) Handlers() (ident1 []Handler) {
 	invocation := new(HandlersInvocation)
 
-	ident123 = _f3.HandlersHook()
+	ident1 = _f3.HandlersHook()
 
-	invocation.Results.Ident123 = ident123
+	invocation.Results.Ident1 = ident1
 
 	_f3.HandlersCalls = append(_f3.HandlersCalls, invocation)
 
@@ -344,12 +352,12 @@ func (f *FakeService) AssertHandlersCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f4 *FakeService) MethodNotAllowedHandler() (ident124 Handler) {
+func (_f4 *FakeService) MethodNotAllowedHandler() (ident1 Handler) {
 	invocation := new(MethodNotAllowedHandlerInvocation)
 
-	ident124 = _f4.MethodNotAllowedHandlerHook()
+	ident1 = _f4.MethodNotAllowedHandlerHook()
 
-	invocation.Results.Ident124 = ident124
+	invocation.Results.Ident1 = ident1
 
 	_f4.MethodNotAllowedHandlerCalls = append(_f4.MethodNotAllowedHandlerCalls, invocation)
 
@@ -408,12 +416,12 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t *testing.T, n int) 
 	}
 }
 
-func (_f5 *FakeService) InternalServerErrorHandler() (ident125 ErrorHandler) {
+func (_f5 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
 	invocation := new(InternalServerErrorHandlerInvocation)
 
-	ident125 = _f5.InternalServerErrorHandlerHook()
+	ident1 = _f5.InternalServerErrorHandlerHook()
 
-	invocation.Results.Ident125 = ident125
+	invocation.Results.Ident1 = ident1
 
 	_f5.InternalServerErrorHandlerCalls = append(_f5.InternalServerErrorHandlerCalls, invocation)
 

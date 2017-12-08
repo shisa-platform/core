@@ -46,14 +46,14 @@ type ValueInvocation struct {
 // RequestIDInvocation represents a single call of FakeContext.RequestID
 type RequestIDInvocation struct {
 	Results struct {
-		Ident6 string
+		Ident1 string
 	}
 }
 
 // ActorInvocation represents a single call of FakeContext.Actor
 type ActorInvocation struct {
 	Results struct {
-		Ident7 models.User
+		Ident1 models.User
 	}
 }
 
@@ -63,7 +63,7 @@ type WithActorInvocation struct {
 		Value models.User
 	}
 	Results struct {
-		Ident8 Context
+		Ident1 Context
 	}
 }
 
@@ -73,7 +73,7 @@ type WithRequestIDInvocation struct {
 		Value string
 	}
 	Results struct {
-		Ident9 Context
+		Ident1 Context
 	}
 }
 
@@ -84,7 +84,7 @@ type WithValueInvocation struct {
 		Value interface{}
 	}
 	Results struct {
-		Ident10 Context
+		Ident1 Context
 	}
 }
 
@@ -94,8 +94,8 @@ type WithDeadlineInvocation struct {
 		Deadline time.Time
 	}
 	Results struct {
-		Ident11 Context
-		Ident12 context.CancelFunc
+		Ident1 Context
+		Ident2 context.CancelFunc
 	}
 }
 
@@ -105,8 +105,8 @@ type WithTimeoutInvocation struct {
 		Timeout time.Duration
 	}
 	Results struct {
-		Ident13 Context
-		Ident14 context.CancelFunc
+		Ident1 Context
+		Ident2 context.CancelFunc
 	}
 }
 
@@ -175,25 +175,25 @@ func NewFakeContextDefaultPanic() *FakeContext {
 		ValueHook: func(interface{}) (ident3 interface{}) {
 			panic("Unexpected call to Context.Value")
 		},
-		RequestIDHook: func() (ident6 string) {
+		RequestIDHook: func() (ident1 string) {
 			panic("Unexpected call to Context.RequestID")
 		},
-		ActorHook: func() (ident7 models.User) {
+		ActorHook: func() (ident1 models.User) {
 			panic("Unexpected call to Context.Actor")
 		},
-		WithActorHook: func(models.User) (ident8 Context) {
+		WithActorHook: func(models.User) (ident1 Context) {
 			panic("Unexpected call to Context.WithActor")
 		},
-		WithRequestIDHook: func(string) (ident9 Context) {
+		WithRequestIDHook: func(string) (ident1 Context) {
 			panic("Unexpected call to Context.WithRequestID")
 		},
-		WithValueHook: func(interface{}, interface{}) (ident10 Context) {
+		WithValueHook: func(interface{}, interface{}) (ident1 Context) {
 			panic("Unexpected call to Context.WithValue")
 		},
-		WithDeadlineHook: func(time.Time) (ident11 Context, ident12 context.CancelFunc) {
+		WithDeadlineHook: func(time.Time) (ident1 Context, ident2 context.CancelFunc) {
 			panic("Unexpected call to Context.WithDeadline")
 		},
-		WithTimeoutHook: func(time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+		WithTimeoutHook: func(time.Duration) (ident1 Context, ident2 context.CancelFunc) {
 			panic("Unexpected call to Context.WithTimeout")
 		},
 	}
@@ -218,31 +218,31 @@ func NewFakeContextDefaultFatal(t *testing.T) *FakeContext {
 			t.Fatal("Unexpected call to Context.Value")
 			return
 		},
-		RequestIDHook: func() (ident6 string) {
+		RequestIDHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to Context.RequestID")
 			return
 		},
-		ActorHook: func() (ident7 models.User) {
+		ActorHook: func() (ident1 models.User) {
 			t.Fatal("Unexpected call to Context.Actor")
 			return
 		},
-		WithActorHook: func(models.User) (ident8 Context) {
+		WithActorHook: func(models.User) (ident1 Context) {
 			t.Fatal("Unexpected call to Context.WithActor")
 			return
 		},
-		WithRequestIDHook: func(string) (ident9 Context) {
+		WithRequestIDHook: func(string) (ident1 Context) {
 			t.Fatal("Unexpected call to Context.WithRequestID")
 			return
 		},
-		WithValueHook: func(interface{}, interface{}) (ident10 Context) {
+		WithValueHook: func(interface{}, interface{}) (ident1 Context) {
 			t.Fatal("Unexpected call to Context.WithValue")
 			return
 		},
-		WithDeadlineHook: func(time.Time) (ident11 Context, ident12 context.CancelFunc) {
+		WithDeadlineHook: func(time.Time) (ident1 Context, ident2 context.CancelFunc) {
 			t.Fatal("Unexpected call to Context.WithDeadline")
 			return
 		},
-		WithTimeoutHook: func(time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+		WithTimeoutHook: func(time.Duration) (ident1 Context, ident2 context.CancelFunc) {
 			t.Fatal("Unexpected call to Context.WithTimeout")
 			return
 		},
@@ -268,35 +268,49 @@ func NewFakeContextDefaultError(t *testing.T) *FakeContext {
 			t.Error("Unexpected call to Context.Value")
 			return
 		},
-		RequestIDHook: func() (ident6 string) {
+		RequestIDHook: func() (ident1 string) {
 			t.Error("Unexpected call to Context.RequestID")
 			return
 		},
-		ActorHook: func() (ident7 models.User) {
+		ActorHook: func() (ident1 models.User) {
 			t.Error("Unexpected call to Context.Actor")
 			return
 		},
-		WithActorHook: func(models.User) (ident8 Context) {
+		WithActorHook: func(models.User) (ident1 Context) {
 			t.Error("Unexpected call to Context.WithActor")
 			return
 		},
-		WithRequestIDHook: func(string) (ident9 Context) {
+		WithRequestIDHook: func(string) (ident1 Context) {
 			t.Error("Unexpected call to Context.WithRequestID")
 			return
 		},
-		WithValueHook: func(interface{}, interface{}) (ident10 Context) {
+		WithValueHook: func(interface{}, interface{}) (ident1 Context) {
 			t.Error("Unexpected call to Context.WithValue")
 			return
 		},
-		WithDeadlineHook: func(time.Time) (ident11 Context, ident12 context.CancelFunc) {
+		WithDeadlineHook: func(time.Time) (ident1 Context, ident2 context.CancelFunc) {
 			t.Error("Unexpected call to Context.WithDeadline")
 			return
 		},
-		WithTimeoutHook: func(time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+		WithTimeoutHook: func(time.Duration) (ident1 Context, ident2 context.CancelFunc) {
 			t.Error("Unexpected call to Context.WithTimeout")
 			return
 		},
 	}
+}
+
+func (f *FakeContext) Reset() {
+	f.DeadlineCalls = []*DeadlineInvocation{}
+	f.DoneCalls = []*DoneInvocation{}
+	f.ErrCalls = []*ErrInvocation{}
+	f.ValueCalls = []*ValueInvocation{}
+	f.RequestIDCalls = []*RequestIDInvocation{}
+	f.ActorCalls = []*ActorInvocation{}
+	f.WithActorCalls = []*WithActorInvocation{}
+	f.WithRequestIDCalls = []*WithRequestIDInvocation{}
+	f.WithValueCalls = []*WithValueInvocation{}
+	f.WithDeadlineCalls = []*WithDeadlineInvocation{}
+	f.WithTimeoutCalls = []*WithTimeoutInvocation{}
 }
 
 func (_f1 *FakeContext) Deadline() (deadline time.Time, ok bool) {
@@ -626,12 +640,12 @@ func (_f9 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}
 	return
 }
 
-func (_f10 *FakeContext) RequestID() (ident6 string) {
+func (_f10 *FakeContext) RequestID() (ident1 string) {
 	invocation := new(RequestIDInvocation)
 
-	ident6 = _f10.RequestIDHook()
+	ident1 = _f10.RequestIDHook()
 
-	invocation.Results.Ident6 = ident6
+	invocation.Results.Ident1 = ident1
 
 	_f10.RequestIDCalls = append(_f10.RequestIDCalls, invocation)
 
@@ -690,12 +704,12 @@ func (f *FakeContext) AssertRequestIDCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f11 *FakeContext) Actor() (ident7 models.User) {
+func (_f11 *FakeContext) Actor() (ident1 models.User) {
 	invocation := new(ActorInvocation)
 
-	ident7 = _f11.ActorHook()
+	ident1 = _f11.ActorHook()
 
-	invocation.Results.Ident7 = ident7
+	invocation.Results.Ident1 = ident1
 
 	_f11.ActorCalls = append(_f11.ActorCalls, invocation)
 
@@ -754,14 +768,14 @@ func (f *FakeContext) AssertActorCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f12 *FakeContext) WithActor(value models.User) (ident8 Context) {
+func (_f12 *FakeContext) WithActor(value models.User) (ident1 Context) {
 	invocation := new(WithActorInvocation)
 
 	invocation.Parameters.Value = value
 
-	ident8 = _f12.WithActorHook(value)
+	ident1 = _f12.WithActorHook(value)
 
-	invocation.Results.Ident8 = ident8
+	invocation.Results.Ident1 = ident1
 
 	_f12.WithActorCalls = append(_f12.WithActorCalls, invocation)
 
@@ -876,10 +890,10 @@ func (_f16 *FakeContext) AssertWithActorCalledOnceWith(t *testing.T, value model
 }
 
 // WithActorResultsForCall returns the result values for the first call to FakeContext.WithActor with the given values
-func (_f17 *FakeContext) WithActorResultsForCall(value models.User) (ident8 Context, found bool) {
+func (_f17 *FakeContext) WithActorResultsForCall(value models.User) (ident1 Context, found bool) {
 	for _, call := range _f17.WithActorCalls {
 		if reflect.DeepEqual(call.Parameters.Value, value) {
-			ident8 = call.Results.Ident8
+			ident1 = call.Results.Ident1
 			found = true
 			break
 		}
@@ -888,14 +902,14 @@ func (_f17 *FakeContext) WithActorResultsForCall(value models.User) (ident8 Cont
 	return
 }
 
-func (_f18 *FakeContext) WithRequestID(value string) (ident9 Context) {
+func (_f18 *FakeContext) WithRequestID(value string) (ident1 Context) {
 	invocation := new(WithRequestIDInvocation)
 
 	invocation.Parameters.Value = value
 
-	ident9 = _f18.WithRequestIDHook(value)
+	ident1 = _f18.WithRequestIDHook(value)
 
-	invocation.Results.Ident9 = ident9
+	invocation.Results.Ident1 = ident1
 
 	_f18.WithRequestIDCalls = append(_f18.WithRequestIDCalls, invocation)
 
@@ -1010,10 +1024,10 @@ func (_f22 *FakeContext) AssertWithRequestIDCalledOnceWith(t *testing.T, value s
 }
 
 // WithRequestIDResultsForCall returns the result values for the first call to FakeContext.WithRequestID with the given values
-func (_f23 *FakeContext) WithRequestIDResultsForCall(value string) (ident9 Context, found bool) {
+func (_f23 *FakeContext) WithRequestIDResultsForCall(value string) (ident1 Context, found bool) {
 	for _, call := range _f23.WithRequestIDCalls {
 		if reflect.DeepEqual(call.Parameters.Value, value) {
-			ident9 = call.Results.Ident9
+			ident1 = call.Results.Ident1
 			found = true
 			break
 		}
@@ -1022,15 +1036,15 @@ func (_f23 *FakeContext) WithRequestIDResultsForCall(value string) (ident9 Conte
 	return
 }
 
-func (_f24 *FakeContext) WithValue(key interface{}, value interface{}) (ident10 Context) {
+func (_f24 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 Context) {
 	invocation := new(WithValueInvocation)
 
 	invocation.Parameters.Key = key
 	invocation.Parameters.Value = value
 
-	ident10 = _f24.WithValueHook(key, value)
+	ident1 = _f24.WithValueHook(key, value)
 
-	invocation.Results.Ident10 = ident10
+	invocation.Results.Ident1 = ident1
 
 	_f24.WithValueCalls = append(_f24.WithValueCalls, invocation)
 
@@ -1145,10 +1159,10 @@ func (_f28 *FakeContext) AssertWithValueCalledOnceWith(t *testing.T, key interfa
 }
 
 // WithValueResultsForCall returns the result values for the first call to FakeContext.WithValue with the given values
-func (_f29 *FakeContext) WithValueResultsForCall(key interface{}, value interface{}) (ident10 Context, found bool) {
+func (_f29 *FakeContext) WithValueResultsForCall(key interface{}, value interface{}) (ident1 Context, found bool) {
 	for _, call := range _f29.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
-			ident10 = call.Results.Ident10
+			ident1 = call.Results.Ident1
 			found = true
 			break
 		}
@@ -1157,15 +1171,15 @@ func (_f29 *FakeContext) WithValueResultsForCall(key interface{}, value interfac
 	return
 }
 
-func (_f30 *FakeContext) WithDeadline(deadline time.Time) (ident11 Context, ident12 context.CancelFunc) {
+func (_f30 *FakeContext) WithDeadline(deadline time.Time) (ident1 Context, ident2 context.CancelFunc) {
 	invocation := new(WithDeadlineInvocation)
 
 	invocation.Parameters.Deadline = deadline
 
-	ident11, ident12 = _f30.WithDeadlineHook(deadline)
+	ident1, ident2 = _f30.WithDeadlineHook(deadline)
 
-	invocation.Results.Ident11 = ident11
-	invocation.Results.Ident12 = ident12
+	invocation.Results.Ident1 = ident1
+	invocation.Results.Ident2 = ident2
 
 	_f30.WithDeadlineCalls = append(_f30.WithDeadlineCalls, invocation)
 
@@ -1280,11 +1294,11 @@ func (_f34 *FakeContext) AssertWithDeadlineCalledOnceWith(t *testing.T, deadline
 }
 
 // WithDeadlineResultsForCall returns the result values for the first call to FakeContext.WithDeadline with the given values
-func (_f35 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident11 Context, ident12 context.CancelFunc, found bool) {
+func (_f35 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident1 Context, ident2 context.CancelFunc, found bool) {
 	for _, call := range _f35.WithDeadlineCalls {
 		if reflect.DeepEqual(call.Parameters.Deadline, deadline) {
-			ident11 = call.Results.Ident11
-			ident12 = call.Results.Ident12
+			ident1 = call.Results.Ident1
+			ident2 = call.Results.Ident2
 			found = true
 			break
 		}
@@ -1293,15 +1307,15 @@ func (_f35 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident11
 	return
 }
 
-func (_f36 *FakeContext) WithTimeout(timeout time.Duration) (ident13 Context, ident14 context.CancelFunc) {
+func (_f36 *FakeContext) WithTimeout(timeout time.Duration) (ident1 Context, ident2 context.CancelFunc) {
 	invocation := new(WithTimeoutInvocation)
 
 	invocation.Parameters.Timeout = timeout
 
-	ident13, ident14 = _f36.WithTimeoutHook(timeout)
+	ident1, ident2 = _f36.WithTimeoutHook(timeout)
 
-	invocation.Results.Ident13 = ident13
-	invocation.Results.Ident14 = ident14
+	invocation.Results.Ident1 = ident1
+	invocation.Results.Ident2 = ident2
 
 	_f36.WithTimeoutCalls = append(_f36.WithTimeoutCalls, invocation)
 
@@ -1416,11 +1430,11 @@ func (_f40 *FakeContext) AssertWithTimeoutCalledOnceWith(t *testing.T, timeout t
 }
 
 // WithTimeoutResultsForCall returns the result values for the first call to FakeContext.WithTimeout with the given values
-func (_f41 *FakeContext) WithTimeoutResultsForCall(timeout time.Duration) (ident13 Context, ident14 context.CancelFunc, found bool) {
+func (_f41 *FakeContext) WithTimeoutResultsForCall(timeout time.Duration) (ident1 Context, ident2 context.CancelFunc, found bool) {
 	for _, call := range _f41.WithTimeoutCalls {
 		if reflect.DeepEqual(call.Parameters.Timeout, timeout) {
-			ident13 = call.Results.Ident13
-			ident14 = call.Results.Ident14
+			ident1 = call.Results.Ident1
+			ident2 = call.Results.Ident2
 			found = true
 			break
 		}

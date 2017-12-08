@@ -16,7 +16,7 @@ type StringInvocation struct {
 // IDInvocation represents a single call of FakeUser.ID
 type IDInvocation struct {
 	Results struct {
-		Ident6 string
+		Ident1 string
 	}
 }
 
@@ -58,7 +58,7 @@ func NewFakeUserDefaultPanic() *FakeUser {
 		StringHook: func() (ident5 string) {
 			panic("Unexpected call to User.String")
 		},
-		IDHook: func() (ident6 string) {
+		IDHook: func() (ident1 string) {
 			panic("Unexpected call to User.ID")
 		},
 	}
@@ -71,7 +71,7 @@ func NewFakeUserDefaultFatal(t *testing.T) *FakeUser {
 			t.Fatal("Unexpected call to User.String")
 			return
 		},
-		IDHook: func() (ident6 string) {
+		IDHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to User.ID")
 			return
 		},
@@ -85,11 +85,16 @@ func NewFakeUserDefaultError(t *testing.T) *FakeUser {
 			t.Error("Unexpected call to User.String")
 			return
 		},
-		IDHook: func() (ident6 string) {
+		IDHook: func() (ident1 string) {
 			t.Error("Unexpected call to User.ID")
 			return
 		},
 	}
+}
+
+func (f *FakeUser) Reset() {
+	f.StringCalls = []*StringInvocation{}
+	f.IDCalls = []*IDInvocation{}
 }
 
 func (_f1 *FakeUser) String() (ident5 string) {
@@ -156,12 +161,12 @@ func (f *FakeUser) AssertStringCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeUser) ID() (ident6 string) {
+func (_f2 *FakeUser) ID() (ident1 string) {
 	invocation := new(IDInvocation)
 
-	ident6 = _f2.IDHook()
+	ident1 = _f2.IDHook()
 
-	invocation.Results.Ident6 = ident6
+	invocation.Results.Ident1 = ident1
 
 	_f2.IDCalls = append(_f2.IDCalls, invocation)
 
