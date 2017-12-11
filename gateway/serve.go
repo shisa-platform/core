@@ -12,6 +12,11 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
+type endpoint struct {
+	service.Endpoint
+	service service.Service
+}
+
 func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxillary.Server) error {
 	return g.serve(false, services, auxiliaries)
 }
@@ -96,50 +101,82 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 }
 
 func (g *Gateway) installServices(services []service.Service) merry.Error {
-	for _, service := range services {
-		if service.Name() == "" {
+	for _, svc := range services {
+		if svc.Name() == "" {
 			return merry.New("service name cannot be empty")
 		}
-		if len(service.Endpoints()) == 0 {
-			return merry.New("service endpoints cannot be empty").WithValue("service", service.Name())
+		if len(svc.Endpoints()) == 0 {
+			return merry.New("service endpoints cannot be empty").WithValue("service", svc.Name())
 		}
 
-		g.Logger.Info("installing service", zap.String("name", service.Name()))
-		for i, endpoint := range service.Endpoints() {
-			if endpoint.Service == nil {
-				return merry.New("endpoint service pointer cannot be nil").WithValue("service", service.Name()).WithValue("index", i)
+		g.Logger.Info("installing service", zap.String("name", svc.Name()))
+		for i, endp := range svc.Endpoints() {
+			if endp.Route == "" {
+				return merry.New("endpoint route cannot be emtpy").WithValue("service", svc.Name()).WithValue("index", i)
 			}
-			if endpoint.Route == "" {
-				return merry.New("endpoint route cannot be emtpy").WithValue("service", service.Name()).WithValue("index", i)
-			}
-			if endpoint.Route[0] != '/' {
-				return merry.New("endpoint route must begin with '/'").WithValue("service", service.Name()).WithValue("index", i)
-			}
-			switch {
-			case endpoint.Head != nil:
-				endpoint.Head.Handlers = append(service.Handlers(), endpoint.Head.Handlers...)
-			case endpoint.Get != nil:
-				endpoint.Get.Handlers = append(service.Handlers(), endpoint.Get.Handlers...)
-			case endpoint.Put != nil:
-				endpoint.Put.Handlers = append(service.Handlers(), endpoint.Put.Handlers...)
-			case endpoint.Post != nil:
-				endpoint.Post.Handlers = append(service.Handlers(), endpoint.Post.Handlers...)
-			case endpoint.Patch != nil:
-				endpoint.Patch.Handlers = append(service.Handlers(), endpoint.Patch.Handlers...)
-			case endpoint.Delete != nil:
-				endpoint.Delete.Handlers = append(service.Handlers(), endpoint.Delete.Handlers...)
-			case endpoint.Connect != nil:
-				endpoint.Connect.Handlers = append(service.Handlers(), endpoint.Connect.Handlers...)
-			case endpoint.Options != nil:
-				endpoint.Options.Handlers = append(service.Handlers(), endpoint.Options.Handlers...)
-			case endpoint.Trace != nil:
-				endpoint.Trace.Handlers = append(service.Handlers(), endpoint.Trace.Handlers...)
-			default:
-				return merry.New("endpoint requires least one method").WithValue("service", service.Name()).WithValue("index", i)
+			if endp.Route[0] != '/' {
+				return merry.New("endpoint route must begin with '/'").WithValue("service", svc.Name()).WithValue("index", i)
 			}
 
-			g.Logger.Debug("adding endpoint", zap.String("route", endpoint.Route))
-			if err := g.tree.addRoute(endpoint.Route, &endpoint); err != nil {
+			e := endpoint{
+				Endpoint: service.Endpoint{
+					Route: endp.Route,
+				},
+				service: svc,
+			}
+
+			switch {
+			case endp.Head != nil:
+				e.Head = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Head.Handlers...),
+				}
+			case endp.Get != nil:
+				e.Get = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Get.Handlers...),
+				}
+			case endp.Put != nil:
+				e.Put = &service.Pipeline{
+					Policy: endp.Head.Policy,
+				}
+				e.Put.Handlers = append(svc.Handlers(), endp.Put.Handlers...)
+			case endp.Post != nil:
+				e.Post = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Post.Handlers...),
+				}
+			case endp.Patch != nil:
+				e.Patch = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Patch.Handlers...),
+				}
+			case endp.Delete != nil:
+				e.Delete = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Delete.Handlers...),
+				}
+			case endp.Connect != nil:
+				e.Connect = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Connect.Handlers...),
+				}
+			case endp.Options != nil:
+				e.Options = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Options.Handlers...),
+				}
+			case endp.Trace != nil:
+				e.Trace = &service.Pipeline{
+					Policy:   endp.Head.Policy,
+					Handlers: append(svc.Handlers(), endp.Trace.Handlers...),
+				}
+			default:
+				return merry.New("endpoint requires least one method").WithValue("service", svc.Name()).WithValue("index", i)
+			}
+
+			g.Logger.Debug("adding endpoint", zap.String("route", endp.Route))
+			if err := g.tree.addRoute(endp.Route, &e); err != nil {
 				return err
 			}
 		}

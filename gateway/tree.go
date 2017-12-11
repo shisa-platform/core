@@ -9,8 +9,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/percolate/shisa/service"
-
 	"github.com/ansel1/merry"
 )
 
@@ -80,12 +78,12 @@ type node struct {
 	maxParams uint8
 	indices   string
 	children  []*node
-	endpoint  *service.Endpoint
+	endpoint  *endpoint
 	priority  uint32
 }
 
 // addRoute adds a node with the given handle to the path. Not concurrency-safe!
-func (n *node) addRoute(path string, endpoint *service.Endpoint) merry.Error {
+func (n *node) addRoute(path string, endpoint *endpoint) merry.Error {
 	fullPath := path
 	n.priority++
 	numParams := countParams(path)
@@ -231,7 +229,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	return newPos
 }
 
-func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint *service.Endpoint) merry.Error {
+func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoint *endpoint) merry.Error {
 	var offset int // already handled bytes of the path
 
 	// find prefix until first wildcard (beginning with ':'' or '*'')
@@ -354,7 +352,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, unescape bool) (endpoint *service.Endpoint, p Params, tsr bool, err merry.Error) {
+func (n *node) getValue(path string, unescape bool) (endpoint *endpoint, p Params, tsr bool, err merry.Error) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {

@@ -86,7 +86,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pipeline == nil {
-		handler := endpoint.Service.MethodNotAllowedHandler()
+		handler := endpoint.service.MethodNotAllowedHandler()
 		if handler == nil {
 			handler = defaultMethodNotAlowedHandler
 		}
@@ -94,7 +94,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto end
 	}
 
-	if h := endpoint.Service.InternalServerErrorHandler(); h != nil {
+	if h := endpoint.service.InternalServerErrorHandler(); h != nil {
 		iseHandler = h
 	}
 

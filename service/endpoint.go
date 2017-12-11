@@ -12,7 +12,6 @@ type Pipeline struct {
 }
 
 type Endpoint struct {
-	Service Service
 	Route   string
 	Head    *Pipeline
 	Get     *Pipeline

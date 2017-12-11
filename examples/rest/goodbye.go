@@ -25,7 +25,6 @@ func (s *GoodbyeService) Name() string {
 func (s *GoodbyeService) Endpoints() []service.Endpoint {
 	return []service.Endpoint{
 		service.Endpoint{
-			Service: s,
 			Route:   "/farewell",
 			Get: &service.Pipeline{
 				Policy:   commonPolicy,
