@@ -29,7 +29,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	request := &service.Request{Request: r}
 
 	requestID := g.RequestIDGenerator(request)
-	// xxx - ensure request id is not blank, warn and fallback if so
+	if requestID == "" {
+		g.Logger.Warn("request generator failed, falling back")
+		requestID = request.GenerateID()
+	}
 
 	// xxx - fetch context from pool
 	ctx := context.WithRequestID(backgroundContext, requestID)

@@ -349,7 +349,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 	return nil
 }
 
-// getValue returns the handle registered with the given path (key). The values of
+// getValue returns the endpoint registered with the given path (key). The values of
 // wildcards are saved to a map.
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
