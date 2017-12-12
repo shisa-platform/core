@@ -12,19 +12,28 @@ import (
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
 type Service interface {
-	Name() string          // The name of the service.  Must not be empty
-	Endpoints() []Endpoint // The enpoints of this service.  Must not be empty.
-	Handlers() []Handler   // Optional common handlers used for every endpoint.
+	Name() string          // The name of the service. Must exist
+	Endpoints() []Endpoint // The enpoints of this service. Must exist
+	Handlers() []Handler   // Optional handlers for all endpoints
 
-	// MethodNotAllowedHandler optionally customizes the
-	// response returned to the user agent when an endpoint isn't
+	// MethodNotAllowedHandler optionally customizes the response
+	// returned to the user agent when an endpoint isn't
 	// configured to service the method of a request.
 	// If nil the default handler will return a 405 status code
 	// with an empty body.
 	MethodNotAllowedHandler() Handler
 
+	// RedirectHandler optionally customizes the response
+	// returned to the user agent when an endpoint is configured
+	// to return a redirect for a path based on a missing or
+	// extra trailing slash.
+	// If nil the default handler will return a 303 status code
+	// for GET and a 307 for other methods, both with an empty
+	// body.
+	RedirectHandler() Handler
+
 	// InternalServerErrorHandler optionally customizes the
-	// response returned to the user agent when no the gateway
+	// response returned to the user agent when the gateway
 	// encounters an error trying to service a request.
 	// If nil the default handler will return a 500 status code
 	// with an empty body.

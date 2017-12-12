@@ -48,6 +48,9 @@ func TestAuxillaryServer(t *testing.T) {
 		MethodNotAllowedHandlerHook: func() service.Handler {
 			return nil
 		},
+		RedirectHandlerHook: func() service.Handler {
+			return nil
+		},
 		InternalServerErrorHandlerHook: func() service.ErrorHandler {
 			return nil
 		},

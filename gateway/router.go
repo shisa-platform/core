@@ -39,14 +39,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var response service.Response
 	var pipeline *service.Pipeline
-	iseHandler := defaultInternalServerErrorHandler
 
 	path := request.URL.Path
 	// xxx - use params
-	// xxx - handle tsr
 	// xxx - escape path ?
 	// xxx - does getValue need 2 params?
-	endpoint, _, _, err := g.tree.getValue(path, false)
+	endpoint, _, tsr, err := g.tree.getValue(path, false)
 	if err != nil {
 		err.WithValue("request-id", requestID)
 		err.WithValue("method", r.Method).WithValue("path", path).WithValue("route", endpoint.Route)
@@ -86,16 +84,21 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pipeline == nil {
-		handler := endpoint.service.MethodNotAllowedHandler()
-		if handler == nil {
-			handler = defaultMethodNotAlowedHandler
+		if tsr {
+			response = g.NotFoundHandler(ctx, request)
+		} else {
+			response = endpoint.notAllowedHandler(ctx, request)
 		}
-		response = handler(ctx, request)
 		goto end
 	}
 
-	if h := endpoint.service.InternalServerErrorHandler(); h != nil {
-		iseHandler = h
+	if tsr {
+		if pipeline.Policy.AllowTrailingSlashRedirects {
+			response = endpoint.redirectHandler(ctx, request)
+		} else {
+			response = g.NotFoundHandler(ctx, request)
+		}
+		goto end
 	}
 
 	if pipeline.Policy.TimeBudget != 0 {
@@ -111,7 +114,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if handlerError != nil {
 			handlerError.WithValue("request-id", requestID).WithValue("pipline-index", i)
 			handlerError.WithValue("method", request.Method).WithValue("path", path).WithValue("route", endpoint.Route)
-			response = iseHandler(ctx, request, handlerError)
+			response = endpoint.iseHandler(ctx, request, handlerError)
 			handlerError.WithHTTPCode(response.StatusCode())
 			// xxx - log this to handler panic channel
 			g.Logger.Error("internal error", zap.Error(handlerError))
@@ -125,16 +128,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if response == nil {
 		err = merry.New("no response from pipeline").WithValue("request-id", requestID)
 		err.WithValue("method", request.Method).WithValue("path", path).WithValue("route", endpoint.Route)
-		response = iseHandler(ctx, request, err)
+		response = endpoint.iseHandler(ctx, request, err)
 		err.WithHTTPCode(response.StatusCode())
 		// xxx - be better
 		g.Logger.Error("internal error", zap.Error(err))
-	}
-
-	if pipeline.Policy.RequestIDResponseHeaderName != "" {
-		w.Header().Set(pipeline.Policy.RequestIDResponseHeaderName, requestID)
-	} else {
-		w.Header().Set(defaultRequestIDResponseHeader, requestID)
 	}
 
 end:
@@ -142,6 +139,12 @@ end:
 		w.Header()[k] = vs
 	}
 	// xxx - write trailers
+
+	if pipeline != nil && pipeline.Policy.RequestIDResponseHeaderName != "" {
+		w.Header().Set(pipeline.Policy.RequestIDResponseHeaderName, requestID)
+	} else {
+		w.Header().Set(defaultRequestIDResponseHeader, requestID)
+	}
 
 	w.WriteHeader(response.StatusCode())
 	// xxx - handle error here

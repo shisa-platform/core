@@ -14,7 +14,10 @@ import (
 
 type endpoint struct {
 	service.Endpoint
-	service service.Service
+	serviceName       string
+	notAllowedHandler service.Handler
+	redirectHandler   service.Handler
+	iseHandler        service.ErrorHandler
 }
 
 func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxillary.Server) error {
@@ -122,7 +125,25 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				Endpoint: service.Endpoint{
 					Route: endp.Route,
 				},
-				service: svc,
+				serviceName: svc.Name(),
+			}
+
+			if h := svc.MethodNotAllowedHandler(); h != nil {
+				e.notAllowedHandler = h
+			} else {
+				e.notAllowedHandler = defaultMethodNotAlowedHandler
+			}
+
+			if h := svc.RedirectHandler(); h != nil {
+				e.redirectHandler = h
+			} else {
+				e.redirectHandler = defaultRedirectHandler
+			}
+
+			if h := svc.InternalServerErrorHandler(); h != nil {
+				e.iseHandler = h
+			} else {
+				e.iseHandler = defaultInternalServerErrorHandler
 			}
 
 			switch {
@@ -138,7 +159,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				}
 			case endp.Put != nil:
 				e.Put = &service.Pipeline{
-					Policy: endp.Put.Policy,
+					Policy:   endp.Put.Policy,
 					Handlers: append(svc.Handlers(), endp.Put.Handlers...),
 				}
 			case endp.Post != nil:

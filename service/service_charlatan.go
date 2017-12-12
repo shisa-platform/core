@@ -34,6 +34,13 @@ type MethodNotAllowedHandlerInvocation struct {
 	}
 }
 
+// RedirectHandlerInvocation represents a single call of FakeService.RedirectHandler
+type RedirectHandlerInvocation struct {
+	Results struct {
+		Ident1 Handler
+	}
+}
+
 // InternalServerErrorHandlerInvocation represents a single call of FakeService.InternalServerErrorHandler
 type InternalServerErrorHandlerInvocation struct {
 	Results struct {
@@ -70,12 +77,14 @@ type FakeService struct {
 	EndpointsHook                  func() []Endpoint
 	HandlersHook                   func() []Handler
 	MethodNotAllowedHandlerHook    func() Handler
+	RedirectHandlerHook            func() Handler
 	InternalServerErrorHandlerHook func() ErrorHandler
 
 	NameCalls                       []*NameInvocation
 	EndpointsCalls                  []*EndpointsInvocation
 	HandlersCalls                   []*HandlersInvocation
 	MethodNotAllowedHandlerCalls    []*MethodNotAllowedHandlerInvocation
+	RedirectHandlerCalls            []*RedirectHandlerInvocation
 	InternalServerErrorHandlerCalls []*InternalServerErrorHandlerInvocation
 }
 
@@ -93,6 +102,9 @@ func NewFakeServiceDefaultPanic() *FakeService {
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			panic("Unexpected call to Service.MethodNotAllowedHandler")
+		},
+		RedirectHandlerHook: func() (ident1 Handler) {
+			panic("Unexpected call to Service.RedirectHandler")
 		},
 		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
 			panic("Unexpected call to Service.InternalServerErrorHandler")
@@ -117,6 +129,10 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			t.Fatal("Unexpected call to Service.MethodNotAllowedHandler")
+			return
+		},
+		RedirectHandlerHook: func() (ident1 Handler) {
+			t.Fatal("Unexpected call to Service.RedirectHandler")
 			return
 		},
 		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
@@ -145,6 +161,10 @@ func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 			t.Error("Unexpected call to Service.MethodNotAllowedHandler")
 			return
 		},
+		RedirectHandlerHook: func() (ident1 Handler) {
+			t.Error("Unexpected call to Service.RedirectHandler")
+			return
+		},
 		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
 			t.Error("Unexpected call to Service.InternalServerErrorHandler")
 			return
@@ -157,6 +177,7 @@ func (f *FakeService) Reset() {
 	f.EndpointsCalls = []*EndpointsInvocation{}
 	f.HandlersCalls = []*HandlersInvocation{}
 	f.MethodNotAllowedHandlerCalls = []*MethodNotAllowedHandlerInvocation{}
+	f.RedirectHandlerCalls = []*RedirectHandlerInvocation{}
 	f.InternalServerErrorHandlerCalls = []*InternalServerErrorHandlerInvocation{}
 }
 
@@ -416,14 +437,78 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t *testing.T, n int) 
 	}
 }
 
-func (_f5 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
-	invocation := new(InternalServerErrorHandlerInvocation)
+func (_f5 *FakeService) RedirectHandler() (ident1 Handler) {
+	invocation := new(RedirectHandlerInvocation)
 
-	ident1 = _f5.InternalServerErrorHandlerHook()
+	ident1 = _f5.RedirectHandlerHook()
 
 	invocation.Results.Ident1 = ident1
 
-	_f5.InternalServerErrorHandlerCalls = append(_f5.InternalServerErrorHandlerCalls, invocation)
+	_f5.RedirectHandlerCalls = append(_f5.RedirectHandlerCalls, invocation)
+
+	return
+}
+
+// RedirectHandlerCalled returns true if FakeService.RedirectHandler was called
+func (f *FakeService) RedirectHandlerCalled() bool {
+	return len(f.RedirectHandlerCalls) != 0
+}
+
+// AssertRedirectHandlerCalled calls t.Error if FakeService.RedirectHandler was not called
+func (f *FakeService) AssertRedirectHandlerCalled(t *testing.T) {
+	t.Helper()
+	if len(f.RedirectHandlerCalls) == 0 {
+		t.Error("FakeService.RedirectHandler not called, expected at least one")
+	}
+}
+
+// RedirectHandlerNotCalled returns true if FakeService.RedirectHandler was not called
+func (f *FakeService) RedirectHandlerNotCalled() bool {
+	return len(f.RedirectHandlerCalls) == 0
+}
+
+// AssertRedirectHandlerNotCalled calls t.Error if FakeService.RedirectHandler was called
+func (f *FakeService) AssertRedirectHandlerNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.RedirectHandlerCalls) != 0 {
+		t.Error("FakeService.RedirectHandler called, expected none")
+	}
+}
+
+// RedirectHandlerCalledOnce returns true if FakeService.RedirectHandler was called exactly once
+func (f *FakeService) RedirectHandlerCalledOnce() bool {
+	return len(f.RedirectHandlerCalls) == 1
+}
+
+// AssertRedirectHandlerCalledOnce calls t.Error if FakeService.RedirectHandler was not called exactly once
+func (f *FakeService) AssertRedirectHandlerCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.RedirectHandlerCalls) != 1 {
+		t.Errorf("FakeService.RedirectHandler called %d times, expected 1", len(f.RedirectHandlerCalls))
+	}
+}
+
+// RedirectHandlerCalledN returns true if FakeService.RedirectHandler was called at least n times
+func (f *FakeService) RedirectHandlerCalledN(n int) bool {
+	return len(f.RedirectHandlerCalls) >= n
+}
+
+// AssertRedirectHandlerCalledN calls t.Error if FakeService.RedirectHandler was called less than n times
+func (f *FakeService) AssertRedirectHandlerCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.RedirectHandlerCalls) < n {
+		t.Errorf("FakeService.RedirectHandler called %d times, expected >= %d", len(f.RedirectHandlerCalls), n)
+	}
+}
+
+func (_f6 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
+	invocation := new(InternalServerErrorHandlerInvocation)
+
+	ident1 = _f6.InternalServerErrorHandlerHook()
+
+	invocation.Results.Ident1 = ident1
+
+	_f6.InternalServerErrorHandlerCalls = append(_f6.InternalServerErrorHandlerCalls, invocation)
 
 	return
 }

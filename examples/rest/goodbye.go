@@ -25,7 +25,7 @@ func (s *GoodbyeService) Name() string {
 func (s *GoodbyeService) Endpoints() []service.Endpoint {
 	return []service.Endpoint{
 		service.Endpoint{
-			Route:   "/farewell",
+			Route: "/farewell",
 			Get: &service.Pipeline{
 				Policy:   commonPolicy,
 				Handlers: []service.Handler{s.Farewell},
@@ -39,6 +39,10 @@ func (s *GoodbyeService) Handlers() []service.Handler {
 }
 
 func (s *GoodbyeService) MethodNotAllowedHandler() service.Handler {
+	return nil
+}
+
+func (s *GoodbyeService) RedirectHandler() service.Handler {
 	return nil
 }
 

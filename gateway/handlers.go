@@ -10,17 +10,20 @@ import (
 )
 
 func defaultNotFoundHandler(ctx context.Context, request *service.Request) service.Response {
-	response := service.NewEmpty(http.StatusNotFound)
-	response.Headers().Set(defaultRequestIDResponseHeader, ctx.RequestID())
-
-	return response
+	return service.NewEmpty(http.StatusNotFound)
 }
 
 func defaultMethodNotAlowedHandler(ctx context.Context, request *service.Request) service.Response {
-	response := service.NewEmpty(http.StatusMethodNotAllowed)
-	response.Headers().Set(defaultRequestIDResponseHeader, ctx.RequestID())
+	return service.NewEmpty(http.StatusMethodNotAllowed)
+}
 
-	return response
+func defaultRedirectHandler(c context.Context, r *service.Request) (resp service.Response) {
+	if r.Method == http.MethodGet {
+		resp = service.NewEmpty(http.StatusSeeOther)
+	} else {
+		resp = service.NewEmpty(http.StatusTemporaryRedirect)
+	}
+	return
 }
 
 func defaultInternalServerErrorHandler(context.Context, *service.Request, merry.Error) service.Response {

@@ -25,7 +25,7 @@ func (s *HelloService) Name() string {
 func (s *HelloService) Endpoints() []service.Endpoint {
 	return []service.Endpoint{
 		service.Endpoint{
-			Route:   "/greeting",
+			Route: "/greeting",
 			Get: &service.Pipeline{
 				Policy:   commonPolicy,
 				Handlers: []service.Handler{s.Greeting},
@@ -39,6 +39,10 @@ func (s *HelloService) Handlers() []service.Handler {
 }
 
 func (s *HelloService) MethodNotAllowedHandler() service.Handler {
+	return nil
+}
+
+func (s *HelloService) RedirectHandler() service.Handler {
 	return nil
 }
 

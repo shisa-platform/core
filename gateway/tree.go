@@ -385,7 +385,7 @@ walk: // Outer loop for walking the tree
 					}
 					return
 				}
- 
+
 				// handle wildcard child
 				n = n.children[0]
 				switch n.nType {
