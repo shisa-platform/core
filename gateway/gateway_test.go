@@ -52,7 +52,6 @@ func TestAuxillaryServer(t *testing.T) {
 			return nil
 		},
 	}
-	dummyEndpoint.Service = svc
 
 	aux := &auxillary.FakeServer{
 		AddressHook: func() string {

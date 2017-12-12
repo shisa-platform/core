@@ -133,42 +133,42 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				}
 			case endp.Get != nil:
 				e.Get = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Get.Policy,
 					Handlers: append(svc.Handlers(), endp.Get.Handlers...),
 				}
 			case endp.Put != nil:
 				e.Put = &service.Pipeline{
-					Policy: endp.Head.Policy,
+					Policy: endp.Put.Policy,
+					Handlers: append(svc.Handlers(), endp.Put.Handlers...),
 				}
-				e.Put.Handlers = append(svc.Handlers(), endp.Put.Handlers...)
 			case endp.Post != nil:
 				e.Post = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Post.Policy,
 					Handlers: append(svc.Handlers(), endp.Post.Handlers...),
 				}
 			case endp.Patch != nil:
 				e.Patch = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Patch.Policy,
 					Handlers: append(svc.Handlers(), endp.Patch.Handlers...),
 				}
 			case endp.Delete != nil:
 				e.Delete = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Delete.Policy,
 					Handlers: append(svc.Handlers(), endp.Delete.Handlers...),
 				}
 			case endp.Connect != nil:
 				e.Connect = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Connect.Policy,
 					Handlers: append(svc.Handlers(), endp.Connect.Handlers...),
 				}
 			case endp.Options != nil:
 				e.Options = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Options.Policy,
 					Handlers: append(svc.Handlers(), endp.Options.Handlers...),
 				}
 			case endp.Trace != nil:
 				e.Trace = &service.Pipeline{
-					Policy:   endp.Head.Policy,
+					Policy:   endp.Trace.Policy,
 					Handlers: append(svc.Handlers(), endp.Trace.Handlers...),
 				}
 			default:

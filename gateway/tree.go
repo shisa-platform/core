@@ -82,7 +82,7 @@ type node struct {
 	priority  uint32
 }
 
-// addRoute adds a node with the given handle to the path. Not concurrency-safe!
+// addRoute adds a node with the given endpoint to the path. Not concurrency-safe!
 func (n *node) addRoute(path string, endpoint *endpoint) merry.Error {
 	fullPath := path
 	n.priority++
@@ -192,7 +192,7 @@ func (n *node) addRoute(path string, endpoint *endpoint) merry.Error {
 
 			} else if i == len(path) { // Make node a (in-path) leaf
 				if n.endpoint != nil {
-					return merry.New("path handler conflict").WithUserMessagef("endpoint already registered for path %q", fullPath)
+					return merry.New("path endpoint conflict").WithUserMessagef("endpoint already registered for path %q", fullPath)
 				}
 				n.endpoint = endpoint
 			}
@@ -304,7 +304,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 
 			if len(n.path) > 0 && n.path[len(n.path)-1] == '/' {
 				return merry.New("catch-all conflict").WithUserMessagef(
-					"catch-all conflicts with existing handle for the path segment root in path %q", fullPath)
+					"catch-all conflicts with existing endpoint for the path segment root in path %q", fullPath)
 			}
 
 			// currently fixed width 1 for '/'
@@ -349,8 +349,8 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 
 // getValue returns the endpoint registered with the given path (key). The values of
 // wildcards are saved to a map.
-// If no handle can be found, a TSR (trailing slash redirect) recommendation is
-// made if a handle exists with an extra (without the) trailing slash for the
+// If no endpoint can be found, a TSR (trailing slash redirect) recommendation is
+// made if a endpoint exists with an extra (without the) trailing slash for the
 // given path.
 func (n *node) getValue(path string, unescape bool) (endpoint *endpoint, p Params, tsr bool, err merry.Error) {
 walk: // Outer loop for walking the tree
@@ -362,6 +362,13 @@ walk: // Outer loop for walking the tree
 				// child,  we can just look up the next child node and continue
 				// to walk down the tree
 				if !n.wildChild {
+					// If there is an endpoint for the path without a trailing
+					// slash, recommend a TSR.
+					if tsr = (path == "/" && n.endpoint != nil); tsr {
+						endpoint = n.endpoint
+						return
+					}
+
 					c := path[0]
 					for i := 0; i < len(n.indices); i++ {
 						if c == n.indices[i] {
@@ -373,10 +380,12 @@ walk: // Outer loop for walking the tree
 					// Nothing found.
 					// We can recommend to redirect to the same URL without a
 					// trailing slash if a leaf exists for that path.
-					tsr = (path == "/" && n.endpoint != nil)
+					if tsr = (path == "/" && n.endpoint != nil); tsr {
+						endpoint = n.endpoint
+					}
 					return
 				}
-
+ 
 				// handle wildcard child
 				n = n.children[0]
 				switch n.nType {
@@ -406,14 +415,18 @@ walk: // Outer loop for walking the tree
 
 					// we need to go deeper!
 					if end < len(path) {
+						// ... but we should recommend TSR
+						if tsr = (len(path) == end+1 && path[end] == '/' && n.endpoint != nil); tsr {
+							endpoint = n.endpoint
+							return
+						}
+
 						if len(n.children) > 0 {
 							path = path[end:]
 							n = n.children[0]
 							continue walk
 						}
 
-						// ... but we can't
-						tsr = (len(path) == end+1)
 						return
 					}
 
@@ -421,10 +434,12 @@ walk: // Outer loop for walking the tree
 						return
 					}
 					if len(n.children) == 1 {
-						// No handle found. Check if a handle for this path + a
+						// No endpoint found. Check if a endpoint for this path + a
 						// trailing slash exists for TSR recommendation
 						n = n.children[0]
-						tsr = (n.path == "/" && n.endpoint != nil)
+						if tsr = (n.path == "/" && n.endpoint != nil); tsr {
+							endpoint = n.endpoint
+						}
 					}
 
 					return
@@ -455,24 +470,23 @@ walk: // Outer loop for walking the tree
 				}
 			}
 		} else if path == n.path {
-			// We should have reached the node containing the handle.
-			// Check if this node has a handle registered.
+			// We should have reached the node containing the endpoint.
+			// Check if this node has an endpoint registered.
 			if endpoint = n.endpoint; endpoint != nil {
 				return
 			}
 
-			if path == "/" && n.wildChild && n.nType != root {
-				tsr = true
-				return
-			}
-
-			// No handle found. Check if a handle for this path + a
+			// No endpoint found. Check if a endpoint for this path + a
 			// trailing slash exists for trailing slash recommendation
 			for i := 0; i < len(n.indices); i++ {
 				if n.indices[i] == '/' {
 					n = n.children[i]
-					tsr = (len(n.path) == 1 && n.endpoint != nil) ||
-						(n.nType == catchAll && n.children[0].endpoint != nil)
+					if tsr = len(n.path) == 1 && n.endpoint != nil; tsr {
+						endpoint = n.endpoint
+					} else if tsr = n.nType == catchAll && n.children[0].endpoint != nil; tsr {
+						endpoint = n.children[0].endpoint
+					}
+
 					return
 				}
 			}
@@ -482,14 +496,17 @@ walk: // Outer loop for walking the tree
 
 		// Nothing found. We can recommend to redirect to the same URL with an
 		// extra trailing slash if a leaf exists for that path
-		tsr = (path == "/") ||
-			(len(n.path) == len(path)+1 && n.path[len(path)] == '/' &&
-				path == n.path[:len(n.path)-1] && n.endpoint != nil)
+		if tsr = (len(n.path) == len(path)+1 && n.path[len(path)] == '/' && path == n.path[:len(n.path)-1] && n.endpoint != nil); tsr {
+			endpoint = n.endpoint
+		} else {
+			tsr = (path == "/")
+		}
+
 		return
 	}
 }
 
-// findCaseInsensitivePath makes a case-insensitive lookup of the given path and tries to find a handler.
+// findCaseInsensitivePath makes a case-insensitive lookup of the given path and tries to find a endpointr.
 // It can optionally also fix trailing slashes.
 // It returns the case-corrected path and a bool indicating whether the lookup
 // was successful.
@@ -557,7 +574,7 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 				if n.endpoint != nil {
 					return ciPath, true, nil
 				} else if fixTrailingSlash && len(n.children) == 1 {
-					// No handle found. Check if a handle for this path + a
+					// No endpoint found. Check if a endpoint for this path + a
 					// trailing slash exists
 					n = n.children[0]
 					if n.path == "/" && n.endpoint != nil {
@@ -574,13 +591,13 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 				return
 			}
 		} else {
-			// We should have reached the node containing the handle.
-			// Check if this node has a handle registered.
+			// We should have reached the node containing the endpoint.
+			// Check if this node has a endpoint registered.
 			if n.endpoint != nil {
 				return ciPath, true, nil
 			}
 
-			// No handle found.
+			// No endpoint found.
 			// Try to fix the path by adding a trailing slash
 			if fixTrailingSlash {
 				for i := 0; i < len(n.indices); i++ {

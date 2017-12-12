@@ -15,7 +15,7 @@ import (
 )
 
 func printChildren(n *node, prefix string) {
-	fmt.Printf(" %02d:%02d %s%s[%d] %v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.endpoint, n.wildChild, n.nType)
+	fmt.Printf(" %02d:%02d %s%s[%d] %q %#v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.indices, n.endpoint, n.wildChild, n.nType)
 	for l := len(n.path); l > 0; l-- {
 		prefix += " "
 	}
@@ -27,14 +27,16 @@ func printChildren(n *node, prefix string) {
 // Used as a workaround since we can't compare functions or their addressses
 var fakeHandlerValue string
 
-func fakeEndpoint(s string) *service.Endpoint {
-	return &service.Endpoint{
-		Route: s,
-		Get: &service.Pipeline{
-			Handlers: []service.Handler{
-				func(context.Context, *service.Request) service.Response {
-					fakeHandlerValue = s
-					return nil
+func fakeEndpoint(s string) *endpoint {
+	return &endpoint{
+		Endpoint: service.Endpoint{
+			Route: s,
+			Get: &service.Pipeline{
+				Handlers: []service.Handler{
+					func(context.Context, *service.Request) service.Response {
+						fakeHandlerValue = s
+						return nil
+					},
 				},
 			},
 		},
@@ -155,7 +157,7 @@ func TestTreeAddAndGet(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	checkRequests(t, tree, testRequests{
 		{"/a", false, "/a", nil},
@@ -187,6 +189,7 @@ func TestTreeWildcard(t *testing.T) {
 		"/search/:query",
 		"/user_:name",
 		"/user_:name/about",
+		"/files/:dir",
 		"/files/:dir/*filepath",
 		"/doc/",
 		"/doc/go_faq.html",
@@ -200,20 +203,21 @@ func TestTreeWildcard(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
 		{"/cmd/test/", false, "/cmd/:tool/", Params{Param{"tool", "test"}}},
-		{"/cmd/test", true, "", Params{Param{"tool", "test"}}},
+		{"/cmd/test", false, "/cmd/:tool/", Params{Param{"tool", "test"}}},
 		{"/cmd/test/3", false, "/cmd/:tool/:sub", Params{Param{"tool", "test"}, Param{"sub", "3"}}},
 		{"/src/", false, "/src/*filepath", Params{Param{"filepath", "/"}}},
 		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
 		{"/search/", false, "/search/", nil},
 		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/search/someth!ng+in+ünìcodé/", true, "", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
+		{"/search/someth!ng+in+ünìcodé/", false, "/search/:query", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
 		{"/user_gopher", false, "/user_:name", Params{Param{"name", "gopher"}}},
 		{"/user_gopher/about", false, "/user_:name/about", Params{Param{"name", "gopher"}}},
+		{"/files/thingr/", false, "/files/:dir", Params{Param{"dir", "thingr"}}},
 		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", Params{Param{"dir", "js"}, Param{"filepath", "/inc/framework.js"}}},
 		{"/info/gordon/public", false, "/info/:user/public", Params{Param{"user", "gordon"}}},
 		{"/info/gordon/project/go", false, "/info/:user/project/:project", Params{Param{"user", "gordon"}, Param{"project", "go"}}},
@@ -242,12 +246,13 @@ func TestUnescapeParameters(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
+
 	unescape := true
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
 		{"/cmd/test/", false, "/cmd/:tool/", Params{Param{"tool", "test"}}},
-		{"/cmd/test", true, "", Params{Param{"tool", "test"}}},
+		{"/cmd/test", false, "/cmd/:tool/", Params{Param{"tool", "test"}}},
 		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
 		{"/src/some/file+test.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file test.png"}}},
 		{"/src/some/file++++%%%%test.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file++++%%%%test.png"}}},
@@ -284,7 +289,7 @@ func testRoutes(t *testing.T, routes []testRoute) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 }
 
 func TestTreeWildcardConflict(t *testing.T) {
@@ -345,7 +350,7 @@ func TestTreeDupliatePath(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
@@ -440,7 +445,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	tsrRoutes := [...]string{
 		"/hi/",
@@ -463,9 +468,10 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if endpoint != nil {
-			t.Fatalf("non-nil endpoint for TSR route %q", route)
-		} else if !tsr {
+		if endpoint == nil {
+			t.Fatalf("expected non-nil endpoint for TSR route %q", route)
+		}
+		if !tsr {
 			t.Errorf("expected TSR recommendation for route %q", route)
 		}
 	}
@@ -484,9 +490,10 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if endpoint != nil {
-			t.Fatalf("non-nil endpoint for No-TSR route %q", route)
-		} else if tsr {
-			t.Errorf("expected no TSR recommendation for route %q", route)
+			t.Fatalf("expected nil endpoint for non-TSR route %q", route)
+		}
+		if tsr {
+			t.Errorf("unexpected TSR recommendation for route %q", route)
 		}
 	}
 }
@@ -503,9 +510,10 @@ func TestTreeRootTrailingSlashRedirect(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if endpoint != nil {
-		t.Fatalf("non-nil endpoint")
-	} else if tsr {
-		t.Errorf("expected no TSR recommendation")
+		t.Fatalf("expected nil endpoint")
+	}
+	if tsr {
+		t.Errorf("unexpected TSR recommendation")
 	}
 }
 
