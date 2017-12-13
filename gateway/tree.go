@@ -5,7 +5,6 @@
 package gateway
 
 import (
-	"net/url"
 	"strings"
 	"unicode"
 
@@ -325,7 +324,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no endpoint can be found, a TSR (trailing slash redirect) recommendation is
 // made if a endpoint exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, unescape bool) (endpoint *endpoint, p service.Params, tsr bool, err merry.Error) {
+func (n *node) getValue(path string) (endpoint *endpoint, p service.Params, tsr bool, err merry.Error) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {
@@ -377,14 +376,7 @@ walk: // Outer loop for walking the tree
 					p = p[:i+1] // expand slice within preallocated capacity
 					p[i].Key = n.path[1:]
 					val := path[:end]
-					if unescape {
-						var err error
-						if p[i].Value, err = url.QueryUnescape(val); err != nil {
-							p[i].Value = val // fallback, in case of error
-						}
-					} else {
-						p[i].Value = val
-					}
+					p[i].Value = val
 
 					// we need to go deeper!
 					if end < len(path) {
@@ -425,14 +417,7 @@ walk: // Outer loop for walking the tree
 					i := len(p)
 					p = p[:i+1] // expand slice within preallocated capacity
 					p[i].Key = n.path[2:]
-					if unescape {
-						var err error
-						if p[i].Value, err = url.QueryUnescape(path); err != nil {
-							p[i].Value = path // fallback, in case of error
-						}
-					} else {
-						p[i].Value = path
-					}
+					p[i].Value = path
 
 					endpoint = n.endpoint
 					return

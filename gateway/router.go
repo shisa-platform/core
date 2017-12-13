@@ -4,6 +4,7 @@ import (
 	stdctx "context"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -37,9 +38,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var pipeline *service.Pipeline
 
 	path := request.URL.Path
-	// xxx - escape path ?
-	// xxx - does getValue need 2 params?
-	endpoint, params, tsr, err := g.tree.getValue(path, false)
+	endpoint, params, tsr, err := g.tree.getValue(path)
 	if err != nil {
 		err.WithValue("request-id", requestID)
 		err.WithValue("method", r.Method).WithValue("path", path).WithValue("route", endpoint.Route)
@@ -53,8 +52,6 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = g.NotFoundHandler(ctx, request)
 		goto end
 	}
-
-	request.PathParams = params
 
 	switch request.Method {
 	case http.MethodHead:
@@ -93,6 +90,15 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			response = g.NotFoundHandler(ctx, request)
 		}
 		goto end
+	}
+
+	request.PathParams = params
+	if !pipeline.Policy.PreserveEscapedPathParameters {
+		for i := range request.PathParams {
+			if e, err := url.QueryUnescape(request.PathParams[i].Value); err != nil {
+				request.PathParams[i].Value = e
+			}
+		}
 	}
 
 	if pipeline.Policy.TimeBudget != 0 {

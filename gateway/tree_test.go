@@ -52,13 +52,8 @@ type testRequests []struct {
 
 func checkRequests(t *testing.T, tree *node, requests testRequests, unescapes ...bool) {
 	t.Helper()
-	unescape := false
-	if len(unescapes) >= 1 {
-		unescape = unescapes[0]
-	}
-
 	for _, request := range requests {
-		endpoint, ps, _, err := tree.getValue(request.path, unescape)
+		endpoint, ps, _, err := tree.getValue(request.path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -222,48 +217,6 @@ func TestTreeWildcard(t *testing.T) {
 		{"/info/gordon/public", false, "/info/:user/public", service.Params{service.Param{"user", "gordon"}}},
 		{"/info/gordon/project/go", false, "/info/:user/project/:project", service.Params{service.Param{"user", "gordon"}, service.Param{"project", "go"}}},
 	})
-
-	checkPriorities(t, tree)
-	checkMaxParams(t, tree)
-}
-
-func TestUnescapeParameters(t *testing.T) {
-	tree := &node{}
-
-	routes := [...]string{
-		"/",
-		"/cmd/:tool/:sub",
-		"/cmd/:tool/",
-		"/src/*filepath",
-		"/search/:query",
-		"/files/:dir/*filepath",
-		"/info/:user/project/:project",
-		"/info/:user",
-	}
-	for _, route := range routes {
-		if err := tree.addRoute(route, fakeEndpoint(route)); err != nil {
-			t.Errorf("unexpected error adding route: %v", err)
-		}
-	}
-
-	// printChildren(tree, "")
-
-	unescape := true
-	checkRequests(t, tree, testRequests{
-		{"/", false, "/", nil},
-		{"/cmd/test/", false, "/cmd/:tool/", service.Params{service.Param{"tool", "test"}}},
-		{"/cmd/test", false, "/cmd/:tool/", service.Params{service.Param{"tool", "test"}}},
-		{"/src/some/file.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file.png"}}},
-		{"/src/some/file+test.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file test.png"}}},
-		{"/src/some/file++++%%%%test.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file++++%%%%test.png"}}},
-		{"/src/some/file%2Ftest.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file/test.png"}}},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", service.Params{service.Param{"query", "someth!ng in ünìcodé"}}},
-		{"/info/gordon/project/go", false, "/info/:user/project/:project", service.Params{service.Param{"user", "gordon"}, service.Param{"project", "go"}}},
-		{"/info/slash%2Fgordon", false, "/info/:user", service.Params{service.Param{"user", "slash/gordon"}}},
-		{"/info/slash%2Fgordon/project/Project%20%231", false, "/info/:user/project/:project", service.Params{service.Param{"user", "slash/gordon"}, service.Param{"project", "Project #1"}}},
-		{"/info/slash%%%%", false, "/info/:user", service.Params{service.Param{"user", "slash%%%%"}}},
-		{"/info/slash%%%%2Fgordon/project/Project%%%%20%231", false, "/info/:user/project/:project", service.Params{service.Param{"user", "slash%%%%2Fgordon"}, service.Param{"project", "Project%%%%20%231"}}},
-	}, unescape)
 
 	checkPriorities(t, tree)
 	checkMaxParams(t, tree)
@@ -464,7 +417,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/doc/",
 	}
 	for _, route := range tsrRoutes {
-		endpoint, _, tsr, err := tree.getValue(route, false)
+		endpoint, _, tsr, err := tree.getValue(route)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -485,7 +438,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/api/world/abc",
 	}
 	for _, route := range noTsrRoutes {
-		endpoint, _, tsr, err := tree.getValue(route, false)
+		endpoint, _, tsr, err := tree.getValue(route)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -505,7 +458,7 @@ func TestTreeRootTrailingSlashRedirect(t *testing.T) {
 		t.Fatalf("unexpected error inserting test route: %v", err)
 	}
 
-	endpoint, _, tsr, err := tree.getValue("/", false)
+	endpoint, _, tsr, err := tree.getValue("/")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -672,7 +625,7 @@ func TestTreeInvalidNodeType(t *testing.T) {
 	tree.children[0].nType = 42
 
 	// normal lookup
-	if _, _, _, err := tree.getValue("/test", false); err == nil {
+	if _, _, _, err := tree.getValue("/test"); err == nil {
 		t.Fatalf("expected error")
 	}
 
