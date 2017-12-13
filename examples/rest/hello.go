@@ -53,6 +53,7 @@ func (s *HelloService) InternalServerErrorHandler() service.ErrorHandler {
 func (s *HelloService) Greeting(context.Context, *service.Request) service.Response {
 	response := service.NewOK(Greeting{"hello, world"})
 	addCommonHeaders(response)
+	response.Trailers().Add("test", "foo")
 
 	return response
 }

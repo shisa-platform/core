@@ -131,7 +131,9 @@ end:
 	for k, vs := range response.Headers() {
 		w.Header()[k] = vs
 	}
-	// xxx - write trailers
+	for k := range response.Trailers() {
+		w.Header().Add("Trailer", k)
+	}
 
 	w.Header().Set(g.RequestIDHeaderName, requestID)
 
@@ -140,11 +142,15 @@ end:
 	shim := countingWriter{delegate: w}
 	response.Serialize(&shim)
 
+	for k, vs := range response.Trailers() {
+		w.Header()[k] = vs
+	}
+
 	end := time.Now().UTC()
 	elapsed := end.Sub(start)
 
 	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
-		fs := make([]zapcore.Field, 10, 11)
+		fs := make([]zapcore.Field, 9, 11)
 		fs[0] = zap.String("request-id", requestID)
 		fs[1] = zap.String("client-ip-address", request.ClientIP())
 		fs[2] = zap.Time("start-time", start)
@@ -154,7 +160,9 @@ end:
 		fs[6] = zap.Uint64("response-size", shim.count)
 		fs[7] = zap.Duration("elapsed-time", elapsed)
 		fs[8] = zap.String("user-agent", request.UserAgent())
-		fs[9] = zap.String("service", endpoint.serviceName)
+		if endpoint != nil {
+			fs = append(fs, zap.String("service", endpoint.serviceName))
+		}
 		if u := ctx.Actor(); u != nil {
 			fs = append(fs, zap.String("user-id", u.ID()))
 		}
