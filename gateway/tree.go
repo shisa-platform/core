@@ -10,36 +10,9 @@ import (
 	"unicode"
 
 	"github.com/ansel1/merry"
+
+	"github.com/percolate/shisa/service"
 )
-
-// Param is a single URL parameter, consisting of a key and a value.
-type Param struct {
-	Key   string
-	Value string
-}
-
-// Params is a Param-slice, as returned by the router.
-// The slice is ordered, the first URL parameter is also the first slice value.
-// It is therefore safe to read values by the index.
-type Params []Param
-
-// Get returns the value of the first Param which key matches the given name.
-// If no matching Param is found, an empty string is returned.
-func (ps Params) Get(name string) (string, bool) {
-	for _, entry := range ps {
-		if entry.Key == name {
-			return entry.Value, true
-		}
-	}
-	return "", false
-}
-
-// ByName returns the value of the first Param which key matches the given name.
-// If no matching Param is found, an empty string is returned.
-func (ps Params) ByName(name string) (va string) {
-	va, _ = ps.Get(name)
-	return
-}
 
 func min(a, b int) int {
 	if a <= b {
@@ -352,7 +325,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no endpoint can be found, a TSR (trailing slash redirect) recommendation is
 // made if a endpoint exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, unescape bool) (endpoint *endpoint, p Params, tsr bool, err merry.Error) {
+func (n *node) getValue(path string, unescape bool) (endpoint *endpoint, p service.Params, tsr bool, err merry.Error) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {
@@ -398,7 +371,7 @@ walk: // Outer loop for walking the tree
 
 					// save param value
 					if cap(p) < int(n.maxParams) {
-						p = make(Params, 0, n.maxParams)
+						p = make(service.Params, 0, n.maxParams)
 					}
 					i := len(p)
 					p = p[:i+1] // expand slice within preallocated capacity
@@ -447,7 +420,7 @@ walk: // Outer loop for walking the tree
 				case catchAll:
 					// save param value
 					if cap(p) < int(n.maxParams) {
-						p = make(Params, 0, n.maxParams)
+						p = make(service.Params, 0, n.maxParams)
 					}
 					i := len(p)
 					p = p[:i+1] // expand slice within preallocated capacity

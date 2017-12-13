@@ -17,9 +17,19 @@ var (
 	ParameterNotPresented = errors.New("parameter not presented")
 )
 
+// Param is a single URL parameter, consisting of a key and a
+// value.
+type Param struct {
+	Key   string
+	Value string
+}
+
+// Params is a ordered slice of URL parameters.
+type Params []Param
+
 type Request struct {
 	*http.Request
-	PathArgs    url.Values
+	PathParams  Params
 	QueryParams url.Values
 }
 
@@ -66,17 +76,19 @@ func (r *Request) QueryParamUint(name string) (uint, error) {
 	return 0, ParameterNotPresented
 }
 
-func (r *Request) PathArg(name string) (string, bool) {
-	if values, ok := r.PathArgs[name]; ok {
-		return values[0], true
+func (r *Request) PathParam(name string) (string, bool) {
+	for _, p := range r.PathParams {
+		if p.Key == name {
+			return p.Value, true
+		}
 	}
 
 	return "", false
 }
 
-func (r *Request) PathArgInt(name string) (int, error) {
-	if values, ok := r.PathArgs[name]; ok {
-		return strconv.Atoi(values[0])
+func (r *Request) PathParamInt(name string) (int, error) {
+	if v, ok := r.PathParam(name); ok {
+		return strconv.Atoi(v)
 	}
 
 	return 0, ParameterNotPresented

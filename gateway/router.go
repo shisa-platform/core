@@ -37,10 +37,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var pipeline *service.Pipeline
 
 	path := request.URL.Path
-	// xxx - use params
 	// xxx - escape path ?
 	// xxx - does getValue need 2 params?
-	endpoint, _, tsr, err := g.tree.getValue(path, false)
+	endpoint, params, tsr, err := g.tree.getValue(path, false)
 	if err != nil {
 		err.WithValue("request-id", requestID)
 		err.WithValue("method", r.Method).WithValue("path", path).WithValue("route", endpoint.Route)
@@ -54,6 +53,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = g.NotFoundHandler(ctx, request)
 		goto end
 	}
+
+	request.PathParams = params
 
 	switch request.Method {
 	case http.MethodHead:
