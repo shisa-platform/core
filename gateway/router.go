@@ -14,10 +14,6 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-const (
-	defaultRequestIDResponseHeader = "X-Request-ID"
-)
-
 var (
 	backgroundContext = stdctx.Background()
 )
@@ -55,9 +51,6 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if endpoint == nil {
-		if request.Method != http.MethodConnect && path != "/" {
-			// xxx - redirect?
-		}
 		response = g.NotFoundHandler(ctx, request)
 		goto end
 	}
@@ -93,7 +86,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tsr {
-		if pipeline.Policy.AllowTrailingSlashRedirects {
+		if path != "/" && pipeline.Policy.AllowTrailingSlashRedirects {
 			response = endpoint.redirectHandler(ctx, request)
 		} else {
 			response = g.NotFoundHandler(ctx, request)
@@ -140,11 +133,7 @@ end:
 	}
 	// xxx - write trailers
 
-	if pipeline != nil && pipeline.Policy.RequestIDResponseHeaderName != "" {
-		w.Header().Set(pipeline.Policy.RequestIDResponseHeaderName, requestID)
-	} else {
-		w.Header().Set(defaultRequestIDResponseHeader, requestID)
-	}
+	w.Header().Set(g.RequestIDHeaderName, requestID)
 
 	w.WriteHeader(response.StatusCode())
 	// xxx - handle error here
@@ -155,7 +144,7 @@ end:
 	elapsed := end.Sub(start)
 
 	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
-		fs := make([]zapcore.Field, 9, 10)
+		fs := make([]zapcore.Field, 10, 11)
 		fs[0] = zap.String("request-id", requestID)
 		fs[1] = zap.String("client-ip-address", request.ClientIP())
 		fs[2] = zap.Time("start-time", start)
@@ -165,6 +154,7 @@ end:
 		fs[6] = zap.Uint64("response-size", shim.count)
 		fs[7] = zap.Duration("elapsed-time", elapsed)
 		fs[8] = zap.String("user-agent", request.UserAgent())
+		fs[9] = zap.String("service", endpoint.serviceName)
 		if u := ctx.Actor(); u != nil {
 			fs = append(fs, zap.String("user-id", u.ID()))
 		}

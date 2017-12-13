@@ -16,6 +16,10 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
+const (
+	defaultRequestIDResponseHeader = "X-Request-ID"
+)
+
 var (
 	stats = expvar.NewMap("gateway")
 )
@@ -82,6 +86,11 @@ type Gateway struct {
 	// If nil all logging is disabled.
 	Logger *zap.Logger
 
+	// RequestIDHeaderName optionally customizes the name of the
+	// response header for the request id.
+	// If empty "X-Request-ID" will be used.
+	RequestIDHeaderName string
+
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `service.Request.GenerateID` will be used.
@@ -126,6 +135,10 @@ func (g *Gateway) init() {
 		interrupt := make(chan os.Signal, 1)
 		go g.handleInterrupt(interrupt)
 		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+	}
+
+	if g.RequestIDHeaderName == "" {
+		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
 
 	if g.RequestIDGenerator == nil {
