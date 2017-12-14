@@ -17,6 +17,10 @@ func defaultMethodNotAlowedHandler(ctx context.Context, request *service.Request
 	return service.NewEmpty(http.StatusMethodNotAllowed)
 }
 
+func defaultMalformedQueryParameterHandler(ctx context.Context, request *service.Request) service.Response {
+	return service.NewEmpty(http.StatusBadRequest)
+}
+
 func defaultRedirectHandler(c context.Context, r *service.Request) (resp service.Response) {
 	if r.Method == http.MethodGet {
 		resp = service.NewEmpty(http.StatusSeeOther)

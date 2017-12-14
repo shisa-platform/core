@@ -16,6 +16,13 @@ type Service interface {
 	Endpoints() []Endpoint // The enpoints of this service. Must exist
 	Handlers() []Handler   // Optional handlers for all endpoints
 
+	// MalformedQueryParameterHandler optionally customizes the
+	// response to the user agent when malformed query parameters
+	// are presented.
+	// If nil the default handler wil return a 400 status code
+	// with an empty body.
+	MalformedQueryParameterHandler() Handler
+
 	// MethodNotAllowedHandler optionally customizes the response
 	// returned to the user agent when an endpoint isn't
 	// configured to service the method of a request.

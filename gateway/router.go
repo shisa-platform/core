@@ -37,8 +37,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var response service.Response
 	var pipeline *service.Pipeline
 
-	path := request.URL.Path
-	endpoint, params, tsr, err := g.tree.getValue(path)
+	path := request.URL.EscapedPath()
+	endpoint, pathParams, tsr, err := g.tree.getValue(path)
 	if err != nil {
 		response = defaultInternalServerErrorHandler(ctx, request, err)
 		goto finish
@@ -88,13 +88,20 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	request.PathParams = params
+	request.PathParams = pathParams
 	if !pipeline.Policy.PreserveEscapedPathParameters {
 		for i := range request.PathParams {
-			if esc, r := url.QueryUnescape(request.PathParams[i].Value); r != nil {
+			if esc, r := url.PathUnescape(request.PathParams[i].Value); r == nil {
 				request.PathParams[i].Value = esc
 			}
 		}
+	}
+
+	if qp, pe := url.ParseQuery(request.URL.RawQuery); pe != nil && !pipeline.Policy.AllowMalformedQueryParameters {
+		response = endpoint.queryParamHandler(ctx, request)
+		goto finish
+	} else {
+		request.QueryParams = qp
 	}
 
 	if pipeline.Policy.TimeBudget != 0 {

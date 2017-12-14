@@ -27,6 +27,13 @@ type HandlersInvocation struct {
 	}
 }
 
+// MalformedQueryParameterHandlerInvocation represents a single call of FakeService.MalformedQueryParameterHandler
+type MalformedQueryParameterHandlerInvocation struct {
+	Results struct {
+		Ident1 Handler
+	}
+}
+
 // MethodNotAllowedHandlerInvocation represents a single call of FakeService.MethodNotAllowedHandler
 type MethodNotAllowedHandlerInvocation struct {
 	Results struct {
@@ -73,19 +80,21 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeName.
 */
 type FakeService struct {
-	NameHook                       func() string
-	EndpointsHook                  func() []Endpoint
-	HandlersHook                   func() []Handler
-	MethodNotAllowedHandlerHook    func() Handler
-	RedirectHandlerHook            func() Handler
-	InternalServerErrorHandlerHook func() ErrorHandler
+	NameHook                           func() string
+	EndpointsHook                      func() []Endpoint
+	HandlersHook                       func() []Handler
+	MalformedQueryParameterHandlerHook func() Handler
+	MethodNotAllowedHandlerHook        func() Handler
+	RedirectHandlerHook                func() Handler
+	InternalServerErrorHandlerHook     func() ErrorHandler
 
-	NameCalls                       []*NameInvocation
-	EndpointsCalls                  []*EndpointsInvocation
-	HandlersCalls                   []*HandlersInvocation
-	MethodNotAllowedHandlerCalls    []*MethodNotAllowedHandlerInvocation
-	RedirectHandlerCalls            []*RedirectHandlerInvocation
-	InternalServerErrorHandlerCalls []*InternalServerErrorHandlerInvocation
+	NameCalls                           []*NameInvocation
+	EndpointsCalls                      []*EndpointsInvocation
+	HandlersCalls                       []*HandlersInvocation
+	MalformedQueryParameterHandlerCalls []*MalformedQueryParameterHandlerInvocation
+	MethodNotAllowedHandlerCalls        []*MethodNotAllowedHandlerInvocation
+	RedirectHandlerCalls                []*RedirectHandlerInvocation
+	InternalServerErrorHandlerCalls     []*InternalServerErrorHandlerInvocation
 }
 
 // NewFakeServiceDefaultPanic returns an instance of FakeService with all hooks configured to panic
@@ -99,6 +108,9 @@ func NewFakeServiceDefaultPanic() *FakeService {
 		},
 		HandlersHook: func() (ident1 []Handler) {
 			panic("Unexpected call to Service.Handlers")
+		},
+		MalformedQueryParameterHandlerHook: func() (ident1 Handler) {
+			panic("Unexpected call to Service.MalformedQueryParameterHandler")
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			panic("Unexpected call to Service.MethodNotAllowedHandler")
@@ -125,6 +137,10 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 		},
 		HandlersHook: func() (ident1 []Handler) {
 			t.Fatal("Unexpected call to Service.Handlers")
+			return
+		},
+		MalformedQueryParameterHandlerHook: func() (ident1 Handler) {
+			t.Fatal("Unexpected call to Service.MalformedQueryParameterHandler")
 			return
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
@@ -157,6 +173,10 @@ func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 			t.Error("Unexpected call to Service.Handlers")
 			return
 		},
+		MalformedQueryParameterHandlerHook: func() (ident1 Handler) {
+			t.Error("Unexpected call to Service.MalformedQueryParameterHandler")
+			return
+		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			t.Error("Unexpected call to Service.MethodNotAllowedHandler")
 			return
@@ -176,6 +196,7 @@ func (f *FakeService) Reset() {
 	f.NameCalls = []*NameInvocation{}
 	f.EndpointsCalls = []*EndpointsInvocation{}
 	f.HandlersCalls = []*HandlersInvocation{}
+	f.MalformedQueryParameterHandlerCalls = []*MalformedQueryParameterHandlerInvocation{}
 	f.MethodNotAllowedHandlerCalls = []*MethodNotAllowedHandlerInvocation{}
 	f.RedirectHandlerCalls = []*RedirectHandlerInvocation{}
 	f.InternalServerErrorHandlerCalls = []*InternalServerErrorHandlerInvocation{}
@@ -373,14 +394,78 @@ func (f *FakeService) AssertHandlersCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f4 *FakeService) MethodNotAllowedHandler() (ident1 Handler) {
-	invocation := new(MethodNotAllowedHandlerInvocation)
+func (_f4 *FakeService) MalformedQueryParameterHandler() (ident1 Handler) {
+	invocation := new(MalformedQueryParameterHandlerInvocation)
 
-	ident1 = _f4.MethodNotAllowedHandlerHook()
+	ident1 = _f4.MalformedQueryParameterHandlerHook()
 
 	invocation.Results.Ident1 = ident1
 
-	_f4.MethodNotAllowedHandlerCalls = append(_f4.MethodNotAllowedHandlerCalls, invocation)
+	_f4.MalformedQueryParameterHandlerCalls = append(_f4.MalformedQueryParameterHandlerCalls, invocation)
+
+	return
+}
+
+// MalformedQueryParameterHandlerCalled returns true if FakeService.MalformedQueryParameterHandler was called
+func (f *FakeService) MalformedQueryParameterHandlerCalled() bool {
+	return len(f.MalformedQueryParameterHandlerCalls) != 0
+}
+
+// AssertMalformedQueryParameterHandlerCalled calls t.Error if FakeService.MalformedQueryParameterHandler was not called
+func (f *FakeService) AssertMalformedQueryParameterHandlerCalled(t *testing.T) {
+	t.Helper()
+	if len(f.MalformedQueryParameterHandlerCalls) == 0 {
+		t.Error("FakeService.MalformedQueryParameterHandler not called, expected at least one")
+	}
+}
+
+// MalformedQueryParameterHandlerNotCalled returns true if FakeService.MalformedQueryParameterHandler was not called
+func (f *FakeService) MalformedQueryParameterHandlerNotCalled() bool {
+	return len(f.MalformedQueryParameterHandlerCalls) == 0
+}
+
+// AssertMalformedQueryParameterHandlerNotCalled calls t.Error if FakeService.MalformedQueryParameterHandler was called
+func (f *FakeService) AssertMalformedQueryParameterHandlerNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.MalformedQueryParameterHandlerCalls) != 0 {
+		t.Error("FakeService.MalformedQueryParameterHandler called, expected none")
+	}
+}
+
+// MalformedQueryParameterHandlerCalledOnce returns true if FakeService.MalformedQueryParameterHandler was called exactly once
+func (f *FakeService) MalformedQueryParameterHandlerCalledOnce() bool {
+	return len(f.MalformedQueryParameterHandlerCalls) == 1
+}
+
+// AssertMalformedQueryParameterHandlerCalledOnce calls t.Error if FakeService.MalformedQueryParameterHandler was not called exactly once
+func (f *FakeService) AssertMalformedQueryParameterHandlerCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.MalformedQueryParameterHandlerCalls) != 1 {
+		t.Errorf("FakeService.MalformedQueryParameterHandler called %d times, expected 1", len(f.MalformedQueryParameterHandlerCalls))
+	}
+}
+
+// MalformedQueryParameterHandlerCalledN returns true if FakeService.MalformedQueryParameterHandler was called at least n times
+func (f *FakeService) MalformedQueryParameterHandlerCalledN(n int) bool {
+	return len(f.MalformedQueryParameterHandlerCalls) >= n
+}
+
+// AssertMalformedQueryParameterHandlerCalledN calls t.Error if FakeService.MalformedQueryParameterHandler was called less than n times
+func (f *FakeService) AssertMalformedQueryParameterHandlerCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.MalformedQueryParameterHandlerCalls) < n {
+		t.Errorf("FakeService.MalformedQueryParameterHandler called %d times, expected >= %d", len(f.MalformedQueryParameterHandlerCalls), n)
+	}
+}
+
+func (_f5 *FakeService) MethodNotAllowedHandler() (ident1 Handler) {
+	invocation := new(MethodNotAllowedHandlerInvocation)
+
+	ident1 = _f5.MethodNotAllowedHandlerHook()
+
+	invocation.Results.Ident1 = ident1
+
+	_f5.MethodNotAllowedHandlerCalls = append(_f5.MethodNotAllowedHandlerCalls, invocation)
 
 	return
 }
@@ -437,14 +522,14 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t *testing.T, n int) 
 	}
 }
 
-func (_f5 *FakeService) RedirectHandler() (ident1 Handler) {
+func (_f6 *FakeService) RedirectHandler() (ident1 Handler) {
 	invocation := new(RedirectHandlerInvocation)
 
-	ident1 = _f5.RedirectHandlerHook()
+	ident1 = _f6.RedirectHandlerHook()
 
 	invocation.Results.Ident1 = ident1
 
-	_f5.RedirectHandlerCalls = append(_f5.RedirectHandlerCalls, invocation)
+	_f6.RedirectHandlerCalls = append(_f6.RedirectHandlerCalls, invocation)
 
 	return
 }
@@ -501,14 +586,14 @@ func (f *FakeService) AssertRedirectHandlerCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f6 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
+func (_f7 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
 	invocation := new(InternalServerErrorHandlerInvocation)
 
-	ident1 = _f6.InternalServerErrorHandlerHook()
+	ident1 = _f7.InternalServerErrorHandlerHook()
 
 	invocation.Results.Ident1 = ident1
 
-	_f6.InternalServerErrorHandlerCalls = append(_f6.InternalServerErrorHandlerCalls, invocation)
+	_f7.InternalServerErrorHandlerCalls = append(_f7.InternalServerErrorHandlerCalls, invocation)
 
 	return
 }

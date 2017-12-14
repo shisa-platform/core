@@ -38,6 +38,10 @@ func (s *HelloService) Handlers() []service.Handler {
 	return nil
 }
 
+func (s *HelloService) MalformedQueryParameterHandler() service.Handler {
+	return nil
+}
+
 func (s *HelloService) MethodNotAllowedHandler() service.Handler {
 	return nil
 }
