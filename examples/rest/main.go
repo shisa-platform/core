@@ -22,7 +22,7 @@ const (
 
 var (
 	commonPolicy = service.Policy{
-		TimeBudget: time.Millisecond * 5,
+		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 )

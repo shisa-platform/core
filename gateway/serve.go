@@ -133,64 +133,85 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				iseHandler:        svc.InternalServerErrorHandler(),
 			}
 
-			switch {
-			case e.queryParamHandler == nil:
+			if e.queryParamHandler == nil {
 				e.queryParamHandler = defaultMalformedQueryParameterHandler
-			case e.notAllowedHandler == nil:
+			}
+			if e.notAllowedHandler == nil {
 				e.notAllowedHandler = defaultMethodNotAlowedHandler
-			case e.redirectHandler == nil:
+			}
+			if e.redirectHandler == nil {
 				e.redirectHandler = defaultRedirectHandler
-			case e.iseHandler == nil:
+			}
+			if e.iseHandler == nil {
 				e.iseHandler = defaultInternalServerErrorHandler
 			}
 
-			switch {
-			case endp.Head != nil:
+			foundMethod := false
+			if endp.Head != nil {
+				foundMethod = true
 				e.Head = &service.Pipeline{
 					Policy:   endp.Head.Policy,
 					Handlers: append(svc.Handlers(), endp.Head.Handlers...),
 				}
-			case endp.Get != nil:
+			}
+			if endp.Get != nil {
+				foundMethod = true
 				e.Get = &service.Pipeline{
 					Policy:   endp.Get.Policy,
 					Handlers: append(svc.Handlers(), endp.Get.Handlers...),
 				}
-			case endp.Put != nil:
+			}
+			if endp.Put != nil {
+				foundMethod = true
 				e.Put = &service.Pipeline{
 					Policy:   endp.Put.Policy,
 					Handlers: append(svc.Handlers(), endp.Put.Handlers...),
 				}
-			case endp.Post != nil:
+			}
+			if endp.Post != nil {
+				foundMethod = true
 				e.Post = &service.Pipeline{
 					Policy:   endp.Post.Policy,
 					Handlers: append(svc.Handlers(), endp.Post.Handlers...),
 				}
-			case endp.Patch != nil:
+			}
+			if endp.Patch != nil {
+				foundMethod = true
 				e.Patch = &service.Pipeline{
 					Policy:   endp.Patch.Policy,
 					Handlers: append(svc.Handlers(), endp.Patch.Handlers...),
 				}
-			case endp.Delete != nil:
+			}
+			if endp.Delete != nil {
+				foundMethod = true
 				e.Delete = &service.Pipeline{
 					Policy:   endp.Delete.Policy,
 					Handlers: append(svc.Handlers(), endp.Delete.Handlers...),
 				}
-			case endp.Connect != nil:
+			}
+			if endp.Connect != nil {
+				foundMethod = true
 				e.Connect = &service.Pipeline{
 					Policy:   endp.Connect.Policy,
 					Handlers: append(svc.Handlers(), endp.Connect.Handlers...),
 				}
-			case endp.Options != nil:
+			}
+			if endp.Options != nil {
+				foundMethod = true
 				e.Options = &service.Pipeline{
 					Policy:   endp.Options.Policy,
 					Handlers: append(svc.Handlers(), endp.Options.Handlers...),
 				}
-			case endp.Trace != nil:
+			}
+			if endp.Trace != nil {
+				foundMethod = true
 				e.Trace = &service.Pipeline{
 					Policy:   endp.Trace.Policy,
 					Handlers: append(svc.Handlers(), endp.Trace.Handlers...),
 				}
-			default:
+			}
+
+			if !foundMethod {
 				return merry.New("endpoint requires least one method").WithValue("service", svc.Name()).WithValue("index", i)
 			}
 
