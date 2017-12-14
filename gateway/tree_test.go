@@ -611,8 +611,6 @@ func TestTreeFindCaseInsensitivePath(t *testing.T) {
 }
 
 func TestTreeInvalidNodeType(t *testing.T) {
-	const panicMsg = "invalid node type"
-
 	tree := &node{}
 	if err := tree.addRoute("/", fakeEndpoint("/")); err != nil {
 		t.Fatalf("unexpected error adding fixture: %v", err)
@@ -632,5 +630,41 @@ func TestTreeInvalidNodeType(t *testing.T) {
 	// case-insensitive lookup
 	if _, _, err := tree.findCaseInsensitivePath("/test", true); err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestTreeMultipleNamedParameters(t *testing.T) {
+	tree := &node{}
+
+	routes := [...]string{
+		"/thing/:foo/:bar",
+		"/thing/:foo",
+		"/thing",
+	}
+
+	for _, route := range routes {
+		if err := tree.addRoute(route, fakeEndpoint(route)); err != nil {
+			t.Fatalf("unexpected error inserting route %q: %v", route, err)
+		}
+	}
+
+	// printChildren(tree, "")
+
+	tests := [...]string{
+		"/thing/this/",
+		"/thing/",
+	}
+	for _, route := range tests {
+		endpoint, _, tsr, err := tree.getValue(route)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if endpoint == nil {
+			t.Fatalf("expected non-nil endpoint for route %q", route)
+		}
+		t.Logf("route: %s", endpoint.Route)
+		if !tsr {
+			t.Errorf("expected TSR recommendation for route %q", route)
+		}
 	}
 }
