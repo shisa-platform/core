@@ -21,7 +21,10 @@ const (
 )
 
 var (
-	commonPolicy = service.Policy{TimeBudget: time.Millisecond * 5}
+	commonPolicy = service.Policy{
+		TimeBudget: time.Millisecond * 5,
+		AllowTrailingSlashRedirects: true,
+	}
 )
 
 func main() {

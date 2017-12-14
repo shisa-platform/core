@@ -85,3 +85,23 @@ func (c *countingWriter) Write(p []byte) (n int, err error) {
 
 	return
 }
+
+func NewSeeOther(location string) Response {
+	headers := make(http.Header)
+	headers.Set("Location", location)
+	return &BasicResponse{
+		status:   http.StatusSeeOther,
+		headers:  headers,
+		trailers: make(http.Header),
+	}
+}
+
+func NewTemporaryRedirect(location string) Response {
+	headers := make(http.Header)
+	headers.Set("Location", location)
+	return &BasicResponse{
+		status:   http.StatusTemporaryRedirect,
+		headers:  headers,
+		trailers: make(http.Header),
+	}
+}

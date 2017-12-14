@@ -22,11 +22,19 @@ func defaultMalformedQueryParameterHandler(ctx context.Context, request *service
 }
 
 func defaultRedirectHandler(c context.Context, r *service.Request) (resp service.Response) {
-	if r.Method == http.MethodGet {
-		resp = service.NewEmpty(http.StatusSeeOther)
+	location := *r.URL
+	if location.Path[len(location.Path)-1] == '/' {
+		location.Path = location.Path[:len(location.Path)-1]
 	} else {
-		resp = service.NewEmpty(http.StatusTemporaryRedirect)
+		location.Path = location.Path + "/"
 	}
+
+	if r.Method == http.MethodGet {
+		resp = service.NewSeeOther(location.String())
+	} else {
+		resp = service.NewTemporaryRedirect(location.String())
+	}
+
 	return
 }
 
