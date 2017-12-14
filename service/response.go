@@ -10,43 +10,98 @@ import (
 
 type Response interface {
 	StatusCode() int
-	Header() http.Header
-	Trailer() http.Header
-	Serialize(io.Writer) error
+	Headers() http.Header
+	Trailers() http.Header
+	Serialize(io.Writer) (int, error)
 }
 
-type jsonResponse struct {
+type BasicResponse struct {
 	status   int
 	headers  http.Header
 	trailers http.Header
-	payload  json.Marshaler
 }
 
-func (r *jsonResponse) StatusCode() int {
+func (r *BasicResponse) StatusCode() int {
 	return r.status
 }
 
-func (r *jsonResponse) Header() http.Header {
+func (r *BasicResponse) Headers() http.Header {
 	return r.headers
 }
 
-func (r *jsonResponse) Trailer() http.Header {
+func (r *BasicResponse) Trailers() http.Header {
 	return r.trailers
 }
 
-func (r *jsonResponse) Serialize(w io.Writer) error {
-	encoder := json.NewEncoder(w)
+func (r *BasicResponse) Serialize(io.Writer) (int, error) {
+	return 0, nil
+}
+
+type JsonResponse struct {
+	BasicResponse
+	Payload json.Marshaler
+}
+
+func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
+	writer := countingWriter{delegate: w}
+	encoder := json.NewEncoder(&writer)
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	return encoder.Encode(r.payload)
+	err := encoder.Encode(r.Payload)
+	return writer.count, err
+}
+
+func NewEmpty(status int) Response {
+	return &BasicResponse{
+		status:   status,
+		headers:  make(http.Header),
+		trailers: make(http.Header),
+	}
 }
 
 func NewOK(body json.Marshaler) Response {
-	return &jsonResponse{
-		status:   http.StatusOK,
-		headers:  make(http.Header),
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/json; charset=utf-8")
+
+	return &JsonResponse{
+		BasicResponse: BasicResponse{
+			status:   http.StatusOK,
+			headers:  headers,
+			trailers: make(http.Header),
+		},
+		Payload: body,
+	}
+}
+
+type countingWriter struct {
+	delegate io.Writer
+	count    int
+}
+
+func (c *countingWriter) Write(p []byte) (n int, err error) {
+	n, err = c.delegate.Write(p)
+	c.count += n
+
+	return
+}
+
+func NewSeeOther(location string) Response {
+	headers := make(http.Header)
+	headers.Set("Location", location)
+	return &BasicResponse{
+		status:   http.StatusSeeOther,
+		headers:  headers,
 		trailers: make(http.Header),
-		payload:  body,
+	}
+}
+
+func NewTemporaryRedirect(location string) Response {
+	headers := make(http.Header)
+	headers.Set("Location", location)
+	return &BasicResponse{
+		status:   http.StatusTemporaryRedirect,
+		headers:  headers,
+		trailers: make(http.Header),
 	}
 }

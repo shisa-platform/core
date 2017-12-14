@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/percolate/shisa/uuid"
@@ -16,9 +17,19 @@ var (
 	ParameterNotPresented = errors.New("parameter not presented")
 )
 
+// Param is a single URL parameter, consisting of a key and a
+// value.
+type Param struct {
+	Key   string
+	Value string
+}
+
+// Params is a ordered slice of URL parameters.
+type Params []Param
+
 type Request struct {
 	*http.Request
-	PathArgs    url.Values
+	PathParams  Params
 	QueryParams url.Values
 }
 
@@ -65,28 +76,48 @@ func (r *Request) QueryParamUint(name string) (uint, error) {
 	return 0, ParameterNotPresented
 }
 
-func (r *Request) PathArg(name string) (string, bool) {
-	if values, ok := r.PathArgs[name]; ok {
-		return values[0], true
+func (r *Request) PathParam(name string) (string, bool) {
+	for _, p := range r.PathParams {
+		if p.Key == name {
+			return p.Value, true
+		}
 	}
 
 	return "", false
 }
 
-func (r *Request) PathArgInt(name string) (int, error) {
-	if values, ok := r.PathArgs[name]; ok {
-		return strconv.Atoi(values[0])
+func (r *Request) PathParamInt(name string) (int, error) {
+	if v, ok := r.PathParam(name); ok {
+		return strconv.Atoi(v)
 	}
 
 	return 0, ParameterNotPresented
 }
 
+// GenerateID creates a globally unique string for the request.
+// It creates a version 5 UUID with the concatenation of current unix nanos,
+// three bytes of random data, the client ip address, the request method and the
+// request URI.
 func (r *Request) GenerateID() string {
 	now := time.Now().UnixNano()
 	nonce := make([]byte, 3)
 	rand.Read(nonce)
-	clientAddr := GetClientIP(r.Request)
+	clientAddr := r.ClientIP()
 	name := fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)
 
 	return uuid.New(uuid.ShisaNS, name).String()
+}
+
+func (r *Request) ClientIP() string {
+	ip := r.Header.Get("X-Real-IP")
+	if ip == "" {
+		if ip = r.Header.Get("X-Forwarded-For"); ip == "" {
+			ip = r.RemoteAddr
+		}
+	}
+	if colon := strings.LastIndex(ip, ":"); colon != -1 {
+		ip = ip[:colon]
+	}
+
+	return ip
 }

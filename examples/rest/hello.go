@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
 )
 
 type Greeting struct {
-	Message string `json:"greeting"`
+	Message string
 }
 
 func (g Greeting) MarshalJSON() ([]byte, error) {
@@ -27,31 +25,39 @@ func (s *HelloService) Name() string {
 func (s *HelloService) Endpoints() []service.Endpoint {
 	return []service.Endpoint{
 		service.Endpoint{
-			Method:   http.MethodGet,
-			Route:    "/greeting",
-			Pipeline: []service.Handler{s.Greeting},
-			Policy: service.Policy{
-				RequestBudget:     time.Millisecond * 5,
-				GenerateRequestID: true,
+			Route: "/greeting",
+			Get: &service.Pipeline{
+				Policy:   commonPolicy,
+				Handlers: []service.Handler{s.Greeting},
 			},
 		},
 	}
+}
 
+func (s *HelloService) Handlers() []service.Handler {
+	return nil
+}
+
+func (s *HelloService) MalformedQueryParameterHandler() service.Handler {
+	return nil
+}
+
+func (s *HelloService) MethodNotAllowedHandler() service.Handler {
+	return nil
+}
+
+func (s *HelloService) RedirectHandler() service.Handler {
+	return nil
+}
+
+func (s *HelloService) InternalServerErrorHandler() service.ErrorHandler {
+	return nil
 }
 
 func (s *HelloService) Greeting(context.Context, *service.Request) service.Response {
-	now := time.Now().UTC().Format(time.RFC1123)
-
 	response := service.NewOK(Greeting{"hello, world"})
-
-	response.Header().Set("Cache-Control", "private, max-age=0")
-	response.Header().Set("Content-Type", "application/json; charset=utf-8")
-	response.Header().Set("Date", now)
-	response.Header().Set("Expires", now)
-	response.Header().Set("Last-Modified", now)
-	response.Header().Set("X-Content-Type-Options", "nosniff")
-	response.Header().Set("X-Frame-Options", "DENY")
-	response.Header().Set("X-Xss-Protection", "1; mode=block")
+	addCommonHeaders(response)
+	response.Trailers().Add("test", "foo")
 
 	return response
 }

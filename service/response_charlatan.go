@@ -12,31 +12,32 @@ import (
 // StatusCodeInvocation represents a single call of FakeResponse.StatusCode
 type StatusCodeInvocation struct {
 	Results struct {
-		Ident59 int
+		Ident1 int
 	}
 }
 
-// HeaderInvocation represents a single call of FakeResponse.Header
-type HeaderInvocation struct {
+// HeadersInvocation represents a single call of FakeResponse.Headers
+type HeadersInvocation struct {
 	Results struct {
-		Ident60 http.Header
+		Ident1 http.Header
 	}
 }
 
-// TrailerInvocation represents a single call of FakeResponse.Trailer
-type TrailerInvocation struct {
+// TrailersInvocation represents a single call of FakeResponse.Trailers
+type TrailersInvocation struct {
 	Results struct {
-		Ident61 http.Header
+		Ident1 http.Header
 	}
 }
 
 // SerializeInvocation represents a single call of FakeResponse.Serialize
 type SerializeInvocation struct {
 	Parameters struct {
-		Ident62 io.Writer
+		Ident1 io.Writer
 	}
 	Results struct {
-		Ident63 error
+		Ident2 int
+		Ident3 error
 	}
 }
 
@@ -48,7 +49,7 @@ Use it in your tests as in this example:
 
 	func TestWithResponse(t *testing.T) {
 		f := &service.FakeResponse{
-			StatusCodeHook: func() (ident59 int) {
+			StatusCodeHook: func() (ident1 int) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -66,29 +67,29 @@ unexpected calls are made to FakeStatusCode.
 */
 type FakeResponse struct {
 	StatusCodeHook func() int
-	HeaderHook     func() http.Header
-	TrailerHook    func() http.Header
-	SerializeHook  func(io.Writer) error
+	HeadersHook    func() http.Header
+	TrailersHook   func() http.Header
+	SerializeHook  func(io.Writer) (int, error)
 
 	StatusCodeCalls []*StatusCodeInvocation
-	HeaderCalls     []*HeaderInvocation
-	TrailerCalls    []*TrailerInvocation
+	HeadersCalls    []*HeadersInvocation
+	TrailersCalls   []*TrailersInvocation
 	SerializeCalls  []*SerializeInvocation
 }
 
 // NewFakeResponseDefaultPanic returns an instance of FakeResponse with all hooks configured to panic
 func NewFakeResponseDefaultPanic() *FakeResponse {
 	return &FakeResponse{
-		StatusCodeHook: func() (ident59 int) {
+		StatusCodeHook: func() (ident1 int) {
 			panic("Unexpected call to Response.StatusCode")
 		},
-		HeaderHook: func() (ident60 http.Header) {
-			panic("Unexpected call to Response.Header")
+		HeadersHook: func() (ident1 http.Header) {
+			panic("Unexpected call to Response.Headers")
 		},
-		TrailerHook: func() (ident61 http.Header) {
-			panic("Unexpected call to Response.Trailer")
+		TrailersHook: func() (ident1 http.Header) {
+			panic("Unexpected call to Response.Trailers")
 		},
-		SerializeHook: func(io.Writer) (ident63 error) {
+		SerializeHook: func(io.Writer) (ident2 int, ident3 error) {
 			panic("Unexpected call to Response.Serialize")
 		},
 	}
@@ -97,19 +98,19 @@ func NewFakeResponseDefaultPanic() *FakeResponse {
 // NewFakeResponseDefaultFatal returns an instance of FakeResponse with all hooks configured to call t.Fatal
 func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
 	return &FakeResponse{
-		StatusCodeHook: func() (ident59 int) {
+		StatusCodeHook: func() (ident1 int) {
 			t.Fatal("Unexpected call to Response.StatusCode")
 			return
 		},
-		HeaderHook: func() (ident60 http.Header) {
-			t.Fatal("Unexpected call to Response.Header")
+		HeadersHook: func() (ident1 http.Header) {
+			t.Fatal("Unexpected call to Response.Headers")
 			return
 		},
-		TrailerHook: func() (ident61 http.Header) {
-			t.Fatal("Unexpected call to Response.Trailer")
+		TrailersHook: func() (ident1 http.Header) {
+			t.Fatal("Unexpected call to Response.Trailers")
 			return
 		},
-		SerializeHook: func(io.Writer) (ident63 error) {
+		SerializeHook: func(io.Writer) (ident2 int, ident3 error) {
 			t.Fatal("Unexpected call to Response.Serialize")
 			return
 		},
@@ -119,31 +120,38 @@ func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
 // NewFakeResponseDefaultError returns an instance of FakeResponse with all hooks configured to call t.Error
 func NewFakeResponseDefaultError(t *testing.T) *FakeResponse {
 	return &FakeResponse{
-		StatusCodeHook: func() (ident59 int) {
+		StatusCodeHook: func() (ident1 int) {
 			t.Error("Unexpected call to Response.StatusCode")
 			return
 		},
-		HeaderHook: func() (ident60 http.Header) {
-			t.Error("Unexpected call to Response.Header")
+		HeadersHook: func() (ident1 http.Header) {
+			t.Error("Unexpected call to Response.Headers")
 			return
 		},
-		TrailerHook: func() (ident61 http.Header) {
-			t.Error("Unexpected call to Response.Trailer")
+		TrailersHook: func() (ident1 http.Header) {
+			t.Error("Unexpected call to Response.Trailers")
 			return
 		},
-		SerializeHook: func(io.Writer) (ident63 error) {
+		SerializeHook: func(io.Writer) (ident2 int, ident3 error) {
 			t.Error("Unexpected call to Response.Serialize")
 			return
 		},
 	}
 }
 
-func (_f1 *FakeResponse) StatusCode() (ident59 int) {
+func (f *FakeResponse) Reset() {
+	f.StatusCodeCalls = []*StatusCodeInvocation{}
+	f.HeadersCalls = []*HeadersInvocation{}
+	f.TrailersCalls = []*TrailersInvocation{}
+	f.SerializeCalls = []*SerializeInvocation{}
+}
+
+func (_f1 *FakeResponse) StatusCode() (ident1 int) {
 	invocation := new(StatusCodeInvocation)
 
-	ident59 = _f1.StatusCodeHook()
+	ident1 = _f1.StatusCodeHook()
 
-	invocation.Results.Ident59 = ident59
+	invocation.Results.Ident1 = ident1
 
 	_f1.StatusCodeCalls = append(_f1.StatusCodeCalls, invocation)
 
@@ -202,142 +210,143 @@ func (f *FakeResponse) AssertStatusCodeCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f2 *FakeResponse) Header() (ident60 http.Header) {
-	invocation := new(HeaderInvocation)
+func (_f2 *FakeResponse) Headers() (ident1 http.Header) {
+	invocation := new(HeadersInvocation)
 
-	ident60 = _f2.HeaderHook()
+	ident1 = _f2.HeadersHook()
 
-	invocation.Results.Ident60 = ident60
+	invocation.Results.Ident1 = ident1
 
-	_f2.HeaderCalls = append(_f2.HeaderCalls, invocation)
-
-	return
-}
-
-// HeaderCalled returns true if FakeResponse.Header was called
-func (f *FakeResponse) HeaderCalled() bool {
-	return len(f.HeaderCalls) != 0
-}
-
-// AssertHeaderCalled calls t.Error if FakeResponse.Header was not called
-func (f *FakeResponse) AssertHeaderCalled(t *testing.T) {
-	t.Helper()
-	if len(f.HeaderCalls) == 0 {
-		t.Error("FakeResponse.Header not called, expected at least one")
-	}
-}
-
-// HeaderNotCalled returns true if FakeResponse.Header was not called
-func (f *FakeResponse) HeaderNotCalled() bool {
-	return len(f.HeaderCalls) == 0
-}
-
-// AssertHeaderNotCalled calls t.Error if FakeResponse.Header was called
-func (f *FakeResponse) AssertHeaderNotCalled(t *testing.T) {
-	t.Helper()
-	if len(f.HeaderCalls) != 0 {
-		t.Error("FakeResponse.Header called, expected none")
-	}
-}
-
-// HeaderCalledOnce returns true if FakeResponse.Header was called exactly once
-func (f *FakeResponse) HeaderCalledOnce() bool {
-	return len(f.HeaderCalls) == 1
-}
-
-// AssertHeaderCalledOnce calls t.Error if FakeResponse.Header was not called exactly once
-func (f *FakeResponse) AssertHeaderCalledOnce(t *testing.T) {
-	t.Helper()
-	if len(f.HeaderCalls) != 1 {
-		t.Errorf("FakeResponse.Header called %d times, expected 1", len(f.HeaderCalls))
-	}
-}
-
-// HeaderCalledN returns true if FakeResponse.Header was called at least n times
-func (f *FakeResponse) HeaderCalledN(n int) bool {
-	return len(f.HeaderCalls) >= n
-}
-
-// AssertHeaderCalledN calls t.Error if FakeResponse.Header was called less than n times
-func (f *FakeResponse) AssertHeaderCalledN(t *testing.T, n int) {
-	t.Helper()
-	if len(f.HeaderCalls) < n {
-		t.Errorf("FakeResponse.Header called %d times, expected >= %d", len(f.HeaderCalls), n)
-	}
-}
-
-func (_f3 *FakeResponse) Trailer() (ident61 http.Header) {
-	invocation := new(TrailerInvocation)
-
-	ident61 = _f3.TrailerHook()
-
-	invocation.Results.Ident61 = ident61
-
-	_f3.TrailerCalls = append(_f3.TrailerCalls, invocation)
+	_f2.HeadersCalls = append(_f2.HeadersCalls, invocation)
 
 	return
 }
 
-// TrailerCalled returns true if FakeResponse.Trailer was called
-func (f *FakeResponse) TrailerCalled() bool {
-	return len(f.TrailerCalls) != 0
+// HeadersCalled returns true if FakeResponse.Headers was called
+func (f *FakeResponse) HeadersCalled() bool {
+	return len(f.HeadersCalls) != 0
 }
 
-// AssertTrailerCalled calls t.Error if FakeResponse.Trailer was not called
-func (f *FakeResponse) AssertTrailerCalled(t *testing.T) {
+// AssertHeadersCalled calls t.Error if FakeResponse.Headers was not called
+func (f *FakeResponse) AssertHeadersCalled(t *testing.T) {
 	t.Helper()
-	if len(f.TrailerCalls) == 0 {
-		t.Error("FakeResponse.Trailer not called, expected at least one")
+	if len(f.HeadersCalls) == 0 {
+		t.Error("FakeResponse.Headers not called, expected at least one")
 	}
 }
 
-// TrailerNotCalled returns true if FakeResponse.Trailer was not called
-func (f *FakeResponse) TrailerNotCalled() bool {
-	return len(f.TrailerCalls) == 0
+// HeadersNotCalled returns true if FakeResponse.Headers was not called
+func (f *FakeResponse) HeadersNotCalled() bool {
+	return len(f.HeadersCalls) == 0
 }
 
-// AssertTrailerNotCalled calls t.Error if FakeResponse.Trailer was called
-func (f *FakeResponse) AssertTrailerNotCalled(t *testing.T) {
+// AssertHeadersNotCalled calls t.Error if FakeResponse.Headers was called
+func (f *FakeResponse) AssertHeadersNotCalled(t *testing.T) {
 	t.Helper()
-	if len(f.TrailerCalls) != 0 {
-		t.Error("FakeResponse.Trailer called, expected none")
+	if len(f.HeadersCalls) != 0 {
+		t.Error("FakeResponse.Headers called, expected none")
 	}
 }
 
-// TrailerCalledOnce returns true if FakeResponse.Trailer was called exactly once
-func (f *FakeResponse) TrailerCalledOnce() bool {
-	return len(f.TrailerCalls) == 1
+// HeadersCalledOnce returns true if FakeResponse.Headers was called exactly once
+func (f *FakeResponse) HeadersCalledOnce() bool {
+	return len(f.HeadersCalls) == 1
 }
 
-// AssertTrailerCalledOnce calls t.Error if FakeResponse.Trailer was not called exactly once
-func (f *FakeResponse) AssertTrailerCalledOnce(t *testing.T) {
+// AssertHeadersCalledOnce calls t.Error if FakeResponse.Headers was not called exactly once
+func (f *FakeResponse) AssertHeadersCalledOnce(t *testing.T) {
 	t.Helper()
-	if len(f.TrailerCalls) != 1 {
-		t.Errorf("FakeResponse.Trailer called %d times, expected 1", len(f.TrailerCalls))
+	if len(f.HeadersCalls) != 1 {
+		t.Errorf("FakeResponse.Headers called %d times, expected 1", len(f.HeadersCalls))
 	}
 }
 
-// TrailerCalledN returns true if FakeResponse.Trailer was called at least n times
-func (f *FakeResponse) TrailerCalledN(n int) bool {
-	return len(f.TrailerCalls) >= n
+// HeadersCalledN returns true if FakeResponse.Headers was called at least n times
+func (f *FakeResponse) HeadersCalledN(n int) bool {
+	return len(f.HeadersCalls) >= n
 }
 
-// AssertTrailerCalledN calls t.Error if FakeResponse.Trailer was called less than n times
-func (f *FakeResponse) AssertTrailerCalledN(t *testing.T, n int) {
+// AssertHeadersCalledN calls t.Error if FakeResponse.Headers was called less than n times
+func (f *FakeResponse) AssertHeadersCalledN(t *testing.T, n int) {
 	t.Helper()
-	if len(f.TrailerCalls) < n {
-		t.Errorf("FakeResponse.Trailer called %d times, expected >= %d", len(f.TrailerCalls), n)
+	if len(f.HeadersCalls) < n {
+		t.Errorf("FakeResponse.Headers called %d times, expected >= %d", len(f.HeadersCalls), n)
 	}
 }
 
-func (_f4 *FakeResponse) Serialize(ident62 io.Writer) (ident63 error) {
+func (_f3 *FakeResponse) Trailers() (ident1 http.Header) {
+	invocation := new(TrailersInvocation)
+
+	ident1 = _f3.TrailersHook()
+
+	invocation.Results.Ident1 = ident1
+
+	_f3.TrailersCalls = append(_f3.TrailersCalls, invocation)
+
+	return
+}
+
+// TrailersCalled returns true if FakeResponse.Trailers was called
+func (f *FakeResponse) TrailersCalled() bool {
+	return len(f.TrailersCalls) != 0
+}
+
+// AssertTrailersCalled calls t.Error if FakeResponse.Trailers was not called
+func (f *FakeResponse) AssertTrailersCalled(t *testing.T) {
+	t.Helper()
+	if len(f.TrailersCalls) == 0 {
+		t.Error("FakeResponse.Trailers not called, expected at least one")
+	}
+}
+
+// TrailersNotCalled returns true if FakeResponse.Trailers was not called
+func (f *FakeResponse) TrailersNotCalled() bool {
+	return len(f.TrailersCalls) == 0
+}
+
+// AssertTrailersNotCalled calls t.Error if FakeResponse.Trailers was called
+func (f *FakeResponse) AssertTrailersNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.TrailersCalls) != 0 {
+		t.Error("FakeResponse.Trailers called, expected none")
+	}
+}
+
+// TrailersCalledOnce returns true if FakeResponse.Trailers was called exactly once
+func (f *FakeResponse) TrailersCalledOnce() bool {
+	return len(f.TrailersCalls) == 1
+}
+
+// AssertTrailersCalledOnce calls t.Error if FakeResponse.Trailers was not called exactly once
+func (f *FakeResponse) AssertTrailersCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.TrailersCalls) != 1 {
+		t.Errorf("FakeResponse.Trailers called %d times, expected 1", len(f.TrailersCalls))
+	}
+}
+
+// TrailersCalledN returns true if FakeResponse.Trailers was called at least n times
+func (f *FakeResponse) TrailersCalledN(n int) bool {
+	return len(f.TrailersCalls) >= n
+}
+
+// AssertTrailersCalledN calls t.Error if FakeResponse.Trailers was called less than n times
+func (f *FakeResponse) AssertTrailersCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.TrailersCalls) < n {
+		t.Errorf("FakeResponse.Trailers called %d times, expected >= %d", len(f.TrailersCalls), n)
+	}
+}
+
+func (_f4 *FakeResponse) Serialize(ident1 io.Writer) (ident2 int, ident3 error) {
 	invocation := new(SerializeInvocation)
 
-	invocation.Parameters.Ident62 = ident62
+	invocation.Parameters.Ident1 = ident1
 
-	ident63 = _f4.SerializeHook(ident62)
+	ident2, ident3 = _f4.SerializeHook(ident1)
 
-	invocation.Results.Ident63 = ident63
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
 
 	_f4.SerializeCalls = append(_f4.SerializeCalls, invocation)
 
@@ -397,9 +406,9 @@ func (f *FakeResponse) AssertSerializeCalledN(t *testing.T, n int) {
 }
 
 // SerializeCalledWith returns true if FakeResponse.Serialize was called with the given values
-func (_f5 *FakeResponse) SerializeCalledWith(ident62 io.Writer) (found bool) {
+func (_f5 *FakeResponse) SerializeCalledWith(ident1 io.Writer) (found bool) {
 	for _, call := range _f5.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
 		}
@@ -409,11 +418,11 @@ func (_f5 *FakeResponse) SerializeCalledWith(ident62 io.Writer) (found bool) {
 }
 
 // AssertSerializeCalledWith calls t.Error if FakeResponse.Serialize was not called with the given values
-func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident62 io.Writer) {
+func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident1 io.Writer) {
 	t.Helper()
 	var found bool
 	for _, call := range _f6.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
 		}
@@ -425,10 +434,10 @@ func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident62 io.Writ
 }
 
 // SerializeCalledOnceWith returns true if FakeResponse.Serialize was called exactly once with the given values
-func (_f7 *FakeResponse) SerializeCalledOnceWith(ident62 io.Writer) bool {
+func (_f7 *FakeResponse) SerializeCalledOnceWith(ident1 io.Writer) bool {
 	var count int
 	for _, call := range _f7.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
 	}
@@ -437,11 +446,11 @@ func (_f7 *FakeResponse) SerializeCalledOnceWith(ident62 io.Writer) bool {
 }
 
 // AssertSerializeCalledOnceWith calls t.Error if FakeResponse.Serialize was not called exactly once with the given values
-func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident62 io.Writer) {
+func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident1 io.Writer) {
 	t.Helper()
 	var count int
 	for _, call := range _f8.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
 	}
@@ -452,10 +461,11 @@ func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident62 io.
 }
 
 // SerializeResultsForCall returns the result values for the first call to FakeResponse.Serialize with the given values
-func (_f9 *FakeResponse) SerializeResultsForCall(ident62 io.Writer) (ident63 error, found bool) {
+func (_f9 *FakeResponse) SerializeResultsForCall(ident1 io.Writer) (ident2 int, ident3 error, found bool) {
 	for _, call := range _f9.SerializeCalls {
-		if reflect.DeepEqual(call.Parameters.Ident62, ident62) {
-			ident63 = call.Results.Ident63
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			ident2 = call.Results.Ident2
+			ident3 = call.Results.Ident3
 			found = true
 			break
 		}

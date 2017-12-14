@@ -13,11 +13,19 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/service"
+)
+
+const (
+	defaultRequestIDResponseHeader = "X-Request-ID"
 )
 
 var (
 	stats = expvar.NewMap("gateway")
 )
+
+// RequestIDGenerator creates a globally unique string for the given request.
+type RequestIDGenerator func(*service.Request) string
 
 type Gateway struct {
 	Name             string        // The name of the Gateway for in logging
@@ -74,44 +82,80 @@ type Gateway struct {
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
 	// Logger optionally specifies the logger to use by the
-	// Gateway and all of its services.  Leave this as nil to
-	// disable all logging.
+	// Gateway and all of its services.
+	// If nil all logging is disabled.
 	Logger *zap.Logger
+
+	// RequestIDHeaderName optionally customizes the name of the
+	// response header for the request id.
+	// If empty "X-Request-ID" will be used.
+	RequestIDHeaderName string
+
+	// RequestIDGenerator optionally customizes how request ids
+	// are generated.
+	// If nil then `service.Request.GenerateID` will be used.
+	RequestIDGenerator RequestIDGenerator
+
+	// NotFoundHandler optionally customizes the response
+	// returned to the user agent when no endpoint is configured
+	// service a request path.
+	// If nil the default handler will return a 404 status code
+	// with an empty body.
+	NotFoundHandler service.Handler
 
 	base        http.Server
 	auxiliaries []auxillary.Server
-	trees       treeSet
-	started     bool
+	tree        *node
+
+	requestLog *zap.Logger
+	panicLog   *zap.Logger
+	started    bool
 }
 
-func (s *Gateway) init() {
-	s.started = true
+func (g *Gateway) init() {
+	g.started = true
 	stats = stats.Init()
-	s.base.Addr = s.Address
-	s.base.TLSConfig = s.TLSConfig
-	s.base.ReadTimeout = s.ReadTimeout
-	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
-	s.base.WriteTimeout = s.WriteTimeout
-	s.base.IdleTimeout = s.IdleTimeout
-	s.base.MaxHeaderBytes = s.MaxHeaderBytes
-	s.base.TLSNextProto = s.TLSNextProto
-	s.base.ConnState = connstate
+	g.base.Addr = g.Address
+	g.base.TLSConfig = g.TLSConfig
+	g.base.ReadTimeout = g.ReadTimeout
+	g.base.ReadHeaderTimeout = g.ReadHeaderTimeout
+	g.base.WriteTimeout = g.WriteTimeout
+	g.base.IdleTimeout = g.IdleTimeout
+	g.base.MaxHeaderBytes = g.MaxHeaderBytes
+	g.base.TLSNextProto = g.TLSNextProto
+	g.base.ConnState = connstate
+	g.base.Handler = g
 
-	if s.DisableKeepAlive {
-		s.base.SetKeepAlivesEnabled(false)
+	if g.DisableKeepAlive {
+		g.base.SetKeepAlivesEnabled(false)
 	}
 
-	if s.HandleInterrupt {
+	// xxx - need to handle early shutdown before startup is completed
+	if g.HandleInterrupt {
 		interrupt := make(chan os.Signal, 1)
-		go s.handleInterrupt(interrupt)
+		go g.handleInterrupt(interrupt)
 		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	}
 
-	if s.Logger == nil {
-		s.Logger = zap.NewNop()
+	if g.RequestIDHeaderName == "" {
+		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
 
-	s.trees = newTreeSet()
+	if g.RequestIDGenerator == nil {
+		g.RequestIDGenerator = defaultRequestIDGenerator
+	}
+
+	if g.NotFoundHandler == nil {
+		g.NotFoundHandler = defaultNotFoundHandler
+	}
+
+	if g.Logger == nil {
+		g.Logger = zap.NewNop()
+	}
+	g.requestLog = g.Logger.Named("request")
+	g.panicLog = g.Logger.Named("panic")
+
+	g.tree = new(node)
 }
 
 func connstate(con net.Conn, state http.ConnState) {
@@ -124,10 +168,10 @@ func connstate(con net.Conn, state http.ConnState) {
 	}
 }
 
-func (s *Gateway) handleInterrupt(interrupt chan os.Signal) {
+func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
 	select {
 	case <-interrupt:
-		s.Logger.Info("interrupt received!")
-		s.Shutdown()
+		g.Logger.Info("interrupt received!")
+		g.Shutdown()
 	}
 }

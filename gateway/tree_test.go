@@ -15,7 +15,7 @@ import (
 )
 
 func printChildren(n *node, prefix string) {
-	fmt.Printf(" %02d:%02d %s%s[%d] %v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.endpoint, n.wildChild, n.nType)
+	fmt.Printf(" %02d:%02d %s%s[%d] %q %#v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.indices, n.endpoint, n.wildChild, n.nType)
 	for l := len(n.path); l > 0; l-- {
 		prefix += " "
 	}
@@ -27,12 +27,17 @@ func printChildren(n *node, prefix string) {
 // Used as a workaround since we can't compare functions or their addressses
 var fakeHandlerValue string
 
-func fakeEndpoint(s string) *service.Endpoint {
-	return &service.Endpoint{
-		Pipeline: []service.Handler{
-			func(context.Context, *service.Request) service.Response {
-				fakeHandlerValue = s
-				return nil
+func fakeEndpoint(s string) *endpoint {
+	return &endpoint{
+		Endpoint: service.Endpoint{
+			Route: s,
+			Get: &service.Pipeline{
+				Handlers: []service.Handler{
+					func(context.Context, *service.Request) service.Response {
+						fakeHandlerValue = s
+						return nil
+					},
+				},
 			},
 		},
 	}
@@ -42,18 +47,13 @@ type testRequests []struct {
 	path        string
 	nilEndpoint bool
 	route       string
-	ps          Params
+	ps          service.Params
 }
 
 func checkRequests(t *testing.T, tree *node, requests testRequests, unescapes ...bool) {
 	t.Helper()
-	unescape := false
-	if len(unescapes) >= 1 {
-		unescape = unescapes[0]
-	}
-
 	for _, request := range requests {
-		endpoint, ps, _, err := tree.getValue(request.path, unescape)
+		endpoint, ps, _, err := tree.getValue(request.path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -65,7 +65,7 @@ func checkRequests(t *testing.T, tree *node, requests testRequests, unescapes ..
 		} else if request.nilEndpoint {
 			t.Errorf("endpoint mismatch for route %q: Expected nil endpoint", request.path)
 		} else {
-			endpoint.Pipeline[0](nil, nil)
+			endpoint.Get.Handlers[0](nil, nil)
 			if fakeHandlerValue != request.route {
 				t.Errorf("handle mismatch for route %q: Wrong handle (%s != %s)", request.path, fakeHandlerValue, request.route)
 			}
@@ -152,7 +152,7 @@ func TestTreeAddAndGet(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	checkRequests(t, tree, testRequests{
 		{"/a", false, "/a", nil},
@@ -184,6 +184,7 @@ func TestTreeWildcard(t *testing.T) {
 		"/search/:query",
 		"/user_:name",
 		"/user_:name/about",
+		"/files/:dir",
 		"/files/:dir/*filepath",
 		"/doc/",
 		"/doc/go_faq.html",
@@ -197,65 +198,25 @@ func TestTreeWildcard(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
-		{"/cmd/test/", false, "/cmd/:tool/", Params{Param{"tool", "test"}}},
-		{"/cmd/test", true, "", Params{Param{"tool", "test"}}},
-		{"/cmd/test/3", false, "/cmd/:tool/:sub", Params{Param{"tool", "test"}, Param{"sub", "3"}}},
-		{"/src/", false, "/src/*filepath", Params{Param{"filepath", "/"}}},
-		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
+		{"/cmd/test/", false, "/cmd/:tool/", service.Params{service.Param{"tool", "test"}}},
+		{"/cmd/test", false, "/cmd/:tool/", service.Params{service.Param{"tool", "test"}}},
+		{"/cmd/test/3", false, "/cmd/:tool/:sub", service.Params{service.Param{"tool", "test"}, service.Param{"sub", "3"}}},
+		{"/src/", false, "/src/*filepath", service.Params{service.Param{"filepath", "/"}}},
+		{"/src/some/file.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file.png"}}},
 		{"/search/", false, "/search/", nil},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/search/someth!ng+in+ünìcodé/", true, "", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", Params{Param{"name", "gopher"}}},
-		{"/user_gopher/about", false, "/user_:name/about", Params{Param{"name", "gopher"}}},
-		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", Params{Param{"dir", "js"}, Param{"filepath", "/inc/framework.js"}}},
-		{"/info/gordon/public", false, "/info/:user/public", Params{Param{"user", "gordon"}}},
-		{"/info/gordon/project/go", false, "/info/:user/project/:project", Params{Param{"user", "gordon"}, Param{"project", "go"}}},
+		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", service.Params{service.Param{"query", "someth!ng+in+ünìcodé"}}},
+		{"/search/someth!ng+in+ünìcodé/", false, "/search/:query", service.Params{service.Param{"query", "someth!ng+in+ünìcodé"}}},
+		{"/user_gopher", false, "/user_:name", service.Params{service.Param{"name", "gopher"}}},
+		{"/user_gopher/about", false, "/user_:name/about", service.Params{service.Param{"name", "gopher"}}},
+		{"/files/thingr/", false, "/files/:dir", service.Params{service.Param{"dir", "thingr"}}},
+		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", service.Params{service.Param{"dir", "js"}, service.Param{"filepath", "/inc/framework.js"}}},
+		{"/info/gordon/public", false, "/info/:user/public", service.Params{service.Param{"user", "gordon"}}},
+		{"/info/gordon/project/go", false, "/info/:user/project/:project", service.Params{service.Param{"user", "gordon"}, service.Param{"project", "go"}}},
 	})
-
-	checkPriorities(t, tree)
-	checkMaxParams(t, tree)
-}
-
-func TestUnescapeParameters(t *testing.T) {
-	tree := &node{}
-
-	routes := [...]string{
-		"/",
-		"/cmd/:tool/:sub",
-		"/cmd/:tool/",
-		"/src/*filepath",
-		"/search/:query",
-		"/files/:dir/*filepath",
-		"/info/:user/project/:project",
-		"/info/:user",
-	}
-	for _, route := range routes {
-		if err := tree.addRoute(route, fakeEndpoint(route)); err != nil {
-			t.Errorf("unexpected error adding route: %v", err)
-		}
-	}
-
-	//printChildren(tree, "")
-	unescape := true
-	checkRequests(t, tree, testRequests{
-		{"/", false, "/", nil},
-		{"/cmd/test/", false, "/cmd/:tool/", Params{Param{"tool", "test"}}},
-		{"/cmd/test", true, "", Params{Param{"tool", "test"}}},
-		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
-		{"/src/some/file+test.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file test.png"}}},
-		{"/src/some/file++++%%%%test.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file++++%%%%test.png"}}},
-		{"/src/some/file%2Ftest.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file/test.png"}}},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", Params{Param{"query", "someth!ng in ünìcodé"}}},
-		{"/info/gordon/project/go", false, "/info/:user/project/:project", Params{Param{"user", "gordon"}, Param{"project", "go"}}},
-		{"/info/slash%2Fgordon", false, "/info/:user", Params{Param{"user", "slash/gordon"}}},
-		{"/info/slash%2Fgordon/project/Project%20%231", false, "/info/:user/project/:project", Params{Param{"user", "slash/gordon"}, Param{"project", "Project #1"}}},
-		{"/info/slash%%%%", false, "/info/:user", Params{Param{"user", "slash%%%%"}}},
-		{"/info/slash%%%%2Fgordon/project/Project%%%%20%231", false, "/info/:user/project/:project", Params{Param{"user", "slash%%%%2Fgordon"}, Param{"project", "Project%%%%20%231"}}},
-	}, unescape)
 
 	checkPriorities(t, tree)
 	checkMaxParams(t, tree)
@@ -281,7 +242,7 @@ func testRoutes(t *testing.T, routes []testRoute) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 }
 
 func TestTreeWildcardConflict(t *testing.T) {
@@ -342,14 +303,14 @@ func TestTreeDupliatePath(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
 		{"/doc/", false, "/doc/", nil},
-		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", Params{Param{"name", "gopher"}}},
+		{"/src/some/file.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file.png"}}},
+		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", service.Params{service.Param{"query", "someth!ng+in+ünìcodé"}}},
+		{"/user_gopher", false, "/user_:name", service.Params{service.Param{"name", "gopher"}}},
 	})
 }
 
@@ -437,7 +398,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		}
 	}
 
-	//printChildren(tree, "")
+	// printChildren(tree, "")
 
 	tsrRoutes := [...]string{
 		"/hi/",
@@ -456,13 +417,14 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/doc/",
 	}
 	for _, route := range tsrRoutes {
-		endpoint, _, tsr, err := tree.getValue(route, false)
+		endpoint, _, tsr, err := tree.getValue(route)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if endpoint != nil {
-			t.Fatalf("non-nil endpoint for TSR route %q", route)
-		} else if !tsr {
+		if endpoint == nil {
+			t.Fatalf("expected non-nil endpoint for TSR route %q", route)
+		}
+		if !tsr {
 			t.Errorf("expected TSR recommendation for route %q", route)
 		}
 	}
@@ -476,14 +438,15 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/api/world/abc",
 	}
 	for _, route := range noTsrRoutes {
-		endpoint, _, tsr, err := tree.getValue(route, false)
+		endpoint, _, tsr, err := tree.getValue(route)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if endpoint != nil {
-			t.Fatalf("non-nil endpoint for No-TSR route %q", route)
-		} else if tsr {
-			t.Errorf("expected no TSR recommendation for route %q", route)
+			t.Fatalf("expected nil endpoint for non-TSR route %q", route)
+		}
+		if tsr {
+			t.Errorf("unexpected TSR recommendation for route %q", route)
 		}
 	}
 }
@@ -495,14 +458,15 @@ func TestTreeRootTrailingSlashRedirect(t *testing.T) {
 		t.Fatalf("unexpected error inserting test route: %v", err)
 	}
 
-	endpoint, _, tsr, err := tree.getValue("/", false)
+	endpoint, _, tsr, err := tree.getValue("/")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if endpoint != nil {
-		t.Fatalf("non-nil endpoint")
-	} else if tsr {
-		t.Errorf("expected no TSR recommendation")
+		t.Fatalf("expected nil endpoint")
+	}
+	if tsr {
+		t.Errorf("unexpected TSR recommendation")
 	}
 }
 
@@ -647,8 +611,6 @@ func TestTreeFindCaseInsensitivePath(t *testing.T) {
 }
 
 func TestTreeInvalidNodeType(t *testing.T) {
-	const panicMsg = "invalid node type"
-
 	tree := &node{}
 	if err := tree.addRoute("/", fakeEndpoint("/")); err != nil {
 		t.Fatalf("unexpected error adding fixture: %v", err)
@@ -661,12 +623,48 @@ func TestTreeInvalidNodeType(t *testing.T) {
 	tree.children[0].nType = 42
 
 	// normal lookup
-	if _, _, _, err := tree.getValue("/test", false); err == nil {
+	if _, _, _, err := tree.getValue("/test"); err == nil {
 		t.Fatalf("expected error")
 	}
 
 	// case-insensitive lookup
 	if _, _, err := tree.findCaseInsensitivePath("/test", true); err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestTreeMultipleNamedParameters(t *testing.T) {
+	tree := &node{}
+
+	routes := [...]string{
+		"/thing/:foo/:bar",
+		"/thing/:foo",
+		"/thing",
+	}
+
+	for _, route := range routes {
+		if err := tree.addRoute(route, fakeEndpoint(route)); err != nil {
+			t.Fatalf("unexpected error inserting route %q: %v", route, err)
+		}
+	}
+
+	// printChildren(tree, "")
+
+	tests := [...]string{
+		"/thing/this/",
+		"/thing/",
+	}
+	for _, route := range tests {
+		endpoint, _, tsr, err := tree.getValue(route)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if endpoint == nil {
+			t.Fatalf("expected non-nil endpoint for route %q", route)
+		}
+		t.Logf("route: %s", endpoint.Route)
+		if !tsr {
+			t.Errorf("expected TSR recommendation for route %q", route)
+		}
 	}
 }

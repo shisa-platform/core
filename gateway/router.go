@@ -1,30 +1,192 @@
 package gateway
 
-// Param is a single URL parameter, consisting of a key and a value.
-type Param struct {
-	Key   string
-	Value string
-}
+import (
+	stdctx "context"
+	"net/http"
+	"net/url"
+	"time"
 
-// Params is a Param-slice, as returned by the router.
-// The slice is ordered, the first URL parameter is also the first slice value.
-// It is therefore safe to read values by the index.
-type Params []Param
+	"github.com/ansel1/merry"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
-// Get returns the value of the first Param which key matches the given name.
-// If no matching Param is found, an empty string is returned.
-func (ps Params) Get(name string) (string, bool) {
-	for _, entry := range ps {
-		if entry.Key == name {
-			return entry.Value, true
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/service"
+)
+
+var (
+	backgroundContext = stdctx.Background()
+)
+
+func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	start := time.Now().UTC()
+
+	request := &service.Request{Request: r}
+
+	requestID := g.RequestIDGenerator(request)
+	if requestID == "" {
+		g.Logger.Warn("request generator failed, falling back")
+		requestID = request.GenerateID()
+	}
+
+	ctx := context.WithRequestID(backgroundContext, requestID)
+
+	var err merry.Error
+	var response service.Response
+	var pipeline *service.Pipeline
+
+	path := request.URL.EscapedPath()
+	endpoint, pathParams, tsr, err := g.tree.getValue(path)
+	if err != nil {
+		response = defaultInternalServerErrorHandler(ctx, request, err)
+		goto finish
+	}
+
+	if endpoint == nil {
+		response = g.NotFoundHandler(ctx, request)
+		goto finish
+	}
+
+	switch request.Method {
+	case http.MethodHead:
+		pipeline = endpoint.Head
+	case http.MethodGet:
+		pipeline = endpoint.Get
+	case http.MethodPut:
+		pipeline = endpoint.Put
+	case http.MethodPost:
+		pipeline = endpoint.Post
+	case http.MethodPatch:
+		pipeline = endpoint.Patch
+	case http.MethodDelete:
+		pipeline = endpoint.Delete
+	case http.MethodConnect:
+		pipeline = endpoint.Connect
+	case http.MethodOptions:
+		pipeline = endpoint.Options
+	case http.MethodTrace:
+		pipeline = endpoint.Trace
+	}
+
+	if pipeline == nil {
+		if tsr {
+			response = g.NotFoundHandler(ctx, request)
+		} else {
+			response = endpoint.notAllowedHandler(ctx, request)
+		}
+		goto finish
+	}
+
+	if tsr {
+		if path != "/" && pipeline.Policy.AllowTrailingSlashRedirects {
+			response = endpoint.redirectHandler(ctx, request)
+		} else {
+			response = g.NotFoundHandler(ctx, request)
+		}
+		goto finish
+	}
+
+	request.PathParams = pathParams
+	if !pipeline.Policy.PreserveEscapedPathParameters {
+		for i := range request.PathParams {
+			if esc, r := url.PathUnescape(request.PathParams[i].Value); r == nil {
+				request.PathParams[i].Value = esc
+			}
 		}
 	}
-	return "", false
+
+	if qp, pe := url.ParseQuery(request.URL.RawQuery); pe != nil && !pipeline.Policy.AllowMalformedQueryParameters {
+		response = endpoint.queryParamHandler(ctx, request)
+		goto finish
+	} else {
+		request.QueryParams = qp
+	}
+
+	if pipeline.Policy.TimeBudget != 0 {
+		// xxx - watch for timeout and kill pipeline, return
+		var cancel stdctx.CancelFunc
+		ctx, cancel = ctx.WithTimeout(pipeline.Policy.TimeBudget)
+		defer cancel()
+	}
+
+	for _, handler := range pipeline.Handlers {
+		response = run(handler, ctx, request, &err)
+		if err != nil {
+			response = endpoint.iseHandler(ctx, request, err)
+			goto finish
+		}
+		if response != nil {
+			break
+		}
+	}
+
+	if response == nil {
+		err = merry.New("internal error").WithUserMessage("no response from pipeline")
+		response = endpoint.iseHandler(ctx, request, err)
+	}
+
+finish:
+	for k, vs := range response.Headers() {
+		w.Header()[k] = vs
+	}
+	for k := range response.Trailers() {
+		w.Header().Add("Trailer", k)
+	}
+
+	w.Header().Set(g.RequestIDHeaderName, requestID)
+
+	w.WriteHeader(response.StatusCode())
+	size, writeErr := response.Serialize(w)
+
+	for k, vs := range response.Trailers() {
+		w.Header()[k] = vs
+	}
+
+	end := time.Now().UTC()
+	elapsed := end.Sub(start)
+
+	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
+		fs := make([]zapcore.Field, 9, 11)
+		fs[0] = zap.String("request-id", requestID)
+		fs[1] = zap.String("client-ip-address", request.ClientIP())
+		fs[2] = zap.Time("start-time", start)
+		fs[3] = zap.String("method", request.Method)
+		fs[4] = zap.String("uri", request.URL.RequestURI())
+		fs[5] = zap.Int("status-code", response.StatusCode())
+		fs[6] = zap.Int("response-size", size)
+		fs[7] = zap.Duration("elapsed-time", elapsed)
+		fs[8] = zap.String("user-agent", request.UserAgent())
+		if endpoint != nil {
+			fs = append(fs, zap.String("service", endpoint.serviceName))
+		}
+		if u := ctx.Actor(); u != nil {
+			fs = append(fs, zap.String("user-id", u.ID()))
+		}
+		ce.Write(fs...)
+	}
+	if err != nil {
+		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
+	}
+	if writeErr != nil {
+		g.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+	}
 }
 
-// ByName returns the value of the first Param which key matches the given name.
-// If no matching Param is found, an empty string is returned.
-func (ps Params) ByName(name string) (va string) {
-	va, _ = ps.Get(name)
-	return
+func recovery(fatalError *merry.Error) {
+	arg := recover()
+	if arg == nil {
+		return
+	}
+
+	if err, ok := arg.(error); ok {
+		*fatalError = merry.Wrap(err)
+		return
+	}
+
+	*fatalError = merry.New("panic in handler").WithValue("context", arg)
+}
+
+func run(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
+	defer recovery(err)
+	return handler(ctx, request)
 }
