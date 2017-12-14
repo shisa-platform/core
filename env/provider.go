@@ -14,9 +14,9 @@ type Value struct {
 	Value string
 }
 
-//go:generate charlatan -output=./provider_charlatan.go EnvironmentProvider
+//go:generate charlatan -output=./provider_charlatan.go Provider
 
-type EnvironmentProvider interface {
+type Provider interface {
 	Get(string) (string, merry.Error)
 	GetInt(string) (int, merry.Error)
 	GetBool(string) (bool, merry.Error)

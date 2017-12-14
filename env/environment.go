@@ -53,7 +53,7 @@ func (p *systemProvider) Monitor(string, <-chan Value) {
 	// N.B. do nothing, system enviroment vars are not dynamic
 }
 
-func NewSystem() EnvironmentProvider {
+func NewSystem() Provider {
 	return new(systemProvider)
 }
 
