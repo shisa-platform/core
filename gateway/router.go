@@ -137,7 +137,6 @@ finish:
 
 	w.WriteHeader(response.StatusCode())
 	size, writeErr := response.Serialize(w)
-	err = merry.Wrap(writeErr).WithUserMessage("error serializing response")
 
 	for k, vs := range response.Trailers() {
 		w.Header()[k] = vs
@@ -167,6 +166,9 @@ finish:
 	}
 	if err != nil {
 		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
+	}
+	if writeErr != nil {
+		g.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
 	}
 }
 
