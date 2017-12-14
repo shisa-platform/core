@@ -21,7 +21,6 @@ var (
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
-	// xxx - get request  from pool
 	request := &service.Request{Request: r}
 
 	requestID := g.RequestIDGenerator(request)
@@ -30,7 +29,6 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		requestID = request.GenerateID()
 	}
 
-	// xxx - fetch context from pool
 	ctx := context.WithRequestID(backgroundContext, requestID)
 
 	var err merry.Error

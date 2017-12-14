@@ -45,6 +45,9 @@ func TestAuxillaryServer(t *testing.T) {
 		HandlersHook: func() []service.Handler {
 			return nil
 		},
+		MalformedQueryParameterHandlerHook: func() service.Handler {
+			return nil
+		},
 		MethodNotAllowedHandlerHook: func() service.Handler {
 			return nil
 		},
