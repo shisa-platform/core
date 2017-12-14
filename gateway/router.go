@@ -2,7 +2,6 @@ package gateway
 
 import (
 	stdctx "context"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -34,23 +33,20 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// xxx - fetch context from pool
 	ctx := context.WithRequestID(backgroundContext, requestID)
 
+	var err merry.Error
 	var response service.Response
 	var pipeline *service.Pipeline
 
 	path := request.URL.Path
 	endpoint, params, tsr, err := g.tree.getValue(path)
 	if err != nil {
-		err.WithValue("request-id", requestID)
-		err.WithValue("method", r.Method).WithValue("path", path).WithValue("route", endpoint.Route)
-		// xxx - don't log here, wait until the end.  add a failure response with embedded cause (merry error)
-		g.Logger.Error("configuration error", zap.Error(err))
-		response = g.NotFoundHandler(ctx, request)
-		goto end
+		response = defaultInternalServerErrorHandler(ctx, request, err)
+		goto finish
 	}
 
 	if endpoint == nil {
 		response = g.NotFoundHandler(ctx, request)
-		goto end
+		goto finish
 	}
 
 	switch request.Method {
@@ -80,7 +76,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			response = endpoint.notAllowedHandler(ctx, request)
 		}
-		goto end
+		goto finish
 	}
 
 	if tsr {
@@ -89,14 +85,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			response = g.NotFoundHandler(ctx, request)
 		}
-		goto end
+		goto finish
 	}
 
 	request.PathParams = params
 	if !pipeline.Policy.PreserveEscapedPathParameters {
 		for i := range request.PathParams {
-			if e, err := url.QueryUnescape(request.PathParams[i].Value); err != nil {
-				request.PathParams[i].Value = e
+			if esc, r := url.QueryUnescape(request.PathParams[i].Value); r != nil {
+				request.PathParams[i].Value = esc
 			}
 		}
 	}
@@ -108,17 +104,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 	}
 
-	for i, handler := range pipeline.Handlers {
-		var handlerError merry.Error
-		response = run(handler, ctx, request, &handlerError)
-		if handlerError != nil {
-			handlerError.WithValue("request-id", requestID).WithValue("pipline-index", i)
-			handlerError.WithValue("method", request.Method).WithValue("path", path).WithValue("route", endpoint.Route)
-			response = endpoint.iseHandler(ctx, request, handlerError)
-			handlerError.WithHTTPCode(response.StatusCode())
-			// xxx - log this to handler panic channel
-			g.Logger.Error("internal error", zap.Error(handlerError))
-			goto end
+	for _, handler := range pipeline.Handlers {
+		response = run(handler, ctx, request, &err)
+		if err != nil {
+			response = endpoint.iseHandler(ctx, request, err)
+			goto finish
 		}
 		if response != nil {
 			break
@@ -126,15 +116,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if response == nil {
-		err = merry.New("no response from pipeline").WithValue("request-id", requestID)
-		err.WithValue("method", request.Method).WithValue("path", path).WithValue("route", endpoint.Route)
+		err = merry.New("internal error").WithUserMessage("no response from pipeline")
 		response = endpoint.iseHandler(ctx, request, err)
-		err.WithHTTPCode(response.StatusCode())
-		// xxx - be better
-		g.Logger.Error("internal error", zap.Error(err))
 	}
 
-end:
+finish:
 	for k, vs := range response.Headers() {
 		w.Header()[k] = vs
 	}
@@ -145,9 +131,8 @@ end:
 	w.Header().Set(g.RequestIDHeaderName, requestID)
 
 	w.WriteHeader(response.StatusCode())
-	// xxx - handle error here
-	shim := countingWriter{delegate: w}
-	response.Serialize(&shim)
+	size, writeErr := response.Serialize(w)
+	err = merry.Wrap(writeErr).WithUserMessage("error serializing response")
 
 	for k, vs := range response.Trailers() {
 		w.Header()[k] = vs
@@ -164,7 +149,7 @@ end:
 		fs[3] = zap.String("method", request.Method)
 		fs[4] = zap.String("uri", request.URL.RequestURI())
 		fs[5] = zap.Int("status-code", response.StatusCode())
-		fs[6] = zap.Uint64("response-size", shim.count)
+		fs[6] = zap.Int("response-size", size)
 		fs[7] = zap.Duration("elapsed-time", elapsed)
 		fs[8] = zap.String("user-agent", request.UserAgent())
 		if endpoint != nil {
@@ -174,6 +159,9 @@ end:
 			fs = append(fs, zap.String("user-id", u.ID()))
 		}
 		ce.Write(fs...)
+	}
+	if err != nil {
+		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
 	}
 }
 
@@ -188,21 +176,10 @@ func recovery(fatalError *merry.Error) {
 		return
 	}
 
-	*fatalError = merry.New("panic").WithValue("context", arg)
+	*fatalError = merry.New("panic in handler").WithValue("context", arg)
 }
 
 func run(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
-}
-
-type countingWriter struct {
-	count    uint64
-	delegate io.Writer
-}
-
-func (w *countingWriter) Write(p []byte) (n int, err error) {
-	n, err = w.delegate.Write(p)
-	w.count += uint64(n)
-	return
 }

@@ -12,46 +12,48 @@ type Response interface {
 	StatusCode() int
 	Headers() http.Header
 	Trailers() http.Header
-	Serialize(io.Writer) error
+	Serialize(io.Writer) (int, error)
 }
 
-type basicResponse struct {
+type BasicResponse struct {
 	status   int
 	headers  http.Header
 	trailers http.Header
 }
 
-func (r *basicResponse) StatusCode() int {
+func (r *BasicResponse) StatusCode() int {
 	return r.status
 }
 
-func (r *basicResponse) Headers() http.Header {
+func (r *BasicResponse) Headers() http.Header {
 	return r.headers
 }
 
-func (r *basicResponse) Trailers() http.Header {
+func (r *BasicResponse) Trailers() http.Header {
 	return r.trailers
 }
 
-func (r *basicResponse) Serialize(io.Writer) error {
-	return nil
+func (r *BasicResponse) Serialize(io.Writer) (int, error) {
+	return 0, nil
 }
 
-type jsonResponse struct {
-	basicResponse
-	payload json.Marshaler
+type JsonResponse struct {
+	BasicResponse
+	Payload json.Marshaler
 }
 
-func (r *jsonResponse) Serialize(w io.Writer) error {
-	encoder := json.NewEncoder(w)
+func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
+	writer := countingWriter{delegate: w}
+	encoder := json.NewEncoder(&writer)
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	return encoder.Encode(r.payload)
+	err := encoder.Encode(r.Payload)
+	return writer.count, err
 }
 
 func NewEmpty(status int) Response {
-	return &basicResponse{
+	return &BasicResponse{
 		status:   status,
 		headers:  make(http.Header),
 		trailers: make(http.Header),
@@ -59,12 +61,27 @@ func NewEmpty(status int) Response {
 }
 
 func NewOK(body json.Marshaler) Response {
-	return &jsonResponse{
-		basicResponse: basicResponse{
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/json; charset=utf-8")
+
+	return &JsonResponse{
+		BasicResponse: BasicResponse{
 			status:   http.StatusOK,
-			headers:  make(http.Header),
+			headers:  headers,
 			trailers: make(http.Header),
 		},
-		payload: body,
+		Payload: body,
 	}
+}
+
+type countingWriter struct {
+	delegate io.Writer
+	count    int
+}
+
+func (c *countingWriter) Write(p []byte) (n int, err error) {
+	n, err = c.delegate.Write(p)
+	c.count += n
+
+	return
 }

@@ -36,7 +36,8 @@ type SerializeInvocation struct {
 		Ident1 io.Writer
 	}
 	Results struct {
-		Ident2 error
+		Ident2 int
+		Ident3 error
 	}
 }
 
@@ -68,7 +69,7 @@ type FakeResponse struct {
 	StatusCodeHook func() int
 	HeadersHook    func() http.Header
 	TrailersHook   func() http.Header
-	SerializeHook  func(io.Writer) error
+	SerializeHook  func(io.Writer) (int, error)
 
 	StatusCodeCalls []*StatusCodeInvocation
 	HeadersCalls    []*HeadersInvocation
@@ -88,7 +89,7 @@ func NewFakeResponseDefaultPanic() *FakeResponse {
 		TrailersHook: func() (ident1 http.Header) {
 			panic("Unexpected call to Response.Trailers")
 		},
-		SerializeHook: func(io.Writer) (ident2 error) {
+		SerializeHook: func(io.Writer) (ident2 int, ident3 error) {
 			panic("Unexpected call to Response.Serialize")
 		},
 	}
@@ -109,7 +110,7 @@ func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
 			t.Fatal("Unexpected call to Response.Trailers")
 			return
 		},
-		SerializeHook: func(io.Writer) (ident2 error) {
+		SerializeHook: func(io.Writer) (ident2 int, ident3 error) {
 			t.Fatal("Unexpected call to Response.Serialize")
 			return
 		},
@@ -131,7 +132,7 @@ func NewFakeResponseDefaultError(t *testing.T) *FakeResponse {
 			t.Error("Unexpected call to Response.Trailers")
 			return
 		},
-		SerializeHook: func(io.Writer) (ident2 error) {
+		SerializeHook: func(io.Writer) (ident2 int, ident3 error) {
 			t.Error("Unexpected call to Response.Serialize")
 			return
 		},
@@ -337,14 +338,15 @@ func (f *FakeResponse) AssertTrailersCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f4 *FakeResponse) Serialize(ident1 io.Writer) (ident2 error) {
+func (_f4 *FakeResponse) Serialize(ident1 io.Writer) (ident2 int, ident3 error) {
 	invocation := new(SerializeInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f4.SerializeHook(ident1)
+	ident2, ident3 = _f4.SerializeHook(ident1)
 
 	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
 
 	_f4.SerializeCalls = append(_f4.SerializeCalls, invocation)
 
@@ -459,10 +461,11 @@ func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident1 io.W
 }
 
 // SerializeResultsForCall returns the result values for the first call to FakeResponse.Serialize with the given values
-func (_f9 *FakeResponse) SerializeResultsForCall(ident1 io.Writer) (ident2 error, found bool) {
+func (_f9 *FakeResponse) SerializeResultsForCall(ident1 io.Writer) (ident2 int, ident3 error, found bool) {
 	for _, call := range _f9.SerializeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
+			ident3 = call.Results.Ident3
 			found = true
 			break
 		}
