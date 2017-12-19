@@ -14,7 +14,7 @@ var (
 	wwwAuthenticateHeaderKey = http.CanonicalHeaderKey("WWW-Authenticate")
 )
 
-// Authentication is middleware to help automate authentication.
+// Authenticator is middleware to help automate authentication.
 //
 // `Provider` must be non-nil or a InternalServiceError status
 // response will be returned.
