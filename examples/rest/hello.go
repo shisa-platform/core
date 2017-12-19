@@ -41,7 +41,7 @@ func (s *HelloService) Endpoints() []service.Endpoint {
 		service.Endpoint{
 			Route: "/salutation",
 			Get: &service.Pipeline{
-				Policy: commonPolicy,
+				Policy:   commonPolicy,
 				Handlers: []service.Handler{authn.Service, s.Salutaion},
 			},
 		},

@@ -42,7 +42,7 @@ func TestAuthnError(t *testing.T) {
 	}
 
 	cut := &Authenticator{
-		Provider: authn,
+		Provider:  authn,
 		Challenge: expectedChallenge,
 	}
 
@@ -65,7 +65,7 @@ func TestOK(t *testing.T) {
 	}
 
 	cut := &Authenticator{
-		Provider: authn,
+		Provider:  authn,
 		Challenge: expectedChallenge,
 	}
 
@@ -117,7 +117,7 @@ func TestCustomHandler(t *testing.T) {
 	challenge := "Custom realm=\"secrets, inc\""
 	var handlerInvoked bool
 	cut := &Authenticator{
-		Provider: authn,
+		Provider:  authn,
 		Challenge: expectedChallenge,
 		UnauthorizedHandler: func(c context.Context, r *service.Request) service.Response {
 			handlerInvoked = true
@@ -155,7 +155,7 @@ func TestCustomErrorHandler(t *testing.T) {
 
 	var errorHandlerInvoked bool
 	cut := &Authenticator{
-		Provider: authn,
+		Provider:  authn,
 		Challenge: expectedChallenge,
 		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
 			errorHandlerInvoked = true

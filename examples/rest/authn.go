@@ -18,8 +18,8 @@ var (
 
 type User struct {
 	Ident string
-	Name string
-	Pass string
+	Name  string
+	Pass  string
 }
 
 func (u User) ID() string {
