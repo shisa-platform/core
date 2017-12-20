@@ -126,6 +126,9 @@ func (m *AllowContentTypes) checkPayloadWhitelist(r *service.Request) (err merry
 				return
 			}
 		}
+		err = merry.New("Request body Content-Type header not permitted")
+		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
+		return
 	} else {
 		err = merry.New("Content-Type header must be provided.")
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
