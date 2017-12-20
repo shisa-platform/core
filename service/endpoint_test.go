@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	expectedRoute = "/foo"
+	expectedRoute  = "/foo"
 	expectedPolicy = Policy{AllowTrailingSlashRedirects: true}
 	emptyPolicy    = Policy{}
 )
