@@ -12,9 +12,13 @@ import (
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
 type Service interface {
-	Name() string          // The name of the service. Must exist
-	Endpoints() []Endpoint // The enpoints of this service. Must exist
-	Handlers() []Handler   // Optional handlers for all endpoints
+	Name() string          // Service name.  Required.
+	Endpoints() []Endpoint // Service endpoints. Requried.
+
+	// Handlers are optional handlers that should be invoked for
+	// all endpoints.  These will be prepended to all endpoint
+	// handlers when a service is registered.
+	Handlers() []Handler
 
 	// MalformedQueryParameterHandler optionally customizes the
 	// response to the user agent when malformed query parameters

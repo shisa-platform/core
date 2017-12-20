@@ -4,13 +4,23 @@ import (
 	"github.com/percolate/shisa/context"
 )
 
+// Handler is a block of logic to apply to a request.
+// Returning a non-nil response indicates further request
+// processing should be stopped.
 type Handler func(context.Context, *Request) Response
 
+// Pipeline is a chain of handlers to be invoked in order on a
+// request.  The first non-nil response will be returned to the
+// user agent.  If no response is produced an Internal Service
+// Error handler will be invoked.
 type Pipeline struct {
-	Policy   Policy
+	Policy   Policy // customizes automated behavior
 	Handlers []Handler
 }
 
+// Endpoint is collection of pipelines for a route (URL path),
+// one for each HTTP method.  Only supported methods should have
+// pipelines, but at least one pipleline is requried.
 type Endpoint struct {
 	Route   string
 	Head    *Pipeline
@@ -25,6 +35,8 @@ type Endpoint struct {
 	// xxx - request (query|body) parameters
 }
 
+// GetEndpoint returns an Endpont configured for the given route
+// with the GET pipeline using the given handlers.
 func GetEndpoint(route string, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
@@ -34,16 +46,21 @@ func GetEndpoint(route string, handlers ...Handler) Endpoint {
 	}
 }
 
+// GetEndpointWithPolicy returns an Endpont configured for the
+// given route, with the given policy and the GET pipeline using
+// the given handlers.
 func GetEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Get: &Pipeline{
-			Policy: policy,
+			Policy:   policy,
 			Handlers: handlers,
 		},
 	}
 }
 
+// PutEndpoint returns an Endpont configured for the given route
+// with the PUT pipeline using the given handlers.
 func PutEndpoint(route string, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
@@ -53,16 +70,21 @@ func PutEndpoint(route string, handlers ...Handler) Endpoint {
 	}
 }
 
+// PutEndpointWithPolicy returns an Endpont configured for the
+// given route, with the given policy and the PUT pipeline using
+// the given handlers.
 func PutEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Put: &Pipeline{
-			Policy: policy,
+			Policy:   policy,
 			Handlers: handlers,
 		},
 	}
 }
 
+// PostEndpoint returns an Endpont configured for the given route
+// with the POST pipeline using the given handlers.
 func PostEndpoint(route string, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
@@ -72,16 +94,21 @@ func PostEndpoint(route string, handlers ...Handler) Endpoint {
 	}
 }
 
+// PostEndpointWithPolicy returns an Endpont configured for the
+// given route, with the given policy and the POST pipeline
+// using the given handlers.
 func PostEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Post: &Pipeline{
-			Policy: policy,
+			Policy:   policy,
 			Handlers: handlers,
 		},
 	}
 }
 
+// PatchEndpoint returns an Endpont configured for the given
+// route with the PATCH pipeline using the given handlers.
 func PatchEndpoint(route string, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
@@ -91,16 +118,21 @@ func PatchEndpoint(route string, handlers ...Handler) Endpoint {
 	}
 }
 
+// PatchEndpointWithPolicy returns an Endpont configured for the
+// given route, with the given policy and the PATCH pipeline
+// using the given handlers.
 func PatchEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Patch: &Pipeline{
-			Policy: policy,
+			Policy:   policy,
 			Handlers: handlers,
 		},
 	}
 }
 
+// DeleteEndpoint returns an Endpont configured for the given
+// route with the DELETE pipeline using the given handlers.
 func DeleteEndpoint(route string, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
@@ -110,11 +142,14 @@ func DeleteEndpoint(route string, handlers ...Handler) Endpoint {
 	}
 }
 
+// DeleteEndpointWithPolicy returns an Endpont configured for
+// the given route, with the given policy and the DELETE
+// pipeline using the given handlers.
 func DeleteEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Delete: &Pipeline{
-			Policy: policy,
+			Policy:   policy,
 			Handlers: handlers,
 		},
 	}
