@@ -12,7 +12,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func requestWithContentType(method string, c []contenttype.ContentType, t *testing.T) *service.Request {
+func requestWithContentType(method string, c []contenttype.ContentType) *service.Request {
 	httpReq := httptest.NewRequest(method, "http://10.0.0.1/", nil)
 	req := &service.Request{
 		Request: httpReq,
@@ -59,7 +59,7 @@ func TestAllowContentTypes_Service(t *testing.T) {
 	}
 
 	for _, tt := range servicetests {
-		req := requestWithContentType(tt.method, tt.contentType, t)
+		req := requestWithContentType(tt.method, tt.contentType)
 		resp := ah.Service(c, req)
 
 		if resp == nil {
@@ -101,7 +101,7 @@ func TestRestrictContentTypes_Service(t *testing.T) {
 	}
 
 	for _, tt := range servicetests {
-		req := requestWithContentType(tt.method, tt.contentType, t)
+		req := requestWithContentType(tt.method, tt.contentType)
 		resp := ah.Service(c, req)
 
 		if resp == nil {
