@@ -17,3 +17,12 @@ coverage:
     changes: false
 
 comment: false
+
+ignore:
+  - context/context_charlatan.go
+  - models/user_charlatan.go
+  - authn/provider_charlatan.go
+  - service/service_charlatan.go
+  - service/response_charlatan.go~
+  - service/response_charlatan.go
+  - auxillary/server_charlatan.go

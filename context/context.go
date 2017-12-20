@@ -12,7 +12,7 @@ const (
 	ActorKey = "ContextActorKey"
 )
 
-//go:generate charlatan -output=./context_charlatan_test.go Context
+//go:generate charlatan -output=./context_charlatan.go Context
 
 type Context interface {
 	context.Context
