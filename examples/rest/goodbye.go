@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
@@ -16,6 +17,24 @@ func (g Farewell) MarshalJSON() ([]byte, error) {
 }
 
 type GoodbyeService struct {
+	service.ServiceAdapter
+	Policy    service.Policy
+	endpoints []service.Endpoint
+}
+
+func NewGoodbyeService() *GoodbyeService {
+	svc := &GoodbyeService{
+		Policy: service.Policy{
+			TimeBudget:                  time.Millisecond * 5,
+			AllowTrailingSlashRedirects: true,
+		},
+	}
+
+	svc.endpoints = []service.Endpoint{
+		service.GetEndpointWithPolicy("/farewell", svc.Policy, svc.Farewell),
+	}
+
+	return svc
 }
 
 func (s *GoodbyeService) Name() string {
@@ -23,35 +42,7 @@ func (s *GoodbyeService) Name() string {
 }
 
 func (s *GoodbyeService) Endpoints() []service.Endpoint {
-	return []service.Endpoint{
-		service.Endpoint{
-			Route: "/farewell",
-			Get: &service.Pipeline{
-				Policy:   commonPolicy,
-				Handlers: []service.Handler{s.Farewell},
-			},
-		},
-	}
-}
-
-func (s *GoodbyeService) Handlers() []service.Handler {
-	return nil
-}
-
-func (s *GoodbyeService) MalformedQueryParameterHandler() service.Handler {
-	return nil
-}
-
-func (s *GoodbyeService) MethodNotAllowedHandler() service.Handler {
-	return nil
-}
-
-func (s *GoodbyeService) RedirectHandler() service.Handler {
-	return nil
-}
-
-func (s *GoodbyeService) InternalServerErrorHandler() service.ErrorHandler {
-	return nil
+	return s.endpoints
 }
 
 func (s *GoodbyeService) Farewell(context.Context, *service.Request) service.Response {

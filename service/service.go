@@ -50,3 +50,30 @@ type Service interface {
 	// with an empty body.
 	InternalServerErrorHandler() ErrorHandler
 }
+
+// ServiceAdapter implements several of the methods of the
+// Service interface to simplify buildings services that don't
+// need the customization hooks.
+// Add ServiceAdatper as an anonymous field in your service's
+// struct to inherit these default method implementations.
+type ServiceAdapter struct{}
+
+func (s *ServiceAdapter) Handlers() []Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) MalformedQueryParameterHandler() Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) MethodNotAllowedHandler() Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) RedirectHandler() Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) InternalServerErrorHandler() ErrorHandler {
+	return nil
+}

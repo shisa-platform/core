@@ -20,13 +20,6 @@ const (
 	timeFormat       = "2006-01-02T15:04:05+00:00"
 )
 
-var (
-	commonPolicy = service.Policy{
-		TimeBudget:                  time.Millisecond * 5,
-		AllowTrailingSlashRedirects: true,
-	}
-)
-
 func main() {
 	now := time.Now().UTC().Format(timeFormat)
 	startTime := expvar.NewString("starttime")
@@ -59,7 +52,7 @@ func main() {
 		Logger: logger,
 	}
 
-	services := []service.Service{&HelloService{}, &GoodbyeService{}}
+	services := []service.Service{NewHelloService(), NewGoodbyeService()}
 	if err := gw.Serve(services, debug); err != nil {
 		logger.Fatal("gateway error", zap.Error(err))
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/middleware"
@@ -17,6 +18,31 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 }
 
 type HelloService struct {
+	service.ServiceAdapter
+	Policy    service.Policy
+	authn     middleware.Authenticator
+	endpoints []service.Endpoint
+}
+
+func NewHelloService() *HelloService {
+	svc := &HelloService{
+		Policy: service.Policy{
+			TimeBudget:                  time.Millisecond * 5,
+			AllowTrailingSlashRedirects: true,
+		},
+		authn: middleware.Authenticator{
+			Provider: &BasicAuthnProvider{
+				Users: []User{User{"1", "Boss", "password"}},
+			},
+			Challenge: "Basic realm=\"hello\"",
+		},
+	}
+	svc.endpoints = []service.Endpoint{
+		service.GetEndpointWithPolicy("/greeting", svc.Policy, svc.Greeting),
+		service.GetEndpointWithPolicy("/salutation", svc.Policy, svc.authn.Service, svc.Salutaion),
+	}
+
+	return svc
 }
 
 func (s *HelloService) Name() string {
@@ -24,48 +50,7 @@ func (s *HelloService) Name() string {
 }
 
 func (s *HelloService) Endpoints() []service.Endpoint {
-	authn := middleware.Authenticator{
-		Provider: &BasicAuthnProvider{
-			Users: []User{User{"1", "Boss", "password"}},
-		},
-		Challenge: "Basic realm=\"hello\"",
-	}
-	return []service.Endpoint{
-		service.Endpoint{
-			Route: "/greeting",
-			Get: &service.Pipeline{
-				Policy:   commonPolicy,
-				Handlers: []service.Handler{s.Greeting},
-			},
-		},
-		service.Endpoint{
-			Route: "/salutation",
-			Get: &service.Pipeline{
-				Policy:   commonPolicy,
-				Handlers: []service.Handler{authn.Service, s.Salutaion},
-			},
-		},
-	}
-}
-
-func (s *HelloService) Handlers() []service.Handler {
-	return nil
-}
-
-func (s *HelloService) MalformedQueryParameterHandler() service.Handler {
-	return nil
-}
-
-func (s *HelloService) MethodNotAllowedHandler() service.Handler {
-	return nil
-}
-
-func (s *HelloService) RedirectHandler() service.Handler {
-	return nil
-}
-
-func (s *HelloService) InternalServerErrorHandler() service.ErrorHandler {
-	return nil
+	return s.endpoints
 }
 
 func (s *HelloService) Greeting(context.Context, *service.Request) service.Response {
