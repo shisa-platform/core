@@ -12,9 +12,13 @@ import (
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
 type Service interface {
-	Name() string          // The name of the service. Must exist
-	Endpoints() []Endpoint // The enpoints of this service. Must exist
-	Handlers() []Handler   // Optional handlers for all endpoints
+	Name() string          // Service name.  Required.
+	Endpoints() []Endpoint // Service endpoints. Requried.
+
+	// Handlers are optional handlers that should be invoked for
+	// all endpoints.  These will be prepended to all endpoint
+	// handlers when a service is registered.
+	Handlers() []Handler
 
 	// MalformedQueryParameterHandler optionally customizes the
 	// response to the user agent when malformed query parameters
@@ -45,4 +49,31 @@ type Service interface {
 	// If nil the default handler will return a 500 status code
 	// with an empty body.
 	InternalServerErrorHandler() ErrorHandler
+}
+
+// ServiceAdapter implements several of the methods of the
+// Service interface to simplify buildings services that don't
+// need the customization hooks.
+// Add ServiceAdatper as an anonymous field in your service's
+// struct to inherit these default method implementations.
+type ServiceAdapter struct{}
+
+func (s *ServiceAdapter) Handlers() []Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) MalformedQueryParameterHandler() Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) MethodNotAllowedHandler() Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) RedirectHandler() Handler {
+	return nil
+}
+
+func (s *ServiceAdapter) InternalServerErrorHandler() ErrorHandler {
+	return nil
 }
