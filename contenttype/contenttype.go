@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	ApplicationMediaType = "application"
+	ApplicationMediaType    = "application"
 	OctetStreamMediaSubtype = "octet-stream"
-	TextMediaType = "text"
-	PlainMediaSubtype = "plain"
-	JsonMediaSubtype = "json"
-	XmlMediaSubtype = "xml"
-	DefaultMediaType    = ApplicationMediaType
-	DefaultMediaSubtype = JsonMediaSubtype
+	TextMediaType           = "text"
+	PlainMediaSubtype       = "plain"
+	JsonMediaSubtype        = "json"
+	XmlMediaSubtype         = "xml"
+	DefaultMediaType        = ApplicationMediaType
+	DefaultMediaSubtype     = JsonMediaSubtype
 )
 
 var DefaultContentType = &ContentType{

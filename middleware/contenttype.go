@@ -13,7 +13,7 @@ import (
 
 var (
 	contentTypeHeaderKey = http.CanonicalHeaderKey("Content-Type")
-	acceptHeaderKey = http.CanonicalHeaderKey("Accept")
+	acceptHeaderKey      = http.CanonicalHeaderKey("Accept")
 )
 
 type RestrictContentTypes struct {
@@ -88,7 +88,6 @@ func (m *RestrictContentTypes) checkQueryBlacklist(r *service.Request) (err merr
 	return
 }
 
-
 type AllowContentTypes struct {
 	Permitted    []contenttype.ContentType
 	ErrorHandler service.ErrorHandler
@@ -156,6 +155,7 @@ func (m *AllowContentTypes) checkQueryWhitelist(r *service.Request) (err merry.E
 	return
 }
 
+// TODO: move to base middleware file
 func defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	return service.NewEmpty(merry.HTTPCode(err))
 }
