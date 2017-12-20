@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
-	"github.com/stretchr/testify/assert"
 )
 
 func requestWithContentType(method string, c []contenttype.ContentType, t *testing.T) *service.Request {

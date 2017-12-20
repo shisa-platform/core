@@ -3,7 +3,9 @@ package middleware
 import (
 	"net/http"
 	"strings"
+
 	"github.com/ansel1/merry"
+
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
