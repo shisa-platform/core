@@ -1,18 +1,17 @@
 package middleware
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
-	"net/http"
-	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func requestWithContentType(method string, c []contenttype.ContentType, t *testing.T) *service.Request {
-	httpReq, err := http.NewRequest(method, "http://10.0.0.1/", nil)
-	if err != nil {
-		t.Fatal("error instantiating request")
-	}
+	httpReq := httptest.NewRequest(method, "http://10.0.0.1/", nil)
 	req := &service.Request{
 		Request: httpReq,
 	}
@@ -28,11 +27,11 @@ func requestWithContentType(method string, c []contenttype.ContentType, t *testi
 }
 
 func TestAllowContentTypes_Service(t *testing.T) {
-	goodCT := []contenttype.ContentType{*contenttype.DefaultContentType}
-	badCT := []contenttype.ContentType{*contenttype.TextPlainContentType}
-	wildcardCT := []contenttype.ContentType{contenttype.ContentType{"*", "*"}}
+	goodCT := []contenttype.ContentType{*contenttype.ApplicationJson}
+	badCT := []contenttype.ContentType{*contenttype.TextPlain}
+	wildcardCT := []contenttype.ContentType{*contenttype.New("*", "*")}
 	nilCT := []contenttype.ContentType{contenttype.ContentType{}}
-	multivalueCT := []contenttype.ContentType{*contenttype.DefaultContentType, *contenttype.TextPlainContentType}
+	multivalueCT := []contenttype.ContentType{*contenttype.ApplicationJson, *contenttype.TextPlain}
 
 	c := context.New(nil)
 
@@ -62,23 +61,19 @@ func TestAllowContentTypes_Service(t *testing.T) {
 		resp := ah.Service(c, req)
 
 		if resp == nil {
-			if tt.expectedStatus != 0 {
-				t.Errorf("%v response for %v when expected %v", resp, tt, tt.expectedStatus)
-			}
+			assert.Zerof(t, tt.expectedStatus, "%v response for %v when expected %v", resp, tt, tt.expectedStatus)
 		} else {
-			if tt.expectedStatus != resp.StatusCode() {
-				t.Errorf("received %v response for %v when expected %v", resp.StatusCode(), tt, tt.expectedStatus)
-			}
+			assert.Equalf(t, tt.expectedStatus, resp.StatusCode(), "received %v response for %v when expected %v", resp.StatusCode(), tt, tt.expectedStatus)
 		}
 	}
 }
 
 func TestRestrictContentTypes_Service(t *testing.T) {
-	goodCT := []contenttype.ContentType{*contenttype.DefaultContentType}
-	badCT := []contenttype.ContentType{*contenttype.TextPlainContentType}
-	wildcardCT := []contenttype.ContentType{contenttype.ContentType{"*", "*"}}
+	goodCT := []contenttype.ContentType{*contenttype.ApplicationJson}
+	badCT := []contenttype.ContentType{*contenttype.TextPlain}
+	wildcardCT := []contenttype.ContentType{*contenttype.New("*", "*")}
 	nilCT := []contenttype.ContentType{contenttype.ContentType{}}
-	multivalueCT := []contenttype.ContentType{*contenttype.DefaultContentType, *contenttype.TextPlainContentType}
+	multivalueCT := []contenttype.ContentType{*contenttype.ApplicationJson, *contenttype.TextPlain}
 
 	c := context.New(nil)
 
@@ -108,13 +103,9 @@ func TestRestrictContentTypes_Service(t *testing.T) {
 		resp := ah.Service(c, req)
 
 		if resp == nil {
-			if tt.expectedStatus != 0 {
-				t.Errorf("%v response for %v when expected %v", resp, tt, tt.expectedStatus)
-			}
+			assert.Zerof(t, tt.expectedStatus, "%v response for %v when expected %v", resp, tt, tt.expectedStatus)
 		} else {
-			if tt.expectedStatus != resp.StatusCode() {
-				t.Errorf("received %v response for %v when expected %v", resp.StatusCode(), tt, tt.expectedStatus)
-			}
+			assert.Equalf(t, tt.expectedStatus, resp.StatusCode(), "received %v response for %v when expected %v", resp.StatusCode(), tt, tt.expectedStatus)
 		}
 	}
 }

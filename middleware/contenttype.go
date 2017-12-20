@@ -2,13 +2,11 @@ package middleware
 
 import (
 	"net/http"
-
+	"strings"
 	"github.com/ansel1/merry"
-
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
-	"strings"
 )
 
 var (
@@ -25,14 +23,14 @@ func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) se
 	var err merry.Error
 
 	if m.ErrorHandler == nil {
-		m.ErrorHandler = defaultErrorHandler
+		m.ErrorHandler = m.defaultErrorHandler
 	}
 
 	switch r.Method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch:
-		err = m.checkPayloadBlacklist(r)
+		err = m.checkPayload(r)
 	case http.MethodGet:
-		err = m.checkQueryBlacklist(r)
+		err = m.checkQuery(r)
 	}
 
 	if err != nil {
@@ -42,28 +40,31 @@ func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) se
 	return nil
 }
 
-func (m *RestrictContentTypes) checkPayloadBlacklist(r *service.Request) (err merry.Error) {
+func (m *RestrictContentTypes) checkPayload(r *service.Request) (err merry.Error) {
 	if values, ok := r.Header[contentTypeHeaderKey]; ok {
 		if len(values) != 1 {
-			err = merry.New("Request body Content-Type header must be a single value")
+			err = merry.New("too many content types declared")
+			err = err.WithUserMessage("Content-Type header must be a single value")
 			err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 			return
 		}
 		for _, ct := range m.Forbidden {
 			if strings.HasPrefix(values[0], ct.String()) {
-				err = merry.Errorf("Invalid Content-Type header: %q", ct)
+				err = merry.Errorf("unsupported content type: %q", ct)
+				err = err.WithUserMessagef("Unsupported Content-Type: %s", ct)
 				err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 				return
 			}
 		}
 	} else {
-		err = merry.New("Content-Type header must be provided.")
+		err = merry.New("content type header not provided")
+		err = err.WithUserMessage("Content-Type header must be provided")
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 	}
 	return
 }
 
-func (m *RestrictContentTypes) checkQueryBlacklist(r *service.Request) (err merry.Error) {
+func (m *RestrictContentTypes) checkQuery(r *service.Request) (err merry.Error) {
 	if values, ok := r.Header[acceptHeaderKey]; ok {
 		for _, value := range values {
 			for _, mediaRange := range strings.Split(value, ",") {
@@ -79,13 +80,18 @@ func (m *RestrictContentTypes) checkQueryBlacklist(r *service.Request) (err merr
 				}
 			}
 		}
-		err = merry.New("No valid Accept Content-Type found")
-		err = err.WithHTTPCode(http.StatusNotAcceptable)
+		err = merry.Errorf("unsupported accept header: %q", values)
+		err = err.WithUserMessage("Unsupported Accept header")
 	} else {
-		err = merry.New("No Accept Content-Type provided")
-		err = err.WithHTTPCode(http.StatusNotAcceptable)
+		err = merry.New("accept header not provided")
+		err = err.WithUserMessage("Accept header must be provided")
 	}
+	err = err.WithHTTPCode(http.StatusNotAcceptable)
 	return
+}
+
+func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+	return service.NewEmpty(merry.HTTPCode(err))
 }
 
 type AllowContentTypes struct {
@@ -97,14 +103,14 @@ func (m *AllowContentTypes) Service(c context.Context, r *service.Request) servi
 	var err merry.Error
 
 	if m.ErrorHandler == nil {
-		m.ErrorHandler = defaultErrorHandler
+		m.ErrorHandler = m.defaultErrorHandler
 	}
 
 	switch r.Method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch:
-		err = m.checkPayloadWhitelist(r)
+		err = m.checkPayload(r)
 	case http.MethodGet:
-		err = m.checkQueryWhitelist(r)
+		err = m.checkQuery(r)
 	}
 
 	if err != nil {
@@ -114,10 +120,11 @@ func (m *AllowContentTypes) Service(c context.Context, r *service.Request) servi
 	return nil
 }
 
-func (m *AllowContentTypes) checkPayloadWhitelist(r *service.Request) (err merry.Error) {
+func (m *AllowContentTypes) checkPayload(r *service.Request) (err merry.Error) {
 	if values, ok := r.Header[contentTypeHeaderKey]; ok {
 		if len(values) != 1 {
-			err = merry.New("Request body Content-Type header must be a single value")
+			err = merry.New("too many content types declared")
+			err = err.WithUserMessage("Content-Type header must be a single value")
 			err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 			return
 		}
@@ -126,16 +133,18 @@ func (m *AllowContentTypes) checkPayloadWhitelist(r *service.Request) (err merry
 				return
 			}
 		}
-		err = merry.New("Request body Content-Type header not permitted")
+		err = merry.Errorf("unsupported content type: %q", values[0])
+		err = err.WithUserMessagef("Unsupported Content-Type: %s", values[0])
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 		return
 	} else {
-		err = merry.New("Content-Type header must be provided.")
+		err = merry.New("content-type header not provided")
+		err = err.WithUserMessage("Content-Type header must be provided")
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 	}
 	return
 }
-func (m *AllowContentTypes) checkQueryWhitelist(r *service.Request) (err merry.Error) {
+func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
 	if values, ok := r.Header[acceptHeaderKey]; ok {
 		for _, value := range values {
 			for _, mediaRange := range strings.Split(value, ",") {
@@ -150,15 +159,16 @@ func (m *AllowContentTypes) checkQueryWhitelist(r *service.Request) (err merry.E
 				}
 			}
 		}
-		err = merry.New("No valid Accept Content-Type header found")
+		err = merry.Errorf("unsupported accept header: %q", values)
+		err = err.WithUserMessage("Unsupported Accept header")
 	} else {
-		err = merry.New("No Accept Content-Type header provided")
+		err = merry.New("accept header not provided")
+		err = err.WithUserMessage("Accept header must be provided")
 	}
 	err = err.WithHTTPCode(http.StatusNotAcceptable)
 	return
 }
 
-// TODO: move to base middleware file
-func defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	return service.NewEmpty(merry.HTTPCode(err))
 }

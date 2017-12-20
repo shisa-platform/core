@@ -13,33 +13,31 @@ const (
 	PlainMediaSubtype       = "plain"
 	JsonMediaSubtype        = "json"
 	XmlMediaSubtype         = "xml"
-	DefaultMediaType        = ApplicationMediaType
-	DefaultMediaSubtype     = JsonMediaSubtype
 )
 
-var DefaultContentType = &ContentType{
-	MediaType:    DefaultMediaType,
-	MediaSubtype: DefaultMediaSubtype,
-}
-
-var TextPlainContentType = &ContentType{
-	MediaType:    TextMediaType,
-	MediaSubtype: PlainMediaSubtype,
-}
-
-var ApplicationJsonContentType = &ContentType{
-	MediaType:    ApplicationMediaType,
-	MediaSubtype: JsonMediaSubtype,
-}
-
-var ApplicationXmlContentType = &ContentType{
-	MediaType:    ApplicationMediaType,
-	MediaSubtype: XmlMediaSubtype,
-}
+var (
+	ApplicationOctetStream = &ContentType{
+		MediaType:    ApplicationMediaType,
+		MediaSubtype: OctetStreamMediaSubtype,
+	}
+	TextPlain = &ContentType{
+		MediaType:    TextMediaType,
+		MediaSubtype: PlainMediaSubtype,
+	}
+	ApplicationJson = &ContentType{
+		MediaType:    ApplicationMediaType,
+		MediaSubtype: JsonMediaSubtype,
+	}
+	ApplicationXml = &ContentType{
+		MediaType:    ApplicationMediaType,
+		MediaSubtype: XmlMediaSubtype,
+	}
+)
 
 type ContentType struct {
 	MediaType    string
 	MediaSubtype string
+	formatted    string
 }
 
 func New(mediaType, mediaSubtype string) *ContentType {
@@ -49,7 +47,7 @@ func New(mediaType, mediaSubtype string) *ContentType {
 	}
 }
 
-func NewFromString(ct string) (*ContentType, error) {
+func Parse(ct string) (*ContentType, error) {
 	split := strings.Split(ct, "/")
 	if len(split) != 2 {
 		return nil, fmt.Errorf("Malformed content type: %s", ct)
@@ -58,7 +56,10 @@ func NewFromString(ct string) (*ContentType, error) {
 }
 
 func (ct *ContentType) String() string {
-	return fmt.Sprintf("%s/%s", ct.MediaType, ct.MediaSubtype)
+	if ct.formatted == "" {
+		ct.formatted = fmt.Sprintf("%s/%s", ct.MediaType, ct.MediaSubtype)
+	}
+	return ct.formatted
 }
 
 func (ct *ContentType) MarshalJSON() ([]byte, error) {
