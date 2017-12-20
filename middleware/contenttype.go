@@ -46,7 +46,7 @@ func (m *RestrictContentTypes) checkPayloadBlacklist(r *service.Request) (err me
 	if values, ok := r.Header[contentTypeHeaderKey]; ok {
 		if len(values) != 1 {
 			err = merry.New("Request body Content-Type header must be a single value")
-			err.WithHTTPCode(http.StatusUnsupportedMediaType)
+			err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 			return
 		}
 		for _, ct := range m.Forbidden {
