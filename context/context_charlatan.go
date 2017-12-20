@@ -11,30 +11,30 @@ import (
 	"github.com/percolate/shisa/models"
 )
 
-// DeadlineInvocation represents a single call of FakeContext.Deadline
-type DeadlineInvocation struct {
+// ContextDeadlineInvocation represents a single call of FakeContext.Deadline
+type ContextDeadlineInvocation struct {
 	Results struct {
 		Deadline time.Time
 		Ok       bool
 	}
 }
 
-// DoneInvocation represents a single call of FakeContext.Done
-type DoneInvocation struct {
+// ContextDoneInvocation represents a single call of FakeContext.Done
+type ContextDoneInvocation struct {
 	Results struct {
 		Ident1 <-chan struct{}
 	}
 }
 
-// ErrInvocation represents a single call of FakeContext.Err
-type ErrInvocation struct {
+// ContextErrInvocation represents a single call of FakeContext.Err
+type ContextErrInvocation struct {
 	Results struct {
 		Ident2 error
 	}
 }
 
-// ValueInvocation represents a single call of FakeContext.Value
-type ValueInvocation struct {
+// ContextValueInvocation represents a single call of FakeContext.Value
+type ContextValueInvocation struct {
 	Parameters struct {
 		Key interface{}
 	}
@@ -43,22 +43,22 @@ type ValueInvocation struct {
 	}
 }
 
-// RequestIDInvocation represents a single call of FakeContext.RequestID
-type RequestIDInvocation struct {
+// ContextRequestIDInvocation represents a single call of FakeContext.RequestID
+type ContextRequestIDInvocation struct {
 	Results struct {
 		Ident1 string
 	}
 }
 
-// ActorInvocation represents a single call of FakeContext.Actor
-type ActorInvocation struct {
+// ContextActorInvocation represents a single call of FakeContext.Actor
+type ContextActorInvocation struct {
 	Results struct {
 		Ident1 models.User
 	}
 }
 
-// WithActorInvocation represents a single call of FakeContext.WithActor
-type WithActorInvocation struct {
+// ContextWithActorInvocation represents a single call of FakeContext.WithActor
+type ContextWithActorInvocation struct {
 	Parameters struct {
 		Value models.User
 	}
@@ -67,8 +67,8 @@ type WithActorInvocation struct {
 	}
 }
 
-// WithRequestIDInvocation represents a single call of FakeContext.WithRequestID
-type WithRequestIDInvocation struct {
+// ContextWithRequestIDInvocation represents a single call of FakeContext.WithRequestID
+type ContextWithRequestIDInvocation struct {
 	Parameters struct {
 		Value string
 	}
@@ -77,8 +77,8 @@ type WithRequestIDInvocation struct {
 	}
 }
 
-// WithValueInvocation represents a single call of FakeContext.WithValue
-type WithValueInvocation struct {
+// ContextWithValueInvocation represents a single call of FakeContext.WithValue
+type ContextWithValueInvocation struct {
 	Parameters struct {
 		Key   interface{}
 		Value interface{}
@@ -88,8 +88,8 @@ type WithValueInvocation struct {
 	}
 }
 
-// WithDeadlineInvocation represents a single call of FakeContext.WithDeadline
-type WithDeadlineInvocation struct {
+// ContextWithDeadlineInvocation represents a single call of FakeContext.WithDeadline
+type ContextWithDeadlineInvocation struct {
 	Parameters struct {
 		Deadline time.Time
 	}
@@ -99,8 +99,8 @@ type WithDeadlineInvocation struct {
 	}
 }
 
-// WithTimeoutInvocation represents a single call of FakeContext.WithTimeout
-type WithTimeoutInvocation struct {
+// ContextWithTimeoutInvocation represents a single call of FakeContext.WithTimeout
+type ContextWithTimeoutInvocation struct {
 	Parameters struct {
 		Timeout time.Duration
 	}
@@ -147,17 +147,17 @@ type FakeContext struct {
 	WithDeadlineHook  func(time.Time) (Context, context.CancelFunc)
 	WithTimeoutHook   func(time.Duration) (Context, context.CancelFunc)
 
-	DeadlineCalls      []*DeadlineInvocation
-	DoneCalls          []*DoneInvocation
-	ErrCalls           []*ErrInvocation
-	ValueCalls         []*ValueInvocation
-	RequestIDCalls     []*RequestIDInvocation
-	ActorCalls         []*ActorInvocation
-	WithActorCalls     []*WithActorInvocation
-	WithRequestIDCalls []*WithRequestIDInvocation
-	WithValueCalls     []*WithValueInvocation
-	WithDeadlineCalls  []*WithDeadlineInvocation
-	WithTimeoutCalls   []*WithTimeoutInvocation
+	DeadlineCalls      []*ContextDeadlineInvocation
+	DoneCalls          []*ContextDoneInvocation
+	ErrCalls           []*ContextErrInvocation
+	ValueCalls         []*ContextValueInvocation
+	RequestIDCalls     []*ContextRequestIDInvocation
+	ActorCalls         []*ContextActorInvocation
+	WithActorCalls     []*ContextWithActorInvocation
+	WithRequestIDCalls []*ContextWithRequestIDInvocation
+	WithValueCalls     []*ContextWithValueInvocation
+	WithDeadlineCalls  []*ContextWithDeadlineInvocation
+	WithTimeoutCalls   []*ContextWithTimeoutInvocation
 }
 
 // NewFakeContextDefaultPanic returns an instance of FakeContext with all hooks configured to panic
@@ -300,21 +300,21 @@ func NewFakeContextDefaultError(t *testing.T) *FakeContext {
 }
 
 func (f *FakeContext) Reset() {
-	f.DeadlineCalls = []*DeadlineInvocation{}
-	f.DoneCalls = []*DoneInvocation{}
-	f.ErrCalls = []*ErrInvocation{}
-	f.ValueCalls = []*ValueInvocation{}
-	f.RequestIDCalls = []*RequestIDInvocation{}
-	f.ActorCalls = []*ActorInvocation{}
-	f.WithActorCalls = []*WithActorInvocation{}
-	f.WithRequestIDCalls = []*WithRequestIDInvocation{}
-	f.WithValueCalls = []*WithValueInvocation{}
-	f.WithDeadlineCalls = []*WithDeadlineInvocation{}
-	f.WithTimeoutCalls = []*WithTimeoutInvocation{}
+	f.DeadlineCalls = []*ContextDeadlineInvocation{}
+	f.DoneCalls = []*ContextDoneInvocation{}
+	f.ErrCalls = []*ContextErrInvocation{}
+	f.ValueCalls = []*ContextValueInvocation{}
+	f.RequestIDCalls = []*ContextRequestIDInvocation{}
+	f.ActorCalls = []*ContextActorInvocation{}
+	f.WithActorCalls = []*ContextWithActorInvocation{}
+	f.WithRequestIDCalls = []*ContextWithRequestIDInvocation{}
+	f.WithValueCalls = []*ContextWithValueInvocation{}
+	f.WithDeadlineCalls = []*ContextWithDeadlineInvocation{}
+	f.WithTimeoutCalls = []*ContextWithTimeoutInvocation{}
 }
 
 func (_f1 *FakeContext) Deadline() (deadline time.Time, ok bool) {
-	invocation := new(DeadlineInvocation)
+	invocation := new(ContextDeadlineInvocation)
 
 	deadline, ok = _f1.DeadlineHook()
 
@@ -379,7 +379,7 @@ func (f *FakeContext) AssertDeadlineCalledN(t *testing.T, n int) {
 }
 
 func (_f2 *FakeContext) Done() (ident1 <-chan struct{}) {
-	invocation := new(DoneInvocation)
+	invocation := new(ContextDoneInvocation)
 
 	ident1 = _f2.DoneHook()
 
@@ -443,7 +443,7 @@ func (f *FakeContext) AssertDoneCalledN(t *testing.T, n int) {
 }
 
 func (_f3 *FakeContext) Err() (ident2 error) {
-	invocation := new(ErrInvocation)
+	invocation := new(ContextErrInvocation)
 
 	ident2 = _f3.ErrHook()
 
@@ -507,7 +507,7 @@ func (f *FakeContext) AssertErrCalledN(t *testing.T, n int) {
 }
 
 func (_f4 *FakeContext) Value(key interface{}) (ident3 interface{}) {
-	invocation := new(ValueInvocation)
+	invocation := new(ContextValueInvocation)
 
 	invocation.Parameters.Key = key
 
@@ -641,7 +641,7 @@ func (_f9 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}
 }
 
 func (_f10 *FakeContext) RequestID() (ident1 string) {
-	invocation := new(RequestIDInvocation)
+	invocation := new(ContextRequestIDInvocation)
 
 	ident1 = _f10.RequestIDHook()
 
@@ -705,7 +705,7 @@ func (f *FakeContext) AssertRequestIDCalledN(t *testing.T, n int) {
 }
 
 func (_f11 *FakeContext) Actor() (ident1 models.User) {
-	invocation := new(ActorInvocation)
+	invocation := new(ContextActorInvocation)
 
 	ident1 = _f11.ActorHook()
 
@@ -769,7 +769,7 @@ func (f *FakeContext) AssertActorCalledN(t *testing.T, n int) {
 }
 
 func (_f12 *FakeContext) WithActor(value models.User) (ident1 Context) {
-	invocation := new(WithActorInvocation)
+	invocation := new(ContextWithActorInvocation)
 
 	invocation.Parameters.Value = value
 
@@ -903,7 +903,7 @@ func (_f17 *FakeContext) WithActorResultsForCall(value models.User) (ident1 Cont
 }
 
 func (_f18 *FakeContext) WithRequestID(value string) (ident1 Context) {
-	invocation := new(WithRequestIDInvocation)
+	invocation := new(ContextWithRequestIDInvocation)
 
 	invocation.Parameters.Value = value
 
@@ -1037,7 +1037,7 @@ func (_f23 *FakeContext) WithRequestIDResultsForCall(value string) (ident1 Conte
 }
 
 func (_f24 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 Context) {
-	invocation := new(WithValueInvocation)
+	invocation := new(ContextWithValueInvocation)
 
 	invocation.Parameters.Key = key
 	invocation.Parameters.Value = value
@@ -1172,7 +1172,7 @@ func (_f29 *FakeContext) WithValueResultsForCall(key interface{}, value interfac
 }
 
 func (_f30 *FakeContext) WithDeadline(deadline time.Time) (ident1 Context, ident2 context.CancelFunc) {
-	invocation := new(WithDeadlineInvocation)
+	invocation := new(ContextWithDeadlineInvocation)
 
 	invocation.Parameters.Deadline = deadline
 
@@ -1308,7 +1308,7 @@ func (_f35 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident1 
 }
 
 func (_f36 *FakeContext) WithTimeout(timeout time.Duration) (ident1 Context, ident2 context.CancelFunc) {
-	invocation := new(WithTimeoutInvocation)
+	invocation := new(ContextWithTimeoutInvocation)
 
 	invocation.Parameters.Timeout = timeout
 

@@ -6,15 +6,15 @@ import (
 	"testing"
 )
 
-// StringInvocation represents a single call of FakeUser.String
-type StringInvocation struct {
+// UserStringInvocation represents a single call of FakeUser.String
+type UserStringInvocation struct {
 	Results struct {
 		Ident5 string
 	}
 }
 
-// IDInvocation represents a single call of FakeUser.ID
-type IDInvocation struct {
+// UserIDInvocation represents a single call of FakeUser.ID
+type UserIDInvocation struct {
 	Results struct {
 		Ident1 string
 	}
@@ -48,8 +48,8 @@ type FakeUser struct {
 	StringHook func() string
 	IDHook     func() string
 
-	StringCalls []*StringInvocation
-	IDCalls     []*IDInvocation
+	StringCalls []*UserStringInvocation
+	IDCalls     []*UserIDInvocation
 }
 
 // NewFakeUserDefaultPanic returns an instance of FakeUser with all hooks configured to panic
@@ -93,12 +93,12 @@ func NewFakeUserDefaultError(t *testing.T) *FakeUser {
 }
 
 func (f *FakeUser) Reset() {
-	f.StringCalls = []*StringInvocation{}
-	f.IDCalls = []*IDInvocation{}
+	f.StringCalls = []*UserStringInvocation{}
+	f.IDCalls = []*UserIDInvocation{}
 }
 
 func (_f1 *FakeUser) String() (ident5 string) {
-	invocation := new(StringInvocation)
+	invocation := new(UserStringInvocation)
 
 	ident5 = _f1.StringHook()
 
@@ -162,7 +162,7 @@ func (f *FakeUser) AssertStringCalledN(t *testing.T, n int) {
 }
 
 func (_f2 *FakeUser) ID() (ident1 string) {
-	invocation := new(IDInvocation)
+	invocation := new(UserIDInvocation)
 
 	ident1 = _f2.IDHook()
 

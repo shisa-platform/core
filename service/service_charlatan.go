@@ -6,50 +6,50 @@ import (
 	"testing"
 )
 
-// NameInvocation represents a single call of FakeService.Name
-type NameInvocation struct {
+// ServiceNameInvocation represents a single call of FakeService.Name
+type ServiceNameInvocation struct {
 	Results struct {
 		Ident1 string
 	}
 }
 
-// EndpointsInvocation represents a single call of FakeService.Endpoints
-type EndpointsInvocation struct {
+// ServiceEndpointsInvocation represents a single call of FakeService.Endpoints
+type ServiceEndpointsInvocation struct {
 	Results struct {
 		Ident1 []Endpoint
 	}
 }
 
-// HandlersInvocation represents a single call of FakeService.Handlers
-type HandlersInvocation struct {
+// ServiceHandlersInvocation represents a single call of FakeService.Handlers
+type ServiceHandlersInvocation struct {
 	Results struct {
 		Ident1 []Handler
 	}
 }
 
-// MalformedQueryParameterHandlerInvocation represents a single call of FakeService.MalformedQueryParameterHandler
-type MalformedQueryParameterHandlerInvocation struct {
+// ServiceMalformedQueryParameterHandlerInvocation represents a single call of FakeService.MalformedQueryParameterHandler
+type ServiceMalformedQueryParameterHandlerInvocation struct {
 	Results struct {
 		Ident1 Handler
 	}
 }
 
-// MethodNotAllowedHandlerInvocation represents a single call of FakeService.MethodNotAllowedHandler
-type MethodNotAllowedHandlerInvocation struct {
+// ServiceMethodNotAllowedHandlerInvocation represents a single call of FakeService.MethodNotAllowedHandler
+type ServiceMethodNotAllowedHandlerInvocation struct {
 	Results struct {
 		Ident1 Handler
 	}
 }
 
-// RedirectHandlerInvocation represents a single call of FakeService.RedirectHandler
-type RedirectHandlerInvocation struct {
+// ServiceRedirectHandlerInvocation represents a single call of FakeService.RedirectHandler
+type ServiceRedirectHandlerInvocation struct {
 	Results struct {
 		Ident1 Handler
 	}
 }
 
-// InternalServerErrorHandlerInvocation represents a single call of FakeService.InternalServerErrorHandler
-type InternalServerErrorHandlerInvocation struct {
+// ServiceInternalServerErrorHandlerInvocation represents a single call of FakeService.InternalServerErrorHandler
+type ServiceInternalServerErrorHandlerInvocation struct {
 	Results struct {
 		Ident1 ErrorHandler
 	}
@@ -88,13 +88,13 @@ type FakeService struct {
 	RedirectHandlerHook                func() Handler
 	InternalServerErrorHandlerHook     func() ErrorHandler
 
-	NameCalls                           []*NameInvocation
-	EndpointsCalls                      []*EndpointsInvocation
-	HandlersCalls                       []*HandlersInvocation
-	MalformedQueryParameterHandlerCalls []*MalformedQueryParameterHandlerInvocation
-	MethodNotAllowedHandlerCalls        []*MethodNotAllowedHandlerInvocation
-	RedirectHandlerCalls                []*RedirectHandlerInvocation
-	InternalServerErrorHandlerCalls     []*InternalServerErrorHandlerInvocation
+	NameCalls                           []*ServiceNameInvocation
+	EndpointsCalls                      []*ServiceEndpointsInvocation
+	HandlersCalls                       []*ServiceHandlersInvocation
+	MalformedQueryParameterHandlerCalls []*ServiceMalformedQueryParameterHandlerInvocation
+	MethodNotAllowedHandlerCalls        []*ServiceMethodNotAllowedHandlerInvocation
+	RedirectHandlerCalls                []*ServiceRedirectHandlerInvocation
+	InternalServerErrorHandlerCalls     []*ServiceInternalServerErrorHandlerInvocation
 }
 
 // NewFakeServiceDefaultPanic returns an instance of FakeService with all hooks configured to panic
@@ -193,17 +193,17 @@ func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 }
 
 func (f *FakeService) Reset() {
-	f.NameCalls = []*NameInvocation{}
-	f.EndpointsCalls = []*EndpointsInvocation{}
-	f.HandlersCalls = []*HandlersInvocation{}
-	f.MalformedQueryParameterHandlerCalls = []*MalformedQueryParameterHandlerInvocation{}
-	f.MethodNotAllowedHandlerCalls = []*MethodNotAllowedHandlerInvocation{}
-	f.RedirectHandlerCalls = []*RedirectHandlerInvocation{}
-	f.InternalServerErrorHandlerCalls = []*InternalServerErrorHandlerInvocation{}
+	f.NameCalls = []*ServiceNameInvocation{}
+	f.EndpointsCalls = []*ServiceEndpointsInvocation{}
+	f.HandlersCalls = []*ServiceHandlersInvocation{}
+	f.MalformedQueryParameterHandlerCalls = []*ServiceMalformedQueryParameterHandlerInvocation{}
+	f.MethodNotAllowedHandlerCalls = []*ServiceMethodNotAllowedHandlerInvocation{}
+	f.RedirectHandlerCalls = []*ServiceRedirectHandlerInvocation{}
+	f.InternalServerErrorHandlerCalls = []*ServiceInternalServerErrorHandlerInvocation{}
 }
 
 func (_f1 *FakeService) Name() (ident1 string) {
-	invocation := new(NameInvocation)
+	invocation := new(ServiceNameInvocation)
 
 	ident1 = _f1.NameHook()
 
@@ -267,7 +267,7 @@ func (f *FakeService) AssertNameCalledN(t *testing.T, n int) {
 }
 
 func (_f2 *FakeService) Endpoints() (ident1 []Endpoint) {
-	invocation := new(EndpointsInvocation)
+	invocation := new(ServiceEndpointsInvocation)
 
 	ident1 = _f2.EndpointsHook()
 
@@ -331,7 +331,7 @@ func (f *FakeService) AssertEndpointsCalledN(t *testing.T, n int) {
 }
 
 func (_f3 *FakeService) Handlers() (ident1 []Handler) {
-	invocation := new(HandlersInvocation)
+	invocation := new(ServiceHandlersInvocation)
 
 	ident1 = _f3.HandlersHook()
 
@@ -395,7 +395,7 @@ func (f *FakeService) AssertHandlersCalledN(t *testing.T, n int) {
 }
 
 func (_f4 *FakeService) MalformedQueryParameterHandler() (ident1 Handler) {
-	invocation := new(MalformedQueryParameterHandlerInvocation)
+	invocation := new(ServiceMalformedQueryParameterHandlerInvocation)
 
 	ident1 = _f4.MalformedQueryParameterHandlerHook()
 
@@ -459,7 +459,7 @@ func (f *FakeService) AssertMalformedQueryParameterHandlerCalledN(t *testing.T, 
 }
 
 func (_f5 *FakeService) MethodNotAllowedHandler() (ident1 Handler) {
-	invocation := new(MethodNotAllowedHandlerInvocation)
+	invocation := new(ServiceMethodNotAllowedHandlerInvocation)
 
 	ident1 = _f5.MethodNotAllowedHandlerHook()
 
@@ -523,7 +523,7 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t *testing.T, n int) 
 }
 
 func (_f6 *FakeService) RedirectHandler() (ident1 Handler) {
-	invocation := new(RedirectHandlerInvocation)
+	invocation := new(ServiceRedirectHandlerInvocation)
 
 	ident1 = _f6.RedirectHandlerHook()
 
@@ -587,7 +587,7 @@ func (f *FakeService) AssertRedirectHandlerCalledN(t *testing.T, n int) {
 }
 
 func (_f7 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
-	invocation := new(InternalServerErrorHandlerInvocation)
+	invocation := new(ServiceInternalServerErrorHandlerInvocation)
 
 	ident1 = _f7.InternalServerErrorHandlerHook()
 
