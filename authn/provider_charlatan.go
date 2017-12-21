@@ -12,8 +12,8 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-// AuthenticateInvocation represents a single call of FakeProvider.Authenticate
-type AuthenticateInvocation struct {
+// ProviderAuthenticateInvocation represents a single call of FakeProvider.Authenticate
+type ProviderAuthenticateInvocation struct {
 	Parameters struct {
 		Ident1 context.Context
 		Ident2 *service.Request
@@ -21,6 +21,13 @@ type AuthenticateInvocation struct {
 	Results struct {
 		Ident3 models.User
 		Ident4 merry.Error
+	}
+}
+
+// ProviderChallengeInvocation represents a single call of FakeProvider.Challenge
+type ProviderChallengeInvocation struct {
+	Results struct {
+		Ident1 string
 	}
 }
 
@@ -50,8 +57,10 @@ unexpected calls are made to FakeAuthenticate.
 */
 type FakeProvider struct {
 	AuthenticateHook func(context.Context, *service.Request) (models.User, merry.Error)
+	ChallengeHook    func() string
 
-	AuthenticateCalls []*AuthenticateInvocation
+	AuthenticateCalls []*ProviderAuthenticateInvocation
+	ChallengeCalls    []*ProviderChallengeInvocation
 }
 
 // NewFakeProviderDefaultPanic returns an instance of FakeProvider with all hooks configured to panic
@@ -59,6 +68,9 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 	return &FakeProvider{
 		AuthenticateHook: func(context.Context, *service.Request) (ident3 models.User, ident4 merry.Error) {
 			panic("Unexpected call to Provider.Authenticate")
+		},
+		ChallengeHook: func() (ident1 string) {
+			panic("Unexpected call to Provider.Challenge")
 		},
 	}
 }
@@ -68,6 +80,10 @@ func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
 	return &FakeProvider{
 		AuthenticateHook: func(context.Context, *service.Request) (ident3 models.User, ident4 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Authenticate")
+			return
+		},
+		ChallengeHook: func() (ident1 string) {
+			t.Fatal("Unexpected call to Provider.Challenge")
 			return
 		},
 	}
@@ -80,15 +96,20 @@ func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
 			t.Error("Unexpected call to Provider.Authenticate")
 			return
 		},
+		ChallengeHook: func() (ident1 string) {
+			t.Error("Unexpected call to Provider.Challenge")
+			return
+		},
 	}
 }
 
 func (f *FakeProvider) Reset() {
-	f.AuthenticateCalls = []*AuthenticateInvocation{}
+	f.AuthenticateCalls = []*ProviderAuthenticateInvocation{}
+	f.ChallengeCalls = []*ProviderChallengeInvocation{}
 }
 
 func (_f1 *FakeProvider) Authenticate(ident1 context.Context, ident2 *service.Request) (ident3 models.User, ident4 merry.Error) {
-	invocation := new(AuthenticateInvocation)
+	invocation := new(ProviderAuthenticateInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
@@ -222,4 +243,68 @@ func (_f6 *FakeProvider) AuthenticateResultsForCall(ident1 context.Context, iden
 	}
 
 	return
+}
+
+func (_f7 *FakeProvider) Challenge() (ident1 string) {
+	invocation := new(ProviderChallengeInvocation)
+
+	ident1 = _f7.ChallengeHook()
+
+	invocation.Results.Ident1 = ident1
+
+	_f7.ChallengeCalls = append(_f7.ChallengeCalls, invocation)
+
+	return
+}
+
+// ChallengeCalled returns true if FakeProvider.Challenge was called
+func (f *FakeProvider) ChallengeCalled() bool {
+	return len(f.ChallengeCalls) != 0
+}
+
+// AssertChallengeCalled calls t.Error if FakeProvider.Challenge was not called
+func (f *FakeProvider) AssertChallengeCalled(t *testing.T) {
+	t.Helper()
+	if len(f.ChallengeCalls) == 0 {
+		t.Error("FakeProvider.Challenge not called, expected at least one")
+	}
+}
+
+// ChallengeNotCalled returns true if FakeProvider.Challenge was not called
+func (f *FakeProvider) ChallengeNotCalled() bool {
+	return len(f.ChallengeCalls) == 0
+}
+
+// AssertChallengeNotCalled calls t.Error if FakeProvider.Challenge was called
+func (f *FakeProvider) AssertChallengeNotCalled(t *testing.T) {
+	t.Helper()
+	if len(f.ChallengeCalls) != 0 {
+		t.Error("FakeProvider.Challenge called, expected none")
+	}
+}
+
+// ChallengeCalledOnce returns true if FakeProvider.Challenge was called exactly once
+func (f *FakeProvider) ChallengeCalledOnce() bool {
+	return len(f.ChallengeCalls) == 1
+}
+
+// AssertChallengeCalledOnce calls t.Error if FakeProvider.Challenge was not called exactly once
+func (f *FakeProvider) AssertChallengeCalledOnce(t *testing.T) {
+	t.Helper()
+	if len(f.ChallengeCalls) != 1 {
+		t.Errorf("FakeProvider.Challenge called %d times, expected 1", len(f.ChallengeCalls))
+	}
+}
+
+// ChallengeCalledN returns true if FakeProvider.Challenge was called at least n times
+func (f *FakeProvider) ChallengeCalledN(n int) bool {
+	return len(f.ChallengeCalls) >= n
+}
+
+// AssertChallengeCalledN calls t.Error if FakeProvider.Challenge was called less than n times
+func (f *FakeProvider) AssertChallengeCalledN(t *testing.T, n int) {
+	t.Helper()
+	if len(f.ChallengeCalls) < n {
+		t.Errorf("FakeProvider.Challenge called %d times, expected >= %d", len(f.ChallengeCalls), n)
+	}
 }

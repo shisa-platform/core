@@ -9,8 +9,8 @@ import (
 	"github.com/ansel1/merry"
 )
 
-// GetInvocation represents a single call of FakeProvider.Get
-type GetInvocation struct {
+// ProviderGetInvocation represents a single call of FakeProvider.Get
+type ProviderGetInvocation struct {
 	Parameters struct {
 		Ident1 string
 	}
@@ -20,8 +20,8 @@ type GetInvocation struct {
 	}
 }
 
-// GetIntInvocation represents a single call of FakeProvider.GetInt
-type GetIntInvocation struct {
+// ProviderGetIntInvocation represents a single call of FakeProvider.GetInt
+type ProviderGetIntInvocation struct {
 	Parameters struct {
 		Ident1 string
 	}
@@ -31,8 +31,8 @@ type GetIntInvocation struct {
 	}
 }
 
-// GetBoolInvocation represents a single call of FakeProvider.GetBool
-type GetBoolInvocation struct {
+// ProviderGetBoolInvocation represents a single call of FakeProvider.GetBool
+type ProviderGetBoolInvocation struct {
 	Parameters struct {
 		Ident1 string
 	}
@@ -42,8 +42,8 @@ type GetBoolInvocation struct {
 	}
 }
 
-// MonitorInvocation represents a single call of FakeProvider.Monitor
-type MonitorInvocation struct {
+// ProviderMonitorInvocation represents a single call of FakeProvider.Monitor
+type ProviderMonitorInvocation struct {
 	Parameters struct {
 		Ident1 string
 		Ident2 <-chan Value
@@ -80,10 +80,10 @@ type FakeProvider struct {
 	GetBoolHook func(string) (bool, merry.Error)
 	MonitorHook func(string, <-chan Value)
 
-	GetCalls     []*GetInvocation
-	GetIntCalls  []*GetIntInvocation
-	GetBoolCalls []*GetBoolInvocation
-	MonitorCalls []*MonitorInvocation
+	GetCalls     []*ProviderGetInvocation
+	GetIntCalls  []*ProviderGetIntInvocation
+	GetBoolCalls []*ProviderGetBoolInvocation
+	MonitorCalls []*ProviderMonitorInvocation
 }
 
 // NewFakeProviderDefaultPanic returns an instance of FakeProvider with all hooks configured to panic
@@ -149,14 +149,14 @@ func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
 }
 
 func (f *FakeProvider) Reset() {
-	f.GetCalls = []*GetInvocation{}
-	f.GetIntCalls = []*GetIntInvocation{}
-	f.GetBoolCalls = []*GetBoolInvocation{}
-	f.MonitorCalls = []*MonitorInvocation{}
+	f.GetCalls = []*ProviderGetInvocation{}
+	f.GetIntCalls = []*ProviderGetIntInvocation{}
+	f.GetBoolCalls = []*ProviderGetBoolInvocation{}
+	f.MonitorCalls = []*ProviderMonitorInvocation{}
 }
 
 func (_f1 *FakeProvider) Get(ident1 string) (ident2 string, ident3 merry.Error) {
-	invocation := new(GetInvocation)
+	invocation := new(ProviderGetInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 
@@ -292,7 +292,7 @@ func (_f6 *FakeProvider) GetResultsForCall(ident1 string) (ident2 string, ident3
 }
 
 func (_f7 *FakeProvider) GetInt(ident1 string) (ident2 int, ident3 merry.Error) {
-	invocation := new(GetIntInvocation)
+	invocation := new(ProviderGetIntInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 
@@ -428,7 +428,7 @@ func (_f12 *FakeProvider) GetIntResultsForCall(ident1 string) (ident2 int, ident
 }
 
 func (_f13 *FakeProvider) GetBool(ident1 string) (ident2 bool, ident3 merry.Error) {
-	invocation := new(GetBoolInvocation)
+	invocation := new(ProviderGetBoolInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 
@@ -564,7 +564,7 @@ func (_f18 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ide
 }
 
 func (_f19 *FakeProvider) Monitor(ident1 string, ident2 <-chan Value) {
-	invocation := new(MonitorInvocation)
+	invocation := new(ProviderMonitorInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2

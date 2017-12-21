@@ -662,7 +662,6 @@ func TestTreeMultipleNamedParameters(t *testing.T) {
 		if endpoint == nil {
 			t.Fatalf("expected non-nil endpoint for route %q", route)
 		}
-		t.Logf("route: %s", endpoint.Route)
 		if !tsr {
 			t.Errorf("expected TSR recommendation for route %q", route)
 		}

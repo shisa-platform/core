@@ -16,6 +16,15 @@ var (
 	acceptHeaderKey      = http.CanonicalHeaderKey("Accept")
 )
 
+// RestrictContentTypes is middleware to blacklist incoming
+// Content-Type and Accept Headers.
+//
+// `Forbidden` is a contenttype.ContentType slice containing content
+// types that should be blacklisted.
+// `ErrorHandler` can be set to optionally customize the response
+// for an error. The `err` parameter passed to the handler will
+// have a recommended HTTP status code. The default handler will
+// return the recommended status code and an empty body.
 type RestrictContentTypes struct {
 	Forbidden    []contenttype.ContentType
 	ErrorHandler service.ErrorHandler
@@ -96,6 +105,15 @@ func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *servi
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
+// AllowContentTypes is middleware to whitelist incoming
+// Content-Type and Accept Headers.
+//
+// `Permitted` is a contenttype.ContentType slice containing content
+// types that should be allowed.
+// `ErrorHandler` can be set to optionally customize the response
+// for an error. The `err` parameter passed to the handler will
+// have a recommended HTTP status code. The default handler will
+// return the recommended status code and an empty body.
 type AllowContentTypes struct {
 	Permitted    []contenttype.ContentType
 	ErrorHandler service.ErrorHandler
@@ -146,6 +164,7 @@ func (m *AllowContentTypes) checkPayload(r *service.Request) (err merry.Error) {
 	}
 	return
 }
+
 func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
 	if values, ok := r.Header[acceptHeaderKey]; ok {
 		for _, value := range values {

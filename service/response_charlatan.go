@@ -9,29 +9,29 @@ import (
 	"testing"
 )
 
-// StatusCodeInvocation represents a single call of FakeResponse.StatusCode
-type StatusCodeInvocation struct {
+// ResponseStatusCodeInvocation represents a single call of FakeResponse.StatusCode
+type ResponseStatusCodeInvocation struct {
 	Results struct {
 		Ident1 int
 	}
 }
 
-// HeadersInvocation represents a single call of FakeResponse.Headers
-type HeadersInvocation struct {
+// ResponseHeadersInvocation represents a single call of FakeResponse.Headers
+type ResponseHeadersInvocation struct {
 	Results struct {
 		Ident1 http.Header
 	}
 }
 
-// TrailersInvocation represents a single call of FakeResponse.Trailers
-type TrailersInvocation struct {
+// ResponseTrailersInvocation represents a single call of FakeResponse.Trailers
+type ResponseTrailersInvocation struct {
 	Results struct {
 		Ident1 http.Header
 	}
 }
 
-// SerializeInvocation represents a single call of FakeResponse.Serialize
-type SerializeInvocation struct {
+// ResponseSerializeInvocation represents a single call of FakeResponse.Serialize
+type ResponseSerializeInvocation struct {
 	Parameters struct {
 		Ident1 io.Writer
 	}
@@ -71,10 +71,10 @@ type FakeResponse struct {
 	TrailersHook   func() http.Header
 	SerializeHook  func(io.Writer) (int, error)
 
-	StatusCodeCalls []*StatusCodeInvocation
-	HeadersCalls    []*HeadersInvocation
-	TrailersCalls   []*TrailersInvocation
-	SerializeCalls  []*SerializeInvocation
+	StatusCodeCalls []*ResponseStatusCodeInvocation
+	HeadersCalls    []*ResponseHeadersInvocation
+	TrailersCalls   []*ResponseTrailersInvocation
+	SerializeCalls  []*ResponseSerializeInvocation
 }
 
 // NewFakeResponseDefaultPanic returns an instance of FakeResponse with all hooks configured to panic
@@ -140,14 +140,14 @@ func NewFakeResponseDefaultError(t *testing.T) *FakeResponse {
 }
 
 func (f *FakeResponse) Reset() {
-	f.StatusCodeCalls = []*StatusCodeInvocation{}
-	f.HeadersCalls = []*HeadersInvocation{}
-	f.TrailersCalls = []*TrailersInvocation{}
-	f.SerializeCalls = []*SerializeInvocation{}
+	f.StatusCodeCalls = []*ResponseStatusCodeInvocation{}
+	f.HeadersCalls = []*ResponseHeadersInvocation{}
+	f.TrailersCalls = []*ResponseTrailersInvocation{}
+	f.SerializeCalls = []*ResponseSerializeInvocation{}
 }
 
 func (_f1 *FakeResponse) StatusCode() (ident1 int) {
-	invocation := new(StatusCodeInvocation)
+	invocation := new(ResponseStatusCodeInvocation)
 
 	ident1 = _f1.StatusCodeHook()
 
@@ -211,7 +211,7 @@ func (f *FakeResponse) AssertStatusCodeCalledN(t *testing.T, n int) {
 }
 
 func (_f2 *FakeResponse) Headers() (ident1 http.Header) {
-	invocation := new(HeadersInvocation)
+	invocation := new(ResponseHeadersInvocation)
 
 	ident1 = _f2.HeadersHook()
 
@@ -275,7 +275,7 @@ func (f *FakeResponse) AssertHeadersCalledN(t *testing.T, n int) {
 }
 
 func (_f3 *FakeResponse) Trailers() (ident1 http.Header) {
-	invocation := new(TrailersInvocation)
+	invocation := new(ResponseTrailersInvocation)
 
 	ident1 = _f3.TrailersHook()
 
@@ -339,7 +339,7 @@ func (f *FakeResponse) AssertTrailersCalledN(t *testing.T, n int) {
 }
 
 func (_f4 *FakeResponse) Serialize(ident1 io.Writer) (ident2 int, ident3 error) {
-	invocation := new(SerializeInvocation)
+	invocation := new(ResponseSerializeInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 

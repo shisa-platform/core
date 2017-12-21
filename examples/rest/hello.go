@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
@@ -25,17 +26,19 @@ type HelloService struct {
 }
 
 func NewHelloService() *HelloService {
+	idp := &SimpleIdentityProvider{
+		Users: []User{User{"1", "Boss", "password"}},
+	}
+	provider, err := authn.NewBasicAuthenticationProvider(idp, "hello")
+	if err != nil {
+		panic(err)
+	}
 	svc := &HelloService{
 		Policy: service.Policy{
 			TimeBudget:                  time.Millisecond * 5,
 			AllowTrailingSlashRedirects: true,
 		},
-		authn: middleware.Authenticator{
-			Provider: &BasicAuthnProvider{
-				Users: []User{User{"1", "Boss", "password"}},
-			},
-			Challenge: "Basic realm=\"hello\"",
-		},
+		authn: middleware.Authenticator{Provider: provider},
 	}
 	svc.endpoints = []service.Endpoint{
 		service.GetEndpointWithPolicy("/greeting", svc.Policy, svc.Greeting),
