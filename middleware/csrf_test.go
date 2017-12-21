@@ -90,7 +90,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 		Request: epHttpReq,
 	}
 	ep := CSRFProtector{
-		ExemptChecker: func (c context.Context, r *service.Request) bool {
+		ExemptChecker: func(c context.Context, r *service.Request) bool {
 			return true
 		},
 	}
