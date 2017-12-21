@@ -4,13 +4,11 @@ import (
 	"crypto/subtle"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/service"
 )
 
@@ -19,15 +17,43 @@ const (
 	defaultTokenLength = 32
 )
 
+// ExemptChecker is a function that takes a context and a
+// service.Request reference and determines whether the request
+// should be exempt from CSRF protextion
 type ExemptChecker func(context.Context, *service.Request) bool
 
+// OriginChecker is a function that takes two url.URLs and returns
+// a `bool` denoting whether they should be considered the "same"
+// for the purposes of CSRF protection
+type OriginChecker func(expected, actual *url.URL) bool
+
+// CSRFProtector is middleware used to guard against CSRF attacks.
 type CSRFProtector struct {
-	SiteURL       string
-	CookieName    string
-	TokenLength   int
-	ExtractToken  authn.TokenExtractor
+	// SiteURL is a string denoting the URL to use for CSRF protection
+	SiteURL string
+
+	// ExtractToken is an authn.TokenExtractor that returns the CSRF
+	ExtractToken authn.TokenExtractor
+
+	// CookieName can be set to optionally customize the cookie name
+	CookieName string
+
+	// TokenLength can be set to optionally customize the CSRF token
+	TokenLength int
+
+	// ExemptChecker determines whether the request should be exempt
+	// from CSRF protection based on context.Context and *service.Request
 	ExemptChecker ExemptChecker
-	ErrorHandler  service.ErrorHandler
+
+	// OriginChecker determines whether the proviced URLs should be
+	// considered the "same" for the purposes of CSRF protection
+	OriginChecker OriginChecker
+
+	// ErrorHandler can be set to optionally customize the response
+	// for an error. The `err` parameter passed to the handler will
+	// have a recommended HTTP status code. The default handler will
+	// return the recommended status code and an empty body.
+	ErrorHandler service.ErrorHandler
 }
 
 func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.Response {
@@ -37,6 +63,10 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 
 	if m.ExemptChecker == nil {
 		m.ExemptChecker = m.defaultExemptChecker
+	}
+
+	if m.OriginChecker == nil {
+		m.OriginChecker = m.defaultOriginChecker
 	}
 
 	if m.CookieName == "" {
@@ -67,10 +97,11 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 			merr = merr.WithHTTPCode(http.StatusInternalServerError)
 			return m.ErrorHandler(c, r, merr)
 		}
-		if !sameOrigin(expected, actual) {
+
+		if !m.OriginChecker(expected, actual) {
 			merr := merry.Errorf("presented Origin %v invalid, expected: %v", values[0], m.SiteURL)
 			merr = merr.WithUserMessagef("Invalid Origin header %v, expected: %v", values[0], m.SiteURL)
-			merr = merr.WithHTTPCode(http.StatusInternalServerError)
+			merr = merr.WithHTTPCode(http.StatusForbidden)
 			return m.ErrorHandler(c, r, merr)
 		}
 	} else if values, exists := r.Header["Referer"]; exists {
@@ -81,10 +112,10 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 			merr = merr.WithHTTPCode(http.StatusInternalServerError)
 			return m.ErrorHandler(c, r, merr)
 		}
-		if !sameOrigin(expected, actual) {
+		if !m.OriginChecker(expected, actual) {
 			merr := merry.Errorf("presented Referrer %v invalid, expected: %v", values[0], m.SiteURL)
 			merr = merr.WithUserMessagef("Invalid Referrer header %v, expected: %v", values[0], m.SiteURL)
-			merr = merr.WithHTTPCode(http.StatusInternalServerError)
+			merr = merr.WithHTTPCode(http.StatusForbidden)
 			return m.ErrorHandler(c, r, merr)
 		}
 	} else {
@@ -134,10 +165,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	return nil
 }
 
-func sameOrigin(expected, actual *url.URL) bool {
-	if prod, _ := env.GetBool("IS_PRODUCTION"); !prod {
-		return expected.Scheme == actual.Scheme && strings.HasSuffix(actual.Host, expected.Host)
-	}
+func (m *CSRFProtector) defaultOriginChecker(expected, actual *url.URL) bool {
 	return expected.Scheme == actual.Scheme && expected.Host == actual.Host
 }
 
