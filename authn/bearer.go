@@ -19,7 +19,7 @@ type BearerAuthnProvider struct {
 }
 
 func (m *BearerAuthnProvider) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
-	credentials, err := CommonTokenExtractor(ctx, r, "Bearer")
+	credentials, err := AuthenticationHeaderTokenExtractor(ctx, r, "Bearer")
 	if err != nil {
 		return nil, err
 	}

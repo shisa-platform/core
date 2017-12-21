@@ -16,7 +16,7 @@ import (
 // colon-concatentated userid-password as specified in RFC 7617.
 // An error is returned if the credentials cannot be extracted.
 func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token string, err merry.Error) {
-	rawCredentails, err := CommonTokenExtractor(ctx, r, "Basic")
+	rawCredentails, err := AuthenticationHeaderTokenExtractor(ctx, r, "Basic")
 	if err != nil {
 		return
 	}

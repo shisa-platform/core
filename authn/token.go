@@ -8,7 +8,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func CommonTokenExtractor(ctx context.Context, r *service.Request, scheme string) (token string, err merry.Error) {
+func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request, scheme string) (token string, err merry.Error) {
 	challenge := r.Header.Get(authHeaderKey)
 	if challenge == "" {
 		err = merry.New("no challenge provided")

@@ -10,61 +10,61 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func TestCommonTokenExtractorMissingHeader(t *testing.T) {
+func TestAuthenticationHeaderTokenExtractorMissingHeader(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	token, err := CommonTokenExtractor(ctx, request, "zalgo")
+	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
 	assert.Empty(t, token)
 	assert.NotNil(t, err)
 }
 
-func TestCommonTokenExtractorEmptyHeader(t *testing.T) {
+func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.Header.Set(authHeaderKey, "")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	token, err := CommonTokenExtractor(ctx, request, "zalgo")
+	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
 	assert.Empty(t, token)
 	assert.NotNil(t, err)
 }
 
-func TestCommonTokenExtractorBadChallenge(t *testing.T) {
+func TestAuthenticationHeaderTokenExtractorBadChallenge(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.Header.Set(authHeaderKey, "zalgo he comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	token, err := CommonTokenExtractor(ctx, request, "zalgo")
+	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
 	assert.Empty(t, token)
 	assert.NotNil(t, err)
 }
 
-func TestCommonTokenExtractorMissingScheme(t *testing.T) {
+func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.Header.Set(authHeaderKey, "zalgo")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	token, err := CommonTokenExtractor(ctx, request, "zalgo")
+	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
 	assert.Empty(t, token)
 	assert.NotNil(t, err)
 }
 
-func TestCommonTokenExtractorBadScheme(t *testing.T) {
+func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.Header.Set(authHeaderKey, "Foo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	token, err := CommonTokenExtractor(ctx, request, "zalgo")
+	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
 	assert.Empty(t, token)
 	assert.NotNil(t, err)
 }
 
-func TestCommonTokenExtractor(t *testing.T) {
+func TestAuthenticationHeaderTokenExtractor(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.Header.Set(authHeaderKey, "zalgo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	token, err := CommonTokenExtractor(ctx, request, "zalgo")
+	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
 	assert.Equal(t, "he:comes", token)
 	assert.Nil(t, err)
 }
