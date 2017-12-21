@@ -8,29 +8,29 @@ import (
 	"time"
 )
 
-// NameInvocation represents a single call of FakeServer.Name
-type NameInvocation struct {
+// ServerNameInvocation represents a single call of FakeServer.Name
+type ServerNameInvocation struct {
 	Results struct {
 		Ident1 string
 	}
 }
 
-// AddressInvocation represents a single call of FakeServer.Address
-type AddressInvocation struct {
+// ServerAddressInvocation represents a single call of FakeServer.Address
+type ServerAddressInvocation struct {
 	Results struct {
 		Ident1 string
 	}
 }
 
-// ServeInvocation represents a single call of FakeServer.Serve
-type ServeInvocation struct {
+// ServerServeInvocation represents a single call of FakeServer.Serve
+type ServerServeInvocation struct {
 	Results struct {
 		Ident1 error
 	}
 }
 
-// ShutdownInvocation represents a single call of FakeServer.Shutdown
-type ShutdownInvocation struct {
+// ServerShutdownInvocation represents a single call of FakeServer.Shutdown
+type ServerShutdownInvocation struct {
 	Parameters struct {
 		Ident1 time.Duration
 	}
@@ -69,10 +69,10 @@ type FakeServer struct {
 	ServeHook    func() error
 	ShutdownHook func(time.Duration) error
 
-	NameCalls     []*NameInvocation
-	AddressCalls  []*AddressInvocation
-	ServeCalls    []*ServeInvocation
-	ShutdownCalls []*ShutdownInvocation
+	NameCalls     []*ServerNameInvocation
+	AddressCalls  []*ServerAddressInvocation
+	ServeCalls    []*ServerServeInvocation
+	ShutdownCalls []*ServerShutdownInvocation
 }
 
 // NewFakeServerDefaultPanic returns an instance of FakeServer with all hooks configured to panic
@@ -138,14 +138,14 @@ func NewFakeServerDefaultError(t *testing.T) *FakeServer {
 }
 
 func (f *FakeServer) Reset() {
-	f.NameCalls = []*NameInvocation{}
-	f.AddressCalls = []*AddressInvocation{}
-	f.ServeCalls = []*ServeInvocation{}
-	f.ShutdownCalls = []*ShutdownInvocation{}
+	f.NameCalls = []*ServerNameInvocation{}
+	f.AddressCalls = []*ServerAddressInvocation{}
+	f.ServeCalls = []*ServerServeInvocation{}
+	f.ShutdownCalls = []*ServerShutdownInvocation{}
 }
 
 func (_f1 *FakeServer) Name() (ident1 string) {
-	invocation := new(NameInvocation)
+	invocation := new(ServerNameInvocation)
 
 	ident1 = _f1.NameHook()
 
@@ -209,7 +209,7 @@ func (f *FakeServer) AssertNameCalledN(t *testing.T, n int) {
 }
 
 func (_f2 *FakeServer) Address() (ident1 string) {
-	invocation := new(AddressInvocation)
+	invocation := new(ServerAddressInvocation)
 
 	ident1 = _f2.AddressHook()
 
@@ -273,7 +273,7 @@ func (f *FakeServer) AssertAddressCalledN(t *testing.T, n int) {
 }
 
 func (_f3 *FakeServer) Serve() (ident1 error) {
-	invocation := new(ServeInvocation)
+	invocation := new(ServerServeInvocation)
 
 	ident1 = _f3.ServeHook()
 
@@ -337,7 +337,7 @@ func (f *FakeServer) AssertServeCalledN(t *testing.T, n int) {
 }
 
 func (_f4 *FakeServer) Shutdown(ident1 time.Duration) (ident2 error) {
-	invocation := new(ShutdownInvocation)
+	invocation := new(ServerShutdownInvocation)
 
 	invocation.Parameters.Ident1 = ident1
 

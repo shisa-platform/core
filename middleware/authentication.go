@@ -18,9 +18,6 @@ var (
 //
 // `Provider` must be non-nil or a InternalServiceError status
 // response will be returned.
-// `Challenge` should be provided and will be returned as the
-// value of the "WWW-Authenticate" response header if the default
-// handlers are invoked.
 // `UnauthorizedHandler` can be set to optionally customize the
 // response for an unknown user.  The default handler will
 // return a 401 status code, the "WWW-Authenticate" header and an
@@ -32,7 +29,6 @@ var (
 // header and an empty body.
 type Authenticator struct {
 	Provider            authn.Provider
-	Challenge           string
 	UnauthorizedHandler service.Handler
 	ErrorHandler        service.ErrorHandler
 }
@@ -67,14 +63,16 @@ func (m *Authenticator) Service(ctx context.Context, r *service.Request) service
 
 func (m *Authenticator) defaultHandler(ctx context.Context, r *service.Request) service.Response {
 	response := service.NewEmpty(http.StatusUnauthorized)
-	response.Headers().Set(wwwAuthenticateHeaderKey, m.Challenge)
+	response.Headers().Set(wwwAuthenticateHeaderKey, m.Provider.Challenge())
 
 	return response
 }
 
 func (m *Authenticator) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	response := service.NewEmpty(merry.HTTPCode(err))
-	response.Headers().Set(wwwAuthenticateHeaderKey, m.Challenge)
+	if m.Provider != nil {
+		response.Headers().Set(wwwAuthenticateHeaderKey, m.Provider.Challenge())
+	}
 
 	return response
 }
