@@ -84,6 +84,18 @@ func TestCSRFProtector_Service(t *testing.T) {
 			assert.Equalf(t, tt.expectedStatus, resp.StatusCode(), "received %v response for %v when expected %v", resp.StatusCode(), tt, tt.expectedStatus)
 		}
 	}
+
+	epHttpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	epReq := &service.Request{
+		Request: epHttpReq,
+	}
+	ep := CSRFProtector{
+		ExemptChecker: func (c context.Context, r *service.Request) bool {
+			return true
+		},
+	}
+	resp := ep.Service(c, epReq)
+	assert.Nil(t, resp, "response should be nil for CSRF exempt request")
 }
 
 func dummyTokenExtractor(token string) authn.TokenExtractor {
