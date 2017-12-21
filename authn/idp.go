@@ -8,8 +8,8 @@ import (
 
 //go:generate charlatan -output=./idp_charlatan.go IdentityProvider
 
-// IdentityProvider is an service that resolves tokens into
-// pricipals.
+// IdentityProvider is a service that resolves tokens into
+// principals.
 type IdentityProvider interface {
 	Authenticate(string) (models.User, merry.Error)
 }
