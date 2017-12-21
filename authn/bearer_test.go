@@ -12,15 +12,21 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
+func mustMakeBearerProvder(idp IdentityProvider) Provider {
+	provider, err := NewBearerAuthenticationProvider(idp, "test")
+	if err != nil {
+		panic(err)
+	}
+
+	return provider
+}
+
 func TestBearerProviderBadScheme(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.Header.Set(authHeaderKey, "Foo zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	authn := &BearerAuthnProvider{
-		IdP:   NewFakeIdentityProviderDefaultFatal(t),
-		Realm: "test",
-	}
+	authn := mustMakeBearerProvder(NewFakeIdentityProviderDefaultFatal(t))
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -38,10 +44,7 @@ func TestBearerProviderUnknownToken(t *testing.T) {
 			return nil, nil
 		},
 	}
-	authn := &BearerAuthnProvider{
-		IdP:   idp,
-		Realm: "test",
-	}
+	authn := mustMakeBearerProvder(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -60,10 +63,7 @@ func TestBearerProviderIdPError(t *testing.T) {
 			return nil, merry.New("i blewed up!")
 		},
 	}
-	authn := &BearerAuthnProvider{
-		IdP:   idp,
-		Realm: "test",
-	}
+	authn := mustMakeBearerProvder(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -85,10 +85,7 @@ func TestBearerProvider(t *testing.T) {
 			return expectedUser, nil
 		},
 	}
-	authn := &BearerAuthnProvider{
-		IdP:   idp,
-		Realm: "test",
-	}
+	authn := mustMakeBearerProvder(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
@@ -97,11 +94,14 @@ func TestBearerProvider(t *testing.T) {
 }
 
 func TestBearerProviderChallenge(t *testing.T) {
-	authn := &BearerAuthnProvider{
-		IdP:   NewFakeIdentityProviderDefaultFatal(t),
-		Realm: "test",
-	}
+	authn := mustMakeBearerProvder(NewFakeIdentityProviderDefaultFatal(t))
 
 	challenge := authn.Challenge()
 	assert.Equal(t, "Bearer realm=\"test\"", challenge)
+}
+
+func TestBearerProviderConstructorNilIdp(t *testing.T) {
+	provider, err := NewBearerAuthenticationProvider(nil, "bar")
+	assert.Nil(t, provider)
+	assert.NotNil(t, err)
 }

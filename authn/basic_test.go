@@ -16,6 +16,15 @@ var (
 	fakeRequest = httptest.NewRequest("GET", "/foo", nil)
 )
 
+func mustMakeBasicProvder(idp IdentityProvider) Provider {
+	provider, err := NewBasicAuthenticationProvider(idp, "test")
+	if err != nil {
+		panic(err)
+	}
+
+	return provider
+}
+
 func TestBasicAuthTokenExtractorMissingHeader(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -90,10 +99,7 @@ func TestBasicAuthProviderBadToken(t *testing.T) {
 	request.Header.Set(authHeaderKey, "Basic x===")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	authn := &BasicAuthnProvider{
-		IdP:   NewFakeIdentityProviderDefaultFatal(t),
-		Realm: "test",
-	}
+	authn := mustMakeBasicProvder(NewFakeIdentityProviderDefaultFatal(t))
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -111,10 +117,7 @@ func TestBasicAuthProviderUnknownToken(t *testing.T) {
 			return nil, nil
 		},
 	}
-	authn := &BasicAuthnProvider{
-		IdP:   idp,
-		Realm: "test",
-	}
+	authn := mustMakeBasicProvder(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -133,10 +136,7 @@ func TestBasicAuthProviderIdPError(t *testing.T) {
 			return nil, merry.New("i blewed up!")
 		},
 	}
-	authn := &BasicAuthnProvider{
-		IdP:   idp,
-		Realm: "test",
-	}
+	authn := mustMakeBasicProvder(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -158,10 +158,7 @@ func TestBasicAuthProvider(t *testing.T) {
 			return expectedUser, nil
 		},
 	}
-	authn := &BasicAuthnProvider{
-		IdP:   idp,
-		Realm: "test",
-	}
+	authn := mustMakeBasicProvder(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
@@ -170,11 +167,14 @@ func TestBasicAuthProvider(t *testing.T) {
 }
 
 func TestBasicAuthProviderChallenge(t *testing.T) {
-	authn := &BasicAuthnProvider{
-		IdP:   NewFakeIdentityProviderDefaultFatal(t),
-		Realm: "test",
-	}
+	authn := mustMakeBasicProvder(NewFakeIdentityProviderDefaultFatal(t))
 
 	challenge := authn.Challenge()
 	assert.Equal(t, "Basic realm=\"test\"", challenge)
+}
+
+func TestBasicProviderConstructorNilIdp(t *testing.T) {
+	provider, err := NewBasicAuthenticationProvider(nil, "bar")
+	assert.Nil(t, provider)
+	assert.NotNil(t, err)
 }

@@ -33,27 +33,36 @@ func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token str
 	return
 }
 
-// BasicAuthnProvider implements Basic Access Authentication as
-// specified in RFC 7617.
-type BasicAuthnProvider struct {
-	IdP       IdentityProvider
-	Realm     string
+type basicAuthProvider struct {
+	idp       IdentityProvider
+	realm     string
 	challenge string
 }
 
-func (m *BasicAuthnProvider) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *basicAuthProvider) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
 	credentials, err := BasicAuthTokenExtractor(ctx, r)
 	if err != nil {
 		return nil, err
 	}
 
-	return m.IdP.Authenticate(credentials)
+	return m.idp.Authenticate(credentials)
 }
 
-func (m *BasicAuthnProvider) Challenge() string {
+func (m *basicAuthProvider) Challenge() string {
 	if m.challenge == "" {
-		m.challenge = fmt.Sprintf("Basic realm=%q", m.Realm)
+		m.challenge = fmt.Sprintf("Basic realm=%q", m.realm)
 	}
 
 	return m.challenge
+}
+
+// NewBasicAuthenticationProvider returns a provider implementing
+// Basic Access Authentication as specified in RFC 7617.
+// An error will be returned if the `idp` parameter is nil.
+func NewBasicAuthenticationProvider(idp IdentityProvider, realm string) (Provider, merry.Error) {
+	if idp == nil {
+		return nil, merry.New("Identity provider must be non-nil")
+	}
+
+	return &basicAuthProvider{idp: idp, realm: realm}, nil
 }

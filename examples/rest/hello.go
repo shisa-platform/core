@@ -26,19 +26,19 @@ type HelloService struct {
 }
 
 func NewHelloService() *HelloService {
+	idp := &SimpleIdentityProvider{
+		Users: []User{User{"1", "Boss", "password"}},
+	}
+	provider, err := authn.NewBasicAuthenticationProvider(idp, "hello")
+	if err != nil {
+		panic(err)
+	}
 	svc := &HelloService{
 		Policy: service.Policy{
 			TimeBudget:                  time.Millisecond * 5,
 			AllowTrailingSlashRedirects: true,
 		},
-		authn: middleware.Authenticator{
-			Provider: &authn.BasicAuthnProvider{
-				IdP: &SimpleIdentityProvider{
-					Users: []User{User{"1", "Boss", "password"}},
-				},
-				Realm: "hello",
-			},
-		},
+		authn: middleware.Authenticator{Provider: provider},
 	}
 	svc.endpoints = []service.Endpoint{
 		service.GetEndpointWithPolicy("/greeting", svc.Policy, svc.Greeting),
