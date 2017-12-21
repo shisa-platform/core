@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"crypto/subtle"
-	"github.com/ansel1/merry"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -54,35 +55,35 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 
 	expected, err := url.Parse(m.SiteURL)
 	if err != nil {
-		merr := merry.Errorf("failure parsing siteurl: %f", m.SiteURL)
-		merr = merr.WithUserMessagef("SiteURL %f is not a URL", m.SiteURL)
+		merr := merry.Errorf("failure parsing siteurl: %v", m.SiteURL)
+		merr = merr.WithUserMessagef("SiteURL %v is not a URL", m.SiteURL)
 		return m.ErrorHandler(c, r, merr)
 	}
 	if values, exists := r.Header["Origin"]; exists {
 		actual, err := url.Parse(values[0])
 		if err != nil {
-			merr := merry.Errorf("failure parsing Origin header: %f", values[0])
-			merr = merr.WithUserMessagef("Origin header is not a URL: %f", values[0])
+			merr := merry.Errorf("failure parsing Origin header: %v", values[0])
+			merr = merr.WithUserMessagef("Origin header is not a URL: %v", values[0])
 			merr = merr.WithHTTPCode(http.StatusInternalServerError)
 			return m.ErrorHandler(c, r, merr)
 		}
 		if !sameOrigin(expected, actual) {
-			merr := merry.Errorf("presented Origin %f invalid, expected: %f", values[0], m.SiteURL)
-			merr = merr.WithUserMessagef("Invalid Origin header %f, expected: %f", values[0], m.SiteURL)
+			merr := merry.Errorf("presented Origin %v invalid, expected: %v", values[0], m.SiteURL)
+			merr = merr.WithUserMessagef("Invalid Origin header %v, expected: %v", values[0], m.SiteURL)
 			merr = merr.WithHTTPCode(http.StatusInternalServerError)
 			return m.ErrorHandler(c, r, merr)
 		}
 	} else if values, exists := r.Header["Referer"]; exists {
 		actual, err := url.Parse(values[0])
 		if err != nil {
-			merr := merry.Errorf("failure parsing Referrer header: %f", values[0])
-			merr = merr.WithUserMessagef("Referrer header is not a URL: %f", values[0])
+			merr := merry.Errorf("failure parsing Referrer header: %v", values[0])
+			merr = merr.WithUserMessagef("Referrer header is not a URL: %v", values[0])
 			merr = merr.WithHTTPCode(http.StatusInternalServerError)
 			return m.ErrorHandler(c, r, merr)
 		}
 		if !sameOrigin(expected, actual) {
-			merr := merry.Errorf("presented Referrer %f invalid, expected: %f", values[0], m.SiteURL)
-			merr = merr.WithUserMessagef("Invalid Referrer header %f, expected: %f", values[0], m.SiteURL)
+			merr := merry.Errorf("presented Referrer %v invalid, expected: %v", values[0], m.SiteURL)
+			merr = merr.WithUserMessagef("Invalid Referrer header %v, expected: %v", values[0], m.SiteURL)
 			merr = merr.WithHTTPCode(http.StatusInternalServerError)
 			return m.ErrorHandler(c, r, merr)
 		}
@@ -103,12 +104,12 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	}
 	if len(cookie.Value) != m.TokenLength {
 		merr := merry.New("invalid CSRF cookie")
-		merr = merry.WithUserMessage("Invalid CSRF cookie presented")
+		merr = merr.WithUserMessage("Invalid CSRF cookie presented")
 		merr = merr.WithHTTPCode(http.StatusForbidden)
 		return m.ErrorHandler(c, r, merr)
 	}
 
-	token, err := m.ExtractToken(r)
+	token, err := m.ExtractToken(c, r)
 	if err != nil {
 		merr := merry.Wrap(err)
 		merr = merr.WithMessage("invalid CSRF token")
