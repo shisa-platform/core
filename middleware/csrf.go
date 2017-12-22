@@ -19,34 +19,38 @@ const (
 
 // ExemptChecker is a function that takes a context and a
 // service.Request reference and determines whether the request
-// should be exempt from CSRF protextion
+// should be exempt from CSRF protection
 type ExemptChecker func(context.Context, *service.Request) bool
 
 // OriginChecker is a function that takes two url.URLs and returns
 // a `bool` denoting whether they should be considered the "same"
 // for the purposes of CSRF protection
-type OriginChecker func(expected, actual *url.URL) bool
+type OriginChecker func(expected, actual url.URL) bool
 
 // CSRFProtector is middleware used to guard against CSRF attacks.
 type CSRFProtector struct {
-	// SiteURL is a string denoting the URL to use for CSRF protection
-	SiteURL string
+	// SiteURL denotes the URL to use for CSRF protection - must be non-nil
+	// and contain non-empty Scheme and Host values
+	SiteURL url.URL
 
-	// ExtractToken is an authn.TokenExtractor that returns the CSRF
+	// ExtractToken is an authn.TokenExtractor that returns the CSRF token
 	ExtractToken authn.TokenExtractor
 
-	// CookieName can be set to optionally customize the cookie name
+	// CookieName can be set to optionally customize the cookie name,
+	// defaults to "csrftoken"
 	CookieName string
 
-	// TokenLength can be set to optionally customize the CSRF token
+	// TokenLength can be set to optionally customize the expected
+	// CSRF token length, defaults to 32
 	TokenLength int
 
-	// ExemptChecker determines whether the request should be exempt
-	// from CSRF protection based on context.Context and *service.Request
+	// ExemptChecker optionally determines whether the request should
+	// be exempt, by default returns `false`
 	ExemptChecker ExemptChecker
 
-	// OriginChecker determines whether the proviced URLs should be
-	// considered the "same" for the purposes of CSRF protection
+	// OriginChecker determines whether the provided URLs should be
+	// considered the "same" for the purposes of CSRF protection.
+	// By default ensures that URL Scheme and Host are equal
 	OriginChecker OriginChecker
 
 	// ErrorHandler can be set to optionally customize the response
@@ -69,6 +73,10 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		m.OriginChecker = m.defaultOriginChecker
 	}
 
+	if m.ExtractToken == nil {
+		m.ExtractToken = m.defaultTokenExtractor
+	}
+
 	if m.CookieName == "" {
 		m.CookieName = defaultCookieName
 	}
@@ -77,50 +85,48 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		m.TokenLength = defaultTokenLength
 	}
 
+	if m.SiteURL.String() == "" || m.SiteURL.Host == "" || m.SiteURL.Scheme == "" {
+		merr := merry.New("invalid SiteURL")
+		merr = merr.WithUserMessage("CSRFProtector.SiteURL must be non-nil and contain Scheme + Host")
+		merr = merr.WithHTTPCode(http.StatusInternalServerError)
+		return m.ErrorHandler(c, r, merr)
+	}
+
 	if m.ExemptChecker(c, r) {
 		return nil
 	}
 
-	var err error
-
-	expected, err := url.Parse(m.SiteURL)
-	if err != nil {
-		merr := merry.Errorf("failure parsing siteurl: %v", m.SiteURL)
-		merr = merr.WithUserMessagef("SiteURL %v is not a URL", m.SiteURL)
+	values, exists := r.Header["Origin"]
+	if !exists {
+		values, exists = r.Header["Referer"]
+	}
+	if !exists {
+		merr := merry.New("no Origin/Referer header")
+		merr = merr.WithUserMessage("Either Origin or Referrer header must be presented")
+		merr = merr.WithHTTPCode(http.StatusForbidden)
 		return m.ErrorHandler(c, r, merr)
 	}
-	if values, exists := r.Header["Origin"]; exists {
-		actual, err := url.Parse(values[0])
-		if err != nil {
-			merr := merry.Errorf("failure parsing Origin header: %v", values[0])
-			merr = merr.WithUserMessagef("Origin header is not a URL: %v", values[0])
-			merr = merr.WithHTTPCode(http.StatusInternalServerError)
-			return m.ErrorHandler(c, r, merr)
-		}
+	if len(values) != 1 {
+		merr := merry.New("too many Origin/Referer values")
+		merr = merr.WithUserMessage("Too many values provided for Origin or Referer header")
+		merr = merr.WithHTTPCode(http.StatusForbidden)
+		return m.ErrorHandler(c, r, merr)
+	}
 
-		if !m.OriginChecker(expected, actual) {
-			merr := merry.Errorf("presented Origin %v invalid, expected: %v", values[0], m.SiteURL)
-			merr = merr.WithUserMessagef("Invalid Origin header %v, expected: %v", values[0], m.SiteURL)
-			merr = merr.WithHTTPCode(http.StatusForbidden)
-			return m.ErrorHandler(c, r, merr)
-		}
-	} else if values, exists := r.Header["Referer"]; exists {
-		actual, err := url.Parse(values[0])
-		if err != nil {
-			merr := merry.Errorf("failure parsing Referrer header: %v", values[0])
-			merr = merr.WithUserMessagef("Referrer header is not a URL: %v", values[0])
-			merr = merr.WithHTTPCode(http.StatusInternalServerError)
-			return m.ErrorHandler(c, r, merr)
-		}
-		if !m.OriginChecker(expected, actual) {
-			merr := merry.Errorf("presented Referrer %v invalid, expected: %v", values[0], m.SiteURL)
-			merr = merr.WithUserMessagef("Invalid Referrer header %v, expected: %v", values[0], m.SiteURL)
-			merr = merr.WithHTTPCode(http.StatusForbidden)
-			return m.ErrorHandler(c, r, merr)
-		}
-	} else {
-		merr := merry.New("no Origin or Referer header presented")
-		merr = merr.WithUserMessage("Missing Origin or Referrer header")
+
+	var err error
+
+	actual, err := url.Parse(values[0])
+	if err != nil {
+		merr := merry.Wrap(err)
+		merr = merr.WithUserMessagef("Origin/Referer header is not a URL: %v", values[0])
+		merr = merr.WithHTTPCode(http.StatusForbidden)
+		return m.ErrorHandler(c, r, merr)
+	}
+
+	if !m.OriginChecker(m.SiteURL, *actual) {
+		merr := merry.Errorf("invalid origin")
+		merr = merr.WithUserMessagef("Origin/Referer header invalid: %v, expected: %v", values[0], m.SiteURL)
 		merr = merr.WithHTTPCode(http.StatusForbidden)
 		return m.ErrorHandler(c, r, merr)
 	}
@@ -128,8 +134,8 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	cookie, err := r.Cookie(m.CookieName)
 	if err != nil {
 		merr := merry.Wrap(err)
-		merr = merr.WithMessage("no CSRF cookie presented")
-		merr = merr.WithUserMessage("Missing Origin or Referrer header")
+		merr = merr.WithMessage("no csrf cookie")
+		merr = merr.WithUserMessage("CSRF Cookie must be presented")
 		merr = merr.WithHTTPCode(http.StatusForbidden)
 		return m.ErrorHandler(c, r, merr)
 	}
@@ -143,8 +149,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	token, err := m.ExtractToken(c, r)
 	if err != nil {
 		merr := merry.Wrap(err)
-		merr = merr.WithMessage("invalid CSRF token")
-		merr = merr.WithUserMessage("Invalid CSRF token")
+		merr = merr.WithUserMessage("Unable to find CSRF token")
 		merr = merr.WithHTTPCode(http.StatusForbidden)
 		return m.ErrorHandler(c, r, merr)
 	}
@@ -165,7 +170,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	return nil
 }
 
-func (m *CSRFProtector) defaultOriginChecker(expected, actual *url.URL) bool {
+func (m *CSRFProtector) defaultOriginChecker(expected, actual url.URL) bool {
 	return expected.Scheme == actual.Scheme && expected.Host == actual.Host
 }
 
@@ -175,4 +180,12 @@ func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Requ
 
 func (m *CSRFProtector) defaultExemptChecker(c context.Context, r *service.Request) bool {
 	return false
+}
+
+func (m *CSRFProtector) defaultTokenExtractor(c context.Context, r *service.Request) (token string, err merry.Error) {
+	token = r.Header.Get("X-Csrf-Token")
+	if token == "" {
+		err = merry.New("missing X-Csrf-Token header")
+	}
+	return
 }

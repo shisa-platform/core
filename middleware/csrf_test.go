@@ -11,11 +11,15 @@ import (
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
+	"net/url"
+	"strings"
 )
 
 func TestCSRFProtector_Service(t *testing.T) {
 	defaultSecret := "%wgc83eKEPgdvOBn0NSPG_qsf11VSZLG"
 	defaultInvalidSecret := "123483eKEPgdvOBn0NSPG_qsf11VSZLG"
+	defaultSiteURL := "http://example.com"
+
 	c := context.New(nil)
 
 	servicetests := []struct {
@@ -27,37 +31,43 @@ func TestCSRFProtector_Service(t *testing.T) {
 		expectedStatus int
 	}{
 		// Missing Origin/Referer headers
-		{"", "", "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
-		// Unparseable SiteUrl
-		{"Origin", "http://example.com", ":", defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"", "", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		// Nil SiteUrl
+		{"Origin", defaultSiteURL, "", defaultSecret, defaultSecret, http.StatusInternalServerError},
 		// Unparseable Origin
-		{"Origin", ":", "http://example.com", defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"Origin", ":", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		// Multiple Origin Headers
+		{"Origin", "http://example.com,http://malicious.com", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
 		// Mismatched Origin/SiteUrl
-		{"Origin", "http://malicious.com", "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
+		{"Origin", "http://malicious.com", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
 		// Unparseable Referer
-		{"Referer", ":", "http://example.com", defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"Referer", ":", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
 		// Mismatched Referer/SiteUrl
-		{"Referer", "http://malicious.com", "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
+		{"Referer", "http://malicious.com", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
 		// Success - Origin header
-		{"Origin", "http://example.com", "http://example.com", defaultSecret, defaultSecret, 0},
+		{"Origin", defaultSiteURL, defaultSiteURL, defaultSecret, defaultSecret, 0},
 		// Success - Referer header
-		{"Referer", "http://example.com", "http://example.com", defaultSecret, defaultSecret, 0},
+		{"Referer", defaultSiteURL, defaultSiteURL, defaultSecret, defaultSecret, 0},
 		// No cookie present
-		{"Referer", "http://example.com", "http://example.com", defaultSecret, "", http.StatusForbidden},
+		{"Referer", defaultSiteURL, defaultSiteURL, defaultSecret, "", http.StatusForbidden},
 		// Wrong length cookie value
-		{"Referer", "http://example.com", "http://example.com", defaultSecret, "wronglength", http.StatusForbidden},
+		{"Referer", defaultSiteURL, defaultSiteURL, defaultSecret, "wronglength", http.StatusForbidden},
 		// Error extracting token
-		{"Referer", "http://example.com", "http://example.com", "", defaultSecret, http.StatusForbidden},
+		{"Referer", defaultSiteURL, defaultSiteURL, "", defaultSecret, http.StatusForbidden},
 		// Wrong-length token
-		{"Referer", "http://example.com", "http://example.com", "wronglength", defaultSecret, http.StatusForbidden},
+		{"Referer", defaultSiteURL, defaultSiteURL, "wronglength", defaultSecret, http.StatusForbidden},
 		// Invalid token
-		{"Referer", "http://example.com", "http://example.com", defaultInvalidSecret, defaultSecret, http.StatusForbidden},
+		{"Referer", defaultSiteURL, defaultSiteURL, defaultInvalidSecret, defaultSecret, http.StatusForbidden},
 	}
 
 	for _, tt := range servicetests {
+		s, err := url.Parse(tt.siteurl)
+		if err != nil {
+			t.Errorf("error parsing url: ", err)
+			continue
+		}
 		p := CSRFProtector{
-			SiteURL:      tt.siteurl,
-			ExtractToken: dummyTokenExtractor(tt.token),
+			SiteURL:      *s,
 		}
 
 		httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
@@ -66,8 +76,12 @@ func TestCSRFProtector_Service(t *testing.T) {
 		}
 
 		if tt.headerKey != "" {
-			req.Header.Set(tt.headerKey, tt.headerVal)
+			vals := strings.Split(tt.headerVal, ",")
+			for _, v := range vals {
+				req.Header.Add(tt.headerKey, v)
+			}
 		}
+		req.Header.Add("X-CSRF-Token", tt.token)
 
 		if tt.cookieVal != "" {
 			req.AddCookie(&http.Cookie{
@@ -89,7 +103,14 @@ func TestCSRFProtector_Service(t *testing.T) {
 	epReq := &service.Request{
 		Request: epHttpReq,
 	}
+
+	s, err := url.Parse(defaultSiteURL)
+	if err != nil {
+		t.Errorf("error parsing url: ", err)
+	}
+
 	ep := CSRFProtector{
+		SiteURL: *s,
 		ExemptChecker: func(c context.Context, r *service.Request) bool {
 			return true
 		},
