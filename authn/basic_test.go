@@ -16,13 +16,13 @@ var (
 	fakeRequest = httptest.NewRequest("GET", "/foo", nil)
 )
 
-func mustMakeBasicProvder(idp IdentityProvider) Provider {
-	provider, err := NewBasicAuthenticationProvider(idp, "test")
+func mustMakeBasicAuthenticator(idp IdentityProvider) Authenticator {
+	authenticator, err := NewBasicAuthenticator(idp, "test")
 	if err != nil {
 		panic(err)
 	}
 
-	return provider
+	return authenticator
 }
 
 func TestBasicAuthTokenExtractorMissingHeader(t *testing.T) {
@@ -94,19 +94,19 @@ func TestBasicAuthTokenExtractor(t *testing.T) {
 	assert.Equal(t, "foo:bar", token)
 }
 
-func TestBasicAuthProviderBadToken(t *testing.T) {
+func TestBasicAuthenticatorBadToken(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	request.Header.Set(authHeaderKey, "Basic x===")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	authn := mustMakeBasicProvder(NewFakeIdentityProviderDefaultFatal(t))
+	authn := mustMakeBasicAuthenticator(NewFakeIdentityProviderDefaultFatal(t))
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
 	assert.NotNil(t, err)
 }
 
-func TestBasicAuthProviderUnknownToken(t *testing.T) {
+func TestBasicAuthenticatorUnknownToken(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -117,7 +117,7 @@ func TestBasicAuthProviderUnknownToken(t *testing.T) {
 			return nil, nil
 		},
 	}
-	authn := mustMakeBasicProvder(idp)
+	authn := mustMakeBasicAuthenticator(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -125,7 +125,7 @@ func TestBasicAuthProviderUnknownToken(t *testing.T) {
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
-func TestBasicAuthProviderIdPError(t *testing.T) {
+func TestBasicAuthenticatorIdPError(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -136,7 +136,7 @@ func TestBasicAuthProviderIdPError(t *testing.T) {
 			return nil, merry.New("i blewed up!")
 		},
 	}
-	authn := mustMakeBasicProvder(idp)
+	authn := mustMakeBasicAuthenticator(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -144,7 +144,7 @@ func TestBasicAuthProviderIdPError(t *testing.T) {
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
-func TestBasicAuthProvider(t *testing.T) {
+func TestBasicAuthenticator(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -158,7 +158,7 @@ func TestBasicAuthProvider(t *testing.T) {
 			return expectedUser, nil
 		},
 	}
-	authn := mustMakeBasicProvder(idp)
+	authn := mustMakeBasicAuthenticator(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
@@ -166,15 +166,15 @@ func TestBasicAuthProvider(t *testing.T) {
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
-func TestBasicAuthProviderChallenge(t *testing.T) {
-	authn := mustMakeBasicProvder(NewFakeIdentityProviderDefaultFatal(t))
+func TestBasicAuthenticatorChallenge(t *testing.T) {
+	authn := mustMakeBasicAuthenticator(NewFakeIdentityProviderDefaultFatal(t))
 
 	challenge := authn.Challenge()
 	assert.Equal(t, "Basic realm=\"test\"", challenge)
 }
 
 func TestBasicProviderConstructorNilIdp(t *testing.T) {
-	provider, err := NewBasicAuthenticationProvider(nil, "bar")
+	provider, err := NewBasicAuthenticator(nil, "bar")
 	assert.Nil(t, provider)
 	assert.NotNil(t, err)
 }

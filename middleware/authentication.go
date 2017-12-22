@@ -16,7 +16,7 @@ var (
 
 // Authenticator is middleware to help automate authentication.
 //
-// `Provider` must be non-nil or a InternalServiceError status
+// `Authenticator` must be non-nil or a InternalServiceError status
 // response will be returned.
 // `UnauthorizedHandler` can be set to optionally customize the
 // response for an unknown user.  The default handler will
@@ -28,7 +28,7 @@ var (
 // return the recommended status code, the "WWW-Authenticate"
 // header and an empty body.
 type Authenticator struct {
-	Provider            authn.Provider
+	Authenticator       authn.Authenticator
 	UnauthorizedHandler service.Handler
 	ErrorHandler        service.ErrorHandler
 }
@@ -41,14 +41,14 @@ func (m *Authenticator) Service(ctx context.Context, r *service.Request) service
 		m.UnauthorizedHandler = m.defaultHandler
 	}
 
-	if m.Provider == nil {
-		err := merry.New("authn.Provider is nil")
-		err = err.WithUserMessage("Authenticator.Provider must be non-nil")
+	if m.Authenticator == nil {
+		err := merry.New("authn.Authenticator is nil")
+		err = err.WithUserMessage("Authenticator.Authenticator must be non-nil")
 		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	user, err := m.Provider.Authenticate(ctx, r)
+	user, err := m.Authenticator.Authenticate(ctx, r)
 	if err != nil {
 		err = err.WithHTTPCode(http.StatusUnauthorized)
 		return m.ErrorHandler(ctx, r, err)
@@ -63,15 +63,15 @@ func (m *Authenticator) Service(ctx context.Context, r *service.Request) service
 
 func (m *Authenticator) defaultHandler(ctx context.Context, r *service.Request) service.Response {
 	response := service.NewEmpty(http.StatusUnauthorized)
-	response.Headers().Set(wwwAuthenticateHeaderKey, m.Provider.Challenge())
+	response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
 
 func (m *Authenticator) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	response := service.NewEmpty(merry.HTTPCode(err))
-	if m.Provider != nil {
-		response.Headers().Set(wwwAuthenticateHeaderKey, m.Provider.Challenge())
+	if m.Authenticator != nil {
+		response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
 
 	return response

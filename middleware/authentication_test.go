@@ -20,7 +20,7 @@ var (
 	expectedChallenge = "Brute realm=\"Outer Space\""
 )
 
-func TestNilProvider(t *testing.T) {
+func TestNilAuthenticator(t *testing.T) {
 	cut := &Authenticator{}
 
 	request := &service.Request{Request: fakeRequest}
@@ -33,7 +33,7 @@ func TestNilProvider(t *testing.T) {
 }
 
 func TestAuthnError(t *testing.T) {
-	authn := &authn.FakeProvider{
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
@@ -43,7 +43,7 @@ func TestAuthnError(t *testing.T) {
 	}
 
 	cut := &Authenticator{
-		Provider: authn,
+		Authenticator: authn,
 	}
 
 	request := &service.Request{Request: fakeRequest}
@@ -58,7 +58,7 @@ func TestAuthnError(t *testing.T) {
 }
 
 func TestOK(t *testing.T) {
-	authn := &authn.FakeProvider{
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return expectedUser, nil
 		},
@@ -68,7 +68,7 @@ func TestOK(t *testing.T) {
 	}
 
 	cut := &Authenticator{
-		Provider: authn,
+		Authenticator: authn,
 	}
 
 	request := &service.Request{Request: fakeRequest}
@@ -84,7 +84,7 @@ func TestOK(t *testing.T) {
 }
 
 func TestUnauthorized(t *testing.T) {
-	authn := &authn.FakeProvider{
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
@@ -94,7 +94,7 @@ func TestUnauthorized(t *testing.T) {
 	}
 
 	cut := &Authenticator{
-		Provider: authn,
+		Authenticator: authn,
 	}
 
 	request := &service.Request{Request: fakeRequest}
@@ -109,7 +109,7 @@ func TestUnauthorized(t *testing.T) {
 }
 
 func TestCustomHandler(t *testing.T) {
-	authn := &authn.FakeProvider{
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
@@ -124,7 +124,7 @@ func TestCustomHandler(t *testing.T) {
 	challenge := "Custom realm=\"secrets, inc\""
 	var handlerInvoked bool
 	cut := &Authenticator{
-		Provider: authn,
+		Authenticator: authn,
 		UnauthorizedHandler: func(c context.Context, r *service.Request) service.Response {
 			handlerInvoked = true
 			assert.Equal(t, ctx, c)
@@ -149,7 +149,7 @@ func TestCustomHandler(t *testing.T) {
 }
 
 func TestCustomErrorHandler(t *testing.T) {
-	authn := &authn.FakeProvider{
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
@@ -164,7 +164,7 @@ func TestCustomErrorHandler(t *testing.T) {
 
 	var errorHandlerInvoked bool
 	cut := &Authenticator{
-		Provider: authn,
+		Authenticator: authn,
 		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
 			errorHandlerInvoked = true
 			assert.Equal(t, ctx, c)
