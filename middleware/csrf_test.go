@@ -19,39 +19,39 @@ func TestCSRFProtector_Service(t *testing.T) {
 	c := context.New(nil)
 
 	servicetests := []struct {
-		headerKeys     []string
-		headerVals     []string
+		headerKey     string
+		headerVal     	string
 		siteurl        string
 		token          string
 		cookieVal      string
 		expectedStatus int
 	}{
 		// Missing Origin/Referer headers
-		{[]string{}, []string{}, "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
+		{"", "", "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
 		// Unparseable SiteUrl
-		{[]string{"Origin"}, []string{"http://example.com"}, ":", defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"Origin", "http://example.com", ":", defaultSecret, defaultSecret, http.StatusInternalServerError},
 		// Unparseable Origin
-		{[]string{"Origin"}, []string{":"}, "http://example.com", defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"Origin", ":", "http://example.com", defaultSecret, defaultSecret, http.StatusInternalServerError},
 		// Mismatched Origin/SiteUrl
-		{[]string{"Origin"}, []string{"http://malicious.com"}, "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
+		{"Origin", "http://malicious.com", "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
 		// Unparseable Referer
-		{[]string{"Referer"}, []string{":"}, "http://example.com", defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"Referer", ":", "http://example.com", defaultSecret, defaultSecret, http.StatusInternalServerError},
 		// Mismatched Referer/SiteUrl
-		{[]string{"Referer"}, []string{"http://malicious.com"}, "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
+		{"Referer", "http://malicious.com", "http://example.com", defaultSecret, defaultSecret, http.StatusForbidden},
 		// Success - Origin header
-		{[]string{"Origin"}, []string{"http://example.com"}, "http://example.com", defaultSecret, defaultSecret, 0},
+		{"Origin", "http://example.com", "http://example.com", defaultSecret, defaultSecret, 0},
 		// Success - Referer header
-		{[]string{"Referer"}, []string{"http://example.com"}, "http://example.com", defaultSecret, defaultSecret, 0},
+		{"Referer", "http://example.com", "http://example.com", defaultSecret, defaultSecret, 0},
 		// No cookie present
-		{[]string{"Referer"}, []string{"http://example.com"}, "http://example.com", defaultSecret, "", http.StatusForbidden},
+		{"Referer", "http://example.com", "http://example.com", defaultSecret, "", http.StatusForbidden},
 		// Wrong length cookie value
-		{[]string{"Referer"}, []string{"http://example.com"}, "http://example.com", defaultSecret, "wronglength", http.StatusForbidden},
+		{"Referer", "http://example.com", "http://example.com", defaultSecret, "wronglength", http.StatusForbidden},
 		// Error extracting token
-		{[]string{"Referer"}, []string{"http://example.com"}, "http://example.com", "", defaultSecret, http.StatusForbidden},
+		{"Referer", "http://example.com", "http://example.com", "", defaultSecret, http.StatusForbidden},
 		// Wrong-length token
-		{[]string{"Referer"}, []string{"http://example.com"}, "http://example.com", "wronglength", defaultSecret, http.StatusForbidden},
+		{"Referer", "http://example.com", "http://example.com", "wronglength", defaultSecret, http.StatusForbidden},
 		// Invalid token
-		{[]string{"Referer"}, []string{"http://example.com"}, "http://example.com", defaultInvalidSecret, defaultSecret, http.StatusForbidden},
+		{"Referer", "http://example.com", "http://example.com", defaultInvalidSecret, defaultSecret, http.StatusForbidden},
 	}
 
 	for _, tt := range servicetests {
@@ -65,8 +65,8 @@ func TestCSRFProtector_Service(t *testing.T) {
 			Request: httpReq,
 		}
 
-		for i, k := range tt.headerKeys {
-			req.Header.Add(k, tt.headerVals[i])
+		if tt.headerKey != "" {
+			req.Header.Set(tt.headerKey, tt.headerVal)
 		}
 
 		if tt.cookieVal != "" {
