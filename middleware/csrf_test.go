@@ -19,8 +19,8 @@ func TestCSRFProtector_Service(t *testing.T) {
 	c := context.New(nil)
 
 	servicetests := []struct {
-		headerKey     string
-		headerVal     	string
+		headerKey      string
+		headerVal      string
 		siteurl        string
 		token          string
 		cookieVal      string
