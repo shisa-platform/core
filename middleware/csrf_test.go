@@ -63,7 +63,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 	for _, tt := range servicetests {
 		s, err := url.Parse(tt.siteurl)
 		if err != nil {
-			t.Errorf("error parsing url: ", err)
+			t.Errorf("error parsing url: %v", err)
 			continue
 		}
 		p := CSRFProtector{
@@ -106,7 +106,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	s, err := url.Parse(defaultSiteURL)
 	if err != nil {
-		t.Errorf("error parsing url: ", err)
+		t.Errorf("error parsing url: %v", err)
 	}
 
 	ep := CSRFProtector{
