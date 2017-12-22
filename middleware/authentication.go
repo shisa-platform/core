@@ -14,7 +14,7 @@ var (
 	wwwAuthenticateHeaderKey = http.CanonicalHeaderKey("WWW-Authenticate")
 )
 
-// Authenticator is middleware to help automate authentication.
+// Authentication is middleware to help automate authentication.
 //
 // `Authenticator` must be non-nil or a InternalServiceError status
 // response will be returned.
@@ -27,13 +27,13 @@ var (
 // have a recommended HTTP status code. The default handler will
 // return the recommended status code, the "WWW-Authenticate"
 // header and an empty body.
-type Authenticator struct {
+type Authentication struct {
 	Authenticator       authn.Authenticator
 	UnauthorizedHandler service.Handler
 	ErrorHandler        service.ErrorHandler
 }
 
-func (m *Authenticator) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) Service(ctx context.Context, r *service.Request) service.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -61,14 +61,14 @@ func (m *Authenticator) Service(ctx context.Context, r *service.Request) service
 	return nil
 }
 
-func (m *Authenticator) defaultHandler(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) service.Response {
 	response := service.NewEmpty(http.StatusUnauthorized)
 	response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
 
-func (m *Authenticator) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	response := service.NewEmpty(merry.HTTPCode(err))
 	if m.Authenticator != nil {
 		response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())

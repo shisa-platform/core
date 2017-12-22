@@ -31,7 +31,7 @@ func NewHelloService() *HelloService {
 	if err != nil {
 		panic(err)
 	}
-	authn := middleware.Authenticator{Authenticator: authenticator}
+	authn := middleware.Authentication{Authenticator: authenticator}
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
