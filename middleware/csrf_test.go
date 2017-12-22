@@ -3,6 +3,8 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/ansel1/merry"
@@ -11,8 +13,6 @@ import (
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
-	"net/url"
-	"strings"
 )
 
 func TestCSRFProtector_Service(t *testing.T) {
@@ -67,7 +67,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 			continue
 		}
 		p := CSRFProtector{
-			SiteURL:      *s,
+			SiteURL: *s,
 		}
 
 		httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)

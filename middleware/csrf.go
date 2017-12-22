@@ -113,7 +113,6 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		return m.ErrorHandler(c, r, merr)
 	}
 
-
 	var err error
 
 	actual, err := url.Parse(values[0])
