@@ -11,6 +11,11 @@ import (
 // ErrorHandler creates a response for the given error condition.
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
+// Service is a logical grouping of related endpoints.
+// Examples of relationships are serving the same product
+// vertical or requiring the same resources.  This is an
+// interface instead of a struct so that implementations can
+// store dependencies in the struct.
 type Service interface {
 	Name() string          // Service name.  Required.
 	Endpoints() []Endpoint // Service endpoints. Requried.
