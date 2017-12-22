@@ -16,8 +16,8 @@ var (
 
 // Authentication is middleware to help automate authentication.
 //
-// `Authenticator` must be non-nil or a InternalServiceError status
-// response will be returned.
+// `Authenticator` must be non-nil or an InternalServiceError
+// status response will be returned.
 // `UnauthorizedHandler` can be set to optionally customize the
 // response for an unknown user.  The default handler will
 // return a 401 status code, the "WWW-Authenticate" header and an
