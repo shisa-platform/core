@@ -76,3 +76,26 @@ func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Req
 
 	return response
 }
+
+// PassiveAuthentication is middleware to help automate optional
+// authentication.
+// If the authenticator returns a principal it will be added to
+// the context. An error response will never be generated from
+// the results of the authenticator.
+// `Authenticator` must be non-nil or an InternalServiceError
+// status response will be returned.
+type PassiveAuthentication struct {
+	Authenticator authn.Authenticator
+}
+
+func (m *PassiveAuthentication) Service(ctx context.Context, r *service.Request) service.Response {
+	if m.Authenticator == nil {
+		return service.NewEmpty(http.StatusInternalServerError)
+	}
+
+	if user, _ := m.Authenticator.Authenticate(ctx, r); user != nil {
+		ctx = ctx.WithActor(user)
+	}
+
+	return nil
+}

@@ -189,3 +189,85 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
+
+func TestPassiveAuthenticationNilAuthenticator(t *testing.T) {
+	cut := &PassiveAuthentication{}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+	response := cut.Service(ctx, request)
+
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+	assert.Equal(t, "", response.Headers().Get(wwwAuthenticateHeaderKey))
+}
+
+func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, merry.New("I blewed up!")
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationUnknownPrincipal(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			t.Fatal("unexpected call to Challenge")
+			return ""
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationOK(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return expectedUser, nil
+		},
+		ChallengeHook: func() string {
+			t.Fatal("unexpected call to Challenge")
+			return ""
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx.WithActorHook = func(value models.User) context.Context { return ctx }
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+	ctx.AssertWithActorCalledOnceWith(t, expectedUser)
+}
