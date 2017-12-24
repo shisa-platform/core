@@ -15,11 +15,61 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func TestCSRFProtector_Service(t *testing.T) {
-	defaultSecret := "%wgc83eKEPgdvOBn0NSPG_qsf11VSZLG"
-	defaultInvalidSecret := "123483eKEPgdvOBn0NSPG_qsf11VSZLG"
-	defaultSiteURL := "http://example.com"
+const (
+	defaultSecret = "%wgc83eKEPgdvOBn0NSPG_qsf11VSZLG"
+	defaultInvalidSecret = "123483eKEPgdvOBn0NSPG_qsf11VSZLG"
+	defaultSiteURL = "http://example.com"
+)
 
+type serviceTest struct {
+		headerKey      string
+		headerVal      string
+		siteurl        string
+		token          string
+		cookieVal      string
+		expectedStatus int
+}
+
+func checkServiceTest(t *testing.T, c context.Context, st serviceTest) {
+		s, err := url.Parse(st.siteurl)
+		if err != nil {
+			t.Errorf("error parsing url: %v", err)
+			return
+		}
+		p := CSRFProtector{
+			SiteURL: *s,
+		}
+
+		httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+		req := &service.Request{
+			Request: httpReq,
+		}
+
+		if st.headerKey != "" {
+			vals := strings.Split(st.headerVal, ",")
+			for _, v := range vals {
+				req.Header.Add(st.headerKey, v)
+			}
+		}
+		req.Header.Add("X-CSRF-Token", st.token)
+
+		if st.cookieVal != "" {
+			req.AddCookie(&http.Cookie{
+				Name:  defaultCookieName,
+				Value: st.cookieVal,
+			})
+		}
+
+		resp := p.Service(c, req)
+
+		if resp == nil {
+			assert.Zerof(t, st.expectedStatus, "%v response for %v when expected %v", resp, st, st.expectedStatus)
+		} else {
+			assert.Equalf(t, st.expectedStatus, resp.StatusCode(), "received %v response for %v when expected %v", resp.StatusCode(), st, st.expectedStatus)
+		}
+}
+
+func TestCSRFProtector_Service(t *testing.T) {
 	c := context.New(nil)
 
 	servicetests := []struct {
@@ -61,44 +111,10 @@ func TestCSRFProtector_Service(t *testing.T) {
 	}
 
 	for _, tt := range servicetests {
-		s, err := url.Parse(tt.siteurl)
-		if err != nil {
-			t.Errorf("error parsing url: %v", err)
-			continue
-		}
-		p := CSRFProtector{
-			SiteURL: *s,
-		}
-
-		httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-		req := &service.Request{
-			Request: httpReq,
-		}
-
-		if tt.headerKey != "" {
-			vals := strings.Split(tt.headerVal, ",")
-			for _, v := range vals {
-				req.Header.Add(tt.headerKey, v)
-			}
-		}
-		req.Header.Add("X-CSRF-Token", tt.token)
-
-		if tt.cookieVal != "" {
-			req.AddCookie(&http.Cookie{
-				Name:  defaultCookieName,
-				Value: tt.cookieVal,
-			})
-		}
-
-		resp := p.Service(c, req)
-
-		if resp == nil {
-			assert.Zerof(t, tt.expectedStatus, "%v response for %v when expected %v", resp, tt, tt.expectedStatus)
-		} else {
-			assert.Equalf(t, tt.expectedStatus, resp.StatusCode(), "received %v response for %v when expected %v", resp.StatusCode(), tt, tt.expectedStatus)
-		}
+		checkServiceTest(t, c, tt)
 	}
 
+	//
 	epHttpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	epReq := &service.Request{
 		Request: epHttpReq,
@@ -111,7 +127,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	ep := CSRFProtector{
 		SiteURL: *s,
-		ExemptChecker: func(c context.Context, r *service.Request) bool {
+		IsExempt: func(c context.Context, r *service.Request) bool {
 			return true
 		},
 	}

@@ -17,15 +17,15 @@ const (
 	defaultTokenLength = 32
 )
 
-// ExemptChecker is a function that takes a context and a
+// IsExempt is a function that takes a context and a
 // service.Request reference and determines whether the request
 // should be exempt from CSRF protection
-type ExemptChecker func(context.Context, *service.Request) bool
+type IsExempt func(context.Context, *service.Request) bool
 
-// OriginChecker is a function that takes two url.URLs and returns
+// CheckOrigin is a function that takes two url.URLs and returns
 // a `bool` denoting whether they should be considered the "same"
 // for the purposes of CSRF protection
-type OriginChecker func(expected, actual url.URL) bool
+type CheckOrigin func(expected, actual url.URL) bool
 
 // CSRFProtector is middleware used to guard against CSRF attacks.
 type CSRFProtector struct {
@@ -44,14 +44,14 @@ type CSRFProtector struct {
 	// CSRF token length, defaults to 32
 	TokenLength int
 
-	// ExemptChecker optionally determines whether the request should
+	// IsExempt optionally determines whether the request should
 	// be exempt, by default returns `false`
-	ExemptChecker ExemptChecker
+	IsExempt IsExempt
 
-	// OriginChecker determines whether the provided URLs should be
+	// CheckOrigin determines whether the provided URLs should be
 	// considered the "same" for the purposes of CSRF protection.
 	// By default ensures that URL Scheme and Host are equal
-	OriginChecker OriginChecker
+	CheckOrigin CheckOrigin
 
 	// ErrorHandler can be set to optionally customize the response
 	// for an error. The `err` parameter passed to the handler will
@@ -65,12 +65,12 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		m.ErrorHandler = m.defaultErrorHandler
 	}
 
-	if m.ExemptChecker == nil {
-		m.ExemptChecker = m.defaultExemptChecker
+	if m.IsExempt == nil {
+		m.IsExempt = m.defaultIsCSRFExempt
 	}
 
-	if m.OriginChecker == nil {
-		m.OriginChecker = m.defaultOriginChecker
+	if m.CheckOrigin == nil {
+		m.CheckOrigin = m.defaultCheckOrigin
 	}
 
 	if m.ExtractToken == nil {
@@ -92,7 +92,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		return m.ErrorHandler(c, r, merr)
 	}
 
-	if m.ExemptChecker(c, r) {
+	if m.IsExempt(c, r) {
 		return nil
 	}
 
@@ -113,8 +113,6 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		return m.ErrorHandler(c, r, merr)
 	}
 
-	var err error
-
 	actual, err := url.Parse(values[0])
 	if err != nil {
 		merr := merry.Wrap(err)
@@ -123,7 +121,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 		return m.ErrorHandler(c, r, merr)
 	}
 
-	if !m.OriginChecker(m.SiteURL, *actual) {
+	if !m.CheckOrigin(m.SiteURL, *actual) {
 		merr := merry.Errorf("invalid origin")
 		merr = merr.WithUserMessagef("Origin/Referer header invalid: %v, expected: %v", values[0], m.SiteURL)
 		merr = merr.WithHTTPCode(http.StatusForbidden)
@@ -169,7 +167,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	return nil
 }
 
-func (m *CSRFProtector) defaultOriginChecker(expected, actual url.URL) bool {
+func (m *CSRFProtector) defaultCheckOrigin(expected, actual url.URL) bool {
 	return expected.Scheme == actual.Scheme && expected.Host == actual.Host
 }
 
@@ -177,7 +175,7 @@ func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Requ
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
-func (m *CSRFProtector) defaultExemptChecker(c context.Context, r *service.Request) bool {
+func (m *CSRFProtector) defaultIsCSRFExempt(c context.Context, r *service.Request) bool {
 	return false
 }
 
