@@ -6,10 +6,10 @@ import (
 	"github.com/percolate/shisa/context"
 )
 
-//go:generate charlatan -output=./service_charlatan.go Service
-
 // ErrorHandler creates a response for the given error condition.
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
+
+//go:generate charlatan -output=./service_charlatan.go Service
 
 type Service interface {
 	Name() string          // Service name.  Required.

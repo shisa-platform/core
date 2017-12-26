@@ -88,7 +88,7 @@ type Gateway struct {
 
 	// RequestIDHeaderName optionally customizes the name of the
 	// response header for the request id.
-	// If empty "X-Request-ID" will be used.
+	// If empty "X-Request-Id" will be used.
 	RequestIDHeaderName string
 
 	// RequestIDGenerator optionally customizes how request ids
