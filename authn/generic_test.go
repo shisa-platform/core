@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -22,7 +23,7 @@ func mustMakeGenericProvder(extractor TokenExtractor, idp IdentityProvider) Prov
 }
 
 func TestGenericProviderTokenExtractorError(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Bearer he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -37,7 +38,7 @@ func TestGenericProviderTokenExtractorError(t *testing.T) {
 }
 
 func TestGenericProviderIdPError(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Zalgo slithy")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -59,7 +60,7 @@ func TestGenericProviderIdPError(t *testing.T) {
 }
 
 func TestGenericProvider(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Zalgo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
