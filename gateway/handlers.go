@@ -17,7 +17,7 @@ func defaultMethodNotAlowedHandler(ctx context.Context, request *service.Request
 	return service.NewEmpty(http.StatusMethodNotAllowed)
 }
 
-func defaultMalformedQueryParameterHandler(ctx context.Context, request *service.Request) service.Response {
+func defaultMalformedRequestHandler(ctx context.Context, request *service.Request) service.Response {
 	return service.NewEmpty(http.StatusBadRequest)
 }
 
