@@ -154,6 +154,10 @@ finish:
 		w.Header()[k] = vs
 	}
 
+	if f, impl := w.(http.Flusher); impl {
+		f.Flush()
+	}
+
 	end := time.Now().UTC()
 	serializationTime := end.Sub(serializationStart)
 	elapsed := end.Sub(start)
