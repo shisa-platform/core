@@ -20,7 +20,7 @@ var (
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
-	
+
 	ctx := context.New(backgroundContext)
 	request := &service.Request{Request: r}
 
