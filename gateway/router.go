@@ -176,7 +176,7 @@ finish:
 		fs[9] = zap.Duration("request-id-generation", requestIDGenerationTime)
 		fs[10] = zap.Duration("find-endpoint", findPathTime)
 		fs[11] = zap.Duration("pipline", pipelineTime)
-		fs[12] = zap.Duration("serialzation", serializationTime)
+		fs[12] = zap.Duration("serialization", serializationTime)
 		if endpoint != nil {
 			fs = append(fs, zap.String("service", endpoint.serviceName))
 		}
