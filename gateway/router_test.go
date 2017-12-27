@@ -509,7 +509,7 @@ func TestRouterBadMethodRedirectCustomHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterBadRouteRedirectForbidden(t *testing.T) {
+func TestRouterExtraSlashRedirectForbidden(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -524,7 +524,7 @@ func TestRouterBadRouteRedirectForbidden(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterBadRouteRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
+func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
 	var handlerCalled bool
 	cut := &Gateway{
 		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
@@ -546,7 +546,7 @@ func TestRouterBadRouteRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterBadRouteRedirectAllowed(t *testing.T) {
+func TestRouterExtraSlashRedirectAllowed(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -563,7 +563,7 @@ func TestRouterBadRouteRedirectAllowed(t *testing.T) {
 	assert.Equal(t, expectedRoute, w.HeaderMap.Get(service.LocationHeaderKey))
 }
 
-func TestRouterBadRouteRedirectForbiddenCustomHandler(t *testing.T) {
+func TestRouterExtraSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -587,7 +587,7 @@ func TestRouterBadRouteRedirectForbiddenCustomHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterBadRouteRedirectAllowedCustomHandler(t *testing.T) {
+func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -605,6 +605,111 @@ func TestRouterBadRouteRedirectAllowedCustomHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	route := expectedRoute + "/"
 	request := httptest.NewRequest(http.MethodGet, route, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "not found handler not called")
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterMissingSlashRedirectForbidden(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	endpoint := service.GetEndpoint(expectedRoute + "/", dummyHandler)
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterMissingSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
+	var handlerCalled bool
+	cut := &Gateway{
+		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
+			handlerCalled = true
+			return service.NewEmpty(http.StatusForbidden)
+		},
+	}
+	cut.init()
+
+	endpoint := service.GetEndpoint(expectedRoute + "/", dummyHandler)
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterMissingSlashRedirectAllowed(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	route := expectedRoute + "/"
+
+	policy := service.Policy{AllowTrailingSlashRedirects: true}
+	endpoint := service.GetEndpointWithPolicy(route, policy, dummyHandler)
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.Equal(t, route, w.HeaderMap.Get(service.LocationHeaderKey))
+}
+
+func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	endpoint := service.GetEndpoint(expectedRoute + "/", dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+	svc.RedirectHandlerHook = func() service.Handler {
+		return func(ctx context.Context, r *service.Request) service.Response {
+			handlerCalled = true
+			return service.NewEmpty(http.StatusForbidden)
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to redirect handler")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	policy := service.Policy{AllowTrailingSlashRedirects: true}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute + "/", policy, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+	svc.RedirectHandlerHook = func() service.Handler {
+		return func(ctx context.Context, r *service.Request) service.Response {
+			handlerCalled = true
+			return service.NewEmpty(http.StatusForbidden)
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "not found handler not called")

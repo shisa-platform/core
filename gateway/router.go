@@ -185,6 +185,7 @@ finish:
 		}
 		ce.Write(fs...)
 	}
+
 	if err != nil {
 		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
 	}
