@@ -88,9 +88,9 @@ func TestRouterCustomRequestIDGenerator(t *testing.T) {
 	expectedRequestID := "zalgo-he-comes"
 	var generatorCalled bool
 	cut := &Gateway{
-		RequestIDGenerator: func(*service.Request) string {
+		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
 			generatorCalled = true
-			return expectedRequestID
+			return expectedRequestID, nil
 		},
 	}
 	cut.init()
@@ -106,12 +106,40 @@ func TestRouterCustomRequestIDGenerator(t *testing.T) {
 	assert.Equal(t, expectedRequestID, w.HeaderMap.Get(cut.RequestIDHeaderName))
 }
 
-func TestRouterCustomRequestIDGeneratorBadResult(t *testing.T) {
+func TestRouterCustomRequestIDGeneratorError(t *testing.T) {
 	var generatorCalled bool
 	cut := &Gateway{
-		RequestIDGenerator: func(*service.Request) string {
+		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
 			generatorCalled = true
-			return ""
+			return "", merry.New("i blewed up!")
+		},
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.NotEmpty(t, ctx.RequestID())
+		return service.NewEmpty(http.StatusOK)
+	}
+	installHandler(t, cut, handler)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, generatorCalled, "custom request id generator not called")
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+}
+
+func TestRouterCustomRequestIDGeneratorEmptyResult(t *testing.T) {
+	var generatorCalled bool
+	cut := &Gateway{
+		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
+			generatorCalled = true
+			return "", nil
 		},
 	}
 	cut.init()
