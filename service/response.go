@@ -4,6 +4,17 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/percolate/shisa/contenttype"
+)
+
+const (
+	ContentTypeHeaderKey = "Content-Type"
+	LocationHeaderKey    = "Location"
+)
+
+var (
+	jsonContentType = contenttype.ApplicationJson.String()
 )
 
 //go:generate charlatan -output=./response_charlatan.go Response
@@ -62,7 +73,7 @@ func NewEmpty(status int) Response {
 
 func NewOK(body json.Marshaler) Response {
 	headers := make(http.Header)
-	headers.Set("Content-Type", "application/json; charset=utf-8")
+	headers.Set(ContentTypeHeaderKey, jsonContentType)
 
 	return &JsonResponse{
 		BasicResponse: BasicResponse{
@@ -88,7 +99,7 @@ func (c *countingWriter) Write(p []byte) (n int, err error) {
 
 func NewSeeOther(location string) Response {
 	headers := make(http.Header)
-	headers.Set("Location", location)
+	headers.Set(LocationHeaderKey, location)
 	return &BasicResponse{
 		status:   http.StatusSeeOther,
 		headers:  headers,
@@ -98,7 +109,7 @@ func NewSeeOther(location string) Response {
 
 func NewTemporaryRedirect(location string) Response {
 	headers := make(http.Header)
-	headers.Set("Location", location)
+	headers.Set(LocationHeaderKey, location)
 	return &BasicResponse{
 		status:   http.StatusTemporaryRedirect,
 		headers:  headers,

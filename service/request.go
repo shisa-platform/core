@@ -3,7 +3,6 @@ package service
 import (
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -108,12 +107,27 @@ func (r *Request) PathParamInt(name string) (int, error) {
 // request URI.
 func (r *Request) GenerateID() string {
 	now := time.Now().UnixNano()
-	nonce := make([]byte, 3)
-	rand.Read(nonce)
 	clientAddr := r.ClientIP()
-	name := fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)
 
-	return uuid.New(uuid.ShisaNS, name).String()
+	// The following logic is roughly equivilent to:
+	// `fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)`
+	// N.B. - sizeof(int64) + 3 (nonce length) = 11
+	b := make([]byte, 11+len(clientAddr)+len(r.Method)+len(r.RequestURI))
+	// N.B. - `now` is a `int64` so we can simply add those bytes to our array
+	b[0] = byte(now)
+	b[1] = byte(now >> 8)
+	b[2] = byte(now >> 16)
+	b[3] = byte(now >> 24)
+	b[4] = byte(now >> 32)
+	b[5] = byte(now >> 40)
+	b[6] = byte(now >> 48)
+	b[7] = byte(now >> 56)
+	rand.Read(b[8:10])
+	copy(b[11:], []byte(clientAddr))
+	copy(b[11+len(clientAddr):], []byte(r.Method))
+	copy(b[11+len(clientAddr)+len(r.Method):], []byte(r.RequestURI))
+
+	return uuid.New(uuid.ShisaNS, string(b)).String()
 }
 
 func (r *Request) ClientIP() string {

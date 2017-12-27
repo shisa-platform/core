@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestAuthenticationHeaderTokenExtractorMissingHeader(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "zalgo")
@@ -20,7 +21,7 @@ func TestAuthenticationHeaderTokenExtractorMissingHeader(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -30,7 +31,7 @@ func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorBadChallenge(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "zalgo he comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -40,7 +41,7 @@ func TestAuthenticationHeaderTokenExtractorBadChallenge(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "zalgo")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -50,7 +51,7 @@ func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Foo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -60,7 +61,7 @@ func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractor(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "zalgo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 

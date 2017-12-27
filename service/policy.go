@@ -14,9 +14,6 @@ type Policy struct {
 	// Redirect requests for routes with the opposite trailing
 	// slash to this endpoint
 	AllowTrailingSlashRedirects bool
-	// This status code will be returned instead of 400 on
-	// malformed requests
-	CustomMalformedRequestStatus int
 	// Will URL escaped path parameters be preserved?
 	PreserveEscapedPathParameters bool
 	// The time budget for requests to the endpoint

@@ -24,19 +24,32 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context.New(backgroundContext)
 	request := &service.Request{Request: r}
 
+	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
 	if idErr != nil {
 		requestID = request.GenerateID()
 	}
+	if requestID == "" {
+		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		requestID = request.GenerateID()
+	}
+	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
 
 	ctx = context.WithRequestID(ctx, requestID)
 
-	var err merry.Error
-	var response service.Response
-	var pipeline *service.Pipeline
+	var (
+		err           merry.Error
+		response      service.Response
+		pipeline      *service.Pipeline
+		pipelineStart time.Time
+		pipelineTime  time.Duration
+	)
 
+	findPathStart := time.Now().UTC()
 	path := request.URL.EscapedPath()
 	endpoint, pathParams, tsr, err := g.tree.getValue(path)
+	findPathTime := time.Now().UTC().Sub(findPathStart)
+
 	if err != nil {
 		response = defaultInternalServerErrorHandler(ctx, request, err)
 		goto finish
@@ -109,6 +122,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 	}
 
+	pipelineStart = time.Now().UTC()
 	for _, handler := range pipeline.Handlers {
 		response = run(handler, ctx, request, &err)
 		if err != nil {
@@ -119,6 +133,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	pipelineTime = time.Now().UTC().Sub(pipelineStart)
 
 	if response == nil {
 		err = merry.New("internal error").WithUserMessage("no response from pipeline")
@@ -126,6 +141,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 finish:
+	serializationStart := time.Now().UTC()
 	for k, vs := range response.Headers() {
 		w.Header()[k] = vs
 	}
@@ -142,20 +158,29 @@ finish:
 		w.Header()[k] = vs
 	}
 
+	if f, impl := w.(http.Flusher); impl {
+		f.Flush()
+	}
+
 	end := time.Now().UTC()
+	serializationTime := end.Sub(serializationStart)
 	elapsed := end.Sub(start)
 
 	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
-		fs := make([]zapcore.Field, 9, 11)
+		fs := make([]zapcore.Field, 13, 15)
 		fs[0] = zap.String("request-id", requestID)
 		fs[1] = zap.String("client-ip-address", request.ClientIP())
-		fs[2] = zap.Time("start-time", start)
-		fs[3] = zap.String("method", request.Method)
-		fs[4] = zap.String("uri", request.URL.RequestURI())
-		fs[5] = zap.Int("status-code", response.StatusCode())
-		fs[6] = zap.Int("response-size", size)
-		fs[7] = zap.Duration("elapsed-time", elapsed)
-		fs[8] = zap.String("user-agent", request.UserAgent())
+		fs[2] = zap.String("method", request.Method)
+		fs[3] = zap.String("uri", request.URL.RequestURI())
+		fs[4] = zap.Int("status-code", response.StatusCode())
+		fs[5] = zap.Int("response-size", size)
+		fs[6] = zap.String("user-agent", request.UserAgent())
+		fs[7] = zap.Time("start", start)
+		fs[8] = zap.Duration("elapsed", elapsed)
+		fs[9] = zap.Duration("request-id-generation", requestIDGenerationTime)
+		fs[10] = zap.Duration("find-endpoint", findPathTime)
+		fs[11] = zap.Duration("pipline", pipelineTime)
+		fs[12] = zap.Duration("serialization", serializationTime)
 		if endpoint != nil {
 			fs = append(fs, zap.String("service", endpoint.serviceName))
 		}

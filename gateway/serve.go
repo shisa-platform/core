@@ -127,14 +127,14 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 					Route: endp.Route,
 				},
 				serviceName:       svc.Name(),
-				queryParamHandler: svc.MalformedQueryParameterHandler(),
+				queryParamHandler: svc.MalformedRequestHandler(),
 				notAllowedHandler: svc.MethodNotAllowedHandler(),
 				redirectHandler:   svc.RedirectHandler(),
 				iseHandler:        svc.InternalServerErrorHandler(),
 			}
 
 			if e.queryParamHandler == nil {
-				e.queryParamHandler = defaultMalformedQueryParameterHandler
+				e.queryParamHandler = defaultMalformedRequestHandler
 			}
 			if e.notAllowedHandler == nil {
 				e.notAllowedHandler = defaultMethodNotAlowedHandler
