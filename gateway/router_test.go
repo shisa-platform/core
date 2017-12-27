@@ -616,7 +616,7 @@ func TestRouterMissingSlashRedirectForbidden(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
-	endpoint := service.GetEndpoint(expectedRoute + "/", dummyHandler)
+	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -637,7 +637,7 @@ func TestRouterMissingSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) 
 	}
 	cut.init()
 
-	endpoint := service.GetEndpoint(expectedRoute + "/", dummyHandler)
+	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -673,7 +673,7 @@ func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	endpoint := service.GetEndpoint(expectedRoute + "/", dummyHandler)
+	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 	svc.RedirectHandlerHook = func() service.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
@@ -698,7 +698,7 @@ func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
-	endpoint := service.GetEndpointWithPolicy(expectedRoute + "/", policy, dummyHandler)
+	endpoint := service.GetEndpointWithPolicy(expectedRoute+"/", policy, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 	svc.RedirectHandlerHook = func() service.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
