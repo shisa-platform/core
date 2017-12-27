@@ -9,12 +9,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ansel1/merry"
+
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/uuid"
 )
 
 var (
 	ParameterNotPresented = errors.New("parameter not presented")
 )
+
+// StringExtractor is a function type that extracts a string from
+// the given `context.Context` and `*service.Request`.
+// An error is returned if the string could not be extracted.
+type StringExtractor func(context.Context, *Request) (string, merry.Error)
 
 // Param is a single URL parameter, consisting of a key and a
 // value.

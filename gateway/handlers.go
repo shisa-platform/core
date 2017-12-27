@@ -42,6 +42,6 @@ func defaultInternalServerErrorHandler(context.Context, *service.Request, merry.
 	return service.NewEmpty(http.StatusInternalServerError)
 }
 
-func defaultRequestIDGenerator(request *service.Request) string {
-	return request.GenerateID()
+func defaultRequestIDGenerator(c context.Context, r *service.Request) (string, merry.Error) {
+	return r.GenerateID(), nil
 }

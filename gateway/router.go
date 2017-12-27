@@ -21,17 +21,21 @@ var (
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
+	ctx := context.New(backgroundContext)
 	request := &service.Request{Request: r}
 
 	requestIDGenerationStart := time.Now().UTC()
-	requestID := g.RequestIDGenerator(request)
+	requestID, idErr := g.RequestIDGenerator(ctx, request)
+	if idErr != nil {
+		requestID = request.GenerateID()
+	}
 	if requestID == "" {
-		g.Logger.Warn("request generator failed, falling back")
+		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
 		requestID = request.GenerateID()
 	}
 	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
 
-	ctx := context.WithRequestID(backgroundContext, requestID)
+	ctx = context.WithRequestID(ctx, requestID)
 
 	var (
 		err           merry.Error
@@ -186,6 +190,9 @@ finish:
 		ce.Write(fs...)
 	}
 
+	if idErr != nil {
+		g.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+	}
 	if err != nil {
 		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
 	}
