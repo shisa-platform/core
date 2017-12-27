@@ -24,5 +24,3 @@ type Provider interface {
 	// header if authentication fails.
 	Challenge() string
 }
-
-type TokenExtractor func(context.Context, *service.Request) (string, merry.Error)

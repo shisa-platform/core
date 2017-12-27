@@ -11,7 +11,7 @@ import (
 )
 
 type genericAuthProvider struct {
-	extractor TokenExtractor
+	extractor service.StringPlucker
 	idp       IdentityProvider
 	scheme    string
 	realm     string
@@ -39,7 +39,7 @@ func (m *genericAuthProvider) Challenge() string {
 // extractor and identity provider.
 // An error will be returned if the `idp` or `extractor`
 // parameters are nil.
-func NewProvider(extractor TokenExtractor, idp IdentityProvider, scheme, realm string) (Provider, merry.Error) {
+func NewProvider(extractor service.StringPlucker, idp IdentityProvider, scheme, realm string) (Provider, merry.Error) {
 	if idp == nil {
 		return nil, merry.New("Identity provider must be non-nil")
 	}

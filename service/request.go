@@ -10,12 +10,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ansel1/merry"
+
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/uuid"
 )
 
 var (
 	ParameterNotPresented = errors.New("parameter not presented")
 )
+
+// StringPlucker is a function type that extracts a string and/or
+// merry.Error given a shisa context.Context and *service.Request. It is
+// primarily used to extract tokens, request IDs, etc.
+type StringPlucker func(context.Context, *Request) (string, merry.Error)
 
 // Param is a single URL parameter, consisting of a key and a
 // value.

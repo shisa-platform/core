@@ -12,7 +12,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func mustMakeGenericProvder(extractor TokenExtractor, idp IdentityProvider) Provider {
+func mustMakeGenericProvder(extractor service.StringPlucker, idp IdentityProvider) Provider {
 	provider, err := NewProvider(extractor, idp, "Zalgo", "chaos")
 	if err != nil {
 		panic(err)

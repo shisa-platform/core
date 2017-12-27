@@ -7,7 +7,6 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
 )
@@ -17,10 +16,9 @@ const (
 	defaultTokenLength = 32
 )
 
-// IsExempt is a function that takes a context and a
-// service.Request reference and determines whether the request
-// should be exempt from CSRF protection
-type IsExempt func(context.Context, *service.Request) bool
+// RequestPredicate is a function that takes a context and a
+// service.Request reference and returns a `bool`
+type RequestPredicate func(context.Context, *service.Request) bool
 
 // CheckOrigin is a function that takes two url.URLs and returns
 // a `bool` denoting whether they should be considered the "same"
@@ -33,8 +31,8 @@ type CSRFProtector struct {
 	// and contain non-empty Scheme and Host values
 	SiteURL url.URL
 
-	// ExtractToken is an authn.TokenExtractor that returns the CSRF token
-	ExtractToken authn.TokenExtractor
+	// ExtractToken is an service.StringPlucker that returns the CSRF token
+	ExtractToken service.StringPlucker
 
 	// CookieName can be set to optionally customize the cookie name,
 	// defaults to "csrftoken"
@@ -44,9 +42,10 @@ type CSRFProtector struct {
 	// CSRF token length, defaults to 32
 	TokenLength int
 
-	// IsExempt optionally determines whether the request should
-	// be exempt, by default returns `false`
-	IsExempt IsExempt
+	// IsExempt is a RequestPredicate that optionally determines
+	// whether the request should be exempt from CSRF protection
+	// and by default returns `false`
+	IsExempt RequestPredicate
 
 	// CheckOrigin determines whether the provided URLs should be
 	// considered the "same" for the purposes of CSRF protection.
@@ -66,7 +65,7 @@ func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.R
 	}
 
 	if m.IsExempt == nil {
-		m.IsExempt = m.defaultIsCSRFExempt
+		m.IsExempt = m.defaultIsExempt
 	}
 
 	if m.CheckOrigin == nil {
@@ -175,7 +174,7 @@ func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Requ
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
-func (m *CSRFProtector) defaultIsCSRFExempt(c context.Context, r *service.Request) bool {
+func (m *CSRFProtector) defaultIsExempt(c context.Context, r *service.Request) bool {
 	return false
 }
 
