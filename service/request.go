@@ -101,7 +101,11 @@ func (r *Request) GenerateID() string {
 	now := time.Now().UnixNano()
 	clientAddr := r.ClientIP()
 
+	// The following logic is roughly equivilent to:
+	// `fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)`
+	// N.B. - sizeof(int64) + 3 (nonce length) = 11
 	b := make([]byte, 11+len(clientAddr)+len(r.Method)+len(r.RequestURI))
+	// N.B. - `now` is a `int64` so we can simply add those bytes to our array
 	b[0] = byte(now)
 	b[1] = byte(now >> 8)
 	b[2] = byte(now >> 16)
