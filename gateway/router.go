@@ -166,9 +166,8 @@ finish:
 	}
 
 	if idErr != nil {
-		g.Logger.Warn("request id generator failed, fell back to default", zap.Error(idErr))
+		g.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
 	}
-
 	if err != nil {
 		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
 	}
