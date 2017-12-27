@@ -12,7 +12,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func mustMakeGenericAuthenticator(extractor TokenExtractor, idp IdentityProvider) Authenticator {
+func mustMakeGenericAuthenticator(extractor service.StringExtractor, idp IdentityProvider) Authenticator {
 	authenticator, err := NewAuthenticator(extractor, idp, "Zalgo", "chaos")
 	if err != nil {
 		panic(err)

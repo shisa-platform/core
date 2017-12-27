@@ -24,9 +24,6 @@ var (
 	stats = expvar.NewMap("gateway")
 )
 
-// RequestIDGenerator creates a globally unique string for the given request.
-type RequestIDGenerator func(*service.Request) string
-
 type Gateway struct {
 	Name             string        // The name of the Gateway for in logging
 	Address          string        // TCP address to listen on, ":http" if empty
@@ -94,7 +91,7 @@ type Gateway struct {
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `service.Request.GenerateID` will be used.
-	RequestIDGenerator RequestIDGenerator
+	RequestIDGenerator service.StringExtractor
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
