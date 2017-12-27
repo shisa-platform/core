@@ -41,7 +41,7 @@ func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request,
 }
 
 // URLTokenExtractor returns the credentials from the request URL
-// concatenated together with a colons specified in RFC 7617.
+// concatenated together with a colon as specified in RFC 7617.
 // An error is returned if the credentials cannot be extracted.
 func URLTokenExtractor(ctx context.Context, r *service.Request) (token string, err merry.Error) {
 	if r.URL.User != nil {
