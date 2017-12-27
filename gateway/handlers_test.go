@@ -88,7 +88,7 @@ func TestDefaultInternalServerErrorHandler(t *testing.T) {
 }
 
 func TestDefaultRedirectHandlerTrailingSlashGet(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", expectedRoute + "/", nil)}
+	request := &service.Request{Request: httptest.NewRequest("GET", expectedRoute+"/", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultRedirectHandler(ctx, request)
@@ -106,7 +106,7 @@ func TestDefaultRedirectHandlerTrailingSlashGet(t *testing.T) {
 }
 
 func TestDefaultRedirectHandlerTrailingSlashNonGet(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("PUT", expectedRoute + "/", nil)}
+	request := &service.Request{Request: httptest.NewRequest("PUT", expectedRoute+"/", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultRedirectHandler(ctx, request)
@@ -131,7 +131,7 @@ func TestDefaultRedirectHandlerNoSlashGet(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusSeeOther, response.StatusCode())
 	assert.NotEmpty(t, response.Headers())
-	assert.Equal(t, expectedRoute + "/", response.Headers().Get(service.LocationHeaderKey))
+	assert.Equal(t, expectedRoute+"/", response.Headers().Get(service.LocationHeaderKey))
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
@@ -149,7 +149,7 @@ func TestDefaultRedirectHandlerNoSlashNonGet(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusTemporaryRedirect, response.StatusCode())
 	assert.NotEmpty(t, response.Headers())
-	assert.Equal(t, expectedRoute + "/", response.Headers().Get(service.LocationHeaderKey))
+	assert.Equal(t, expectedRoute+"/", response.Headers().Get(service.LocationHeaderKey))
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
