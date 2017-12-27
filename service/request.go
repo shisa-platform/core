@@ -20,9 +20,9 @@ var (
 	ParameterNotPresented = errors.New("parameter not presented")
 )
 
-// StringPlucker is a function type that extracts a string and/or
-// merry.Error given a shisa context.Context and *service.Request. It is
-// primarily used to extract tokens, request IDs, etc.
+// StringPlucker is a function type that extracts a string from
+// the given `context.Context` and `*service.Request`.
+// An error is returned if the string could not be extracted.
 type StringPlucker func(context.Context, *Request) (string, merry.Error)
 
 // Param is a single URL parameter, consisting of a key and a

@@ -16,46 +16,52 @@ const (
 	defaultTokenLength = 32
 )
 
-// RequestPredicate is a function that takes a context and a
-// service.Request reference and returns a `bool`
+// RequestPredicate examines the given context and request and
+// returns a determination based on that analysis.
 type RequestPredicate func(context.Context, *service.Request) bool
 
-// CheckOrigin is a function that takes two url.URLs and returns
-// a `bool` denoting whether they should be considered the "same"
-// for the purposes of CSRF protection
+// CheckOrigin compares two URLs and determines if they should be
+// considered the "same" for the purposes of CSRF protection.
 type CheckOrigin func(expected, actual url.URL) bool
 
 // CSRFProtector is middleware used to guard against CSRF attacks.
 type CSRFProtector struct {
-	// SiteURL denotes the URL to use for CSRF protection - must be non-nil
-	// and contain non-empty Scheme and Host values
+	// SiteURL is the URL to use for CSRF protection. This must
+	// be non-nil and contain non-empty Scheme and Host values
+	// or a internal server error will be returned.
 	SiteURL url.URL
 
-	// ExtractToken is an service.StringPlucker that returns the CSRF token
+	// ExtractToken optionally customizes how the CSRF token is
+	// extracted from the request.
+	// The default extractor uses the header "X-Csrf-Token".
 	ExtractToken service.StringPlucker
 
-	// CookieName can be set to optionally customize the cookie name,
-	// defaults to "csrftoken"
+	// CookieName optionally customizes the name of the CSRF
+	// cookie sent by the user agent.
+	// The default cookie name is "csrftoken".
 	CookieName string
 
-	// TokenLength can be set to optionally customize the expected
-	// CSRF token length, defaults to 32
+	// TokenLength optionally customizes the expected CSRF token
+	// length.
+	// The default length is 32.
 	TokenLength int
 
-	// IsExempt is a RequestPredicate that optionally determines
-	// whether the request should be exempt from CSRF protection
-	// and by default returns `false`
+	// IsExempt optionally customizes checking request exemption
+	// from CSRF protection.
+	// The default checker always returns `false`.
 	IsExempt RequestPredicate
 
-	// CheckOrigin determines whether the provided URLs should be
-	// considered the "same" for the purposes of CSRF protection.
-	// By default ensures that URL Scheme and Host are equal
+	// CheckOrigin optionally customizes how URLs should be
+	// compared for the purposes of CSRF protection.
+	// The default comparisons ensures that URL Schemes and Hosts
+	// are equal.
 	CheckOrigin CheckOrigin
 
-	// ErrorHandler can be set to optionally customize the response
-	// for an error. The `err` parameter passed to the handler will
-	// have a recommended HTTP status code. The default handler will
-	// return the recommended status code and an empty body.
+	// ErrorHandler optionally customizes the response for an
+	// error. The `err` parameter passed to the handler will
+	// have a recommended HTTP status code.
+	// The default handler will return the recommended status
+	// code and an empty body.
 	ErrorHandler service.ErrorHandler
 }
 
