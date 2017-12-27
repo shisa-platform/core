@@ -21,7 +21,7 @@ type Service interface {
 	Handlers() []Handler
 
 	// MalformedRequestHandler optionally customizes the
-	// response to the user agent when a malformed requst is
+	// response to the user agent when a malformed request is
 	// presented.
 	// If nil the default handler wil return a 400 status code
 	// with an empty body.
