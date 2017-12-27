@@ -21,15 +21,15 @@ var (
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
+	ctx := context.New(backgroundContext)
 	request := &service.Request{Request: r}
 
-	requestID := g.RequestIDGenerator(request)
-	if requestID == "" {
-		g.Logger.Warn("request generator failed, falling back")
+	requestID, idErr := g.RequestIDGenerator(ctx, request)
+	if idErr != nil {
 		requestID = request.GenerateID()
 	}
 
-	ctx := context.WithRequestID(backgroundContext, requestID)
+	ctx = context.WithRequestID(ctx, requestID)
 
 	var err merry.Error
 	var response service.Response
@@ -163,6 +163,10 @@ finish:
 			fs = append(fs, zap.String("user-id", u.ID()))
 		}
 		ce.Write(fs...)
+	}
+
+	if idErr != nil {
+		g.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
 	}
 	if err != nil {
 		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
