@@ -20,10 +20,10 @@ var (
 	ParameterNotPresented = errors.New("parameter not presented")
 )
 
-// StringPlucker is a function type that extracts a string from
+// StringExtractor is a function type that extracts a string from
 // the given `context.Context` and `*service.Request`.
 // An error is returned if the string could not be extracted.
-type StringPlucker func(context.Context, *Request) (string, merry.Error)
+type StringExtractor func(context.Context, *Request) (string, merry.Error)
 
 // Param is a single URL parameter, consisting of a key and a
 // value.

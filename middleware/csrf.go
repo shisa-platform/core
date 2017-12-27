@@ -34,7 +34,7 @@ type CSRFProtector struct {
 	// ExtractToken optionally customizes how the CSRF token is
 	// extracted from the request.
 	// The default extractor uses the header "X-Csrf-Token".
-	ExtractToken service.StringPlucker
+	ExtractToken service.StringExtractor
 
 	// CookieName optionally customizes the name of the CSRF
 	// cookie sent by the user agent.

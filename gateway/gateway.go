@@ -91,7 +91,7 @@ type Gateway struct {
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `service.Request.GenerateID` will be used.
-	RequestIDGenerator service.StringPlucker
+	RequestIDGenerator service.StringExtractor
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
