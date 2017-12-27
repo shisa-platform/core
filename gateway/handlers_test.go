@@ -13,11 +13,6 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	expectedRoute = "/test"
-	fakeRequest   = httptest.NewRequest("GET", expectedRoute, nil)
-)
-
 func TestDefaultNotFoundHandler(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -52,11 +47,11 @@ func TestDefaultMethodNotAllowedHandler(t *testing.T) {
 	assert.Equal(t, 0, buf.Len())
 }
 
-func TestDefaultMalformedQueryParameterHandler(t *testing.T) {
+func TestDefaultMalformedRequestHandler(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	response := defaultMalformedQueryParameterHandler(ctx, request)
+	response := defaultMalformedRequestHandler(ctx, request)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode())
 	assert.Empty(t, response.Headers())

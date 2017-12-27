@@ -27,8 +27,8 @@ type ServiceHandlersInvocation struct {
 	}
 }
 
-// ServiceMalformedQueryParameterHandlerInvocation represents a single call of FakeService.MalformedQueryParameterHandler
-type ServiceMalformedQueryParameterHandlerInvocation struct {
+// ServiceMalformedRequestHandlerInvocation represents a single call of FakeService.MalformedRequestHandler
+type ServiceMalformedRequestHandlerInvocation struct {
 	Results struct {
 		Ident1 Handler
 	}
@@ -80,21 +80,21 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeName.
 */
 type FakeService struct {
-	NameHook                           func() string
-	EndpointsHook                      func() []Endpoint
-	HandlersHook                       func() []Handler
-	MalformedQueryParameterHandlerHook func() Handler
-	MethodNotAllowedHandlerHook        func() Handler
-	RedirectHandlerHook                func() Handler
-	InternalServerErrorHandlerHook     func() ErrorHandler
+	NameHook                       func() string
+	EndpointsHook                  func() []Endpoint
+	HandlersHook                   func() []Handler
+	MalformedRequestHandlerHook    func() Handler
+	MethodNotAllowedHandlerHook    func() Handler
+	RedirectHandlerHook            func() Handler
+	InternalServerErrorHandlerHook func() ErrorHandler
 
-	NameCalls                           []*ServiceNameInvocation
-	EndpointsCalls                      []*ServiceEndpointsInvocation
-	HandlersCalls                       []*ServiceHandlersInvocation
-	MalformedQueryParameterHandlerCalls []*ServiceMalformedQueryParameterHandlerInvocation
-	MethodNotAllowedHandlerCalls        []*ServiceMethodNotAllowedHandlerInvocation
-	RedirectHandlerCalls                []*ServiceRedirectHandlerInvocation
-	InternalServerErrorHandlerCalls     []*ServiceInternalServerErrorHandlerInvocation
+	NameCalls                       []*ServiceNameInvocation
+	EndpointsCalls                  []*ServiceEndpointsInvocation
+	HandlersCalls                   []*ServiceHandlersInvocation
+	MalformedRequestHandlerCalls    []*ServiceMalformedRequestHandlerInvocation
+	MethodNotAllowedHandlerCalls    []*ServiceMethodNotAllowedHandlerInvocation
+	RedirectHandlerCalls            []*ServiceRedirectHandlerInvocation
+	InternalServerErrorHandlerCalls []*ServiceInternalServerErrorHandlerInvocation
 }
 
 // NewFakeServiceDefaultPanic returns an instance of FakeService with all hooks configured to panic
@@ -109,8 +109,8 @@ func NewFakeServiceDefaultPanic() *FakeService {
 		HandlersHook: func() (ident1 []Handler) {
 			panic("Unexpected call to Service.Handlers")
 		},
-		MalformedQueryParameterHandlerHook: func() (ident1 Handler) {
-			panic("Unexpected call to Service.MalformedQueryParameterHandler")
+		MalformedRequestHandlerHook: func() (ident1 Handler) {
+			panic("Unexpected call to Service.MalformedRequestHandler")
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
 			panic("Unexpected call to Service.MethodNotAllowedHandler")
@@ -139,8 +139,8 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 			t.Fatal("Unexpected call to Service.Handlers")
 			return
 		},
-		MalformedQueryParameterHandlerHook: func() (ident1 Handler) {
-			t.Fatal("Unexpected call to Service.MalformedQueryParameterHandler")
+		MalformedRequestHandlerHook: func() (ident1 Handler) {
+			t.Fatal("Unexpected call to Service.MalformedRequestHandler")
 			return
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
@@ -173,8 +173,8 @@ func NewFakeServiceDefaultError(t *testing.T) *FakeService {
 			t.Error("Unexpected call to Service.Handlers")
 			return
 		},
-		MalformedQueryParameterHandlerHook: func() (ident1 Handler) {
-			t.Error("Unexpected call to Service.MalformedQueryParameterHandler")
+		MalformedRequestHandlerHook: func() (ident1 Handler) {
+			t.Error("Unexpected call to Service.MalformedRequestHandler")
 			return
 		},
 		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
@@ -196,7 +196,7 @@ func (f *FakeService) Reset() {
 	f.NameCalls = []*ServiceNameInvocation{}
 	f.EndpointsCalls = []*ServiceEndpointsInvocation{}
 	f.HandlersCalls = []*ServiceHandlersInvocation{}
-	f.MalformedQueryParameterHandlerCalls = []*ServiceMalformedQueryParameterHandlerInvocation{}
+	f.MalformedRequestHandlerCalls = []*ServiceMalformedRequestHandlerInvocation{}
 	f.MethodNotAllowedHandlerCalls = []*ServiceMethodNotAllowedHandlerInvocation{}
 	f.RedirectHandlerCalls = []*ServiceRedirectHandlerInvocation{}
 	f.InternalServerErrorHandlerCalls = []*ServiceInternalServerErrorHandlerInvocation{}
@@ -394,67 +394,67 @@ func (f *FakeService) AssertHandlersCalledN(t *testing.T, n int) {
 	}
 }
 
-func (_f4 *FakeService) MalformedQueryParameterHandler() (ident1 Handler) {
-	invocation := new(ServiceMalformedQueryParameterHandlerInvocation)
+func (_f4 *FakeService) MalformedRequestHandler() (ident1 Handler) {
+	invocation := new(ServiceMalformedRequestHandlerInvocation)
 
-	ident1 = _f4.MalformedQueryParameterHandlerHook()
+	ident1 = _f4.MalformedRequestHandlerHook()
 
 	invocation.Results.Ident1 = ident1
 
-	_f4.MalformedQueryParameterHandlerCalls = append(_f4.MalformedQueryParameterHandlerCalls, invocation)
+	_f4.MalformedRequestHandlerCalls = append(_f4.MalformedRequestHandlerCalls, invocation)
 
 	return
 }
 
-// MalformedQueryParameterHandlerCalled returns true if FakeService.MalformedQueryParameterHandler was called
-func (f *FakeService) MalformedQueryParameterHandlerCalled() bool {
-	return len(f.MalformedQueryParameterHandlerCalls) != 0
+// MalformedRequestHandlerCalled returns true if FakeService.MalformedRequestHandler was called
+func (f *FakeService) MalformedRequestHandlerCalled() bool {
+	return len(f.MalformedRequestHandlerCalls) != 0
 }
 
-// AssertMalformedQueryParameterHandlerCalled calls t.Error if FakeService.MalformedQueryParameterHandler was not called
-func (f *FakeService) AssertMalformedQueryParameterHandlerCalled(t *testing.T) {
+// AssertMalformedRequestHandlerCalled calls t.Error if FakeService.MalformedRequestHandler was not called
+func (f *FakeService) AssertMalformedRequestHandlerCalled(t *testing.T) {
 	t.Helper()
-	if len(f.MalformedQueryParameterHandlerCalls) == 0 {
-		t.Error("FakeService.MalformedQueryParameterHandler not called, expected at least one")
+	if len(f.MalformedRequestHandlerCalls) == 0 {
+		t.Error("FakeService.MalformedRequestHandler not called, expected at least one")
 	}
 }
 
-// MalformedQueryParameterHandlerNotCalled returns true if FakeService.MalformedQueryParameterHandler was not called
-func (f *FakeService) MalformedQueryParameterHandlerNotCalled() bool {
-	return len(f.MalformedQueryParameterHandlerCalls) == 0
+// MalformedRequestHandlerNotCalled returns true if FakeService.MalformedRequestHandler was not called
+func (f *FakeService) MalformedRequestHandlerNotCalled() bool {
+	return len(f.MalformedRequestHandlerCalls) == 0
 }
 
-// AssertMalformedQueryParameterHandlerNotCalled calls t.Error if FakeService.MalformedQueryParameterHandler was called
-func (f *FakeService) AssertMalformedQueryParameterHandlerNotCalled(t *testing.T) {
+// AssertMalformedRequestHandlerNotCalled calls t.Error if FakeService.MalformedRequestHandler was called
+func (f *FakeService) AssertMalformedRequestHandlerNotCalled(t *testing.T) {
 	t.Helper()
-	if len(f.MalformedQueryParameterHandlerCalls) != 0 {
-		t.Error("FakeService.MalformedQueryParameterHandler called, expected none")
+	if len(f.MalformedRequestHandlerCalls) != 0 {
+		t.Error("FakeService.MalformedRequestHandler called, expected none")
 	}
 }
 
-// MalformedQueryParameterHandlerCalledOnce returns true if FakeService.MalformedQueryParameterHandler was called exactly once
-func (f *FakeService) MalformedQueryParameterHandlerCalledOnce() bool {
-	return len(f.MalformedQueryParameterHandlerCalls) == 1
+// MalformedRequestHandlerCalledOnce returns true if FakeService.MalformedRequestHandler was called exactly once
+func (f *FakeService) MalformedRequestHandlerCalledOnce() bool {
+	return len(f.MalformedRequestHandlerCalls) == 1
 }
 
-// AssertMalformedQueryParameterHandlerCalledOnce calls t.Error if FakeService.MalformedQueryParameterHandler was not called exactly once
-func (f *FakeService) AssertMalformedQueryParameterHandlerCalledOnce(t *testing.T) {
+// AssertMalformedRequestHandlerCalledOnce calls t.Error if FakeService.MalformedRequestHandler was not called exactly once
+func (f *FakeService) AssertMalformedRequestHandlerCalledOnce(t *testing.T) {
 	t.Helper()
-	if len(f.MalformedQueryParameterHandlerCalls) != 1 {
-		t.Errorf("FakeService.MalformedQueryParameterHandler called %d times, expected 1", len(f.MalformedQueryParameterHandlerCalls))
+	if len(f.MalformedRequestHandlerCalls) != 1 {
+		t.Errorf("FakeService.MalformedRequestHandler called %d times, expected 1", len(f.MalformedRequestHandlerCalls))
 	}
 }
 
-// MalformedQueryParameterHandlerCalledN returns true if FakeService.MalformedQueryParameterHandler was called at least n times
-func (f *FakeService) MalformedQueryParameterHandlerCalledN(n int) bool {
-	return len(f.MalformedQueryParameterHandlerCalls) >= n
+// MalformedRequestHandlerCalledN returns true if FakeService.MalformedRequestHandler was called at least n times
+func (f *FakeService) MalformedRequestHandlerCalledN(n int) bool {
+	return len(f.MalformedRequestHandlerCalls) >= n
 }
 
-// AssertMalformedQueryParameterHandlerCalledN calls t.Error if FakeService.MalformedQueryParameterHandler was called less than n times
-func (f *FakeService) AssertMalformedQueryParameterHandlerCalledN(t *testing.T, n int) {
+// AssertMalformedRequestHandlerCalledN calls t.Error if FakeService.MalformedRequestHandler was called less than n times
+func (f *FakeService) AssertMalformedRequestHandlerCalledN(t *testing.T, n int) {
 	t.Helper()
-	if len(f.MalformedQueryParameterHandlerCalls) < n {
-		t.Errorf("FakeService.MalformedQueryParameterHandler called %d times, expected >= %d", len(f.MalformedQueryParameterHandlerCalls), n)
+	if len(f.MalformedRequestHandlerCalls) < n {
+		t.Errorf("FakeService.MalformedRequestHandler called %d times, expected >= %d", len(f.MalformedRequestHandlerCalls), n)
 	}
 }
 
