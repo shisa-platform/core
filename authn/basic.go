@@ -12,7 +12,7 @@ import (
 )
 
 // BasicAuthTokenExtractor returns the decoded credentials from
-// a Basic Authentication challenge.  The token returned is the
+// a Basic Authentication challenge. The token returned is the
 // colon-concatentated userid-password as specified in RFC 7617.
 // An error is returned if the credentials cannot be extracted.
 func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token string, err merry.Error) {
@@ -33,13 +33,13 @@ func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token str
 	return
 }
 
-type basicAuthProvider struct {
+type basicAuthenticator struct {
 	idp       IdentityProvider
 	realm     string
 	challenge string
 }
 
-func (m *basicAuthProvider) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *basicAuthenticator) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
 	credentials, err := BasicAuthTokenExtractor(ctx, r)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (m *basicAuthProvider) Authenticate(ctx context.Context, r *service.Request
 	return m.idp.Authenticate(credentials)
 }
 
-func (m *basicAuthProvider) Challenge() string {
+func (m *basicAuthenticator) Challenge() string {
 	if m.challenge == "" {
 		m.challenge = fmt.Sprintf("Basic realm=%q", m.realm)
 	}
@@ -56,13 +56,13 @@ func (m *basicAuthProvider) Challenge() string {
 	return m.challenge
 }
 
-// NewBasicAuthenticationProvider returns a provider implementing
-// Basic Access Authentication as specified in RFC 7617.
+// NewBasicAuthenticator returns a provider implementing Basic
+// Access Authentication as specified in RFC 7617.
 // An error will be returned if the `idp` parameter is nil.
-func NewBasicAuthenticationProvider(idp IdentityProvider, realm string) (Provider, merry.Error) {
+func NewBasicAuthenticator(idp IdentityProvider, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
 		return nil, merry.New("Identity provider must be non-nil")
 	}
 
-	return &basicAuthProvider{idp: idp, realm: realm}, nil
+	return &basicAuthenticator{idp: idp, realm: realm}, nil
 }

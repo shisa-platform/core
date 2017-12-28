@@ -14,10 +14,10 @@ var (
 	wwwAuthenticateHeaderKey = http.CanonicalHeaderKey("WWW-Authenticate")
 )
 
-// Authenticator is middleware to help automate authentication.
+// Authentication is middleware to help automate authentication.
 //
-// `Provider` must be non-nil or a InternalServiceError status
-// response will be returned.
+// `Authenticator` must be non-nil or an InternalServiceError
+// status response will be returned.
 // `UnauthorizedHandler` can be set to optionally customize the
 // response for an unknown user.  The default handler will
 // return a 401 status code, the "WWW-Authenticate" header and an
@@ -27,13 +27,13 @@ var (
 // have a recommended HTTP status code. The default handler will
 // return the recommended status code, the "WWW-Authenticate"
 // header and an empty body.
-type Authenticator struct {
-	Provider            authn.Provider
+type Authentication struct {
+	Authenticator       authn.Authenticator
 	UnauthorizedHandler service.Handler
 	ErrorHandler        service.ErrorHandler
 }
 
-func (m *Authenticator) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) Service(ctx context.Context, r *service.Request) service.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -41,14 +41,14 @@ func (m *Authenticator) Service(ctx context.Context, r *service.Request) service
 		m.UnauthorizedHandler = m.defaultHandler
 	}
 
-	if m.Provider == nil {
-		err := merry.New("authn.Provider is nil")
-		err = err.WithUserMessage("Authenticator.Provider must be non-nil")
+	if m.Authenticator == nil {
+		err := merry.New("authn.Authenticator is nil")
+		err = err.WithUserMessage("Authenticator.Authenticator must be non-nil")
 		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	user, err := m.Provider.Authenticate(ctx, r)
+	user, err := m.Authenticator.Authenticate(ctx, r)
 	if err != nil {
 		err = err.WithHTTPCode(http.StatusUnauthorized)
 		return m.ErrorHandler(ctx, r, err)
@@ -61,18 +61,41 @@ func (m *Authenticator) Service(ctx context.Context, r *service.Request) service
 	return nil
 }
 
-func (m *Authenticator) defaultHandler(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) service.Response {
 	response := service.NewEmpty(http.StatusUnauthorized)
-	response.Headers().Set(wwwAuthenticateHeaderKey, m.Provider.Challenge())
+	response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
 
-func (m *Authenticator) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	response := service.NewEmpty(merry.HTTPCode(err))
-	if m.Provider != nil {
-		response.Headers().Set(wwwAuthenticateHeaderKey, m.Provider.Challenge())
+	if m.Authenticator != nil {
+		response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
 
 	return response
+}
+
+// PassiveAuthentication is middleware to help automate optional
+// authentication.
+// If the authenticator returns a principal it will be added to
+// the context. An error response will never be generated from
+// the results of the authenticator.
+// `Authenticator` must be non-nil or an InternalServiceError
+// status response will be returned.
+type PassiveAuthentication struct {
+	Authenticator authn.Authenticator
+}
+
+func (m *PassiveAuthentication) Service(ctx context.Context, r *service.Request) service.Response {
+	if m.Authenticator == nil {
+		return service.NewEmpty(http.StatusInternalServerError)
+	}
+
+	if user, _ := m.Authenticator.Authenticate(ctx, r); user != nil {
+		ctx = ctx.WithActor(user)
+	}
+
+	return nil
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type genericAuthProvider struct {
+type genericAuthenticator struct {
 	extractor service.StringExtractor
 	idp       IdentityProvider
 	scheme    string
@@ -18,7 +18,7 @@ type genericAuthProvider struct {
 	challenge string
 }
 
-func (m *genericAuthProvider) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *genericAuthenticator) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
 	credentials, err := m.extractor(ctx, r)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (m *genericAuthProvider) Authenticate(ctx context.Context, r *service.Reque
 	return m.idp.Authenticate(credentials)
 }
 
-func (m *genericAuthProvider) Challenge() string {
+func (m *genericAuthenticator) Challenge() string {
 	if m.challenge == "" {
 		m.challenge = fmt.Sprintf("%s realm=%q", m.scheme, m.realm)
 	}
@@ -35,11 +35,11 @@ func (m *genericAuthProvider) Challenge() string {
 	return m.challenge
 }
 
-// NewProvider returns a provider using the given token
+// NewAuthenticator returns a provider using the given token
 // extractor and identity provider.
 // An error will be returned if the `idp` or `extractor`
 // parameters are nil.
-func NewProvider(extractor service.StringExtractor, idp IdentityProvider, scheme, realm string) (Provider, merry.Error) {
+func NewAuthenticator(extractor service.StringExtractor, idp IdentityProvider, scheme, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
 		return nil, merry.New("Identity provider must be non-nil")
 	}
@@ -47,7 +47,7 @@ func NewProvider(extractor service.StringExtractor, idp IdentityProvider, scheme
 		return nil, merry.New("Token extractor must be non-nil")
 	}
 
-	return &genericAuthProvider{
+	return &genericAuthenticator{
 		extractor: extractor,
 		idp:       idp,
 		scheme:    scheme,

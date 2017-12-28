@@ -10,13 +10,13 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type bearerAuthProvider struct {
+type bearerAuthenticator struct {
 	idp       IdentityProvider
 	realm     string
 	challenge string
 }
 
-func (m *bearerAuthProvider) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *bearerAuthenticator) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
 	credentials, err := AuthenticationHeaderTokenExtractor(ctx, r, "Bearer")
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (m *bearerAuthProvider) Authenticate(ctx context.Context, r *service.Reques
 	return m.idp.Authenticate(credentials)
 }
 
-func (m *bearerAuthProvider) Challenge() string {
+func (m *bearerAuthenticator) Challenge() string {
 	if m.challenge == "" {
 		m.challenge = fmt.Sprintf("Bearer realm=%q", m.realm)
 	}
@@ -33,14 +33,13 @@ func (m *bearerAuthProvider) Challenge() string {
 	return m.challenge
 }
 
-// NewBearerAuthenticationProvider returns a provider
-// implementing Bearer Access Authentication as specified in RFC
-// 7617.
+// NewBearerAuthenticatior returns a provider implementing Bearer
+// Access Authentication as specified in RFC 7617.
 // An error will be returned if the `idp` parameter is nil.
-func NewBearerAuthenticationProvider(idp IdentityProvider, realm string) (Provider, merry.Error) {
+func NewBearerAuthenticator(idp IdentityProvider, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
 		return nil, merry.New("Identity provider must be non-nil")
 	}
 
-	return &bearerAuthProvider{idp: idp, realm: realm}, nil
+	return &bearerAuthenticator{idp: idp, realm: realm}, nil
 }

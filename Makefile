@@ -41,7 +41,11 @@ gen:
 
 test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
 
+examples:
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/rest github.com/percolate/shisa/examples/rest
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/rpc github.com/percolate/shisa/examples/rpc
+
 coverage/%:
 	go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic github.com/percolate/shisa/$(@F)
 
-.PHONY: clean doc vet fmt test
+.PHONY: clean doc vet fmt test examples

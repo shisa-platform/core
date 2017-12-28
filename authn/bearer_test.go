@@ -13,28 +13,28 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func mustMakeBearerProvder(idp IdentityProvider) Provider {
-	provider, err := NewBearerAuthenticationProvider(idp, "test")
+func mustMakeBearerAuthenticator(idp IdentityProvider) Authenticator {
+	authenticator, err := NewBearerAuthenticator(idp, "test")
 	if err != nil {
 		panic(err)
 	}
 
-	return provider
+	return authenticator
 }
 
-func TestBearerProviderBadScheme(t *testing.T) {
+func TestBearerAuthenticatorBadScheme(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Foo zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	authn := mustMakeBearerProvder(NewFakeIdentityProviderDefaultFatal(t))
+	authn := mustMakeBearerAuthenticator(NewFakeIdentityProviderDefaultFatal(t))
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
 	assert.NotNil(t, err)
 }
 
-func TestBearerProviderUnknownToken(t *testing.T) {
+func TestBearerAuthenticatorUnknownToken(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -45,7 +45,7 @@ func TestBearerProviderUnknownToken(t *testing.T) {
 			return nil, nil
 		},
 	}
-	authn := mustMakeBearerProvder(idp)
+	authn := mustMakeBearerAuthenticator(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -53,7 +53,7 @@ func TestBearerProviderUnknownToken(t *testing.T) {
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
-func TestBearerProviderIdPError(t *testing.T) {
+func TestBearerAuthenticatorIdPError(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -64,7 +64,7 @@ func TestBearerProviderIdPError(t *testing.T) {
 			return nil, merry.New("i blewed up!")
 		},
 	}
-	authn := mustMakeBearerProvder(idp)
+	authn := mustMakeBearerAuthenticator(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
@@ -72,7 +72,7 @@ func TestBearerProviderIdPError(t *testing.T) {
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
-func TestBearerProvider(t *testing.T) {
+func TestBearerAuthenticator(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(authHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -86,7 +86,7 @@ func TestBearerProvider(t *testing.T) {
 			return expectedUser, nil
 		},
 	}
-	authn := mustMakeBearerProvder(idp)
+	authn := mustMakeBearerAuthenticator(idp)
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
@@ -94,15 +94,15 @@ func TestBearerProvider(t *testing.T) {
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
-func TestBearerProviderChallenge(t *testing.T) {
-	authn := mustMakeBearerProvder(NewFakeIdentityProviderDefaultFatal(t))
+func TestBearerAuthenticatorChallenge(t *testing.T) {
+	authn := mustMakeBearerAuthenticator(NewFakeIdentityProviderDefaultFatal(t))
 
 	challenge := authn.Challenge()
 	assert.Equal(t, "Bearer realm=\"test\"", challenge)
 }
 
-func TestBearerProviderConstructorNilIdp(t *testing.T) {
-	provider, err := NewBearerAuthenticationProvider(nil, "bar")
-	assert.Nil(t, provider)
+func TestBearerAuthenticatorConstructorNilIdp(t *testing.T) {
+	authenticator, err := NewBearerAuthenticator(nil, "bar")
+	assert.Nil(t, authenticator)
 	assert.NotNil(t, err)
 }

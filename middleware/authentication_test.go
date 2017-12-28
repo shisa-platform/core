@@ -20,8 +20,8 @@ var (
 	expectedChallenge = "Brute realm=\"Outer Space\""
 )
 
-func TestNilProvider(t *testing.T) {
-	cut := &Authenticator{}
+func TestAuthenticationNilAuthenticator(t *testing.T) {
+	cut := &Authentication{}
 
 	request := &service.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
@@ -32,8 +32,8 @@ func TestNilProvider(t *testing.T) {
 	assert.Equal(t, "", response.Headers().Get(wwwAuthenticateHeaderKey))
 }
 
-func TestAuthnError(t *testing.T) {
-	authn := &authn.FakeProvider{
+func TestAuthenticationAuthenticatorError(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
@@ -42,8 +42,8 @@ func TestAuthnError(t *testing.T) {
 		},
 	}
 
-	cut := &Authenticator{
-		Provider: authn,
+	cut := &Authentication{
+		Authenticator: authn,
 	}
 
 	request := &service.Request{Request: fakeRequest}
@@ -57,8 +57,8 @@ func TestAuthnError(t *testing.T) {
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
 
-func TestOK(t *testing.T) {
-	authn := &authn.FakeProvider{
+func TestAuthenticationOK(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return expectedUser, nil
 		},
@@ -67,8 +67,8 @@ func TestOK(t *testing.T) {
 		},
 	}
 
-	cut := &Authenticator{
-		Provider: authn,
+	cut := &Authentication{
+		Authenticator: authn,
 	}
 
 	request := &service.Request{Request: fakeRequest}
@@ -83,8 +83,8 @@ func TestOK(t *testing.T) {
 	ctx.AssertWithActorCalledOnceWith(t, expectedUser)
 }
 
-func TestUnauthorized(t *testing.T) {
-	authn := &authn.FakeProvider{
+func TestAuthenticationUnauthorized(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
@@ -93,8 +93,8 @@ func TestUnauthorized(t *testing.T) {
 		},
 	}
 
-	cut := &Authenticator{
-		Provider: authn,
+	cut := &Authentication{
+		Authenticator: authn,
 	}
 
 	request := &service.Request{Request: fakeRequest}
@@ -108,8 +108,8 @@ func TestUnauthorized(t *testing.T) {
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
 
-func TestCustomHandler(t *testing.T) {
-	authn := &authn.FakeProvider{
+func TestAuthenticationCustomHandler(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
@@ -123,8 +123,8 @@ func TestCustomHandler(t *testing.T) {
 
 	challenge := "Custom realm=\"secrets, inc\""
 	var handlerInvoked bool
-	cut := &Authenticator{
-		Provider: authn,
+	cut := &Authentication{
+		Authenticator: authn,
 		UnauthorizedHandler: func(c context.Context, r *service.Request) service.Response {
 			handlerInvoked = true
 			assert.Equal(t, ctx, c)
@@ -148,8 +148,8 @@ func TestCustomHandler(t *testing.T) {
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
 
-func TestCustomErrorHandler(t *testing.T) {
-	authn := &authn.FakeProvider{
+func TestAuthenticationCustomErrorHandler(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
@@ -163,8 +163,8 @@ func TestCustomErrorHandler(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	var errorHandlerInvoked bool
-	cut := &Authenticator{
-		Provider: authn,
+	cut := &Authentication{
+		Authenticator: authn,
 		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
 			errorHandlerInvoked = true
 			assert.Equal(t, ctx, c)
@@ -188,4 +188,86 @@ func TestCustomErrorHandler(t *testing.T) {
 	}
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationNilAuthenticator(t *testing.T) {
+	cut := &PassiveAuthentication{}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+	response := cut.Service(ctx, request)
+
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+	assert.Equal(t, "", response.Headers().Get(wwwAuthenticateHeaderKey))
+}
+
+func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, merry.New("I blewed up!")
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationUnknownPrincipal(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			t.Fatal("unexpected call to Challenge")
+			return ""
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationOK(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return expectedUser, nil
+		},
+		ChallengeHook: func() string {
+			t.Fatal("unexpected call to Challenge")
+			return ""
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &service.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx.WithActorHook = func(value models.User) context.Context { return ctx }
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+	ctx.AssertWithActorCalledOnceWith(t, expectedUser)
 }
