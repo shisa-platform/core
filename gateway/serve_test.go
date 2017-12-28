@@ -1,73 +1,216 @@
 package gateway
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/ansel1/merry"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/auxillary"
-	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
 )
 
-func TestAuxillaryServer(t *testing.T) {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		t.Errorf("unexpected logger error: %v", err)
+func TestGatewayNoServices(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
 	}
-	defer logger.Sync()
 
-	expectedGracePeriod := 2 * time.Second
-	dummyEndpoint := service.Endpoint{
-		Route: "/dummy",
-		Get: &service.Pipeline{
-			Handlers: []service.Handler{
-				func(context.Context, *service.Request) service.Response {
-					return service.NewOK(nil)
-				},
-			},
-		},
+	err := cut.Serve([]service.Service{})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayServiceWithNoName(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
 	}
-	gw := &Gateway{
-		Name:        "test",
-		Address:     ":9001", // it's over 9000!
-		GracePeriod: expectedGracePeriod,
-		Logger:      logger,
-	}
+
 	svc := &service.FakeService{
-		NameHook: func() string {
-			return "fake"
-		},
-		EndpointsHook: func() []service.Endpoint {
-			return []service.Endpoint{dummyEndpoint}
-		},
-		HandlersHook: func() []service.Handler {
-			return nil
-		},
-		MalformedRequestHandlerHook: func() service.Handler {
-			return nil
-		},
-		MethodNotAllowedHandlerHook: func() service.Handler {
-			return nil
-		},
-		RedirectHandlerHook: func() service.Handler {
-			return nil
-		},
-		InternalServerErrorHandlerHook: func() service.ErrorHandler {
-			return nil
-		},
+		NameHook: func() string { return "" },
 	}
+	err := cut.Serve([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayServiceWithNoEndpoints(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	svc := &service.FakeService{
+		NameHook:      func() string { return "test" },
+		EndpointsHook: func() []service.Endpoint { return nil },
+	}
+
+	err := cut.Serve([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	endpoint := service.GetEndpoint("", dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	err := cut.Serve([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	endpoint := service.GetEndpoint("test", dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	err := cut.Serve([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayEndpointWithNoPipelines(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	endpoint := service.Endpoint{Route: expectedRoute}
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	err := cut.Serve([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayEndpointRedundantRegistration(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	endpoint2 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1, endpoint2})
+
+	err := cut.Serve([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayMisconfiguredTLS(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	err := cut.ServeTLS([]service.Service{svc})
+	assert.NotNil(t, err)
+}
+
+func TestGatewayFailingAuxillary(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9001",
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
 
 	aux := &auxillary.FakeServer{
 		AddressHook: func() string {
 			return ":9002"
 		},
 		NameHook: func() string {
+			return "aux"
+		},
+		ServeHook: func() error {
+			return merry.New("i blewed up!")
+		},
+		ShutdownHook: func(gracePeriod time.Duration) error {
+			return nil
+		},
+	}
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+	err := cut.Serve([]service.Service{svc}, aux)
+	assert.NotNil(t, err)
+}
+
+func TestGatewayFullyLoadedEndpoint(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9003",
+	}
+
+	pipline := &service.Pipeline{Handlers: []service.Handler{dummyHandler}}
+	endpoint := service.Endpoint{
+		Route:   expectedRoute,
+		Head:    pipline,
+		Get:     pipline,
+		Put:     pipline,
+		Post:    pipline,
+		Patch:   pipline,
+		Delete:  pipline,
+		Connect: pipline,
+		Options: pipline,
+		Trace:   pipline,
+	}
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+	err := cut.Serve([]service.Service{svc})
+	assert.Nil(t, err)
+
+	e, _, _, err := cut.tree.getValue(expectedRoute)
+	assert.Nil(t, err)
+	assert.NotNil(t, e)
+	assert.Equal(t, expectedRoute, e.Route)
+	assert.NotNil(t, e.Head)
+	assert.NotNil(t, e.Get)
+	assert.NotNil(t, e.Put)
+	assert.NotNil(t, e.Post)
+	assert.NotNil(t, e.Patch)
+	assert.NotNil(t, e.Delete)
+	assert.NotNil(t, e.Connect)
+	assert.NotNil(t, e.Options)
+	assert.NotNil(t, e.Trace)
+	assert.Equal(t, svc.Name(), e.serviceName)
+	assert.NotNil(t, e.queryParamHandler)
+	assert.NotNil(t, e.notAllowedHandler)
+	assert.NotNil(t, e.redirectHandler)
+	assert.NotNil(t, e.iseHandler)
+}
+
+func TestGatewayAuxillaryServer(t *testing.T) {
+	expectedGracePeriod := 2 * time.Second
+	gw := &Gateway{
+		Name:        "test",
+		Address:     ":9005",
+		GracePeriod: expectedGracePeriod,
+	}
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	aux := &auxillary.FakeServer{
+		AddressHook: func() string {
+			return ":9006"
+		},
+		NameHook: func() string {
 			return "fake"
 		},
 		ServeHook: func() error {
-			return nil
+			return http.ErrServerClosed
 		},
 		ShutdownHook: func(gracePeriod time.Duration) error {
 			if gracePeriod != expectedGracePeriod {
