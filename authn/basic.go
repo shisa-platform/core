@@ -56,7 +56,7 @@ func (m *basicAuthenticator) Challenge() string {
 	return m.challenge
 }
 
-// NewBasicAuthenticator returns a provider implementing Basic
+// NewBasicAuthenticator returns an authenticator implementing Basic
 // Access Authentication as specified in RFC 7617.
 // An error will be returned if the `idp` parameter is nil.
 func NewBasicAuthenticator(idp IdentityProvider, realm string) (Authenticator, merry.Error) {
