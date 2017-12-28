@@ -35,7 +35,7 @@ func (m *genericAuthenticator) Challenge() string {
 	return m.challenge
 }
 
-// NewAuthenticator returns a provider using the given token
+// NewAuthenticator returns an authenticator using the given token
 // extractor and identity provider.
 // An error will be returned if the `idp` or `extractor`
 // parameters are nil.
