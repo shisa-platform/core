@@ -89,15 +89,21 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		case aerr := <-ach:
 			if aerr == http.ErrServerClosed {
 				g.Logger.Info("auxillary service closed")
-			} else if err != nil {
+			} else {
 				aerrs = append(aerrs, merry.Wrap(aerr))
 			}
 		case gerr := <-gch:
 			err = multierr.Combine(aerrs...)
 			if gerr == http.ErrServerClosed {
 				g.Logger.Info("gateway service closed")
-			} else if err != nil {
-				err = multierr.Append(err, merry.Wrap(gerr))
+				return
+			}
+
+			wrapped := merry.Wrap(gerr)
+			if err != nil {
+				err = multierr.Append(err, wrapped)
+			} else {
+				err = wrapped
 			}
 			return
 		}
