@@ -14,9 +14,9 @@ var (
 	authHeaderKey = http.CanonicalHeaderKey("Authorization")
 )
 
-//go:generate charlatan -output=./provider_charlatan.go Provider
+//go:generate charlatan -output=./authenticator_charlatan.go Authenticator
 
-type Provider interface {
+type Authenticator interface {
 	// Authenticate extracts a token from the request and
 	// resolves it into a user principal.
 	Authenticate(context.Context, *service.Request) (models.User, merry.Error)
