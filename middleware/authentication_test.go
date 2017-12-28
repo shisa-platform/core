@@ -16,7 +16,7 @@ import (
 
 var (
 	expectedUser      = &models.FakeUser{IDHook: func() string { return "123" }}
-	fakeRequest       = httptest.NewRequest("GET", "/foo", nil)
+	fakeRequest       = httptest.NewRequest(http.MethodGet, "/", nil)
 	expectedChallenge = "Brute realm=\"Outer Space\""
 )
 

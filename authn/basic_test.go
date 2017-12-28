@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 )
 
 var (
-	fakeRequest = httptest.NewRequest("GET", "/foo", nil)
+	fakeRequest = httptest.NewRequest(http.MethodGet, "/", nil)
 )
 
 func mustMakeBasicAuthenticator(idp IdentityProvider) Authenticator {

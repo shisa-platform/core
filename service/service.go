@@ -6,10 +6,10 @@ import (
 	"github.com/percolate/shisa/context"
 )
 
-//go:generate charlatan -output=./service_charlatan.go Service
-
 // ErrorHandler creates a response for the given error condition.
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
+
+//go:generate charlatan -output=./service_charlatan.go Service
 
 // Service is a logical grouping of related endpoints.
 // Examples of relationships are serving the same product
@@ -25,12 +25,12 @@ type Service interface {
 	// handlers when a service is registered.
 	Handlers() []Handler
 
-	// MalformedQueryParameterHandler optionally customizes the
-	// response to the user agent when malformed query parameters
-	// are presented.
+	// MalformedRequestHandler optionally customizes the
+	// response to the user agent when a malformed request is
+	// presented.
 	// If nil the default handler wil return a 400 status code
 	// with an empty body.
-	MalformedQueryParameterHandler() Handler
+	MalformedRequestHandler() Handler
 
 	// MethodNotAllowedHandler optionally customizes the response
 	// returned to the user agent when an endpoint isn't
@@ -67,7 +67,7 @@ func (s *ServiceAdapter) Handlers() []Handler {
 	return nil
 }
 
-func (s *ServiceAdapter) MalformedQueryParameterHandler() Handler {
+func (s *ServiceAdapter) MalformedRequestHandler() Handler {
 	return nil
 }
 
