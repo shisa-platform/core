@@ -14,25 +14,24 @@ type Handler func(context.Context, *Request) Response
 // user agent.  If no response is produced an Internal Service
 // Error handler will be invoked.
 type Pipeline struct {
-	Policy   Policy // customizes automated behavior
-	Handlers []Handler
+	Policy   Policy    // customizes automated behavior
+	Handlers []Handler // the steps of this pipline, minimum one
 }
 
 // Endpoint is collection of pipelines for a route (URL path),
 // one for each HTTP method.  Only supported methods should have
 // pipelines, but at least one pipleline is requried.
 type Endpoint struct {
-	Route   string
-	Head    *Pipeline
-	Get     *Pipeline
-	Put     *Pipeline
-	Post    *Pipeline
-	Patch   *Pipeline
-	Delete  *Pipeline
-	Connect *Pipeline
-	Options *Pipeline
-	Trace   *Pipeline
-	// xxx - request (query|body) parameters
+	Route   string    // the URL path for this endpoint
+	Head    *Pipeline // HEAD method pipeline
+	Get     *Pipeline // GET method pipeline
+	Put     *Pipeline // PUT method pipeline
+	Post    *Pipeline // POST method pipeline
+	Patch   *Pipeline // PATCH method pipeline
+	Delete  *Pipeline // DELETE method pipeline
+	Connect *Pipeline // CONNECT method pipeline
+	Options *Pipeline // OPTIONS method pipeline
+	Trace   *Pipeline // TRACE method pipeline
 }
 
 // GetEndpoint returns an Endpoint configured for the given route
