@@ -109,7 +109,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if qp, pe := url.ParseQuery(request.URL.RawQuery); pe != nil && !pipeline.Policy.AllowMalformedQueryParameters {
-		response = endpoint.queryParamHandler(ctx, request)
+		response = endpoint.badQueryHandler(ctx, request)
 		goto finish
 	} else {
 		request.QueryParams = qp
