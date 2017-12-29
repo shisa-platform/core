@@ -19,4 +19,4 @@ coverage:
 comment: false
 
 ignore:
-  - "**/*_charlatan.go"
+  - ".*_charlatan.go"
