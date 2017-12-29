@@ -29,7 +29,7 @@ func TestAuthenticationNilAuthenticator(t *testing.T) {
 
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
-	assert.Equal(t, "", response.Headers().Get(wwwAuthenticateHeaderKey))
+	assert.Equal(t, "", response.Headers().Get(WWWAuthenticateHeaderKey))
 }
 
 func TestAuthenticationAuthenticatorError(t *testing.T) {
@@ -52,7 +52,7 @@ func TestAuthenticationAuthenticatorError(t *testing.T) {
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
-	assert.Equal(t, expectedChallenge, response.Headers().Get(wwwAuthenticateHeaderKey))
+	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
@@ -103,7 +103,7 @@ func TestAuthenticationUnauthorized(t *testing.T) {
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
-	assert.Equal(t, expectedChallenge, response.Headers().Get(wwwAuthenticateHeaderKey))
+	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
@@ -131,7 +131,7 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 			assert.Equal(t, request, r)
 
 			response := service.NewEmpty(http.StatusForbidden)
-			response.Headers().Set(wwwAuthenticateHeaderKey, challenge)
+			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
 			return response
 		},
 	}
@@ -139,7 +139,7 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusForbidden, response.StatusCode())
-	assert.Equal(t, challenge, response.Headers().Get(wwwAuthenticateHeaderKey))
+	assert.Equal(t, challenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 
 	if !handlerInvoked {
 		t.Fatal("custom error handler not invoked")
@@ -173,7 +173,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 			assert.Equal(t, http.StatusUnauthorized, merry.HTTPCode(err))
 
 			response := service.NewEmpty(http.StatusForbidden)
-			response.Headers().Set(wwwAuthenticateHeaderKey, challenge)
+			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
 			return response
 		},
 	}
@@ -181,7 +181,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusForbidden, response.StatusCode())
-	assert.Equal(t, challenge, response.Headers().Get(wwwAuthenticateHeaderKey))
+	assert.Equal(t, challenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 
 	if !errorHandlerInvoked {
 		t.Fatal("custom error handler not invoked")
@@ -199,7 +199,7 @@ func TestPassiveAuthenticationNilAuthenticator(t *testing.T) {
 
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
-	assert.Equal(t, "", response.Headers().Get(wwwAuthenticateHeaderKey))
+	assert.Equal(t, "", response.Headers().Get(WWWAuthenticateHeaderKey))
 }
 
 func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
