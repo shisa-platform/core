@@ -17,7 +17,7 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 }
 
 type HelloService struct {
- 	service.ServiceAdapter
+	service.ServiceAdapter
 	endpoints []service.Endpoint
 }
 
@@ -38,7 +38,7 @@ func NewHelloService() *HelloService {
 
 	salutation := service.GetEndpointWithPolicy("/salutation", policy, svc.Salutaion)
 	salutation.Get.Fields = []*service.Field{language}
-	
+
 	svc.endpoints = []service.Endpoint{greeting, salutation}
 
 	return svc
