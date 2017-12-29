@@ -1,89 +1,42 @@
 package gateway
 
 import (
+	"crypto/tls"
+	"net/http"
 	"testing"
 	"time"
 
-	"go.uber.org/zap"
-
-	"github.com/percolate/shisa/auxillary"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestAuxillaryServer(t *testing.T) {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		t.Errorf("unexpected logger error: %v", err)
+func TestGatewayInit(t *testing.T) {
+	config := tls.Config{}
+	nextProto := map[string]func(*http.Server, *tls.Conn, http.Handler){}
+	cut := &Gateway{
+		Address:           ":9001",
+		DisableKeepAlive:  true,
+		TLSConfig:         &config,
+		ReadTimeout:       time.Millisecond * 5,
+		ReadHeaderTimeout: time.Millisecond * 10,
+		WriteTimeout:      time.Millisecond * 15,
+		IdleTimeout:       time.Millisecond * 20,
+		MaxHeaderBytes:    1024,
+		TLSNextProto:      nextProto,
 	}
-	defer logger.Sync()
+	cut.init()
 
-	expectedGracePeriod := 2 * time.Second
-	dummyEndpoint := service.Endpoint{
-		Route: "/dummy",
-		Get: &service.Pipeline{
-			Handlers: []service.Handler{
-				func(context.Context, *service.Request) service.Response {
-					return service.NewOK(nil)
-				},
-			},
-		},
-	}
-	gw := &Gateway{
-		Name:        "test",
-		Address:     ":9001", // it's over 9000!
-		GracePeriod: expectedGracePeriod,
-		Logger:      logger,
-	}
-	svc := &service.FakeService{
-		NameHook: func() string {
-			return "fake"
-		},
-		EndpointsHook: func() []service.Endpoint {
-			return []service.Endpoint{dummyEndpoint}
-		},
-		HandlersHook: func() []service.Handler {
-			return nil
-		},
-		MalformedRequestHandlerHook: func() service.Handler {
-			return nil
-		},
-		MethodNotAllowedHandlerHook: func() service.Handler {
-			return nil
-		},
-		RedirectHandlerHook: func() service.Handler {
-			return nil
-		},
-		InternalServerErrorHandlerHook: func() service.ErrorHandler {
-			return nil
-		},
-	}
-
-	aux := &auxillary.FakeServer{
-		AddressHook: func() string {
-			return ":9002"
-		},
-		NameHook: func() string {
-			return "fake"
-		},
-		ServeHook: func() error {
-			return nil
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			if gracePeriod != expectedGracePeriod {
-				t.Errorf("grace period %v != expected %v", gracePeriod, expectedGracePeriod)
-			}
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { gw.Shutdown() })
-	defer timer.Stop()
-
-	if err := gw.Serve([]service.Service{svc}, aux); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	aux.AssertServeCalledOnce(t)
-	aux.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
+	assert.Equal(t, cut.Address, cut.base.Addr)
+	assert.Equal(t, cut.TLSConfig, cut.base.TLSConfig)
+	assert.Equal(t, cut.ReadTimeout, cut.base.ReadTimeout)
+	assert.Equal(t, cut.ReadHeaderTimeout, cut.base.ReadHeaderTimeout)
+	assert.Equal(t, cut.WriteTimeout, cut.base.WriteTimeout)
+	assert.Equal(t, cut.IdleTimeout, cut.base.IdleTimeout)
+	assert.Equal(t, cut.MaxHeaderBytes, cut.base.MaxHeaderBytes)
+	assert.Equal(t, cut.TLSNextProto, cut.base.TLSNextProto)
+	assert.NotNil(t, cut.base.ConnState)
+	assert.Equal(t, cut, cut.base.Handler)
+	assert.Equal(t, defaultRequestIDResponseHeader, cut.RequestIDHeaderName)
+	assert.NotNil(t, cut.RequestIDGenerator)
+	assert.NotNil(t, cut.NotFoundHandler)
+	assert.NotNil(t, cut.Logger)
 }

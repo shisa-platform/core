@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
 
@@ -78,11 +79,6 @@ type Gateway struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
-	// Logger optionally specifies the logger to use by the
-	// Gateway and all of its services.
-	// If nil all logging is disabled.
-	Logger *zap.Logger
-
 	// RequestIDHeaderName optionally customizes the name of the
 	// response header for the request id.
 	// If empty "X-Request-Id" will be used.
@@ -93,12 +89,23 @@ type Gateway struct {
 	// If nil then `service.Request.GenerateID` will be used.
 	RequestIDGenerator service.StringExtractor
 
+	// Authentication optionally enforces authentication before
+	// other request validation.  This is recommended to prevent
+	// leaking details about the implementation to unknown user
+	// agents.
+	Authentication *middleware.Authentication
+
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
 	// service a request path.
 	// If nil the default handler will return a 404 status code
 	// with an empty body.
 	NotFoundHandler service.Handler
+
+	// Logger optionally specifies the logger to use by the
+	// Gateway and all of its services.
+	// If nil all logging is disabled.
+	Logger *zap.Logger
 
 	base        http.Server
 	auxiliaries []auxillary.Server

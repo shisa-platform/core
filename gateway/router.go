@@ -37,6 +37,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.WithRequestID(ctx, requestID)
 
+	queryParams, paramError := url.ParseQuery(request.URL.RawQuery)
+	request.QueryParams = queryParams
+
 	var (
 		err           merry.Error
 		response      service.Response
@@ -49,6 +52,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := request.URL.EscapedPath()
 	endpoint, pathParams, tsr, err := g.tree.getValue(path)
 	findPathTime := time.Now().UTC().Sub(findPathStart)
+
+	if g.Authentication != nil {
+		if response = g.Authentication.Service(ctx, request); response != nil {
+			goto finish
+		}
+	}
 
 	if err != nil {
 		response = defaultInternalServerErrorHandler(ctx, request, err)
@@ -99,6 +108,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
+	if paramError != nil && !pipeline.Policy.AllowMalformedQueryParameters {
+		response = endpoint.badQueryHandler(ctx, request)
+		goto finish
+	}
+
 	request.PathParams = pathParams
 	if !pipeline.Policy.PreserveEscapedPathParameters {
 		for i := range request.PathParams {
@@ -106,13 +120,6 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				request.PathParams[i].Value = esc
 			}
 		}
-	}
-
-	if qp, pe := url.ParseQuery(request.URL.RawQuery); pe != nil && !pipeline.Policy.AllowMalformedQueryParameters {
-		response = endpoint.badQueryHandler(ctx, request)
-		goto finish
-	} else {
-		request.QueryParams = qp
 	}
 
 	if pipeline.Policy.TimeBudget != 0 {
