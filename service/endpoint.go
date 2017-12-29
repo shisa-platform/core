@@ -16,6 +16,7 @@ type Handler func(context.Context, *Request) Response
 type Pipeline struct {
 	Policy   Policy    // customizes automated behavior
 	Handlers []Handler // the steps of this pipline, minimum one
+	Fields   []*Field  // optional query parameter validation
 }
 
 // Endpoint is collection of pipelines for a route (URL path),

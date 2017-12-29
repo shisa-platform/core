@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
 
@@ -19,30 +17,29 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 }
 
 type HelloService struct {
-	service.ServiceAdapter
+ 	service.ServiceAdapter
 	endpoints []service.Endpoint
 }
 
 func NewHelloService() *HelloService {
-	idp := &SimpleIdentityProvider{
-		Users: []User{User{"1", "Boss", "password"}},
-	}
-	authenticator, err := authn.NewBasicAuthenticator(idp, "hello")
-	if err != nil {
-		panic(err)
-	}
-	authN := middleware.Authentication{Authenticator: authenticator}
-	pasv := middleware.PassiveAuthentication{Authenticator: authenticator}
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 
 	svc := &HelloService{}
-	svc.endpoints = []service.Endpoint{
-		service.GetEndpointWithPolicy("/greeting", policy, pasv.Service, svc.Greeting),
-		service.GetEndpointWithPolicy("/salutation", policy, authN.Service, svc.Salutaion),
+
+	language := &service.Field{Name: "language"}
+	greeting := service.GetEndpointWithPolicy("/greeting", policy, svc.Greeting)
+	greeting.Get.Fields = []*service.Field{
+		language,
+		&service.Field{Name: "name"},
 	}
+
+	salutation := service.GetEndpointWithPolicy("/salutation", policy, svc.Salutaion)
+	salutation.Get.Fields = []*service.Field{language}
+	
+	svc.endpoints = []service.Endpoint{greeting, salutation}
 
 	return svc
 }
