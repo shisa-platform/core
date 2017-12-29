@@ -12,8 +12,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
 
@@ -88,6 +88,12 @@ type Gateway struct {
 	// are generated.
 	// If nil then `service.Request.GenerateID` will be used.
 	RequestIDGenerator service.StringExtractor
+
+	// Authentication optionally enforces authentication before
+	// other request validation.  This is recommended to prevent
+	// leaking details about the implementation to unknown user
+	// agents.
+	Authentication *middleware.Authentication
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured

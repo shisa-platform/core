@@ -12,7 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
+	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/service"
 )
@@ -173,9 +175,71 @@ func TestRouterCustomRequestIDHeaderKey(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(headerKey))
+}
+
+func TestRouterAuthentictionNGResponse(t *testing.T) {
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	cut := &Gateway{
+		Authentication: &middleware.Authentication{
+			Authenticator: authn,
+		},
+	}
+	cut.init()
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+}
+
+func TestRouterAuthentictionOKResponse(t *testing.T) {
+	user := &models.FakeUser{IDHook: func() string { return "123" }}
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return user, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	cut := &Gateway{
+		Authentication: &middleware.Authentication{
+			Authenticator: authn,
+		},
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+
+		assert.Equal(t, user, ctx.Actor())
+		return service.NewEmpty(http.StatusOK)
+	}
+	installHandler(t, cut, handler)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.Empty(t, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
 }
 
 func TestRouterTreeFailure(t *testing.T) {
@@ -192,6 +256,7 @@ func TestRouterTreeFailure(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
+
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -1134,6 +1199,7 @@ func TestRouterLoggingEnabled(t *testing.T) {
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
 
+	assert.True(t, handlerCalled, "handler not called")
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
