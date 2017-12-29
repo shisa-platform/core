@@ -15,7 +15,7 @@ import (
 type endpoint struct {
 	service.Endpoint
 	serviceName       string
-	queryParamHandler service.Handler
+	badQueryHandler service.Handler
 	notAllowedHandler service.Handler
 	redirectHandler   service.Handler
 	iseHandler        service.ErrorHandler
@@ -127,14 +127,14 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 					Route: endp.Route,
 				},
 				serviceName:       svc.Name(),
-				queryParamHandler: svc.MalformedRequestHandler(),
+				badQueryHandler: svc.MalformedRequestHandler(),
 				notAllowedHandler: svc.MethodNotAllowedHandler(),
 				redirectHandler:   svc.RedirectHandler(),
 				iseHandler:        svc.InternalServerErrorHandler(),
 			}
 
-			if e.queryParamHandler == nil {
-				e.queryParamHandler = defaultMalformedRequestHandler
+			if e.badQueryHandler == nil {
+				e.badQueryHandler = defaultMalformedRequestHandler
 			}
 			if e.notAllowedHandler == nil {
 				e.notAllowedHandler = defaultMethodNotAlowedHandler
