@@ -797,9 +797,9 @@ func TestRouterPathParamters(t *testing.T) {
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
 		assert.Len(t, r.PathParams, 2)
-		assert.Equal(t, "outer", r.PathParams[0].Key)
+		assert.Equal(t, "outer", r.PathParams[0].Name)
 		assert.Equal(t, "zalgo", r.PathParams[0].Value)
-		assert.Equal(t, "inner", r.PathParams[1].Key)
+		assert.Equal(t, "inner", r.PathParams[1].Name)
 		assert.Equal(t, "he comes", r.PathParams[1].Value)
 
 		return service.NewEmpty(http.StatusOK)
@@ -825,9 +825,9 @@ func TestRouterPathParamtersPreserveEscaping(t *testing.T) {
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
 		assert.Len(t, r.PathParams, 2)
-		assert.Equal(t, "outer", r.PathParams[0].Key)
+		assert.Equal(t, "outer", r.PathParams[0].Name)
 		assert.Equal(t, "zalgo", r.PathParams[0].Value)
-		assert.Equal(t, "inner", r.PathParams[1].Key)
+		assert.Equal(t, "inner", r.PathParams[1].Name)
 		assert.Equal(t, "he%20comes", r.PathParams[1].Value)
 
 		return service.NewEmpty(http.StatusOK)
@@ -853,9 +853,13 @@ func TestRouterQueryParamters(t *testing.T) {
 	var handlerCalled bool
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
-		assert.NotEmpty(t, r.QueryParams)
-		assert.Equal(t, "he:comes", r.QueryParams.Get("zalgo"))
-		assert.Equal(t, "behind the walls", r.QueryParams.Get("waits"))
+		assert.Len(t, r.QueryParams, 2)
+		assert.Equal(t, "zalgo", r.QueryParams[0].Name)
+		assert.Equal(t, "he:comes", r.QueryParams[0].Values[0])
+		assert.False(t, r.QueryParams[0].Invalid)
+		assert.Equal(t, "waits", r.QueryParams[1].Name)
+		assert.Equal(t, "behind the walls", r.QueryParams[1].Values[0])
+		assert.False(t, r.QueryParams[1].Invalid)
 
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -934,9 +938,13 @@ func TestRouterQueryParamtersAllowMalformed(t *testing.T) {
 	var handlerCalled bool
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
-		assert.NotEmpty(t, r.QueryParams)
-		assert.Equal(t, "foobar", r.QueryParams.Get("good"))
-		assert.Empty(t, r.QueryParams.Get("bad"))
+		assert.Len(t, r.QueryParams, 2)
+		assert.Equal(t, "bad", r.QueryParams[0].Name)
+		assert.Equal(t, "foo%zzbar", r.QueryParams[0].Values[0])
+		assert.True(t, r.QueryParams[0].Invalid)
+		assert.Equal(t, "good", r.QueryParams[1].Name)
+		assert.Equal(t, "foobar", r.QueryParams[1].Values[0])
+		assert.False(t, r.QueryParams[1].Invalid)
 
 		return service.NewEmpty(http.StatusPaymentRequired)
 	}

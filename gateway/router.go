@@ -4,6 +4,7 @@ import (
 	stdctx "context"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -37,8 +38,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.WithRequestID(ctx, requestID)
 
-	queryParams, paramError := url.ParseQuery(request.URL.RawQuery)
-	request.QueryParams = queryParams
+	parseQuery(&request.QueryParams, request.URL.RawQuery)
 
 	var (
 		err           merry.Error
@@ -108,10 +108,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if paramError != nil && !pipeline.Policy.AllowMalformedQueryParameters {
-		response = endpoint.badQueryHandler(ctx, request)
-		goto finish
-	}
+	// if !pipeline.Policy.AllowMalformedQueryParameters {
+	// 	response = endpoint.badQueryHandler(ctx, request)
+	// 	goto finish
+	// }
 
 	request.PathParams = pathParams
 	if !pipeline.Policy.PreserveEscapedPathParameters {
@@ -225,4 +225,40 @@ func recovery(fatalError *merry.Error) {
 func run(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
+}
+
+func parseQuery(ps *[]service.QueryParameter, query string) {
+	m := make(map[string]service.QueryParameter)
+
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+
+		key, err1 := url.QueryUnescape(key)
+		value, err1 = url.QueryUnescape(value)
+
+		p := m[key]
+		p.Values = append(p.Values, value)
+		if err1 != nil {
+			p.Invalid = true
+		}
+
+		m[key] = p
+	}
+
+	*ps = make([]service.QueryParameter, 0, len(m))
+	for _, v := range m {
+		*ps = append(*ps, v)
+	}
 }
