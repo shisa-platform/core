@@ -2,10 +2,7 @@ package service
 
 import (
 	"crypto/rand"
-	"errors"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,90 +12,35 @@ import (
 	"github.com/percolate/shisa/uuid"
 )
 
-var (
-	ParameterNotPresented = errors.New("parameter not presented")
-)
-
 // StringExtractor is a function type that extracts a string from
 // the given `context.Context` and `*service.Request`.
 // An error is returned if the string could not be extracted.
 type StringExtractor func(context.Context, *Request) (string, merry.Error)
 
-// Param is a single URL parameter, consisting of a key and a
-// value.
-type Param struct {
-	Key   string
-	Value string
-}
-
-// Params is a ordered slice of URL parameters.
-type Params []Param
-
 type Request struct {
 	*http.Request
-	PathParams  Params
-	QueryParams url.Values
+	PathParams  []PathParameter
+	QueryParams []QueryParameter
+}
+
+func (r *Request) PathParamExists(name string) bool {
+	for _, p := range r.PathParams {
+		if p.Name == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (r *Request) QueryParamExists(name string) bool {
-	_, ok := r.QueryParams[name]
-	return ok
-}
-
-func (r *Request) QueryParam(name string) (string, bool) {
-	if values, ok := r.QueryParams[name]; ok {
-		return values[0], true
-	}
-
-	return "", false
-}
-
-func (r *Request) QueryParamBool(name string) (bool, bool) {
-	if values, ok := r.QueryParams[name]; ok {
-		b, err := strconv.ParseBool(values[0])
-		if err != nil {
-			return false, true
-		}
-
-		return b, true
-	}
-
-	return false, false
-}
-
-func (r *Request) QueryParamInt(name string) (int, error) {
-	if values, ok := r.QueryParams[name]; ok {
-		return strconv.Atoi(values[0])
-	}
-
-	return 0, ParameterNotPresented
-}
-
-func (r *Request) QueryParamUint(name string) (uint, error) {
-	if values, ok := r.QueryParams[name]; ok {
-		u64, err := strconv.ParseUint(values[0], 10, 0)
-		return uint(u64), err
-	}
-
-	return 0, ParameterNotPresented
-}
-
-func (r *Request) PathParam(name string) (string, bool) {
-	for _, p := range r.PathParams {
-		if p.Key == name {
-			return p.Value, true
+	for _, p := range r.QueryParams {
+		if p.Name == name {
+			return true
 		}
 	}
 
-	return "", false
-}
-
-func (r *Request) PathParamInt(name string) (int, error) {
-	if v, ok := r.PathParam(name); ok {
-		return strconv.Atoi(v)
-	}
-
-	return 0, ParameterNotPresented
+	return false
 }
 
 // GenerateID creates a globally unique string for the request.

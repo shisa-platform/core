@@ -47,7 +47,7 @@ type testRequests []struct {
 	path        string
 	nilEndpoint bool
 	route       string
-	ps          service.Params
+	ps          []service.PathParameter
 }
 
 func checkRequests(t *testing.T, tree *node, requests testRequests, unescapes ...bool) {
@@ -202,20 +202,20 @@ func TestTreeWildcard(t *testing.T) {
 
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
-		{"/cmd/test/", false, "/cmd/:tool/", service.Params{service.Param{"tool", "test"}}},
-		{"/cmd/test", false, "/cmd/:tool/", service.Params{service.Param{"tool", "test"}}},
-		{"/cmd/test/3", false, "/cmd/:tool/:sub", service.Params{service.Param{"tool", "test"}, service.Param{"sub", "3"}}},
-		{"/src/", false, "/src/*filepath", service.Params{service.Param{"filepath", "/"}}},
-		{"/src/some/file.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file.png"}}},
+		{"/cmd/test/", false, "/cmd/:tool/", []service.PathParameter{service.PathParameter{"tool", "test"}}},
+		{"/cmd/test", false, "/cmd/:tool/", []service.PathParameter{service.PathParameter{"tool", "test"}}},
+		{"/cmd/test/3", false, "/cmd/:tool/:sub", []service.PathParameter{service.PathParameter{"tool", "test"}, service.PathParameter{"sub", "3"}}},
+		{"/src/", false, "/src/*filepath", []service.PathParameter{service.PathParameter{"filepath", "/"}}},
+		{"/src/some/file.png", false, "/src/*filepath", []service.PathParameter{service.PathParameter{"filepath", "/some/file.png"}}},
 		{"/search/", false, "/search/", nil},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", service.Params{service.Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/search/someth!ng+in+ünìcodé/", false, "/search/:query", service.Params{service.Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", service.Params{service.Param{"name", "gopher"}}},
-		{"/user_gopher/about", false, "/user_:name/about", service.Params{service.Param{"name", "gopher"}}},
-		{"/files/thingr/", false, "/files/:dir", service.Params{service.Param{"dir", "thingr"}}},
-		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", service.Params{service.Param{"dir", "js"}, service.Param{"filepath", "/inc/framework.js"}}},
-		{"/info/gordon/public", false, "/info/:user/public", service.Params{service.Param{"user", "gordon"}}},
-		{"/info/gordon/project/go", false, "/info/:user/project/:project", service.Params{service.Param{"user", "gordon"}, service.Param{"project", "go"}}},
+		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", []service.PathParameter{service.PathParameter{"query", "someth!ng+in+ünìcodé"}}},
+		{"/search/someth!ng+in+ünìcodé/", false, "/search/:query", []service.PathParameter{service.PathParameter{"query", "someth!ng+in+ünìcodé"}}},
+		{"/user_gopher", false, "/user_:name", []service.PathParameter{service.PathParameter{"name", "gopher"}}},
+		{"/user_gopher/about", false, "/user_:name/about", []service.PathParameter{service.PathParameter{"name", "gopher"}}},
+		{"/files/thingr/", false, "/files/:dir", []service.PathParameter{service.PathParameter{"dir", "thingr"}}},
+		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", []service.PathParameter{service.PathParameter{"dir", "js"}, service.PathParameter{"filepath", "/inc/framework.js"}}},
+		{"/info/gordon/public", false, "/info/:user/public", []service.PathParameter{service.PathParameter{"user", "gordon"}}},
+		{"/info/gordon/project/go", false, "/info/:user/project/:project", []service.PathParameter{service.PathParameter{"user", "gordon"}, service.PathParameter{"project", "go"}}},
 	})
 
 	checkPriorities(t, tree)
@@ -308,9 +308,9 @@ func TestTreeDupliatePath(t *testing.T) {
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
 		{"/doc/", false, "/doc/", nil},
-		{"/src/some/file.png", false, "/src/*filepath", service.Params{service.Param{"filepath", "/some/file.png"}}},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", service.Params{service.Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", service.Params{service.Param{"name", "gopher"}}},
+		{"/src/some/file.png", false, "/src/*filepath", []service.PathParameter{service.PathParameter{"filepath", "/some/file.png"}}},
+		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", []service.PathParameter{service.PathParameter{"query", "someth!ng+in+ünìcodé"}}},
+		{"/user_gopher", false, "/user_:name", []service.PathParameter{service.PathParameter{"name", "gopher"}}},
 	})
 }
 
