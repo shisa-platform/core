@@ -4,14 +4,6 @@ import (
 	"testing"
 )
 
-func TestQueryParameterConversionString(t *testing.T) {
-
-}
-
-func TestQueryParameterConversionStringSlice(t *testing.T) {
-
-}
-
 func TestQueryParameterConversionCSV(t *testing.T) {
 
 }

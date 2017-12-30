@@ -15,14 +15,6 @@ type QueryParameter struct {
 	Unknown bool     // the pair was not matched by a field
 }
 
-func (p *QueryParameter) String(t *string) merry.Error {
-	return nil
-}
-
-func (p *QueryParameter) StringSlice(t *[]string) merry.Error {
-	return nil
-}
-
 func (p *QueryParameter) CSV(t *[]string) merry.Error {
 	return nil
 }
