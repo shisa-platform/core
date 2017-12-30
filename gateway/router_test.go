@@ -525,8 +525,8 @@ func TestRouterBadMethodCustomHandler(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
-	svc := newFakeService(newEndpoints(dummyHandler))
 	var handlerCalled bool
+	svc := newFakeService(newEndpoints(dummyHandler))
 	svc.MethodNotAllowedHandlerHook = func() service.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
@@ -846,7 +846,7 @@ func TestRouterPathParamtersPreserveEscaping(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParamters(t *testing.T) {
+func TestRouterQueryParametersIgnoreEmptyQueryPair(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -854,12 +854,24 @@ func TestRouterQueryParamters(t *testing.T) {
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
-		assert.Equal(t, "zalgo", r.QueryParams[0].Name)
-		assert.Equal(t, "he:comes", r.QueryParams[0].Values[0])
-		assert.False(t, r.QueryParams[0].Invalid)
-		assert.Equal(t, "waits", r.QueryParams[1].Name)
-		assert.Equal(t, "behind the walls", r.QueryParams[1].Values[0])
-		assert.False(t, r.QueryParams[1].Invalid)
+		for _, p := range r.QueryParams {
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
 
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -867,7 +879,7 @@ func TestRouterQueryParamters(t *testing.T) {
 	installHandler(t, cut, handler)
 
 	w := httptest.NewRecorder()
-	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
+	uri := expectedRoute + "?zalgo=he:comes&&waits=behind%20the%20walls"
 	request := httptest.NewRequest(http.MethodGet, uri, nil)
 	cut.ServeHTTP(w, request)
 
@@ -876,7 +888,7 @@ func TestRouterQueryParamters(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParamtersForbidMalformed(t *testing.T) {
+func TestRouterQueryParametersForbidMalformed(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -899,7 +911,7 @@ func TestRouterQueryParamtersForbidMalformed(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParamtersForbidMalformedCustomHandler(t *testing.T) {
+func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -931,7 +943,7 @@ func TestRouterQueryParamtersForbidMalformedCustomHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParamtersAllowMalformed(t *testing.T) {
+func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()
 
@@ -939,12 +951,23 @@ func TestRouterQueryParamtersAllowMalformed(t *testing.T) {
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
-		assert.Equal(t, "bad", r.QueryParams[0].Name)
-		assert.Equal(t, "foo%zzbar", r.QueryParams[0].Values[0])
-		assert.True(t, r.QueryParams[0].Invalid)
-		assert.Equal(t, "good", r.QueryParams[1].Name)
-		assert.Equal(t, "foobar", r.QueryParams[1].Values[0])
-		assert.False(t, r.QueryParams[1].Invalid)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Equal(t, "bad", p.Name)
+				assert.Equal(t, "foo%zzbar", p.Values[0])
+				assert.True(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			case 1:
+				assert.Equal(t, "good", p.Name)
+				assert.Equal(t, "foobar", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
 
 		return service.NewEmpty(http.StatusPaymentRequired)
 	}
@@ -959,6 +982,599 @@ func TestRouterQueryParamtersAllowMalformed(t *testing.T) {
 
 	assert.True(t, handlerCalled, "handler not called")
 	assert.Equal(t, http.StatusPaymentRequired, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithoutFields(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	installHandler(t, cut, handler)
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo", Required: true},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 1)
+		assert.Len(t, r.QueryParams[0].Values, 1)
+		assert.Equal(t, "waits", r.QueryParams[0].Name)
+		assert.Equal(t, "behind the walls", r.QueryParams[0].Values[0])
+		assert.False(t, r.QueryParams[0].Invalid)
+		assert.False(t, r.QueryParams[0].Unknown)
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{AllowMalformedQueryParameters: true}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo", Required: true},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he%zzcomes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+
+	var queryHandlerCalled bool
+	svc := newFakeService([]service.Endpoint{endpoint})
+	svc.MalformedRequestHandlerHook = func() service.Handler {
+		return func(context.Context, *service.Request) service.Response {
+			queryHandlerCalled = true
+			return service.NewEmpty(http.StatusPaymentRequired)
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he%zzcomes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, queryHandlerCalled, "malformed query handler not called")
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	assert.Equal(t, http.StatusPaymentRequired, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he%zzcomes", p.Values[0])
+				assert.True(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{AllowMalformedQueryParameters: true}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he%zzcomes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo", Required: true},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFields(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	validator := func(v []string) merry.Error {
+		if v[0] != "he:comes" {
+			return merry.New("can't you feel it?")
+		}
+
+		return nil
+	}
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo", Validator: validator},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=foobar&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "foobar", p.Values[0])
+				assert.True(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{AllowMalformedQueryParameters: true}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
+	validator := func(v []string) merry.Error {
+		if v[0] != "he:comes" {
+			return merry.New("can't you feel it?")
+		}
+
+		return nil
+	}
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo", Validator: validator},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=foobar&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=foobar&waits=behind%20the%20walls&foo=bar"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 3)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 2:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "foo", p.Name)
+				assert.Equal(t, "bar", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{AllowUnknownQueryParameters: true}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls&foo=bar"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 3)
+		for i, p := range r.QueryParams {
+			assert.Equal(t, i, p.Ordinal)
+			switch p.Ordinal {
+			case 0:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 2:
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "x", p.Name)
+				assert.Equal(t, "foo%zzbar", p.Values[0])
+				assert.True(t, p.Invalid)
+				assert.True(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{
+		AllowMalformedQueryParameters: true,
+		AllowUnknownQueryParameters:   true,
+	}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls&x=foo%zzbar"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *service.Request) service.Response {
+		handlerCalled = true
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			switch i {
+			case 0:
+				assert.Equal(t, i, p.Ordinal)
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			case 1:
+				assert.Equal(t, -1, p.Ordinal)
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "waits", p.Name)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.False(t, p.Invalid)
+				assert.False(t, p.Unknown)
+			default:
+				t.Errorf("unexpected ordinal: %d", p.Ordinal)
+			}
+		}
+
+		return service.NewEmpty(http.StatusOK)
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Fields = []*service.Field{
+		&service.Field{Name: "zalgo"},
+		&service.Field{Name: "waits", Default: "behind the walls"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 

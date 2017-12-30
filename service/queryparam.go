@@ -5,11 +5,14 @@ import (
 	"time"
 )
 
+// QueryParameter is a single query parameter passed to an
+// endpoint.
 type QueryParameter struct {
-	Name    string
-	Values  []string
-	Invalid bool
-	Unknown bool
+	Name    string   // the key of the query parameter pair
+	Values  []string // the concatenated values
+	Ordinal int      // the position in the query or -1 for a default
+	Invalid bool     // the pair was not parsable or validated
+	Unknown bool     // the pair was not matched by a field
 }
 
 func (p *QueryParameter) String(t *string) merry.Error {

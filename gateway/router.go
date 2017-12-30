@@ -4,6 +4,7 @@ import (
 	stdctx "context"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -18,6 +19,18 @@ import (
 var (
 	backgroundContext = stdctx.Background()
 )
+
+type byName []service.QueryParameter
+
+func (p byName) Len() int           { return len(p) }
+func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
+func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+type byOrdinal []service.QueryParameter
+
+func (p byOrdinal) Len() int           { return len(p) }
+func (p byOrdinal) Less(i, j int) bool { return p[i].Ordinal < p[j].Ordinal }
+func (p byOrdinal) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
@@ -39,6 +52,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithRequestID(ctx, requestID)
 
 	parseQuery(&request.QueryParams, request.URL.RawQuery)
+	sort.Sort(byOrdinal(request.QueryParams))
 
 	var (
 		err           merry.Error
@@ -46,6 +60,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		pipeline      *service.Pipeline
 		pipelineStart time.Time
 		pipelineTime  time.Duration
+		invalidParams bool
+		missingParams bool
+		params        []service.QueryParameter
 	)
 
 	findPathStart := time.Now().UTC()
@@ -108,10 +125,59 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	// if !pipeline.Policy.AllowMalformedQueryParameters {
-	// 	response = endpoint.badQueryHandler(ctx, request)
-	// 	goto finish
-	// }
+	if len(pipeline.Fields) == 0 {
+		for _, p := range request.QueryParams {
+			if p.Invalid {
+				invalidParams = true
+				break
+			}
+		}
+	} else {
+		params = append(params, request.QueryParams...)
+		sort.Sort(byName(params))
+	}
+
+	for _, f := range pipeline.Fields {
+		var found bool
+		for j, p := range params {
+			if p.Invalid {
+				invalidParams = true
+			}
+			if f.Match(p.Name) {
+				found = true
+				request.QueryParams[p.Ordinal].Unknown = false
+				params = append(params[:j], params[j+1:]...)
+				if err := f.Validate(p.Values); err != nil {
+					request.QueryParams[p.Ordinal].Invalid = true
+					invalidParams = true
+				}
+				break
+			}
+		}
+
+		if !found {
+			if f.Default != "" {
+				dp := service.QueryParameter{
+					Name:    f.Name,
+					Values:  []string{f.Default},
+					Ordinal: -1,
+				}
+				request.QueryParams = append(request.QueryParams, dp)
+			} else if f.Required {
+				missingParams = true
+			}
+		}
+	}
+
+	if (invalidParams || missingParams) && !pipeline.Policy.AllowMalformedQueryParameters {
+		response = endpoint.badQueryHandler(ctx, request)
+		goto finish
+	}
+
+	if len(params) != 0 && !pipeline.Policy.AllowUnknownQueryParameters {
+		response = endpoint.badQueryHandler(ctx, request)
+		goto finish
+	}
 
 	request.PathParams = pathParams
 	if !pipeline.Policy.PreserveEscapedPathParameters {
@@ -229,6 +295,7 @@ func run(handler service.Handler, ctx context.Context, request *service.Request,
 
 func parseQuery(ps *[]service.QueryParameter, query string) {
 	m := make(map[string]service.QueryParameter)
+	i := 0
 
 	for query != "" {
 		key := query
@@ -245,16 +312,28 @@ func parseQuery(ps *[]service.QueryParameter, query string) {
 			key, value = key[:i], key[i+1:]
 		}
 
-		key, err1 := url.QueryUnescape(key)
-		value, err1 = url.QueryUnescape(value)
+		key1, err1 := url.QueryUnescape(key)
+		if err1 == nil {
+			key = key1
+		}
+		value1, err1 := url.QueryUnescape(value)
+		if err1 == nil {
+			value = value1
+		}
 
-		p := m[key]
+		p, found := m[key]
+		if !found {
+			p.Name = key
+			p.Ordinal = i
+			p.Unknown = true
+		}
 		p.Values = append(p.Values, value)
 		if err1 != nil {
 			p.Invalid = true
 		}
 
 		m[key] = p
+		i++
 	}
 
 	*ps = make([]service.QueryParameter, 0, len(m))

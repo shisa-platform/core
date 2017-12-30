@@ -6,9 +6,7 @@ import (
 	"github.com/ansel1/merry"
 )
 
-type Validator interface {
-	Validate(string) merry.Error
-}
+type Validator func([]string) merry.Error
 
 type Field struct {
 	Name      string
@@ -16,8 +14,6 @@ type Field struct {
 	Default   string
 	Validator Validator
 	Required  bool
-	Requires  []*Field
-	Forbids   []*Field
 }
 
 func (f *Field) Match(name string) bool {
@@ -28,9 +24,9 @@ func (f *Field) Match(name string) bool {
 	return f.Name == name
 }
 
-func (f *Field) Validate(value string) merry.Error {
+func (f *Field) Validate(value []string) merry.Error {
 	if f.Validator != nil {
-		return f.Validator.Validate(value)
+		return f.Validator(value)
 	}
 
 	return nil

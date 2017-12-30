@@ -3,6 +3,7 @@ package gateway
 import (
 	stdctx "context"
 	"net/http"
+	"sort"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
@@ -11,6 +12,12 @@ import (
 	"github.com/percolate/shisa/auxillary"
 	"github.com/percolate/shisa/service"
 )
+
+type fields []*service.Field
+
+func (p fields) Len() int           { return len(p) }
+func (p fields) Less(i, j int) bool { return p[i].Name < p[j].Name }
+func (p fields) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type endpoint struct {
 	service.Endpoint
@@ -158,63 +165,81 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				e.Head = &service.Pipeline{
 					Policy:   endp.Head.Policy,
 					Handlers: append(svc.Handlers(), endp.Head.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Head.Fields...),
 				}
+				sort.Sort(fields(e.Head.Fields))
 			}
 			if endp.Get != nil {
 				foundMethod = true
 				e.Get = &service.Pipeline{
 					Policy:   endp.Get.Policy,
 					Handlers: append(svc.Handlers(), endp.Get.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Get.Fields...),
 				}
+				sort.Sort(fields(e.Get.Fields))
 			}
 			if endp.Put != nil {
 				foundMethod = true
 				e.Put = &service.Pipeline{
 					Policy:   endp.Put.Policy,
 					Handlers: append(svc.Handlers(), endp.Put.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Put.Fields...),
 				}
+				sort.Sort(fields(e.Put.Fields))
 			}
 			if endp.Post != nil {
 				foundMethod = true
 				e.Post = &service.Pipeline{
 					Policy:   endp.Post.Policy,
 					Handlers: append(svc.Handlers(), endp.Post.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Post.Fields...),
 				}
+				sort.Sort(fields(e.Post.Fields))
 			}
 			if endp.Patch != nil {
 				foundMethod = true
 				e.Patch = &service.Pipeline{
 					Policy:   endp.Patch.Policy,
 					Handlers: append(svc.Handlers(), endp.Patch.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Patch.Fields...),
 				}
+				sort.Sort(fields(e.Patch.Fields))
 			}
 			if endp.Delete != nil {
 				foundMethod = true
 				e.Delete = &service.Pipeline{
 					Policy:   endp.Delete.Policy,
 					Handlers: append(svc.Handlers(), endp.Delete.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Delete.Fields...),
 				}
+				sort.Sort(fields(e.Delete.Fields))
 			}
 			if endp.Connect != nil {
 				foundMethod = true
 				e.Connect = &service.Pipeline{
 					Policy:   endp.Connect.Policy,
 					Handlers: append(svc.Handlers(), endp.Connect.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Connect.Fields...),
 				}
+				sort.Sort(fields(e.Connect.Fields))
 			}
 			if endp.Options != nil {
 				foundMethod = true
 				e.Options = &service.Pipeline{
 					Policy:   endp.Options.Policy,
 					Handlers: append(svc.Handlers(), endp.Options.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Options.Fields...),
 				}
+				sort.Sort(fields(e.Options.Fields))
 			}
 			if endp.Trace != nil {
 				foundMethod = true
 				e.Trace = &service.Pipeline{
 					Policy:   endp.Trace.Policy,
 					Handlers: append(svc.Handlers(), endp.Trace.Handlers...),
+					Fields:   append([]*service.Field(nil), endp.Trace.Fields...),
 				}
+				sort.Sort(fields(e.Trace.Fields))
 			}
 
 			if !foundMethod {
