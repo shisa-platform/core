@@ -31,7 +31,7 @@ func TestBearerAuthenticatorBadScheme(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBearerAuthenticatorUnknownToken(t *testing.T) {
@@ -68,7 +68,7 @@ func TestBearerAuthenticatorIdPError(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -104,5 +104,5 @@ func TestBearerAuthenticatorChallenge(t *testing.T) {
 func TestBearerAuthenticatorConstructorNilIdp(t *testing.T) {
 	authenticator, err := NewBearerAuthenticator(nil, "bar")
 	assert.Nil(t, authenticator)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }

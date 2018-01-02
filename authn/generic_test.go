@@ -34,7 +34,7 @@ func TestGenericAuthenticatorTokenExtractorError(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGenericAuthenticatorIdPError(t *testing.T) {
@@ -55,7 +55,7 @@ func TestGenericAuthenticatorIdPError(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -98,7 +98,7 @@ func TestGenericAuthenticatorChallenge(t *testing.T) {
 func TestGenericAuthenticatorConstructorNilExtractor(t *testing.T) {
 	authenticator, err := NewAuthenticator(nil, NewFakeIdentityProviderDefaultFatal(t), "Foo", "bar")
 	assert.Nil(t, authenticator)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGenericAuthenticatorConstructorNilIdp(t *testing.T) {
@@ -108,5 +108,5 @@ func TestGenericAuthenticatorConstructorNilIdp(t *testing.T) {
 	}
 	authenticator, err := NewAuthenticator(extractor, nil, "Foo", "bar")
 	assert.Nil(t, authenticator)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
