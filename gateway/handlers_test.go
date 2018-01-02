@@ -159,6 +159,6 @@ func TestDefautlRequestIDGenerator(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	rid, err := defaultRequestIDGenerator(ctx, request)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, rid)
 }

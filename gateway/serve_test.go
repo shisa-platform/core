@@ -170,10 +170,10 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 	err := cut.Serve([]service.Service{svc})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	e, _, _, err := cut.tree.getValue(expectedRoute)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, e)
 	assert.Equal(t, expectedRoute, e.Route)
 	assert.NotNil(t, e.Head)

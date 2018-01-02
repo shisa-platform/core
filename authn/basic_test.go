@@ -91,7 +91,7 @@ func TestBasicAuthTokenExtractor(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "foo:bar", token)
 }
 
@@ -122,7 +122,7 @@ func TestBasicAuthenticatorUnknownToken(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -163,7 +163,7 @@ func TestBasicAuthenticator(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 

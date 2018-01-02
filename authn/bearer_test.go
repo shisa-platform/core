@@ -49,7 +49,7 @@ func TestBearerAuthenticatorUnknownToken(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -90,7 +90,7 @@ func TestBearerAuthenticator(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 

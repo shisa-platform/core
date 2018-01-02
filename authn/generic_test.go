@@ -80,7 +80,7 @@ func TestGenericAuthenticator(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
