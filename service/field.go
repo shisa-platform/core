@@ -27,7 +27,7 @@ type Field struct {
 }
 
 // Match returns true if the given key name is for this Field
-func (f *Field) Match(name string) bool {
+func (f Field) Match(name string) bool {
 	if f.Regex != nil {
 		return f.Regex.MatchString(name)
 	}
@@ -37,7 +37,7 @@ func (f *Field) Match(name string) bool {
 
 // Validate returns an error if all input values don't meet the
 // criteria of `Field.Validator`.
-func (f *Field) Validate(value []string) merry.Error {
+func (f Field) Validate(value []string) merry.Error {
 	if f.Validator != nil {
 		return f.Validator(value)
 	}
