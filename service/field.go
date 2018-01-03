@@ -2,10 +2,15 @@ package service
 
 import (
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
+)
+
+var (
+	validationErr = merry.New("unexpected value").WithUserMessage("Value is not allowed")
 )
 
 // Validator ensures that the given strings all meet certain
@@ -54,7 +59,7 @@ type FixedStringValidator struct {
 func (v FixedStringValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		if v.Target != value {
-			return merry.New("unexpected value").WithUserMessage("Value is not allowed").WithValue("value", value)
+			return validationErr.Here().WithValue("value", value)
 		}
 	}
 
@@ -78,43 +83,129 @@ func (v StringSliceValidator) Validate(values []string) merry.Error {
 			}
 		}
 		if !found {
-			err1 := merry.New("unexpected value").WithUserMessage("Value is not allowed").WithValue("value", value)
-			multierr.Combine(err, err1)
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
 		}
 	}
 
 	return merry.Wrap(err)
 }
 
+// StringValidator enforces that all input values have a certain
+// length
 type StringValidator struct {
-	MaxLen uint
 	MinLen uint
+	MaxLen uint
 }
 
+func (v StringValidator) Validate(values []string) merry.Error {
+	var err error
+	for _, value := range values {
+		if v.MinLen != 0 && uint(len(value)) < v.MinLen {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.MaxLen != 0 && uint(len(value)) > v.MaxLen {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+		}
+	}
+
+	return merry.Wrap(err)
+}
+
+// IntValidator enforces that all input values are parsable as
+// integers.  It also optionally enforces that values are within
+// a range.
 type IntValidator struct {
-	Min int
-	Max int
+	Min *int
+	Max *int
 }
 
-type UintValidator struct {
-	Min uint
-	Max uint
+func (v IntValidator) Validate(values []string) merry.Error {
+	var err error
+	for _, value := range values {
+		i, parseErr := strconv.Atoi(value)
+		if parseErr != nil {
+			err1 := merry.Wrap(parseErr).WithUserMessage("Value is not allowed").WithValue("value", value)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.Min != nil && i < *v.Min {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.Max != nil && i > *v.Max {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+		}
+	}
+
+	return merry.Wrap(err)
 }
 
-func (v UintValidator) Validate(values []string) merry.Error {
-	return nil
+// BoolValidator enforces that all input values are parsable as a
+// boolean
+func BoolValidator(values []string) merry.Error {
+	var err error
+	for _, value := range values {
+		if _, parseErr := strconv.ParseBool(value); parseErr != nil {
+			err1 := merry.Wrap(parseErr).WithUserMessage("Value is not allowed").WithValue("value", value)
+			err = multierr.Combine(err, err1)
+		}
+	}
+
+	return merry.Wrap(err)
 }
 
-type BoolValidator struct {
-	Expected bool
-}
-
+// TimestampValidator enforces that all input values are parsable
+// as a timestamp with a certain format.  It also optionally
+// enforces the time value falls within a range.
 type TimestampValidator struct {
 	Format string
-	Min    time.Time
-	Max    time.Time
+	Min    *time.Time
+	Max    *time.Time
 }
 
+func (v TimestampValidator) Validate(values []string) merry.Error {
+	var err error
+	for _, value := range values {
+		t, parseErr := time.Parse(v.Format, value)
+		if parseErr != nil {
+			err1 := merry.Wrap(parseErr).WithUserMessage("Value is not allowed").WithValue("value", value)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.Min != nil && t.Before(*v.Min) {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.Max != nil && t.After(*v.Max) {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+		}
+	}
+
+	return merry.Wrap(err)
+}
+
+// RegexValidator enforces that all input values match the given
+// regular expression.
 type RegexValidator struct {
 	Regex *regexp.Regexp
+}
+
+func (v RegexValidator) Validate(values []string) merry.Error {
+	var err error
+	for _, value := range values {
+		if !v.Regex.MatchString(value) {
+			err1 := validationErr.Here().WithValue("value", value)
+			err = multierr.Combine(err, err1)
+		}
+	}
+
+	return merry.Wrap(err)
 }

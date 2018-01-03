@@ -14,7 +14,6 @@ type queryParamConversionTestFixture struct {
 }
 
 var (
-	// tokyo = mustLoadLocation("Asia/Tokyo")
 	tokyo    = time.FixedZone("", 9*60*60)
 	op       = time.Date(2020, 7, 24, 20, 0, 0, 0, tokyo)
 	cl       = time.Date(2020, 8, 9, 20, 0, 0, 0, tokyo)
