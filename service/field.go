@@ -24,11 +24,12 @@ type Validator func([]string) merry.Error
 // If `Default` is provided and a matching input is not presented
 // then a syntheitic value will be created.
 type Field struct {
-	Name      string         // Match keys by exact value
-	Regex     *regexp.Regexp // Match keys by pattern
-	Default   string         // Default for Name when no input
-	Validator Validator      // Optional validator of value(s)
-	Required  bool           // Is this input mandatory?
+	Name         string         // Match keys by exact value
+	Regex        *regexp.Regexp // Match keys by pattern
+	Default      string         // Default for Name when no input
+	Validator    Validator      // Optional validator of value(s)
+	Multiplicity uint           // Value count, 0 is unlimited
+	Required     bool           // Is this input mandatory?
 }
 
 // Match returns true if the given key name is for this Field
@@ -42,9 +43,12 @@ func (f Field) Match(name string) bool {
 
 // Validate returns an error if all input values don't meet the
 // criteria of `Field.Validator`.
-func (f Field) Validate(value []string) merry.Error {
+func (f Field) Validate(values []string) merry.Error {
+	if f.Multiplicity != 0 && uint(len(values)) > f.Multiplicity {
+		return validationErr.Here()
+	}
 	if f.Validator != nil {
-		return f.Validator(value)
+		return f.Validator(values)
 	}
 
 	return nil

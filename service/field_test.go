@@ -58,6 +58,20 @@ func TestFieldValidate(t *testing.T) {
 	assert.Error(t, cut.Validate([]string{"foo"}))
 }
 
+func TestFieldValidateMultiplicity(t *testing.T) {
+	cut := Field{
+		Name:      "zalgo",
+		Validator: FixedStringValidator{"he comes"}.Validate,
+		Multiplicity: 1,
+	}
+
+	assert.NoError(t, cut.Validate([]string{"he comes"}))
+	assert.NoError(t, cut.Validate([]string(nil)))
+	assert.NoError(t, cut.Validate([]string{}))
+	assert.Error(t, cut.Validate([]string{"he comes", "foo"}))
+	assert.Error(t, cut.Validate([]string{"foo"}))
+}
+
 func TestFixedStringValidator(t *testing.T) {
 	cut := FixedStringValidator{
 		Target: "zalgo",
