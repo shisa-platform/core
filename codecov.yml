@@ -25,5 +25,6 @@ ignore:
   - context/context_charlatan.go
   - env/provider_charlatan.go
   - models/user_charlatan.go
+  - ratelimit/provider_charlatan.go
   - service/service_charlatan.go
   - service/response_charlatan.go

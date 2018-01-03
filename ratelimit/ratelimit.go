@@ -5,9 +5,11 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/ansel1/merry"
 )
 
-var limitRegex = regexp.MustCompile(`(\d+)/(d|h|m|s)`)
+var limitRegex = regexp.MustCompile(`(.*\d+)/([dhms].*)`)
 
 // RateLimit encodes a maximum number of repititions allowed over a time interval.
 type RateLimit struct {
@@ -16,16 +18,16 @@ type RateLimit struct {
 }
 
 // FromString parses a rate limit string in the form of "<limit>/<duration>".
-func FromString(value string) (r RateLimit, err error) {
+func FromString(value string) (r RateLimit, merr merry.Error) {
 	matches := limitRegex.FindAllStringSubmatch(value, 2)
 	if matches == nil || len(matches) == 0 || len(matches[0]) != 3 {
-		err = fmt.Errorf("%q is not a valid rate limit expression", value)
+		merr = merry.Errorf("%q is not a valid rate limit expression", value)
 		return
 	}
 
 	limit, err := strconv.Atoi(matches[0][1])
 	if err != nil || 0 > limit {
-		err = fmt.Errorf("%q is not a valid rate limit expression", value)
+		merr = merry.Errorf("%q is not a valid rate limit expression", value)
 		return
 	}
 	r.Limit = limit
@@ -40,7 +42,7 @@ func FromString(value string) (r RateLimit, err error) {
 	case "s":
 		r.Period = time.Second
 	default:
-		err = fmt.Errorf("%q is not a valid rate limit expression", value)
+		merr = merry.Errorf("%q is not a valid rate limit expression", value)
 	}
 
 	return
