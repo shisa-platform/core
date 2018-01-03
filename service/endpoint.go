@@ -23,7 +23,7 @@ type Pipeline struct {
 // one for each HTTP method.  Only supported methods should have
 // pipelines, but at least one pipleline is requried.
 type Endpoint struct {
-	Route   string    // the URL path for this endpoint
+	Route   string    // the absolute URL path for this endpoint
 	Head    *Pipeline // HEAD method pipeline
 	Get     *Pipeline // GET method pipeline
 	Put     *Pipeline // PUT method pipeline
