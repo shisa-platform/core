@@ -125,7 +125,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if len(pipeline.Fields) == 0 {
+	if len(pipeline.QueryFields) == 0 {
 		for _, p := range request.QueryParams {
 			if p.Invalid {
 				invalidParams = true
@@ -137,7 +137,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sort.Sort(byName(params))
 	}
 
-	for _, f := range pipeline.Fields {
+	for _, f := range pipeline.QueryFields {
 		var found bool
 		for j, p := range params {
 			if p.Invalid {

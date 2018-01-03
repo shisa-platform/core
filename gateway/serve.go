@@ -248,18 +248,18 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 }
 
 func installPipeline(handlers []service.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
-	for _, field := range pipeline.Fields {
+	for _, field := range pipeline.QueryFields {
 		if field.Default != "" && field.Name == "" {
 			return nil, merry.New("Field default requires name")
 		}
 	}
 
 	result := &service.Pipeline{
-		Policy:   pipeline.Policy,
-		Handlers: append(handlers, pipeline.Handlers...),
-		Fields:   append([]service.Field(nil), pipeline.Fields...),
+		Policy:      pipeline.Policy,
+		Handlers:    append(handlers, pipeline.Handlers...),
+		QueryFields: append([]service.Field(nil), pipeline.QueryFields...),
 	}
-	sort.Sort(fields(result.Fields))
+	sort.Sort(fields(result.QueryFields))
 
 	return pipeline, nil
 }

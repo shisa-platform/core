@@ -31,13 +31,13 @@ func NewHelloService() *HelloService {
 
 	language := service.Field{Name: "language"}
 	greeting := service.GetEndpointWithPolicy("/greeting", policy, svc.Greeting)
-	greeting.Get.Fields = []service.Field{
+	greeting.Get.QueryFields = []service.Field{
 		language,
 		{Name: "name"},
 	}
 
 	salutation := service.GetEndpointWithPolicy("/salutation", policy, svc.Salutaion)
-	salutation.Get.Fields = []service.Field{language}
+	salutation.Get.QueryFields = []service.Field{language}
 
 	svc.endpoints = []service.Endpoint{greeting, salutation}
 

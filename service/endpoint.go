@@ -14,9 +14,9 @@ type Handler func(context.Context, *Request) Response
 // user agent.  If no response is produced an Internal Service
 // Error handler will be invoked.
 type Pipeline struct {
-	Policy   Policy    // customizes automated behavior
-	Handlers []Handler // the steps of this pipline, minimum one
-	Fields   []Field   // optional query parameter validation
+	Policy      Policy    // customizes automated behavior
+	Handlers    []Handler // the pipline steps, minimum one
+	QueryFields []Field   // optional query parameter validation
 }
 
 // Endpoint is collection of pipelines for a route (URL path),

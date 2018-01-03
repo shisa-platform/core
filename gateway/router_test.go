@@ -1039,7 +1039,7 @@ func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo", Required: true},
 		service.Field{Name: "waits"},
 	}
@@ -1074,7 +1074,7 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo", Required: true},
 		service.Field{Name: "waits"},
 	}
@@ -1101,7 +1101,7 @@ func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1128,7 +1128,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1187,7 +1187,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1235,7 +1235,7 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo", Required: true},
 		service.Field{Name: "waits"},
 	}
@@ -1283,7 +1283,7 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1317,7 +1317,7 @@ func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
 		return nil
 	}
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo", Validator: validator},
 		service.Field{Name: "waits"},
 	}
@@ -1373,7 +1373,7 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 
 		return nil
 	}
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo", Validator: validator},
 		service.Field{Name: "waits"},
 	}
@@ -1400,7 +1400,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1455,7 +1455,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 
 	policy := service.Policy{AllowUnknownQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1513,7 +1513,7 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 		AllowUnknownQueryParameters:   true,
 	}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits"},
 	}
@@ -1562,7 +1562,7 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Fields = []service.Field{
+	endpoint.Get.QueryFields = []service.Field{
 		service.Field{Name: "zalgo"},
 		service.Field{Name: "waits", Default: "behind the walls"},
 	}
