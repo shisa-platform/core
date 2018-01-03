@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	wwwAuthenticateHeaderKey = http.CanonicalHeaderKey("WWW-Authenticate")
+	WWWAuthenticateHeaderKey = http.CanonicalHeaderKey("WWW-Authenticate")
 )
 
 // Authentication is middleware to help automate authentication.
@@ -63,7 +63,7 @@ func (m *Authentication) Service(ctx context.Context, r *service.Request) servic
 
 func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) service.Response {
 	response := service.NewEmpty(http.StatusUnauthorized)
-	response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
+	response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
@@ -71,7 +71,7 @@ func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request)
 func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	response := service.NewEmpty(merry.HTTPCode(err))
 	if m.Authenticator != nil {
-		response.Headers().Set(wwwAuthenticateHeaderKey, m.Authenticator.Challenge())
+		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
 
 	return response
