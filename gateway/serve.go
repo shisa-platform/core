@@ -13,7 +13,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type fields []*service.Field
+type fields []service.Field
 
 func (p fields) Len() int           { return len(p) }
 func (p fields) Less(i, j int) bool { return p[i].Name < p[j].Name }
@@ -132,7 +132,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				return merry.New("endpoint route cannot be emtpy").WithValue("service", svc.Name()).WithValue("index", i)
 			}
 			if endp.Route[0] != '/' {
-				return merry.New("endpoint route must begin with '/'").WithValue("service", svc.Name()).WithValue("index", i)
+				return merry.New("endpoint route must begin with '/'").WithValue("service", svc.Name()).WithValue("route", endp.Route)
 			}
 
 			e := endpoint{
@@ -162,84 +162,75 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 			foundMethod := false
 			if endp.Head != nil {
 				foundMethod = true
-				e.Head = &service.Pipeline{
-					Policy:   endp.Head.Policy,
-					Handlers: append(svc.Handlers(), endp.Head.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Head.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Head)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodHead)
 				}
-				sort.Sort(fields(e.Head.Fields))
+				e.Head = pipeline
 			}
 			if endp.Get != nil {
 				foundMethod = true
-				e.Get = &service.Pipeline{
-					Policy:   endp.Get.Policy,
-					Handlers: append(svc.Handlers(), endp.Get.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Get.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Get)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodGet)
 				}
-				sort.Sort(fields(e.Get.Fields))
+				e.Get = pipeline
 			}
 			if endp.Put != nil {
 				foundMethod = true
-				e.Put = &service.Pipeline{
-					Policy:   endp.Put.Policy,
-					Handlers: append(svc.Handlers(), endp.Put.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Put.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Put)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodPut)
 				}
-				sort.Sort(fields(e.Put.Fields))
+				e.Put = pipeline
 			}
 			if endp.Post != nil {
 				foundMethod = true
-				e.Post = &service.Pipeline{
-					Policy:   endp.Post.Policy,
-					Handlers: append(svc.Handlers(), endp.Post.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Post.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Post)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodPost)
 				}
-				sort.Sort(fields(e.Post.Fields))
+				e.Post = pipeline
 			}
 			if endp.Patch != nil {
 				foundMethod = true
-				e.Patch = &service.Pipeline{
-					Policy:   endp.Patch.Policy,
-					Handlers: append(svc.Handlers(), endp.Patch.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Patch.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Patch)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodPatch)
 				}
-				sort.Sort(fields(e.Patch.Fields))
+				e.Patch = pipeline
 			}
 			if endp.Delete != nil {
 				foundMethod = true
-				e.Delete = &service.Pipeline{
-					Policy:   endp.Delete.Policy,
-					Handlers: append(svc.Handlers(), endp.Delete.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Delete.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Delete)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodDelete)
 				}
-				sort.Sort(fields(e.Delete.Fields))
+				e.Delete = pipeline
 			}
 			if endp.Connect != nil {
 				foundMethod = true
-				e.Connect = &service.Pipeline{
-					Policy:   endp.Connect.Policy,
-					Handlers: append(svc.Handlers(), endp.Connect.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Connect.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Connect)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodConnect)
 				}
-				sort.Sort(fields(e.Connect.Fields))
+				e.Connect = pipeline
 			}
 			if endp.Options != nil {
 				foundMethod = true
-				e.Options = &service.Pipeline{
-					Policy:   endp.Options.Policy,
-					Handlers: append(svc.Handlers(), endp.Options.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Options.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Options)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodOptions)
 				}
-				sort.Sort(fields(e.Options.Fields))
+				e.Options = pipeline
 			}
 			if endp.Trace != nil {
 				foundMethod = true
-				e.Trace = &service.Pipeline{
-					Policy:   endp.Trace.Policy,
-					Handlers: append(svc.Handlers(), endp.Trace.Handlers...),
-					Fields:   append([]*service.Field(nil), endp.Trace.Fields...),
+				pipeline, err := installPipeline(svc.Handlers(), endp.Trace)
+				if err != nil {
+					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodTrace)
 				}
-				sort.Sort(fields(e.Trace.Fields))
+				e.Trace = pipeline
 			}
 
 			if !foundMethod {
@@ -254,4 +245,21 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 	}
 
 	return nil
+}
+
+func installPipeline(handlers []service.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
+	for _, field := range pipeline.Fields {
+		if field.Default != "" && field.Name == "" {
+			return nil, merry.New("Field default requires name")
+		}
+	}
+
+	result := &service.Pipeline{
+		Policy:   pipeline.Policy,
+		Handlers: append(handlers, pipeline.Handlers...),
+		Fields:   append([]service.Field(nil), pipeline.Fields...),
+	}
+	sort.Sort(fields(result.Fields))
+
+	return pipeline, nil
 }

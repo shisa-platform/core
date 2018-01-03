@@ -103,6 +103,35 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestGatewayFieldDefaultMissingName(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9003",
+	}
+
+	pipeline := &service.Pipeline{
+		Handlers: []service.Handler{dummyHandler},
+		Fields: []service.Field{service.Field{Default: "zalgo"}},
+	}
+	endpoints := []service.Endpoint{
+		{Route: "/", Head: pipeline},
+		{Route: "/", Get: pipeline},
+		{Route: "/", Put: pipeline},
+		{Route: "/", Post: pipeline},
+		{Route: "/", Patch: pipeline},
+		{Route: "/", Delete: pipeline},
+		{Route: "/", Connect: pipeline},
+		{Route: "/", Options: pipeline},
+		{Route: "/", Trace: pipeline},
+	}
+
+	for _, endpoint := range endpoints {
+		svc := newFakeService([]service.Endpoint{endpoint})
+		err := cut.Serve([]service.Service{svc})
+		assert.Error(t, err)
+	}
+}
+
 func TestGatewayMisconfiguredTLS(t *testing.T) {
 	cut := &Gateway{
 		Name:    "test",
