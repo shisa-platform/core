@@ -111,7 +111,7 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 
 	pipeline := &service.Pipeline{
 		Handlers: []service.Handler{dummyHandler},
-		Fields: []service.Field{service.Field{Default: "zalgo"}},
+		Fields:   []service.Field{service.Field{Default: "zalgo"}},
 	}
 	endpoints := []service.Endpoint{
 		{Route: "/", Head: pipeline},
