@@ -44,6 +44,7 @@ func TestFromString(t *testing.T) {
 		{"0/dz", 0, 0, true},
 		{"0/d", 0, day, false},
 		{"10/d", 10, day, false},
+		{"10/h", 10, time.Hour, false},
 		{"20/m", 20, time.Minute, false},
 		{"500/s", 500, time.Second, false},
 	}
