@@ -67,3 +67,18 @@ type HTTPServer struct {
 func (s *HTTPServer) Address() string {
 	return s.Addr
 }
+
+func (s *HTTPServer) init() {
+	s.base.Addr = s.Addr
+	s.base.TLSConfig = s.TLSConfig
+	s.base.ReadTimeout = s.ReadTimeout
+	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
+	s.base.WriteTimeout = s.WriteTimeout
+	s.base.IdleTimeout = s.IdleTimeout
+	s.base.MaxHeaderBytes = s.MaxHeaderBytes
+	s.base.TLSNextProto = s.TLSNextProto
+
+	if s.DisableKeepAlive {
+		s.base.SetKeepAlivesEnabled(false)
+	}
+}

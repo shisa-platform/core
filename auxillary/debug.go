@@ -26,23 +26,8 @@ type DebugServer struct {
 	delegate http.Handler
 }
 
-func (s *DebugServer) Name() string {
-	return "debug"
-}
-
-func (s *DebugServer) Serve() error {
-	s.base.Addr = s.Addr
-	s.base.TLSConfig = s.TLSConfig
-	s.base.ReadTimeout = s.ReadTimeout
-	s.base.ReadHeaderTimeout = s.ReadHeaderTimeout
-	s.base.WriteTimeout = s.WriteTimeout
-	s.base.IdleTimeout = s.IdleTimeout
-	s.base.MaxHeaderBytes = s.MaxHeaderBytes
-	s.base.TLSNextProto = s.TLSNextProto
-
-	if s.DisableKeepAlive {
-		s.base.SetKeepAlivesEnabled(false)
-	}
+func (s *DebugServer) init() {
+	s.HTTPServer.init()
 
 	if s.Path == "" {
 		s.Path = defaultDebugServerPath
@@ -55,6 +40,14 @@ func (s *DebugServer) Serve() error {
 
 	s.delegate = expvar.Handler()
 	s.base.Handler = s
+}
+
+func (s *DebugServer) Name() string {
+	return "debug"
+}
+
+func (s *DebugServer) Serve() error {
+	s.init()
 
 	if s.UseTLS {
 		return s.base.ListenAndServeTLS("", "")
@@ -72,13 +65,11 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.Path == r.URL.Path {
 		s.delegate.ServeHTTP(w, r)
-		goto flush
+	} else {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusNotFound)
-
-flush:
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
