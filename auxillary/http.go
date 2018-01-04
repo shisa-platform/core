@@ -89,6 +89,12 @@ type HTTPServer struct {
 	// agents.
 	Authentication *middleware.Authentication
 
+	// Authorizer optionally enforces authentication before other
+	// request handling.  Use of this field requires the
+	// `Authentication` field to be configured and return a
+	// principal.
+	Authorizer Authorizer
+
 	base http.Server
 }
 

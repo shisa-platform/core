@@ -36,6 +36,14 @@ func (r unserializableResponse) Serialize(io.Writer) (int, error) {
 	return 0, merry.New("i blewed up")
 }
 
+type stubAuthorizer struct {
+	Err merry.Error
+}
+
+func (a stubAuthorizer) Authorize(context.Context, *service.Request) merry.Error {
+	return a.Err
+}
+
 func TestDebugServerEmpty(t *testing.T) {
 	cut := DebugServer{}
 
@@ -303,6 +311,75 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
+		},
+		Logger: zap.NewExample(),
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.Empty(t, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
+	user := &models.FakeUser{IDHook: func() string { return "123" }}
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return user, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	authz := stubAuthorizer{merry.New("i blewed up!")}
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Authentication: &middleware.Authentication{
+				Authenticator: authn,
+			},
+			Authorizer: authz,
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPAuthorization(t *testing.T) {
+	user := &models.FakeUser{IDHook: func() string { return "123" }}
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return user, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	authz := stubAuthorizer{}
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Authentication: &middleware.Authentication{
+				Authenticator: authn,
+			},
+			Authorizer: authz,
 		},
 		Logger: zap.NewExample(),
 	}

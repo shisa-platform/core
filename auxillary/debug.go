@@ -97,21 +97,15 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if s.Authentication != nil {
 		if response := s.Authentication.Service(ctx, request); response != nil {
-			for k, vs := range response.Headers() {
-				ri.Header()[k] = vs
-			}
-			for k := range response.Trailers() {
-				ri.Header().Add("Trailer", k)
-			}
-
-			ri.WriteHeader(response.StatusCode())
-
-			_, writeErr = response.Serialize(&ri)
-
-			for k, vs := range response.Trailers() {
-				ri.Header()[k] = vs
-			}
+			writeErr = writeResponse(&ri, response)
 			goto finish
+		}
+		if s.Authorizer != nil {
+			if err := s.Authorizer.Authorize(ctx, request); err != nil {
+				response := s.Authentication.UnauthorizedHandler(ctx, request)
+				writeErr = writeResponse(&ri, response)
+				goto finish
+			}
 		}
 	}
 
@@ -131,4 +125,23 @@ finish:
 	if writeErr != nil {
 		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
 	}
+}
+
+func writeResponse(w http.ResponseWriter, response service.Response) (err error) {
+	for k, vs := range response.Headers() {
+		w.Header()[k] = vs
+	}
+	for k := range response.Trailers() {
+		w.Header().Add("Trailer", k)
+	}
+
+	w.WriteHeader(response.StatusCode())
+
+	_, err = response.Serialize(w)
+
+	for k, vs := range response.Trailers() {
+		w.Header()[k] = vs
+	}
+
+	return
 }
