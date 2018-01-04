@@ -197,7 +197,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	pipelineStart = time.Now().UTC()
 	for _, handler := range pipeline.Handlers {
-		response = run(handler, ctx, request, &err)
+		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
 			response = endpoint.iseHandler(ctx, request, err)
 			goto finish
@@ -288,7 +288,7 @@ func recovery(fatalError *merry.Error) {
 	*fatalError = merry.New("panic in handler").WithValue("context", arg)
 }
 
-func run(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
+func runHandler(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
 }
