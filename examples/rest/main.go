@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	defaultPort      = 8000
+	defaultPort      = 9001
 	defaultDebugPort = defaultPort + 1
 	timeFormat       = "2006-01-02T15:04:05+00:00"
 )
