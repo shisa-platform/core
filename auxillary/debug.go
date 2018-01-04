@@ -22,6 +22,7 @@ type DebugServer struct {
 	// Gateway and all of its services.  Leave this as nil to
 	// disable all logging.
 	Logger *zap.Logger
+	delegate http.Handler
 }
 
 func (s *DebugServer) Name() string {
@@ -42,19 +43,17 @@ func (s *DebugServer) Serve() error {
 		s.base.SetKeepAlivesEnabled(false)
 	}
 
-	mux := http.NewServeMux()
-	path := s.Path
-	if path == "" {
-		path = defaultDebugServerPath
+	if s.Path == "" {
+		s.Path = defaultDebugServerPath
 	}
-
-	mux.Handle(path, expvar.Handler())
-	s.base.Handler = mux
 
 	if s.Logger == nil {
 		s.Logger = zap.NewNop()
-		defer s.Logger.Sync()
 	}
+	defer s.Logger.Sync()
+
+	s.delegate = expvar.Handler()
+	s.base.Handler = s
 
 	if s.UseTLS {
 		return s.base.ListenAndServeTLS("", "")
@@ -67,4 +66,19 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	return merry.Wrap(s.base.Shutdown(ctx))
+}
+
+func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if s.Path == r.URL.Path {
+		s.delegate.ServeHTTP(w, r)
+		goto flush
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+
+flush:
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
 }
