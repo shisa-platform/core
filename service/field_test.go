@@ -60,8 +60,8 @@ func TestFieldValidate(t *testing.T) {
 
 func TestFieldValidateMultiplicity(t *testing.T) {
 	cut := Field{
-		Name:      "zalgo",
-		Validator: FixedStringValidator{"he comes"}.Validate,
+		Name:         "zalgo",
+		Validator:    FixedStringValidator{"he comes"}.Validate,
 		Multiplicity: 1,
 	}
 
@@ -228,7 +228,7 @@ func TestTimestampValidatorMin(t *testing.T) {
 	min := time.Date(2020, 7, 24, 20, 0, 0, 0, tokyo)
 	cut := TimestampValidator{
 		Format: time.RFC3339,
-		Min: &min,
+		Min:    &min,
 	}
 
 	assert.NoError(t, cut.Validate([]string{"2020-07-24T20:00:00+09:00", "2020-08-09T20:00:00+09:00"}))
@@ -243,7 +243,7 @@ func TestTimestampValidatorMax(t *testing.T) {
 	max := time.Date(2020, 8, 9, 20, 0, 0, 0, tokyo)
 	cut := TimestampValidator{
 		Format: time.RFC3339,
-		Max: &max,
+		Max:    &max,
 	}
 
 	assert.NoError(t, cut.Validate([]string{"2020-07-24T20:00:00+09:00", "2020-08-09T20:00:00+09:00"}))
@@ -259,8 +259,8 @@ func TestTimestampValidatorMinMax(t *testing.T) {
 	max := time.Date(2020, 8, 9, 20, 0, 0, 0, tokyo)
 	cut := TimestampValidator{
 		Format: time.RFC3339,
-		Min: &min,
-		Max: &max,
+		Min:    &min,
+		Max:    &max,
 	}
 
 	assert.NoError(t, cut.Validate([]string{"2020-07-24T20:00:00+09:00", "2020-08-09T20:00:00+09:00"}))
