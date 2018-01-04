@@ -22,6 +22,7 @@ type Request struct {
 	PathParams  []PathParameter
 	QueryParams []QueryParameter
 	id          string
+	clientIP    string
 }
 
 func (r *Request) PathParamExists(name string) bool {
@@ -49,10 +50,11 @@ func (r *Request) QueryParamExists(name string) bool {
 // unix nanos, three bytes of random data, the client ip address,
 // the request method and the request URI.
 // This method is idempotent.
-func (r *Request) GenerateID() string {
+func (r *Request) ID() string {
 	if r.id == "" {
 		r.id = GenerateID(r.Request)
 	}
+
 	return r.id
 }
 
@@ -62,7 +64,11 @@ func (r *Request) GenerateID() string {
 // followed by the `RemoteAddr` field of the request.  An empty
 // string will be returned if nothing can be found.
 func (r *Request) ClientIP() string {
-	return ClientIP(r.Request)
+	if r.clientIP == "" {
+		r.clientIP = ClientIP(r.Request)
+	}
+
+	return r.clientIP
 }
 
 // GenerateID creates a globally unique string for the request.

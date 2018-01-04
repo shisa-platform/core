@@ -41,11 +41,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
 	if idErr != nil {
-		requestID = request.GenerateID()
+		requestID = request.ID()
 	}
 	if requestID == "" {
 		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
-		requestID = request.GenerateID()
+		requestID = request.ID()
 	}
 	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
 
