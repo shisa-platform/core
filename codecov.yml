@@ -19,12 +19,4 @@ coverage:
 comment: false
 
 ignore:
-  - authn/authenticator_charlatan.go
-  - authn/idp_charlatan.go
-  - auxillary/server_charlatan.go
-  - context/context_charlatan.go
-  - env/provider_charlatan.go
-  - models/user_charlatan.go
-  - ratelimit/provider_charlatan.go
-  - service/service_charlatan.go
-  - service/response_charlatan.go
+  - "**/*_charlatan.go"

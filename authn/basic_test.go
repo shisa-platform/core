@@ -32,7 +32,7 @@ func TestBasicAuthTokenExtractorMissingHeader(t *testing.T) {
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthTokenExtractorEmptyHeader(t *testing.T) {
@@ -42,7 +42,7 @@ func TestBasicAuthTokenExtractorEmptyHeader(t *testing.T) {
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthTokenExtractorBadChallenge(t *testing.T) {
@@ -52,7 +52,7 @@ func TestBasicAuthTokenExtractorBadChallenge(t *testing.T) {
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthTokenExtractorMissingScheme(t *testing.T) {
@@ -62,7 +62,7 @@ func TestBasicAuthTokenExtractorMissingScheme(t *testing.T) {
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthTokenExtractorBadScheme(t *testing.T) {
@@ -72,7 +72,7 @@ func TestBasicAuthTokenExtractorBadScheme(t *testing.T) {
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthTokenExtractorCorruptCredentials(t *testing.T) {
@@ -82,7 +82,7 @@ func TestBasicAuthTokenExtractorCorruptCredentials(t *testing.T) {
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthTokenExtractor(t *testing.T) {
@@ -91,7 +91,7 @@ func TestBasicAuthTokenExtractor(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "foo:bar", token)
 }
 
@@ -104,7 +104,7 @@ func TestBasicAuthenticatorBadToken(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestBasicAuthenticatorUnknownToken(t *testing.T) {
@@ -122,7 +122,7 @@ func TestBasicAuthenticatorUnknownToken(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -141,7 +141,7 @@ func TestBasicAuthenticatorIdPError(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Nil(t, user)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -163,7 +163,7 @@ func TestBasicAuthenticator(t *testing.T) {
 
 	user, err := authn.Authenticate(ctx, request)
 	assert.Equal(t, expectedUser, user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	idp.AssertAuthenticateCalledOnce(t)
 }
 
@@ -177,5 +177,5 @@ func TestBasicAuthenticatorChallenge(t *testing.T) {
 func TestBasicProviderConstructorNilIdp(t *testing.T) {
 	provider, err := NewBasicAuthenticator(nil, "bar")
 	assert.Nil(t, provider)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }

@@ -9,8 +9,10 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxillary"
 	"github.com/percolate/shisa/gateway"
+	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
 
@@ -37,11 +39,21 @@ func main() {
 
 	defer logger.Sync()
 
+	idp := &SimpleIdentityProvider{
+		Users: []User{User{"1", "Boss", "password"}},
+	}
+	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
+	if err != nil {
+		panic(err)
+	}
+	authN := middleware.Authentication{Authenticator: authenticator}
+
 	gw := &gateway.Gateway{
 		Name:            "hello",
 		Address:         fmt.Sprintf(":%d", *port),
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
+		Authentication:  &authN,
 		Logger:          logger,
 	}
 

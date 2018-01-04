@@ -4,6 +4,8 @@ import (
 	stdctx "context"
 	"net/http"
 	"net/url"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -17,6 +19,18 @@ import (
 var (
 	backgroundContext = stdctx.Background()
 )
+
+type byName []service.QueryParameter
+
+func (p byName) Len() int           { return len(p) }
+func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
+func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+type byOrdinal []service.QueryParameter
+
+func (p byOrdinal) Len() int           { return len(p) }
+func (p byOrdinal) Less(i, j int) bool { return p[i].Ordinal < p[j].Ordinal }
+func (p byOrdinal) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
@@ -37,8 +51,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.WithRequestID(ctx, requestID)
 
-	queryParams, paramError := url.ParseQuery(request.URL.RawQuery)
-	request.QueryParams = queryParams
+	parseQuery(&request.QueryParams, request.URL.RawQuery)
+	sort.Sort(byOrdinal(request.QueryParams))
 
 	var (
 		err           merry.Error
@@ -46,6 +60,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		pipeline      *service.Pipeline
 		pipelineStart time.Time
 		pipelineTime  time.Duration
+		invalidParams bool
+		missingParams bool
+		params        []service.QueryParameter
 	)
 
 	findPathStart := time.Now().UTC()
@@ -108,7 +125,56 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if paramError != nil && !pipeline.Policy.AllowMalformedQueryParameters {
+	if len(pipeline.QueryFields) == 0 {
+		for _, p := range request.QueryParams {
+			if p.Invalid {
+				invalidParams = true
+				break
+			}
+		}
+	} else {
+		params = append(params, request.QueryParams...)
+		sort.Sort(byName(params))
+	}
+
+	for _, field := range pipeline.QueryFields {
+		var found bool
+		for j, p := range params {
+			if p.Invalid {
+				invalidParams = true
+			}
+			if field.Match(p.Name) {
+				found = true
+				request.QueryParams[p.Ordinal].Unknown = false
+				params = append(params[:j], params[j+1:]...)
+				if err := field.Validate(p.Values); err != nil {
+					request.QueryParams[p.Ordinal].Invalid = true
+					invalidParams = true
+				}
+				break
+			}
+		}
+
+		if !found {
+			if field.Default != "" {
+				dp := service.QueryParameter{
+					Name:    field.Name,
+					Values:  []string{field.Default},
+					Ordinal: -1,
+				}
+				request.QueryParams = append(request.QueryParams, dp)
+			} else if field.Required {
+				missingParams = true
+			}
+		}
+	}
+
+	if (invalidParams || missingParams) && !pipeline.Policy.AllowMalformedQueryParameters {
+		response = endpoint.badQueryHandler(ctx, request)
+		goto finish
+	}
+
+	if len(params) != 0 && !pipeline.Policy.AllowUnknownQueryParameters {
 		response = endpoint.badQueryHandler(ctx, request)
 		goto finish
 	}
@@ -225,4 +291,53 @@ func recovery(fatalError *merry.Error) {
 func run(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
+}
+
+func parseQuery(ps *[]service.QueryParameter, query string) {
+	m := make(map[string]service.QueryParameter)
+	i := 0
+
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+
+		key1, err1 := url.QueryUnescape(key)
+		if err1 == nil {
+			key = key1
+		}
+		value1, err1 := url.QueryUnescape(value)
+		if err1 == nil {
+			value = value1
+		}
+
+		p, found := m[key]
+		if !found {
+			p.Name = key
+			p.Ordinal = i
+			p.Unknown = true
+		}
+		p.Values = append(p.Values, value)
+		if err1 != nil {
+			p.Invalid = true
+		}
+
+		m[key] = p
+		i++
+	}
+
+	*ps = make([]service.QueryParameter, 0, len(m))
+	for _, v := range m {
+		*ps = append(*ps, v)
+	}
 }
