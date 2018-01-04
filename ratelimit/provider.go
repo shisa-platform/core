@@ -16,11 +16,3 @@ type Provider interface {
 	Ping() error
 	Close()
 }
-
-type ErrTooManyRequests struct {
-	Cooloff time.Duration
-}
-
-func (e *ErrTooManyRequests) Error() string {
-	return fmt.Sprintf("too many requests.  wait %s", e.Cooloff)
-}
