@@ -11,6 +11,8 @@ import (
 )
 
 type ClientThrottler struct {
+	// Limiter is a ratelimit.Provider that determines whether
+	// the request should be throttled, based on the request's ClientIP
 	Limiter ratelimit.Provider
 
 	// ErrorHandler optionally customizes the response for an
@@ -39,6 +41,9 @@ func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Re
 }
 
 type UserThrottler struct {
+	// Limiter is a ratelimit.Provider that determines whether
+	// the request should be throttled, based on the request
+	// context Actor's ID receiver
 	Limiter ratelimit.Provider
 
 	// ErrorHandler optionally customizes the response for an

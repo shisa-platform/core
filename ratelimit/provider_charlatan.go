@@ -17,7 +17,7 @@ type ProviderLimitInvocation struct {
 		Path   string
 	}
 	Results struct {
-		Ident1 *RateLimit
+		Ident1 RateLimit
 		Ident2 merry.Error
 	}
 }
@@ -54,7 +54,7 @@ Use it in your tests as in this example:
 
 	func TestWithProvider(t *testing.T) {
 		f := &ratelimit.FakeProvider{
-			LimitHook: func(actor string, action string, path string) (ident1 *RateLimit, ident2 merry.Error) {
+			LimitHook: func(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -71,7 +71,7 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeLimit.
 */
 type FakeProvider struct {
-	LimitHook func(string, string, string) (*RateLimit, merry.Error)
+	LimitHook func(string, string, string) (RateLimit, merry.Error)
 	AllowHook func(string, string, string) (bool, merry.Error)
 	PingHook  func() error
 	CloseHook func()
@@ -85,7 +85,7 @@ type FakeProvider struct {
 // NewFakeProviderDefaultPanic returns an instance of FakeProvider with all hooks configured to panic
 func NewFakeProviderDefaultPanic() *FakeProvider {
 	return &FakeProvider{
-		LimitHook: func(string, string, string) (ident1 *RateLimit, ident2 merry.Error) {
+		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			panic("Unexpected call to Provider.Limit")
 		},
 		AllowHook: func(string, string, string) (ident1 bool, ident2 merry.Error) {
@@ -103,7 +103,7 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 // NewFakeProviderDefaultFatal returns an instance of FakeProvider with all hooks configured to call t.Fatal
 func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
 	return &FakeProvider{
-		LimitHook: func(string, string, string) (ident1 *RateLimit, ident2 merry.Error) {
+		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Limit")
 			return
 		},
@@ -125,7 +125,7 @@ func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
 // NewFakeProviderDefaultError returns an instance of FakeProvider with all hooks configured to call t.Error
 func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
 	return &FakeProvider{
-		LimitHook: func(string, string, string) (ident1 *RateLimit, ident2 merry.Error) {
+		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			t.Error("Unexpected call to Provider.Limit")
 			return
 		},
@@ -151,7 +151,7 @@ func (f *FakeProvider) Reset() {
 	f.CloseCalls = []*ProviderCloseInvocation{}
 }
 
-func (_f1 *FakeProvider) Limit(actor string, action string, path string) (ident1 *RateLimit, ident2 merry.Error) {
+func (_f1 *FakeProvider) Limit(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
 	invocation := new(ProviderLimitInvocation)
 
 	invocation.Parameters.Actor = actor
@@ -276,7 +276,7 @@ func (_f5 *FakeProvider) AssertLimitCalledOnceWith(t *testing.T, actor string, a
 }
 
 // LimitResultsForCall returns the result values for the first call to FakeProvider.Limit with the given values
-func (_f6 *FakeProvider) LimitResultsForCall(actor string, action string, path string) (ident1 *RateLimit, ident2 merry.Error, found bool) {
+func (_f6 *FakeProvider) LimitResultsForCall(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error, found bool) {
 	for _, call := range _f6.LimitCalls {
 		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			ident1 = call.Results.Ident1
