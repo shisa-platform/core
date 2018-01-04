@@ -18,10 +18,11 @@ type DebugServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/debug/vars" if empty
 
-	// Logger optionally specifies the logger to use by the
-	// Gateway and all of its services.  Leave this as nil to
-	// disable all logging.
+	// Logger optionally specifies the logger to use by the Debug
+	// server.
+	// If nil all logging is disabled.
 	Logger *zap.Logger
+
 	delegate http.Handler
 }
 

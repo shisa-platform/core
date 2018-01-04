@@ -103,7 +103,7 @@ type Gateway struct {
 	NotFoundHandler service.Handler
 
 	// Logger optionally specifies the logger to use by the
-	// Gateway and all of its services.
+	// Gateway.
 	// If nil all logging is disabled.
 	Logger *zap.Logger
 

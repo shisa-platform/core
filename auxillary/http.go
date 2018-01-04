@@ -11,7 +11,10 @@ type HTTPServer struct {
 	UseTLS           bool   // should this server use TLS?
 	DisableKeepAlive bool   // Should TCP keep alive be disabled?
 
-	TLSConfig *tls.Config // optional TLS config, used by ServeTLS and ListenAndServeTLS
+	// TLSConfig is optional TLS configuration,
+	// This must be non-nil and properly initialized if `UseTLS`
+	// is `true`.
+	TLSConfig *tls.Config
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// request, including the body.
