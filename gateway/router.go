@@ -137,17 +137,17 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sort.Sort(byName(params))
 	}
 
-	for _, f := range pipeline.QueryFields {
+	for _, field := range pipeline.QueryFields {
 		var found bool
 		for j, p := range params {
 			if p.Invalid {
 				invalidParams = true
 			}
-			if f.Match(p.Name) {
+			if field.Match(p.Name) {
 				found = true
 				request.QueryParams[p.Ordinal].Unknown = false
 				params = append(params[:j], params[j+1:]...)
-				if err := f.Validate(p.Values); err != nil {
+				if err := field.Validate(p.Values); err != nil {
 					request.QueryParams[p.Ordinal].Invalid = true
 					invalidParams = true
 				}
@@ -156,14 +156,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !found {
-			if f.Default != "" {
+			if field.Default != "" {
 				dp := service.QueryParameter{
-					Name:    f.Name,
-					Values:  []string{f.Default},
+					Name:    field.Name,
+					Values:  []string{field.Default},
 					Ordinal: -1,
 				}
 				request.QueryParams = append(request.QueryParams, dp)
-			} else if f.Required {
+			} else if field.Required {
 				missingParams = true
 			}
 		}
