@@ -23,7 +23,8 @@ type DebugServer struct {
 	// If nil all logging is disabled.
 	Logger *zap.Logger
 
-	delegate http.Handler
+	requestLog *zap.Logger
+	delegate   http.Handler
 }
 
 func (s *DebugServer) init() {
@@ -37,6 +38,7 @@ func (s *DebugServer) init() {
 		s.Logger = zap.NewNop()
 	}
 	defer s.Logger.Sync()
+	s.requestLog = s.Logger.Named("request")
 
 	s.delegate = expvar.Handler()
 	s.base.Handler = s
@@ -63,14 +65,18 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.Path == r.URL.Path {
-		s.delegate.ServeHTTP(w, r)
-	} else {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
+	ri := ResponseInterceptor{
+		Logger:   s.requestLog,
+		Delegate: w,
+		Start:    time.Now().UTC(),
 	}
 
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
+	if s.Path == r.URL.Path {
+		s.delegate.ServeHTTP(&ri, r)
+	} else {
+		ri.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		ri.WriteHeader(http.StatusNotFound)
 	}
+
+	ri.Flush(r)
 }

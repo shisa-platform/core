@@ -64,7 +64,7 @@ func TestDebugServerServeHTTPBadPath(t *testing.T) {
 	cut.init()
 
 	cut.ServeHTTP(w, r)
-	
+
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
@@ -81,7 +81,7 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	cut.ServeHTTP(w, r)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
@@ -89,14 +89,16 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 }
 
 func TestDebugServerServeHTTP(t *testing.T) {
-	cut := DebugServer{}
+	cut := DebugServer{
+		Logger: zap.NewExample(),
+	}
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
 	w := httptest.NewRecorder()
 
 	cut.ServeHTTP(w, r)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
