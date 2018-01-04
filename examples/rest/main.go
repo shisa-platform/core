@@ -5,9 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
+	"github.com/ansel1/merry"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxillary"
@@ -66,6 +70,14 @@ func main() {
 
 	services := []service.Service{NewHelloService(), NewGoodbyeService()}
 	if err := gw.Serve(services, debug); err != nil {
-		logger.Fatal("gateway error", zap.Error(err))
+		for _, e := range multierr.Errors(err) {
+			values := merry.Values(e)
+			fs := make([]zapcore.Field, 0, len(values))
+			for name, value := range values {
+				fs = append(fs, zap.Reflect(name.(string), value))
+			}
+			logger.Error(merry.Message(e), fs...)
+		}
+		os.Exit(1)
 	}
 }

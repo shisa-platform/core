@@ -37,13 +37,14 @@ func (g *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxillary.
 }
 
 func (g *Gateway) Shutdown() (err error) {
-	g.Logger.Info("shutting down gateway...")
+	g.Logger.Info("shutting down gateway")
 	ctx, cancel := stdctx.WithTimeout(stdctx.Background(), g.GracePeriod)
 	defer cancel()
 
 	err = merry.Wrap(g.base.Shutdown(ctx))
 
 	for _, aux := range g.auxiliaries {
+		g.Logger.Info("shutting down auxillary", zap.String("name", aux.Name()))
 		err = multierr.Append(err, merry.Wrap(aux.Shutdown(g.GracePeriod)))
 	}
 
@@ -65,13 +66,6 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 	g.auxiliaries = auxiliaries
 
-	defer func() {
-		if err != nil {
-			// xxx - add values from merry to zap here
-			g.Logger.Error("fatal error serving gateway", zap.Error(err))
-		}
-	}()
-
 	ach := make(chan error, len(g.auxiliaries))
 	for _, aux := range g.auxiliaries {
 		g.Logger.Info("starting auxillary server", zap.String("name", aux.Name()), zap.String("address", aux.Address()))
@@ -90,29 +84,25 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		}
 	}()
 
-	aerrs := make([]error, len(g.auxiliaries))
+	waiting := len(g.auxiliaries) + 1
 	for {
 		select {
 		case aerr := <-ach:
-			if aerr == http.ErrServerClosed {
-				g.Logger.Info("auxillary service closed")
-			} else {
-				aerrs = append(aerrs, merry.Wrap(aerr))
+			if !merry.Is(aerr, http.ErrServerClosed) {
+				err = multierr.Append(err, merry.Wrap(aerr))
 			}
-		case gerr := <-gch:
-			err = multierr.Combine(aerrs...)
-			if gerr == http.ErrServerClosed {
-				g.Logger.Info("gateway service closed")
+			waiting--
+			if waiting == 0 {
 				return
 			}
-
-			wrapped := merry.Wrap(gerr)
-			if err != nil {
-				err = multierr.Append(err, wrapped)
-			} else {
-				err = wrapped
+		case gerr := <-gch:
+			if gerr != http.ErrServerClosed {
+				err = multierr.Append(err, merry.Wrap(gerr))
 			}
-			return
+			waiting--
+			if waiting == 0 {
+				return
+			}
 		}
 	}
 }
