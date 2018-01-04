@@ -68,11 +68,7 @@ func NewHelloService() *HelloService {
 		language,
 		{Name: "name", Multiplicity: 1},
 	}
-
-	salutation := service.GetEndpointWithPolicy("/salutation", policy, svc.Salutaion)
-	salutation.Get.QueryFields = []service.Field{language}
-
-	svc.endpoints = []service.Endpoint{greeting, salutation}
+	svc.endpoints = []service.Endpoint{greeting}
 
 	return svc
 }
@@ -99,14 +95,6 @@ func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service
 	}
 
 	response := service.NewOK(Greeting{fmt.Sprintf("%s %s", greeting, interlocutor)})
-	addCommonHeaders(response)
-
-	return response
-}
-
-func (s *HelloService) Salutaion(ctx context.Context, r *service.Request) service.Response {
-	salutation := greetings[r.QueryParams[0].Values[0]]
-	response := service.NewOK(Greeting{fmt.Sprintf("%s %s", salutation, ctx.Actor().String())})
 	addCommonHeaders(response)
 
 	return response
