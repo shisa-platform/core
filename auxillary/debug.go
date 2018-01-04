@@ -1,17 +1,24 @@
 package auxillary
 
 import (
-	"context"
+	stdctx "context"
 	"expvar"
 	"net/http"
 	"time"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/zap"
+
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/service"
 )
 
 const (
 	defaultDebugServerPath = "/debug/vars"
+)
+
+var (
+	backgroundContext = stdctx.Background()
 )
 
 type DebugServer struct {
@@ -59,7 +66,7 @@ func (s *DebugServer) Serve() error {
 }
 
 func (s *DebugServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(backgroundContext, timeout)
 	defer cancel()
 	return merry.Wrap(s.base.Shutdown(ctx))
 }
@@ -71,6 +78,43 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Start:    time.Now().UTC(),
 	}
 
+	ctx := context.New(backgroundContext)
+	request := &service.Request{Request: r}
+
+	requestID, idErr := s.RequestIDGenerator(ctx, request)
+	if idErr != nil {
+		requestID = request.ID()
+	}
+	if requestID == "" {
+		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		requestID = request.ID()
+	}
+
+	ctx = context.WithRequestID(ctx, requestID)
+	ri.Header().Set(s.RequestIDHeaderName, requestID)
+
+	var writeErr error
+
+	if s.Authentication != nil {
+		if response := s.Authentication.Service(ctx, request); response != nil {
+			for k, vs := range response.Headers() {
+				ri.Header()[k] = vs
+			}
+			for k := range response.Trailers() {
+				ri.Header().Add("Trailer", k)
+			}
+
+			ri.WriteHeader(response.StatusCode())
+
+			_, writeErr = response.Serialize(&ri)
+
+			for k, vs := range response.Trailers() {
+				ri.Header()[k] = vs
+			}
+			goto finish
+		}
+	}
+
 	if s.Path == r.URL.Path {
 		s.delegate.ServeHTTP(&ri, r)
 	} else {
@@ -78,5 +122,13 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ri.WriteHeader(http.StatusNotFound)
 	}
 
-	ri.Flush(r)
+finish:
+	ri.Flush(ctx, request)
+
+	if idErr != nil {
+		s.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+	}
+	if writeErr != nil {
+		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+	}
 }

@@ -1,6 +1,7 @@
 package auxillary
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,7 +10,31 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+
+	"github.com/percolate/shisa/authn"
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/middleware"
+	"github.com/percolate/shisa/models"
+	"github.com/percolate/shisa/service"
 )
+
+type unserializableResponse struct{}
+
+func (r unserializableResponse) StatusCode() int {
+	return 500
+}
+
+func (r unserializableResponse) Headers() http.Header {
+	return nil
+}
+
+func (r unserializableResponse) Trailers() http.Header {
+	return nil
+}
+
+func (r unserializableResponse) Serialize(io.Writer) (int, error) {
+	return 0, merry.New("i blewed up")
+}
 
 func TestDebugServerEmpty(t *testing.T) {
 	cut := DebugServer{}
@@ -88,6 +113,213 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
+func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+				return "", merry.New("i blewed up!")
+			},
+		},
+		Logger: zap.NewExample(),
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+				return "", nil
+			},
+		},
+		Logger: zap.NewExample(),
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
+	requestID := "abc123"
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+				return requestID, nil
+			},
+			RequestIDHeaderName: "x-zalgo",
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, requestID, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Authentication: &middleware.Authentication{
+				Authenticator: authn,
+			},
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Authentication: &middleware.Authentication{
+				Authenticator: authn,
+				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
+					return unserializableResponse{}
+				},
+			},
+		},
+		Logger: zap.NewExample(),
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.Empty(t, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) {
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Authentication: &middleware.Authentication{
+				Authenticator: authn,
+				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
+					response := service.NewEmpty(http.StatusUnauthorized)
+					response.Headers().Set(middleware.WWWAuthenticateHeaderKey, challenge)
+					response.Trailers().Add("x-zalgo", "he comes")
+					return response
+				},
+			},
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.Equal(t, "he comes", w.HeaderMap.Get("x-zalgo"))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPAuthentication(t *testing.T) {
+	user := &models.FakeUser{IDHook: func() string { return "123" }}
+	challenge := "Test realm=\"test\""
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+			return user, nil
+		},
+		ChallengeHook: func() string {
+			return challenge
+		},
+	}
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Authentication: &middleware.Authentication{
+				Authenticator: authn,
+			},
+		},
+		Logger: zap.NewExample(),
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.Empty(t, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.True(t, w.Flushed)
+}
+
 func TestDebugServerServeHTTP(t *testing.T) {
 	cut := DebugServer{
 		Logger: zap.NewExample(),
@@ -102,5 +334,6 @@ func TestDebugServerServeHTTP(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
 }

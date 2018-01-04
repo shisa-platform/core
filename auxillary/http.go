@@ -5,10 +5,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
+)
+
+const (
+	defaultRequestIDResponseHeader = "X-Request-ID"
 )
 
 type HTTPServer struct {
@@ -66,6 +73,22 @@ type HTTPServer struct {
 	// automatically.
 	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
+	// RequestIDHeaderName optionally customizes the name of the
+	// response header for the request id.
+	// If empty "X-Request-Id" will be used.
+	RequestIDHeaderName string
+
+	// RequestIDGenerator optionally customizes how request ids
+	// are generated.
+	// If nil then `service.Request.GenerateID` will be used.
+	RequestIDGenerator service.StringExtractor
+
+	// Authentication optionally enforces authentication before
+	// other request handling.  This is recommended to prevent
+	// leaking details about the implementation to unknown user
+	// agents.
+	Authentication *middleware.Authentication
+
 	base http.Server
 }
 
@@ -86,6 +109,18 @@ func (s *HTTPServer) init() {
 	if s.DisableKeepAlive {
 		s.base.SetKeepAlivesEnabled(false)
 	}
+
+	if s.RequestIDHeaderName == "" {
+		s.RequestIDHeaderName = defaultRequestIDResponseHeader
+	}
+
+	if s.RequestIDGenerator == nil {
+		s.RequestIDGenerator = s.generateRequestID
+	}
+}
+
+func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (string, merry.Error) {
+	return r.ID(), nil
 }
 
 // ResponseInterceptor implements `http.ResponseWriter` to capture
@@ -123,23 +158,26 @@ func (i *ResponseInterceptor) WriteHeader(status int) {
 // the `Info` level is not configured.  If the underlying writer
 // implements `http.Flusher` then the `Flush` method will be
 // called.
-func (i *ResponseInterceptor) Flush(request *http.Request) {
+func (i *ResponseInterceptor) Flush(ctx context.Context, r *service.Request) {
 	if ce := i.Logger.Check(zap.InfoLevel, "request"); ce != nil {
 		end := time.Now().UTC()
 		elapsed := end.Sub(i.Start)
 		if i.status == 0 {
-			i.status = http.StatusOK 
+			i.status = http.StatusOK
 		}
-		fs := make([]zapcore.Field, 9)
-		fs[0] = zap.String("request-id", service.GenerateID(request))
-		fs[1] = zap.String("client-ip-address", service.ClientIP(request))
-		fs[2] = zap.String("method", request.Method)
-		fs[3] = zap.String("uri", request.URL.RequestURI())
+		fs := make([]zapcore.Field, 9, 10)
+		fs[0] = zap.String("request-id", ctx.RequestID())
+		fs[1] = zap.String("client-ip-address", r.ClientIP())
+		fs[2] = zap.String("method", r.Method)
+		fs[3] = zap.String("uri", r.URL.RequestURI())
 		fs[4] = zap.Int("status-code", i.status)
 		fs[5] = zap.Int("response-size", i.size)
-		fs[6] = zap.String("user-agent", request.UserAgent())
+		fs[6] = zap.String("user-agent", r.UserAgent())
 		fs[7] = zap.Time("start", i.Start)
 		fs[8] = zap.Duration("elapsed", elapsed)
+		if u := ctx.Actor(); u != nil {
+			fs = append(fs, zap.String("user-id", u.ID()))
+		}
 		ce.Write(fs...)
 	}
 
