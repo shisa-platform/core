@@ -1,9 +1,6 @@
 package ratelimit
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/ansel1/merry"
 )
 
