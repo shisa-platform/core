@@ -8,6 +8,40 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
+var (
+	AmericanEnglish   = "en-US"
+	BritishEnglish    = "en-GB"
+	EuropeanSpanish   = "es-ES"
+	Finnish           = "fi"
+	French            = "fr"
+	Japanese          = "ja"
+	SimplifiedChinese = "zh-Hans"
+	tags              = []string{
+		AmericanEnglish,
+		BritishEnglish,
+		EuropeanSpanish,
+		Finnish,
+		French,
+		Japanese,
+		SimplifiedChinese,
+	}
+	greetings = map[string]string{
+		AmericanEnglish:   "Hello",
+		BritishEnglish:    "Cheerio",
+		EuropeanSpanish:   "Hola",
+		Finnish:           "Hei",
+		French:            "Bonjour",
+		Japanese:          "こんにちは",
+		SimplifiedChinese: "你好",
+	}
+	language = service.Field{
+		Name:         "language",
+		Default:      AmericanEnglish,
+		Validator:    service.StringSliceValidator{tags}.Validate,
+		Multiplicity: 1,
+	}
+)
+
 type Greeting struct {
 	Message string
 }
@@ -29,11 +63,10 @@ func NewHelloService() *HelloService {
 
 	svc := &HelloService{}
 
-	language := service.Field{Name: "language"}
 	greeting := service.GetEndpointWithPolicy("/greeting", policy, svc.Greeting)
 	greeting.Get.QueryFields = []service.Field{
 		language,
-		{Name: "name"},
+		{Name: "name", Multiplicity: 1},
 	}
 
 	salutation := service.GetEndpointWithPolicy("/salutation", policy, svc.Salutaion)
@@ -52,20 +85,28 @@ func (s *HelloService) Endpoints() []service.Endpoint {
 	return s.endpoints
 }
 
-func (s *HelloService) Greeting(ctx context.Context, r *service.Request) (response service.Response) {
-	if ctx.Actor() != nil {
-		response = service.NewOK(Greeting{fmt.Sprintf("hello, %s", ctx.Actor().String())})
-	} else {
-		response = service.NewOK(Greeting{"hello, world"})
-	}
-	addCommonHeaders(response)
-	response.Trailers().Add("test", "foo")
+func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service.Response {
+	var greeting string
+	interlocutor := ctx.Actor().String()
 
-	return
+	for _, param := range r.QueryParams {
+		switch param.Name {
+		case "language":
+			greeting = greetings[param.Values[0]]
+		case "name":
+			interlocutor = param.Values[0]
+		}
+	}
+
+	response := service.NewOK(Greeting{fmt.Sprintf("%s %s", greeting, interlocutor)})
+	addCommonHeaders(response)
+
+	return response
 }
 
 func (s *HelloService) Salutaion(ctx context.Context, r *service.Request) service.Response {
-	response := service.NewOK(Greeting{fmt.Sprintf("hello, %s", ctx.Actor().String())})
+	salutation := greetings[r.QueryParams[0].Values[0]]
+	response := service.NewOK(Greeting{fmt.Sprintf("%s %s", salutation, ctx.Actor().String())})
 	addCommonHeaders(response)
 
 	return response
