@@ -169,7 +169,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 			errorHandlerInvoked = true
 			assert.Equal(t, ctx, c)
 			assert.Equal(t, request, r)
-			assert.NotNil(t, err)
+			assert.Error(t, err)
 			assert.Equal(t, http.StatusUnauthorized, merry.HTTPCode(err))
 
 			response := service.NewEmpty(http.StatusForbidden)

@@ -18,7 +18,7 @@ func TestAuthenticationHeaderTokenExtractorMissingHeader(t *testing.T) {
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
@@ -28,7 +28,7 @@ func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestAuthenticationHeaderTokenExtractorBadChallenge(t *testing.T) {
@@ -38,7 +38,7 @@ func TestAuthenticationHeaderTokenExtractorBadChallenge(t *testing.T) {
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
@@ -48,7 +48,7 @@ func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
@@ -58,7 +58,7 @@ func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestAuthenticationHeaderTokenExtractor(t *testing.T) {
@@ -68,7 +68,7 @@ func TestAuthenticationHeaderTokenExtractor(t *testing.T) {
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
 	assert.Equal(t, "he:comes", token)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestURLTokenExtractorMissingUserInfo(t *testing.T) {
@@ -77,7 +77,7 @@ func TestURLTokenExtractorMissingUserInfo(t *testing.T) {
 
 	token, err := URLTokenExtractor(ctx, request)
 	assert.Empty(t, token)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestURLTokenExtractor(t *testing.T) {
@@ -87,5 +87,5 @@ func TestURLTokenExtractor(t *testing.T) {
 
 	token, err := URLTokenExtractor(ctx, request)
 	assert.Equal(t, "he:comes", token)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }

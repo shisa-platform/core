@@ -19,7 +19,7 @@ func TestGatewayNoServices(t *testing.T) {
 	}
 
 	err := cut.Serve([]service.Service{})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayServiceWithNoName(t *testing.T) {
@@ -32,7 +32,7 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 		NameHook: func() string { return "" },
 	}
 	err := cut.Serve([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayServiceWithNoEndpoints(t *testing.T) {
@@ -47,7 +47,7 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 	}
 
 	err := cut.Serve([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
@@ -60,7 +60,7 @@ func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 	svc := newFakeService([]service.Endpoint{endpoint})
 
 	err := cut.Serve([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
@@ -73,7 +73,7 @@ func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 	svc := newFakeService([]service.Endpoint{endpoint})
 
 	err := cut.Serve([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayEndpointWithNoPipelines(t *testing.T) {
@@ -86,7 +86,7 @@ func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 	svc := newFakeService([]service.Endpoint{endpoint})
 
 	err := cut.Serve([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayEndpointRedundantRegistration(t *testing.T) {
@@ -100,7 +100,36 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	svc := newFakeService([]service.Endpoint{endpoint1, endpoint2})
 
 	err := cut.Serve([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
+}
+
+func TestGatewayFieldDefaultMissingName(t *testing.T) {
+	cut := &Gateway{
+		Name:    "test",
+		Address: ":9003",
+	}
+
+	pipeline := &service.Pipeline{
+		Handlers:    []service.Handler{dummyHandler},
+		QueryFields: []service.Field{service.Field{Default: "zalgo"}},
+	}
+	endpoints := []service.Endpoint{
+		{Route: "/", Head: pipeline},
+		{Route: "/", Get: pipeline},
+		{Route: "/", Put: pipeline},
+		{Route: "/", Post: pipeline},
+		{Route: "/", Patch: pipeline},
+		{Route: "/", Delete: pipeline},
+		{Route: "/", Connect: pipeline},
+		{Route: "/", Options: pipeline},
+		{Route: "/", Trace: pipeline},
+	}
+
+	for _, endpoint := range endpoints {
+		svc := newFakeService([]service.Endpoint{endpoint})
+		err := cut.Serve([]service.Service{svc})
+		assert.Error(t, err)
+	}
 }
 
 func TestGatewayMisconfiguredTLS(t *testing.T) {
@@ -113,7 +142,7 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 	svc := newFakeService([]service.Endpoint{endpoint})
 
 	err := cut.ServeTLS([]service.Service{svc})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayFailingAuxillary(t *testing.T) {
@@ -143,7 +172,7 @@ func TestGatewayFailingAuxillary(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 	err := cut.Serve([]service.Service{svc}, aux)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestGatewayFullyLoadedEndpoint(t *testing.T) {
@@ -170,10 +199,10 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 	err := cut.Serve([]service.Service{svc})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	e, _, _, err := cut.tree.getValue(expectedRoute)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, e)
 	assert.Equal(t, expectedRoute, e.Route)
 	assert.NotNil(t, e.Head)
