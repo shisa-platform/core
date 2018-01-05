@@ -2,12 +2,10 @@
 
 package service
 
-import (
-	"io"
-	"net/http"
-	"reflect"
-	"testing"
-)
+import "reflect"
+
+import "io"
+import "net/http"
 
 // ResponseStatusCodeInvocation represents a single call of FakeResponse.StatusCode
 type ResponseStatusCodeInvocation struct {
@@ -39,6 +37,14 @@ type ResponseSerializeInvocation struct {
 		Ident2 int
 		Ident3 error
 	}
+}
+
+// ResponseTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type ResponseTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -96,7 +102,7 @@ func NewFakeResponseDefaultPanic() *FakeResponse {
 }
 
 // NewFakeResponseDefaultFatal returns an instance of FakeResponse with all hooks configured to call t.Fatal
-func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
+func NewFakeResponseDefaultFatal(t ResponseTestingT) *FakeResponse {
 	return &FakeResponse{
 		StatusCodeHook: func() (ident1 int) {
 			t.Fatal("Unexpected call to Response.StatusCode")
@@ -118,7 +124,7 @@ func NewFakeResponseDefaultFatal(t *testing.T) *FakeResponse {
 }
 
 // NewFakeResponseDefaultError returns an instance of FakeResponse with all hooks configured to call t.Error
-func NewFakeResponseDefaultError(t *testing.T) *FakeResponse {
+func NewFakeResponseDefaultError(t ResponseTestingT) *FakeResponse {
 	return &FakeResponse{
 		StatusCodeHook: func() (ident1 int) {
 			t.Error("Unexpected call to Response.StatusCode")
@@ -164,7 +170,7 @@ func (f *FakeResponse) StatusCodeCalled() bool {
 }
 
 // AssertStatusCodeCalled calls t.Error if FakeResponse.StatusCode was not called
-func (f *FakeResponse) AssertStatusCodeCalled(t *testing.T) {
+func (f *FakeResponse) AssertStatusCodeCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.StatusCodeCalls) == 0 {
 		t.Error("FakeResponse.StatusCode not called, expected at least one")
@@ -177,7 +183,7 @@ func (f *FakeResponse) StatusCodeNotCalled() bool {
 }
 
 // AssertStatusCodeNotCalled calls t.Error if FakeResponse.StatusCode was called
-func (f *FakeResponse) AssertStatusCodeNotCalled(t *testing.T) {
+func (f *FakeResponse) AssertStatusCodeNotCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.StatusCodeCalls) != 0 {
 		t.Error("FakeResponse.StatusCode called, expected none")
@@ -190,7 +196,7 @@ func (f *FakeResponse) StatusCodeCalledOnce() bool {
 }
 
 // AssertStatusCodeCalledOnce calls t.Error if FakeResponse.StatusCode was not called exactly once
-func (f *FakeResponse) AssertStatusCodeCalledOnce(t *testing.T) {
+func (f *FakeResponse) AssertStatusCodeCalledOnce(t ResponseTestingT) {
 	t.Helper()
 	if len(f.StatusCodeCalls) != 1 {
 		t.Errorf("FakeResponse.StatusCode called %d times, expected 1", len(f.StatusCodeCalls))
@@ -203,7 +209,7 @@ func (f *FakeResponse) StatusCodeCalledN(n int) bool {
 }
 
 // AssertStatusCodeCalledN calls t.Error if FakeResponse.StatusCode was called less than n times
-func (f *FakeResponse) AssertStatusCodeCalledN(t *testing.T, n int) {
+func (f *FakeResponse) AssertStatusCodeCalledN(t ResponseTestingT, n int) {
 	t.Helper()
 	if len(f.StatusCodeCalls) < n {
 		t.Errorf("FakeResponse.StatusCode called %d times, expected >= %d", len(f.StatusCodeCalls), n)
@@ -228,7 +234,7 @@ func (f *FakeResponse) HeadersCalled() bool {
 }
 
 // AssertHeadersCalled calls t.Error if FakeResponse.Headers was not called
-func (f *FakeResponse) AssertHeadersCalled(t *testing.T) {
+func (f *FakeResponse) AssertHeadersCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.HeadersCalls) == 0 {
 		t.Error("FakeResponse.Headers not called, expected at least one")
@@ -241,7 +247,7 @@ func (f *FakeResponse) HeadersNotCalled() bool {
 }
 
 // AssertHeadersNotCalled calls t.Error if FakeResponse.Headers was called
-func (f *FakeResponse) AssertHeadersNotCalled(t *testing.T) {
+func (f *FakeResponse) AssertHeadersNotCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.HeadersCalls) != 0 {
 		t.Error("FakeResponse.Headers called, expected none")
@@ -254,7 +260,7 @@ func (f *FakeResponse) HeadersCalledOnce() bool {
 }
 
 // AssertHeadersCalledOnce calls t.Error if FakeResponse.Headers was not called exactly once
-func (f *FakeResponse) AssertHeadersCalledOnce(t *testing.T) {
+func (f *FakeResponse) AssertHeadersCalledOnce(t ResponseTestingT) {
 	t.Helper()
 	if len(f.HeadersCalls) != 1 {
 		t.Errorf("FakeResponse.Headers called %d times, expected 1", len(f.HeadersCalls))
@@ -267,7 +273,7 @@ func (f *FakeResponse) HeadersCalledN(n int) bool {
 }
 
 // AssertHeadersCalledN calls t.Error if FakeResponse.Headers was called less than n times
-func (f *FakeResponse) AssertHeadersCalledN(t *testing.T, n int) {
+func (f *FakeResponse) AssertHeadersCalledN(t ResponseTestingT, n int) {
 	t.Helper()
 	if len(f.HeadersCalls) < n {
 		t.Errorf("FakeResponse.Headers called %d times, expected >= %d", len(f.HeadersCalls), n)
@@ -292,7 +298,7 @@ func (f *FakeResponse) TrailersCalled() bool {
 }
 
 // AssertTrailersCalled calls t.Error if FakeResponse.Trailers was not called
-func (f *FakeResponse) AssertTrailersCalled(t *testing.T) {
+func (f *FakeResponse) AssertTrailersCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.TrailersCalls) == 0 {
 		t.Error("FakeResponse.Trailers not called, expected at least one")
@@ -305,7 +311,7 @@ func (f *FakeResponse) TrailersNotCalled() bool {
 }
 
 // AssertTrailersNotCalled calls t.Error if FakeResponse.Trailers was called
-func (f *FakeResponse) AssertTrailersNotCalled(t *testing.T) {
+func (f *FakeResponse) AssertTrailersNotCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.TrailersCalls) != 0 {
 		t.Error("FakeResponse.Trailers called, expected none")
@@ -318,7 +324,7 @@ func (f *FakeResponse) TrailersCalledOnce() bool {
 }
 
 // AssertTrailersCalledOnce calls t.Error if FakeResponse.Trailers was not called exactly once
-func (f *FakeResponse) AssertTrailersCalledOnce(t *testing.T) {
+func (f *FakeResponse) AssertTrailersCalledOnce(t ResponseTestingT) {
 	t.Helper()
 	if len(f.TrailersCalls) != 1 {
 		t.Errorf("FakeResponse.Trailers called %d times, expected 1", len(f.TrailersCalls))
@@ -331,7 +337,7 @@ func (f *FakeResponse) TrailersCalledN(n int) bool {
 }
 
 // AssertTrailersCalledN calls t.Error if FakeResponse.Trailers was called less than n times
-func (f *FakeResponse) AssertTrailersCalledN(t *testing.T, n int) {
+func (f *FakeResponse) AssertTrailersCalledN(t ResponseTestingT, n int) {
 	t.Helper()
 	if len(f.TrailersCalls) < n {
 		t.Errorf("FakeResponse.Trailers called %d times, expected >= %d", len(f.TrailersCalls), n)
@@ -359,7 +365,7 @@ func (f *FakeResponse) SerializeCalled() bool {
 }
 
 // AssertSerializeCalled calls t.Error if FakeResponse.Serialize was not called
-func (f *FakeResponse) AssertSerializeCalled(t *testing.T) {
+func (f *FakeResponse) AssertSerializeCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.SerializeCalls) == 0 {
 		t.Error("FakeResponse.Serialize not called, expected at least one")
@@ -372,7 +378,7 @@ func (f *FakeResponse) SerializeNotCalled() bool {
 }
 
 // AssertSerializeNotCalled calls t.Error if FakeResponse.Serialize was called
-func (f *FakeResponse) AssertSerializeNotCalled(t *testing.T) {
+func (f *FakeResponse) AssertSerializeNotCalled(t ResponseTestingT) {
 	t.Helper()
 	if len(f.SerializeCalls) != 0 {
 		t.Error("FakeResponse.Serialize called, expected none")
@@ -385,7 +391,7 @@ func (f *FakeResponse) SerializeCalledOnce() bool {
 }
 
 // AssertSerializeCalledOnce calls t.Error if FakeResponse.Serialize was not called exactly once
-func (f *FakeResponse) AssertSerializeCalledOnce(t *testing.T) {
+func (f *FakeResponse) AssertSerializeCalledOnce(t ResponseTestingT) {
 	t.Helper()
 	if len(f.SerializeCalls) != 1 {
 		t.Errorf("FakeResponse.Serialize called %d times, expected 1", len(f.SerializeCalls))
@@ -398,7 +404,7 @@ func (f *FakeResponse) SerializeCalledN(n int) bool {
 }
 
 // AssertSerializeCalledN calls t.Error if FakeResponse.Serialize was called less than n times
-func (f *FakeResponse) AssertSerializeCalledN(t *testing.T, n int) {
+func (f *FakeResponse) AssertSerializeCalledN(t ResponseTestingT, n int) {
 	t.Helper()
 	if len(f.SerializeCalls) < n {
 		t.Errorf("FakeResponse.Serialize called %d times, expected >= %d", len(f.SerializeCalls), n)
@@ -418,7 +424,7 @@ func (_f5 *FakeResponse) SerializeCalledWith(ident1 io.Writer) (found bool) {
 }
 
 // AssertSerializeCalledWith calls t.Error if FakeResponse.Serialize was not called with the given values
-func (_f6 *FakeResponse) AssertSerializeCalledWith(t *testing.T, ident1 io.Writer) {
+func (_f6 *FakeResponse) AssertSerializeCalledWith(t ResponseTestingT, ident1 io.Writer) {
 	t.Helper()
 	var found bool
 	for _, call := range _f6.SerializeCalls {
@@ -446,7 +452,7 @@ func (_f7 *FakeResponse) SerializeCalledOnceWith(ident1 io.Writer) bool {
 }
 
 // AssertSerializeCalledOnceWith calls t.Error if FakeResponse.Serialize was not called exactly once with the given values
-func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t *testing.T, ident1 io.Writer) {
+func (_f8 *FakeResponse) AssertSerializeCalledOnceWith(t ResponseTestingT, ident1 io.Writer) {
 	t.Helper()
 	var count int
 	for _, call := range _f8.SerializeCalls {

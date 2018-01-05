@@ -2,15 +2,12 @@
 
 package authn
 
-import (
-	"reflect"
-	"testing"
+import "reflect"
 
-	"github.com/ansel1/merry"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
-)
+import "github.com/ansel1/merry"
+import "github.com/percolate/shisa/context"
+import "github.com/percolate/shisa/models"
+import "github.com/percolate/shisa/service"
 
 // AuthenticatorAuthenticateInvocation represents a single call of FakeAuthenticator.Authenticate
 type AuthenticatorAuthenticateInvocation struct {
@@ -29,6 +26,14 @@ type AuthenticatorChallengeInvocation struct {
 	Results struct {
 		Ident1 string
 	}
+}
+
+// AuthenticatorTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type AuthenticatorTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -76,7 +81,7 @@ func NewFakeAuthenticatorDefaultPanic() *FakeAuthenticator {
 }
 
 // NewFakeAuthenticatorDefaultFatal returns an instance of FakeAuthenticator with all hooks configured to call t.Fatal
-func NewFakeAuthenticatorDefaultFatal(t *testing.T) *FakeAuthenticator {
+func NewFakeAuthenticatorDefaultFatal(t AuthenticatorTestingT) *FakeAuthenticator {
 	return &FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (ident3 models.User, ident4 merry.Error) {
 			t.Fatal("Unexpected call to Authenticator.Authenticate")
@@ -90,7 +95,7 @@ func NewFakeAuthenticatorDefaultFatal(t *testing.T) *FakeAuthenticator {
 }
 
 // NewFakeAuthenticatorDefaultError returns an instance of FakeAuthenticator with all hooks configured to call t.Error
-func NewFakeAuthenticatorDefaultError(t *testing.T) *FakeAuthenticator {
+func NewFakeAuthenticatorDefaultError(t AuthenticatorTestingT) *FakeAuthenticator {
 	return &FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (ident3 models.User, ident4 merry.Error) {
 			t.Error("Unexpected call to Authenticator.Authenticate")
@@ -130,7 +135,7 @@ func (f *FakeAuthenticator) AuthenticateCalled() bool {
 }
 
 // AssertAuthenticateCalled calls t.Error if FakeAuthenticator.Authenticate was not called
-func (f *FakeAuthenticator) AssertAuthenticateCalled(t *testing.T) {
+func (f *FakeAuthenticator) AssertAuthenticateCalled(t AuthenticatorTestingT) {
 	t.Helper()
 	if len(f.AuthenticateCalls) == 0 {
 		t.Error("FakeAuthenticator.Authenticate not called, expected at least one")
@@ -143,7 +148,7 @@ func (f *FakeAuthenticator) AuthenticateNotCalled() bool {
 }
 
 // AssertAuthenticateNotCalled calls t.Error if FakeAuthenticator.Authenticate was called
-func (f *FakeAuthenticator) AssertAuthenticateNotCalled(t *testing.T) {
+func (f *FakeAuthenticator) AssertAuthenticateNotCalled(t AuthenticatorTestingT) {
 	t.Helper()
 	if len(f.AuthenticateCalls) != 0 {
 		t.Error("FakeAuthenticator.Authenticate called, expected none")
@@ -156,7 +161,7 @@ func (f *FakeAuthenticator) AuthenticateCalledOnce() bool {
 }
 
 // AssertAuthenticateCalledOnce calls t.Error if FakeAuthenticator.Authenticate was not called exactly once
-func (f *FakeAuthenticator) AssertAuthenticateCalledOnce(t *testing.T) {
+func (f *FakeAuthenticator) AssertAuthenticateCalledOnce(t AuthenticatorTestingT) {
 	t.Helper()
 	if len(f.AuthenticateCalls) != 1 {
 		t.Errorf("FakeAuthenticator.Authenticate called %d times, expected 1", len(f.AuthenticateCalls))
@@ -169,7 +174,7 @@ func (f *FakeAuthenticator) AuthenticateCalledN(n int) bool {
 }
 
 // AssertAuthenticateCalledN calls t.Error if FakeAuthenticator.Authenticate was called less than n times
-func (f *FakeAuthenticator) AssertAuthenticateCalledN(t *testing.T, n int) {
+func (f *FakeAuthenticator) AssertAuthenticateCalledN(t AuthenticatorTestingT, n int) {
 	t.Helper()
 	if len(f.AuthenticateCalls) < n {
 		t.Errorf("FakeAuthenticator.Authenticate called %d times, expected >= %d", len(f.AuthenticateCalls), n)
@@ -189,7 +194,7 @@ func (_f2 *FakeAuthenticator) AuthenticateCalledWith(ident1 context.Context, ide
 }
 
 // AssertAuthenticateCalledWith calls t.Error if FakeAuthenticator.Authenticate was not called with the given values
-func (_f3 *FakeAuthenticator) AssertAuthenticateCalledWith(t *testing.T, ident1 context.Context, ident2 *service.Request) {
+func (_f3 *FakeAuthenticator) AssertAuthenticateCalledWith(t AuthenticatorTestingT, ident1 context.Context, ident2 *service.Request) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.AuthenticateCalls {
@@ -217,7 +222,7 @@ func (_f4 *FakeAuthenticator) AuthenticateCalledOnceWith(ident1 context.Context,
 }
 
 // AssertAuthenticateCalledOnceWith calls t.Error if FakeAuthenticator.Authenticate was not called exactly once with the given values
-func (_f5 *FakeAuthenticator) AssertAuthenticateCalledOnceWith(t *testing.T, ident1 context.Context, ident2 *service.Request) {
+func (_f5 *FakeAuthenticator) AssertAuthenticateCalledOnceWith(t AuthenticatorTestingT, ident1 context.Context, ident2 *service.Request) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.AuthenticateCalls {
@@ -263,7 +268,7 @@ func (f *FakeAuthenticator) ChallengeCalled() bool {
 }
 
 // AssertChallengeCalled calls t.Error if FakeAuthenticator.Challenge was not called
-func (f *FakeAuthenticator) AssertChallengeCalled(t *testing.T) {
+func (f *FakeAuthenticator) AssertChallengeCalled(t AuthenticatorTestingT) {
 	t.Helper()
 	if len(f.ChallengeCalls) == 0 {
 		t.Error("FakeAuthenticator.Challenge not called, expected at least one")
@@ -276,7 +281,7 @@ func (f *FakeAuthenticator) ChallengeNotCalled() bool {
 }
 
 // AssertChallengeNotCalled calls t.Error if FakeAuthenticator.Challenge was called
-func (f *FakeAuthenticator) AssertChallengeNotCalled(t *testing.T) {
+func (f *FakeAuthenticator) AssertChallengeNotCalled(t AuthenticatorTestingT) {
 	t.Helper()
 	if len(f.ChallengeCalls) != 0 {
 		t.Error("FakeAuthenticator.Challenge called, expected none")
@@ -289,7 +294,7 @@ func (f *FakeAuthenticator) ChallengeCalledOnce() bool {
 }
 
 // AssertChallengeCalledOnce calls t.Error if FakeAuthenticator.Challenge was not called exactly once
-func (f *FakeAuthenticator) AssertChallengeCalledOnce(t *testing.T) {
+func (f *FakeAuthenticator) AssertChallengeCalledOnce(t AuthenticatorTestingT) {
 	t.Helper()
 	if len(f.ChallengeCalls) != 1 {
 		t.Errorf("FakeAuthenticator.Challenge called %d times, expected 1", len(f.ChallengeCalls))
@@ -302,7 +307,7 @@ func (f *FakeAuthenticator) ChallengeCalledN(n int) bool {
 }
 
 // AssertChallengeCalledN calls t.Error if FakeAuthenticator.Challenge was called less than n times
-func (f *FakeAuthenticator) AssertChallengeCalledN(t *testing.T, n int) {
+func (f *FakeAuthenticator) AssertChallengeCalledN(t AuthenticatorTestingT, n int) {
 	t.Helper()
 	if len(f.ChallengeCalls) < n {
 		t.Errorf("FakeAuthenticator.Challenge called %d times, expected >= %d", len(f.ChallengeCalls), n)

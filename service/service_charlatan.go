@@ -2,10 +2,6 @@
 
 package service
 
-import (
-	"testing"
-)
-
 // ServiceNameInvocation represents a single call of FakeService.Name
 type ServiceNameInvocation struct {
 	Results struct {
@@ -53,6 +49,14 @@ type ServiceInternalServerErrorHandlerInvocation struct {
 	Results struct {
 		Ident1 ErrorHandler
 	}
+}
+
+// ServiceTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type ServiceTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -125,7 +129,7 @@ func NewFakeServiceDefaultPanic() *FakeService {
 }
 
 // NewFakeServiceDefaultFatal returns an instance of FakeService with all hooks configured to call t.Fatal
-func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
+func NewFakeServiceDefaultFatal(t ServiceTestingT) *FakeService {
 	return &FakeService{
 		NameHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to Service.Name")
@@ -159,7 +163,7 @@ func NewFakeServiceDefaultFatal(t *testing.T) *FakeService {
 }
 
 // NewFakeServiceDefaultError returns an instance of FakeService with all hooks configured to call t.Error
-func NewFakeServiceDefaultError(t *testing.T) *FakeService {
+func NewFakeServiceDefaultError(t ServiceTestingT) *FakeService {
 	return &FakeService{
 		NameHook: func() (ident1 string) {
 			t.Error("Unexpected call to Service.Name")
@@ -220,7 +224,7 @@ func (f *FakeService) NameCalled() bool {
 }
 
 // AssertNameCalled calls t.Error if FakeService.Name was not called
-func (f *FakeService) AssertNameCalled(t *testing.T) {
+func (f *FakeService) AssertNameCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.NameCalls) == 0 {
 		t.Error("FakeService.Name not called, expected at least one")
@@ -233,7 +237,7 @@ func (f *FakeService) NameNotCalled() bool {
 }
 
 // AssertNameNotCalled calls t.Error if FakeService.Name was called
-func (f *FakeService) AssertNameNotCalled(t *testing.T) {
+func (f *FakeService) AssertNameNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.NameCalls) != 0 {
 		t.Error("FakeService.Name called, expected none")
@@ -246,7 +250,7 @@ func (f *FakeService) NameCalledOnce() bool {
 }
 
 // AssertNameCalledOnce calls t.Error if FakeService.Name was not called exactly once
-func (f *FakeService) AssertNameCalledOnce(t *testing.T) {
+func (f *FakeService) AssertNameCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.NameCalls) != 1 {
 		t.Errorf("FakeService.Name called %d times, expected 1", len(f.NameCalls))
@@ -259,7 +263,7 @@ func (f *FakeService) NameCalledN(n int) bool {
 }
 
 // AssertNameCalledN calls t.Error if FakeService.Name was called less than n times
-func (f *FakeService) AssertNameCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertNameCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.NameCalls) < n {
 		t.Errorf("FakeService.Name called %d times, expected >= %d", len(f.NameCalls), n)
@@ -284,7 +288,7 @@ func (f *FakeService) EndpointsCalled() bool {
 }
 
 // AssertEndpointsCalled calls t.Error if FakeService.Endpoints was not called
-func (f *FakeService) AssertEndpointsCalled(t *testing.T) {
+func (f *FakeService) AssertEndpointsCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.EndpointsCalls) == 0 {
 		t.Error("FakeService.Endpoints not called, expected at least one")
@@ -297,7 +301,7 @@ func (f *FakeService) EndpointsNotCalled() bool {
 }
 
 // AssertEndpointsNotCalled calls t.Error if FakeService.Endpoints was called
-func (f *FakeService) AssertEndpointsNotCalled(t *testing.T) {
+func (f *FakeService) AssertEndpointsNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.EndpointsCalls) != 0 {
 		t.Error("FakeService.Endpoints called, expected none")
@@ -310,7 +314,7 @@ func (f *FakeService) EndpointsCalledOnce() bool {
 }
 
 // AssertEndpointsCalledOnce calls t.Error if FakeService.Endpoints was not called exactly once
-func (f *FakeService) AssertEndpointsCalledOnce(t *testing.T) {
+func (f *FakeService) AssertEndpointsCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.EndpointsCalls) != 1 {
 		t.Errorf("FakeService.Endpoints called %d times, expected 1", len(f.EndpointsCalls))
@@ -323,7 +327,7 @@ func (f *FakeService) EndpointsCalledN(n int) bool {
 }
 
 // AssertEndpointsCalledN calls t.Error if FakeService.Endpoints was called less than n times
-func (f *FakeService) AssertEndpointsCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertEndpointsCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.EndpointsCalls) < n {
 		t.Errorf("FakeService.Endpoints called %d times, expected >= %d", len(f.EndpointsCalls), n)
@@ -348,7 +352,7 @@ func (f *FakeService) HandlersCalled() bool {
 }
 
 // AssertHandlersCalled calls t.Error if FakeService.Handlers was not called
-func (f *FakeService) AssertHandlersCalled(t *testing.T) {
+func (f *FakeService) AssertHandlersCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.HandlersCalls) == 0 {
 		t.Error("FakeService.Handlers not called, expected at least one")
@@ -361,7 +365,7 @@ func (f *FakeService) HandlersNotCalled() bool {
 }
 
 // AssertHandlersNotCalled calls t.Error if FakeService.Handlers was called
-func (f *FakeService) AssertHandlersNotCalled(t *testing.T) {
+func (f *FakeService) AssertHandlersNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.HandlersCalls) != 0 {
 		t.Error("FakeService.Handlers called, expected none")
@@ -374,7 +378,7 @@ func (f *FakeService) HandlersCalledOnce() bool {
 }
 
 // AssertHandlersCalledOnce calls t.Error if FakeService.Handlers was not called exactly once
-func (f *FakeService) AssertHandlersCalledOnce(t *testing.T) {
+func (f *FakeService) AssertHandlersCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.HandlersCalls) != 1 {
 		t.Errorf("FakeService.Handlers called %d times, expected 1", len(f.HandlersCalls))
@@ -387,7 +391,7 @@ func (f *FakeService) HandlersCalledN(n int) bool {
 }
 
 // AssertHandlersCalledN calls t.Error if FakeService.Handlers was called less than n times
-func (f *FakeService) AssertHandlersCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertHandlersCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.HandlersCalls) < n {
 		t.Errorf("FakeService.Handlers called %d times, expected >= %d", len(f.HandlersCalls), n)
@@ -412,7 +416,7 @@ func (f *FakeService) MalformedRequestHandlerCalled() bool {
 }
 
 // AssertMalformedRequestHandlerCalled calls t.Error if FakeService.MalformedRequestHandler was not called
-func (f *FakeService) AssertMalformedRequestHandlerCalled(t *testing.T) {
+func (f *FakeService) AssertMalformedRequestHandlerCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.MalformedRequestHandlerCalls) == 0 {
 		t.Error("FakeService.MalformedRequestHandler not called, expected at least one")
@@ -425,7 +429,7 @@ func (f *FakeService) MalformedRequestHandlerNotCalled() bool {
 }
 
 // AssertMalformedRequestHandlerNotCalled calls t.Error if FakeService.MalformedRequestHandler was called
-func (f *FakeService) AssertMalformedRequestHandlerNotCalled(t *testing.T) {
+func (f *FakeService) AssertMalformedRequestHandlerNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.MalformedRequestHandlerCalls) != 0 {
 		t.Error("FakeService.MalformedRequestHandler called, expected none")
@@ -438,7 +442,7 @@ func (f *FakeService) MalformedRequestHandlerCalledOnce() bool {
 }
 
 // AssertMalformedRequestHandlerCalledOnce calls t.Error if FakeService.MalformedRequestHandler was not called exactly once
-func (f *FakeService) AssertMalformedRequestHandlerCalledOnce(t *testing.T) {
+func (f *FakeService) AssertMalformedRequestHandlerCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.MalformedRequestHandlerCalls) != 1 {
 		t.Errorf("FakeService.MalformedRequestHandler called %d times, expected 1", len(f.MalformedRequestHandlerCalls))
@@ -451,7 +455,7 @@ func (f *FakeService) MalformedRequestHandlerCalledN(n int) bool {
 }
 
 // AssertMalformedRequestHandlerCalledN calls t.Error if FakeService.MalformedRequestHandler was called less than n times
-func (f *FakeService) AssertMalformedRequestHandlerCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertMalformedRequestHandlerCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.MalformedRequestHandlerCalls) < n {
 		t.Errorf("FakeService.MalformedRequestHandler called %d times, expected >= %d", len(f.MalformedRequestHandlerCalls), n)
@@ -476,7 +480,7 @@ func (f *FakeService) MethodNotAllowedHandlerCalled() bool {
 }
 
 // AssertMethodNotAllowedHandlerCalled calls t.Error if FakeService.MethodNotAllowedHandler was not called
-func (f *FakeService) AssertMethodNotAllowedHandlerCalled(t *testing.T) {
+func (f *FakeService) AssertMethodNotAllowedHandlerCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.MethodNotAllowedHandlerCalls) == 0 {
 		t.Error("FakeService.MethodNotAllowedHandler not called, expected at least one")
@@ -489,7 +493,7 @@ func (f *FakeService) MethodNotAllowedHandlerNotCalled() bool {
 }
 
 // AssertMethodNotAllowedHandlerNotCalled calls t.Error if FakeService.MethodNotAllowedHandler was called
-func (f *FakeService) AssertMethodNotAllowedHandlerNotCalled(t *testing.T) {
+func (f *FakeService) AssertMethodNotAllowedHandlerNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.MethodNotAllowedHandlerCalls) != 0 {
 		t.Error("FakeService.MethodNotAllowedHandler called, expected none")
@@ -502,7 +506,7 @@ func (f *FakeService) MethodNotAllowedHandlerCalledOnce() bool {
 }
 
 // AssertMethodNotAllowedHandlerCalledOnce calls t.Error if FakeService.MethodNotAllowedHandler was not called exactly once
-func (f *FakeService) AssertMethodNotAllowedHandlerCalledOnce(t *testing.T) {
+func (f *FakeService) AssertMethodNotAllowedHandlerCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.MethodNotAllowedHandlerCalls) != 1 {
 		t.Errorf("FakeService.MethodNotAllowedHandler called %d times, expected 1", len(f.MethodNotAllowedHandlerCalls))
@@ -515,7 +519,7 @@ func (f *FakeService) MethodNotAllowedHandlerCalledN(n int) bool {
 }
 
 // AssertMethodNotAllowedHandlerCalledN calls t.Error if FakeService.MethodNotAllowedHandler was called less than n times
-func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.MethodNotAllowedHandlerCalls) < n {
 		t.Errorf("FakeService.MethodNotAllowedHandler called %d times, expected >= %d", len(f.MethodNotAllowedHandlerCalls), n)
@@ -540,7 +544,7 @@ func (f *FakeService) RedirectHandlerCalled() bool {
 }
 
 // AssertRedirectHandlerCalled calls t.Error if FakeService.RedirectHandler was not called
-func (f *FakeService) AssertRedirectHandlerCalled(t *testing.T) {
+func (f *FakeService) AssertRedirectHandlerCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.RedirectHandlerCalls) == 0 {
 		t.Error("FakeService.RedirectHandler not called, expected at least one")
@@ -553,7 +557,7 @@ func (f *FakeService) RedirectHandlerNotCalled() bool {
 }
 
 // AssertRedirectHandlerNotCalled calls t.Error if FakeService.RedirectHandler was called
-func (f *FakeService) AssertRedirectHandlerNotCalled(t *testing.T) {
+func (f *FakeService) AssertRedirectHandlerNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.RedirectHandlerCalls) != 0 {
 		t.Error("FakeService.RedirectHandler called, expected none")
@@ -566,7 +570,7 @@ func (f *FakeService) RedirectHandlerCalledOnce() bool {
 }
 
 // AssertRedirectHandlerCalledOnce calls t.Error if FakeService.RedirectHandler was not called exactly once
-func (f *FakeService) AssertRedirectHandlerCalledOnce(t *testing.T) {
+func (f *FakeService) AssertRedirectHandlerCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.RedirectHandlerCalls) != 1 {
 		t.Errorf("FakeService.RedirectHandler called %d times, expected 1", len(f.RedirectHandlerCalls))
@@ -579,7 +583,7 @@ func (f *FakeService) RedirectHandlerCalledN(n int) bool {
 }
 
 // AssertRedirectHandlerCalledN calls t.Error if FakeService.RedirectHandler was called less than n times
-func (f *FakeService) AssertRedirectHandlerCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertRedirectHandlerCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.RedirectHandlerCalls) < n {
 		t.Errorf("FakeService.RedirectHandler called %d times, expected >= %d", len(f.RedirectHandlerCalls), n)
@@ -604,7 +608,7 @@ func (f *FakeService) InternalServerErrorHandlerCalled() bool {
 }
 
 // AssertInternalServerErrorHandlerCalled calls t.Error if FakeService.InternalServerErrorHandler was not called
-func (f *FakeService) AssertInternalServerErrorHandlerCalled(t *testing.T) {
+func (f *FakeService) AssertInternalServerErrorHandlerCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.InternalServerErrorHandlerCalls) == 0 {
 		t.Error("FakeService.InternalServerErrorHandler not called, expected at least one")
@@ -617,7 +621,7 @@ func (f *FakeService) InternalServerErrorHandlerNotCalled() bool {
 }
 
 // AssertInternalServerErrorHandlerNotCalled calls t.Error if FakeService.InternalServerErrorHandler was called
-func (f *FakeService) AssertInternalServerErrorHandlerNotCalled(t *testing.T) {
+func (f *FakeService) AssertInternalServerErrorHandlerNotCalled(t ServiceTestingT) {
 	t.Helper()
 	if len(f.InternalServerErrorHandlerCalls) != 0 {
 		t.Error("FakeService.InternalServerErrorHandler called, expected none")
@@ -630,7 +634,7 @@ func (f *FakeService) InternalServerErrorHandlerCalledOnce() bool {
 }
 
 // AssertInternalServerErrorHandlerCalledOnce calls t.Error if FakeService.InternalServerErrorHandler was not called exactly once
-func (f *FakeService) AssertInternalServerErrorHandlerCalledOnce(t *testing.T) {
+func (f *FakeService) AssertInternalServerErrorHandlerCalledOnce(t ServiceTestingT) {
 	t.Helper()
 	if len(f.InternalServerErrorHandlerCalls) != 1 {
 		t.Errorf("FakeService.InternalServerErrorHandler called %d times, expected 1", len(f.InternalServerErrorHandlerCalls))
@@ -643,7 +647,7 @@ func (f *FakeService) InternalServerErrorHandlerCalledN(n int) bool {
 }
 
 // AssertInternalServerErrorHandlerCalledN calls t.Error if FakeService.InternalServerErrorHandler was called less than n times
-func (f *FakeService) AssertInternalServerErrorHandlerCalledN(t *testing.T, n int) {
+func (f *FakeService) AssertInternalServerErrorHandlerCalledN(t ServiceTestingT, n int) {
 	t.Helper()
 	if len(f.InternalServerErrorHandlerCalls) < n {
 		t.Errorf("FakeService.InternalServerErrorHandler called %d times, expected >= %d", len(f.InternalServerErrorHandlerCalls), n)

@@ -2,11 +2,9 @@
 
 package auxillary
 
-import (
-	"reflect"
-	"testing"
-	"time"
-)
+import "reflect"
+
+import "time"
 
 // ServerNameInvocation represents a single call of FakeServer.Name
 type ServerNameInvocation struct {
@@ -37,6 +35,14 @@ type ServerShutdownInvocation struct {
 	Results struct {
 		Ident2 error
 	}
+}
+
+// ServerTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type ServerTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -94,7 +100,7 @@ func NewFakeServerDefaultPanic() *FakeServer {
 }
 
 // NewFakeServerDefaultFatal returns an instance of FakeServer with all hooks configured to call t.Fatal
-func NewFakeServerDefaultFatal(t *testing.T) *FakeServer {
+func NewFakeServerDefaultFatal(t ServerTestingT) *FakeServer {
 	return &FakeServer{
 		NameHook: func() (ident1 string) {
 			t.Fatal("Unexpected call to Server.Name")
@@ -116,7 +122,7 @@ func NewFakeServerDefaultFatal(t *testing.T) *FakeServer {
 }
 
 // NewFakeServerDefaultError returns an instance of FakeServer with all hooks configured to call t.Error
-func NewFakeServerDefaultError(t *testing.T) *FakeServer {
+func NewFakeServerDefaultError(t ServerTestingT) *FakeServer {
 	return &FakeServer{
 		NameHook: func() (ident1 string) {
 			t.Error("Unexpected call to Server.Name")
@@ -162,7 +168,7 @@ func (f *FakeServer) NameCalled() bool {
 }
 
 // AssertNameCalled calls t.Error if FakeServer.Name was not called
-func (f *FakeServer) AssertNameCalled(t *testing.T) {
+func (f *FakeServer) AssertNameCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.NameCalls) == 0 {
 		t.Error("FakeServer.Name not called, expected at least one")
@@ -175,7 +181,7 @@ func (f *FakeServer) NameNotCalled() bool {
 }
 
 // AssertNameNotCalled calls t.Error if FakeServer.Name was called
-func (f *FakeServer) AssertNameNotCalled(t *testing.T) {
+func (f *FakeServer) AssertNameNotCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.NameCalls) != 0 {
 		t.Error("FakeServer.Name called, expected none")
@@ -188,7 +194,7 @@ func (f *FakeServer) NameCalledOnce() bool {
 }
 
 // AssertNameCalledOnce calls t.Error if FakeServer.Name was not called exactly once
-func (f *FakeServer) AssertNameCalledOnce(t *testing.T) {
+func (f *FakeServer) AssertNameCalledOnce(t ServerTestingT) {
 	t.Helper()
 	if len(f.NameCalls) != 1 {
 		t.Errorf("FakeServer.Name called %d times, expected 1", len(f.NameCalls))
@@ -201,7 +207,7 @@ func (f *FakeServer) NameCalledN(n int) bool {
 }
 
 // AssertNameCalledN calls t.Error if FakeServer.Name was called less than n times
-func (f *FakeServer) AssertNameCalledN(t *testing.T, n int) {
+func (f *FakeServer) AssertNameCalledN(t ServerTestingT, n int) {
 	t.Helper()
 	if len(f.NameCalls) < n {
 		t.Errorf("FakeServer.Name called %d times, expected >= %d", len(f.NameCalls), n)
@@ -226,7 +232,7 @@ func (f *FakeServer) AddressCalled() bool {
 }
 
 // AssertAddressCalled calls t.Error if FakeServer.Address was not called
-func (f *FakeServer) AssertAddressCalled(t *testing.T) {
+func (f *FakeServer) AssertAddressCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.AddressCalls) == 0 {
 		t.Error("FakeServer.Address not called, expected at least one")
@@ -239,7 +245,7 @@ func (f *FakeServer) AddressNotCalled() bool {
 }
 
 // AssertAddressNotCalled calls t.Error if FakeServer.Address was called
-func (f *FakeServer) AssertAddressNotCalled(t *testing.T) {
+func (f *FakeServer) AssertAddressNotCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.AddressCalls) != 0 {
 		t.Error("FakeServer.Address called, expected none")
@@ -252,7 +258,7 @@ func (f *FakeServer) AddressCalledOnce() bool {
 }
 
 // AssertAddressCalledOnce calls t.Error if FakeServer.Address was not called exactly once
-func (f *FakeServer) AssertAddressCalledOnce(t *testing.T) {
+func (f *FakeServer) AssertAddressCalledOnce(t ServerTestingT) {
 	t.Helper()
 	if len(f.AddressCalls) != 1 {
 		t.Errorf("FakeServer.Address called %d times, expected 1", len(f.AddressCalls))
@@ -265,7 +271,7 @@ func (f *FakeServer) AddressCalledN(n int) bool {
 }
 
 // AssertAddressCalledN calls t.Error if FakeServer.Address was called less than n times
-func (f *FakeServer) AssertAddressCalledN(t *testing.T, n int) {
+func (f *FakeServer) AssertAddressCalledN(t ServerTestingT, n int) {
 	t.Helper()
 	if len(f.AddressCalls) < n {
 		t.Errorf("FakeServer.Address called %d times, expected >= %d", len(f.AddressCalls), n)
@@ -290,7 +296,7 @@ func (f *FakeServer) ServeCalled() bool {
 }
 
 // AssertServeCalled calls t.Error if FakeServer.Serve was not called
-func (f *FakeServer) AssertServeCalled(t *testing.T) {
+func (f *FakeServer) AssertServeCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.ServeCalls) == 0 {
 		t.Error("FakeServer.Serve not called, expected at least one")
@@ -303,7 +309,7 @@ func (f *FakeServer) ServeNotCalled() bool {
 }
 
 // AssertServeNotCalled calls t.Error if FakeServer.Serve was called
-func (f *FakeServer) AssertServeNotCalled(t *testing.T) {
+func (f *FakeServer) AssertServeNotCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.ServeCalls) != 0 {
 		t.Error("FakeServer.Serve called, expected none")
@@ -316,7 +322,7 @@ func (f *FakeServer) ServeCalledOnce() bool {
 }
 
 // AssertServeCalledOnce calls t.Error if FakeServer.Serve was not called exactly once
-func (f *FakeServer) AssertServeCalledOnce(t *testing.T) {
+func (f *FakeServer) AssertServeCalledOnce(t ServerTestingT) {
 	t.Helper()
 	if len(f.ServeCalls) != 1 {
 		t.Errorf("FakeServer.Serve called %d times, expected 1", len(f.ServeCalls))
@@ -329,7 +335,7 @@ func (f *FakeServer) ServeCalledN(n int) bool {
 }
 
 // AssertServeCalledN calls t.Error if FakeServer.Serve was called less than n times
-func (f *FakeServer) AssertServeCalledN(t *testing.T, n int) {
+func (f *FakeServer) AssertServeCalledN(t ServerTestingT, n int) {
 	t.Helper()
 	if len(f.ServeCalls) < n {
 		t.Errorf("FakeServer.Serve called %d times, expected >= %d", len(f.ServeCalls), n)
@@ -356,7 +362,7 @@ func (f *FakeServer) ShutdownCalled() bool {
 }
 
 // AssertShutdownCalled calls t.Error if FakeServer.Shutdown was not called
-func (f *FakeServer) AssertShutdownCalled(t *testing.T) {
+func (f *FakeServer) AssertShutdownCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.ShutdownCalls) == 0 {
 		t.Error("FakeServer.Shutdown not called, expected at least one")
@@ -369,7 +375,7 @@ func (f *FakeServer) ShutdownNotCalled() bool {
 }
 
 // AssertShutdownNotCalled calls t.Error if FakeServer.Shutdown was called
-func (f *FakeServer) AssertShutdownNotCalled(t *testing.T) {
+func (f *FakeServer) AssertShutdownNotCalled(t ServerTestingT) {
 	t.Helper()
 	if len(f.ShutdownCalls) != 0 {
 		t.Error("FakeServer.Shutdown called, expected none")
@@ -382,7 +388,7 @@ func (f *FakeServer) ShutdownCalledOnce() bool {
 }
 
 // AssertShutdownCalledOnce calls t.Error if FakeServer.Shutdown was not called exactly once
-func (f *FakeServer) AssertShutdownCalledOnce(t *testing.T) {
+func (f *FakeServer) AssertShutdownCalledOnce(t ServerTestingT) {
 	t.Helper()
 	if len(f.ShutdownCalls) != 1 {
 		t.Errorf("FakeServer.Shutdown called %d times, expected 1", len(f.ShutdownCalls))
@@ -395,7 +401,7 @@ func (f *FakeServer) ShutdownCalledN(n int) bool {
 }
 
 // AssertShutdownCalledN calls t.Error if FakeServer.Shutdown was called less than n times
-func (f *FakeServer) AssertShutdownCalledN(t *testing.T, n int) {
+func (f *FakeServer) AssertShutdownCalledN(t ServerTestingT, n int) {
 	t.Helper()
 	if len(f.ShutdownCalls) < n {
 		t.Errorf("FakeServer.Shutdown called %d times, expected >= %d", len(f.ShutdownCalls), n)
@@ -415,7 +421,7 @@ func (_f5 *FakeServer) ShutdownCalledWith(ident1 time.Duration) (found bool) {
 }
 
 // AssertShutdownCalledWith calls t.Error if FakeServer.Shutdown was not called with the given values
-func (_f6 *FakeServer) AssertShutdownCalledWith(t *testing.T, ident1 time.Duration) {
+func (_f6 *FakeServer) AssertShutdownCalledWith(t ServerTestingT, ident1 time.Duration) {
 	t.Helper()
 	var found bool
 	for _, call := range _f6.ShutdownCalls {
@@ -443,7 +449,7 @@ func (_f7 *FakeServer) ShutdownCalledOnceWith(ident1 time.Duration) bool {
 }
 
 // AssertShutdownCalledOnceWith calls t.Error if FakeServer.Shutdown was not called exactly once with the given values
-func (_f8 *FakeServer) AssertShutdownCalledOnceWith(t *testing.T, ident1 time.Duration) {
+func (_f8 *FakeServer) AssertShutdownCalledOnceWith(t ServerTestingT, ident1 time.Duration) {
 	t.Helper()
 	var count int
 	for _, call := range _f8.ShutdownCalls {
