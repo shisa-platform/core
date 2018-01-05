@@ -40,6 +40,7 @@ func TestFromString(t *testing.T) {
 		{"nomatch", 0, 0, true},
 		{"gibberish100/dgibberish", 0, 0, true},
 		{"100/d100/d100/d100/d100/d", 0, 0, true},
+		{"9223372036854775808/d", 0, 0, true},
 		{"-9000/h", 0, 0, true},
 		{"0/dz", 0, 0, true},
 		{"0/d", 0, day, false},
