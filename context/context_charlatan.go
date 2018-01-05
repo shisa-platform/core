@@ -2,14 +2,10 @@
 
 package context
 
-import (
-	"context"
-	"reflect"
-	"testing"
-	"time"
-
-	"github.com/percolate/shisa/models"
-)
+import "reflect"
+import "context"
+import "time"
+import "github.com/percolate/shisa/models"
 
 // ContextDeadlineInvocation represents a single call of FakeContext.Deadline
 type ContextDeadlineInvocation struct {
@@ -110,6 +106,14 @@ type ContextWithTimeoutInvocation struct {
 	}
 }
 
+// ContextTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type ContextTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
+}
+
 /*
 FakeContext is a mock implementation of Context for testing.
 Use it in your tests as in this example:
@@ -200,7 +204,7 @@ func NewFakeContextDefaultPanic() *FakeContext {
 }
 
 // NewFakeContextDefaultFatal returns an instance of FakeContext with all hooks configured to call t.Fatal
-func NewFakeContextDefaultFatal(t *testing.T) *FakeContext {
+func NewFakeContextDefaultFatal(t ContextTestingT) *FakeContext {
 	return &FakeContext{
 		DeadlineHook: func() (deadline time.Time, ok bool) {
 			t.Fatal("Unexpected call to Context.Deadline")
@@ -250,7 +254,7 @@ func NewFakeContextDefaultFatal(t *testing.T) *FakeContext {
 }
 
 // NewFakeContextDefaultError returns an instance of FakeContext with all hooks configured to call t.Error
-func NewFakeContextDefaultError(t *testing.T) *FakeContext {
+func NewFakeContextDefaultError(t ContextTestingT) *FakeContext {
 	return &FakeContext{
 		DeadlineHook: func() (deadline time.Time, ok bool) {
 			t.Error("Unexpected call to Context.Deadline")
@@ -332,7 +336,7 @@ func (f *FakeContext) DeadlineCalled() bool {
 }
 
 // AssertDeadlineCalled calls t.Error if FakeContext.Deadline was not called
-func (f *FakeContext) AssertDeadlineCalled(t *testing.T) {
+func (f *FakeContext) AssertDeadlineCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.DeadlineCalls) == 0 {
 		t.Error("FakeContext.Deadline not called, expected at least one")
@@ -345,7 +349,7 @@ func (f *FakeContext) DeadlineNotCalled() bool {
 }
 
 // AssertDeadlineNotCalled calls t.Error if FakeContext.Deadline was called
-func (f *FakeContext) AssertDeadlineNotCalled(t *testing.T) {
+func (f *FakeContext) AssertDeadlineNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.DeadlineCalls) != 0 {
 		t.Error("FakeContext.Deadline called, expected none")
@@ -358,7 +362,7 @@ func (f *FakeContext) DeadlineCalledOnce() bool {
 }
 
 // AssertDeadlineCalledOnce calls t.Error if FakeContext.Deadline was not called exactly once
-func (f *FakeContext) AssertDeadlineCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertDeadlineCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.DeadlineCalls) != 1 {
 		t.Errorf("FakeContext.Deadline called %d times, expected 1", len(f.DeadlineCalls))
@@ -371,7 +375,7 @@ func (f *FakeContext) DeadlineCalledN(n int) bool {
 }
 
 // AssertDeadlineCalledN calls t.Error if FakeContext.Deadline was called less than n times
-func (f *FakeContext) AssertDeadlineCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertDeadlineCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.DeadlineCalls) < n {
 		t.Errorf("FakeContext.Deadline called %d times, expected >= %d", len(f.DeadlineCalls), n)
@@ -396,7 +400,7 @@ func (f *FakeContext) DoneCalled() bool {
 }
 
 // AssertDoneCalled calls t.Error if FakeContext.Done was not called
-func (f *FakeContext) AssertDoneCalled(t *testing.T) {
+func (f *FakeContext) AssertDoneCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.DoneCalls) == 0 {
 		t.Error("FakeContext.Done not called, expected at least one")
@@ -409,7 +413,7 @@ func (f *FakeContext) DoneNotCalled() bool {
 }
 
 // AssertDoneNotCalled calls t.Error if FakeContext.Done was called
-func (f *FakeContext) AssertDoneNotCalled(t *testing.T) {
+func (f *FakeContext) AssertDoneNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.DoneCalls) != 0 {
 		t.Error("FakeContext.Done called, expected none")
@@ -422,7 +426,7 @@ func (f *FakeContext) DoneCalledOnce() bool {
 }
 
 // AssertDoneCalledOnce calls t.Error if FakeContext.Done was not called exactly once
-func (f *FakeContext) AssertDoneCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertDoneCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.DoneCalls) != 1 {
 		t.Errorf("FakeContext.Done called %d times, expected 1", len(f.DoneCalls))
@@ -435,7 +439,7 @@ func (f *FakeContext) DoneCalledN(n int) bool {
 }
 
 // AssertDoneCalledN calls t.Error if FakeContext.Done was called less than n times
-func (f *FakeContext) AssertDoneCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertDoneCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.DoneCalls) < n {
 		t.Errorf("FakeContext.Done called %d times, expected >= %d", len(f.DoneCalls), n)
@@ -460,7 +464,7 @@ func (f *FakeContext) ErrCalled() bool {
 }
 
 // AssertErrCalled calls t.Error if FakeContext.Err was not called
-func (f *FakeContext) AssertErrCalled(t *testing.T) {
+func (f *FakeContext) AssertErrCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.ErrCalls) == 0 {
 		t.Error("FakeContext.Err not called, expected at least one")
@@ -473,7 +477,7 @@ func (f *FakeContext) ErrNotCalled() bool {
 }
 
 // AssertErrNotCalled calls t.Error if FakeContext.Err was called
-func (f *FakeContext) AssertErrNotCalled(t *testing.T) {
+func (f *FakeContext) AssertErrNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.ErrCalls) != 0 {
 		t.Error("FakeContext.Err called, expected none")
@@ -486,7 +490,7 @@ func (f *FakeContext) ErrCalledOnce() bool {
 }
 
 // AssertErrCalledOnce calls t.Error if FakeContext.Err was not called exactly once
-func (f *FakeContext) AssertErrCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertErrCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.ErrCalls) != 1 {
 		t.Errorf("FakeContext.Err called %d times, expected 1", len(f.ErrCalls))
@@ -499,7 +503,7 @@ func (f *FakeContext) ErrCalledN(n int) bool {
 }
 
 // AssertErrCalledN calls t.Error if FakeContext.Err was called less than n times
-func (f *FakeContext) AssertErrCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertErrCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.ErrCalls) < n {
 		t.Errorf("FakeContext.Err called %d times, expected >= %d", len(f.ErrCalls), n)
@@ -526,7 +530,7 @@ func (f *FakeContext) ValueCalled() bool {
 }
 
 // AssertValueCalled calls t.Error if FakeContext.Value was not called
-func (f *FakeContext) AssertValueCalled(t *testing.T) {
+func (f *FakeContext) AssertValueCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.ValueCalls) == 0 {
 		t.Error("FakeContext.Value not called, expected at least one")
@@ -539,7 +543,7 @@ func (f *FakeContext) ValueNotCalled() bool {
 }
 
 // AssertValueNotCalled calls t.Error if FakeContext.Value was called
-func (f *FakeContext) AssertValueNotCalled(t *testing.T) {
+func (f *FakeContext) AssertValueNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.ValueCalls) != 0 {
 		t.Error("FakeContext.Value called, expected none")
@@ -552,7 +556,7 @@ func (f *FakeContext) ValueCalledOnce() bool {
 }
 
 // AssertValueCalledOnce calls t.Error if FakeContext.Value was not called exactly once
-func (f *FakeContext) AssertValueCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertValueCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.ValueCalls) != 1 {
 		t.Errorf("FakeContext.Value called %d times, expected 1", len(f.ValueCalls))
@@ -565,7 +569,7 @@ func (f *FakeContext) ValueCalledN(n int) bool {
 }
 
 // AssertValueCalledN calls t.Error if FakeContext.Value was called less than n times
-func (f *FakeContext) AssertValueCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertValueCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.ValueCalls) < n {
 		t.Errorf("FakeContext.Value called %d times, expected >= %d", len(f.ValueCalls), n)
@@ -585,7 +589,7 @@ func (_f5 *FakeContext) ValueCalledWith(key interface{}) (found bool) {
 }
 
 // AssertValueCalledWith calls t.Error if FakeContext.Value was not called with the given values
-func (_f6 *FakeContext) AssertValueCalledWith(t *testing.T, key interface{}) {
+func (_f6 *FakeContext) AssertValueCalledWith(t ContextTestingT, key interface{}) {
 	t.Helper()
 	var found bool
 	for _, call := range _f6.ValueCalls {
@@ -613,7 +617,7 @@ func (_f7 *FakeContext) ValueCalledOnceWith(key interface{}) bool {
 }
 
 // AssertValueCalledOnceWith calls t.Error if FakeContext.Value was not called exactly once with the given values
-func (_f8 *FakeContext) AssertValueCalledOnceWith(t *testing.T, key interface{}) {
+func (_f8 *FakeContext) AssertValueCalledOnceWith(t ContextTestingT, key interface{}) {
 	t.Helper()
 	var count int
 	for _, call := range _f8.ValueCalls {
@@ -658,7 +662,7 @@ func (f *FakeContext) RequestIDCalled() bool {
 }
 
 // AssertRequestIDCalled calls t.Error if FakeContext.RequestID was not called
-func (f *FakeContext) AssertRequestIDCalled(t *testing.T) {
+func (f *FakeContext) AssertRequestIDCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.RequestIDCalls) == 0 {
 		t.Error("FakeContext.RequestID not called, expected at least one")
@@ -671,7 +675,7 @@ func (f *FakeContext) RequestIDNotCalled() bool {
 }
 
 // AssertRequestIDNotCalled calls t.Error if FakeContext.RequestID was called
-func (f *FakeContext) AssertRequestIDNotCalled(t *testing.T) {
+func (f *FakeContext) AssertRequestIDNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.RequestIDCalls) != 0 {
 		t.Error("FakeContext.RequestID called, expected none")
@@ -684,7 +688,7 @@ func (f *FakeContext) RequestIDCalledOnce() bool {
 }
 
 // AssertRequestIDCalledOnce calls t.Error if FakeContext.RequestID was not called exactly once
-func (f *FakeContext) AssertRequestIDCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertRequestIDCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.RequestIDCalls) != 1 {
 		t.Errorf("FakeContext.RequestID called %d times, expected 1", len(f.RequestIDCalls))
@@ -697,7 +701,7 @@ func (f *FakeContext) RequestIDCalledN(n int) bool {
 }
 
 // AssertRequestIDCalledN calls t.Error if FakeContext.RequestID was called less than n times
-func (f *FakeContext) AssertRequestIDCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertRequestIDCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.RequestIDCalls) < n {
 		t.Errorf("FakeContext.RequestID called %d times, expected >= %d", len(f.RequestIDCalls), n)
@@ -722,7 +726,7 @@ func (f *FakeContext) ActorCalled() bool {
 }
 
 // AssertActorCalled calls t.Error if FakeContext.Actor was not called
-func (f *FakeContext) AssertActorCalled(t *testing.T) {
+func (f *FakeContext) AssertActorCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.ActorCalls) == 0 {
 		t.Error("FakeContext.Actor not called, expected at least one")
@@ -735,7 +739,7 @@ func (f *FakeContext) ActorNotCalled() bool {
 }
 
 // AssertActorNotCalled calls t.Error if FakeContext.Actor was called
-func (f *FakeContext) AssertActorNotCalled(t *testing.T) {
+func (f *FakeContext) AssertActorNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.ActorCalls) != 0 {
 		t.Error("FakeContext.Actor called, expected none")
@@ -748,7 +752,7 @@ func (f *FakeContext) ActorCalledOnce() bool {
 }
 
 // AssertActorCalledOnce calls t.Error if FakeContext.Actor was not called exactly once
-func (f *FakeContext) AssertActorCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertActorCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.ActorCalls) != 1 {
 		t.Errorf("FakeContext.Actor called %d times, expected 1", len(f.ActorCalls))
@@ -761,7 +765,7 @@ func (f *FakeContext) ActorCalledN(n int) bool {
 }
 
 // AssertActorCalledN calls t.Error if FakeContext.Actor was called less than n times
-func (f *FakeContext) AssertActorCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertActorCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.ActorCalls) < n {
 		t.Errorf("FakeContext.Actor called %d times, expected >= %d", len(f.ActorCalls), n)
@@ -788,7 +792,7 @@ func (f *FakeContext) WithActorCalled() bool {
 }
 
 // AssertWithActorCalled calls t.Error if FakeContext.WithActor was not called
-func (f *FakeContext) AssertWithActorCalled(t *testing.T) {
+func (f *FakeContext) AssertWithActorCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithActorCalls) == 0 {
 		t.Error("FakeContext.WithActor not called, expected at least one")
@@ -801,7 +805,7 @@ func (f *FakeContext) WithActorNotCalled() bool {
 }
 
 // AssertWithActorNotCalled calls t.Error if FakeContext.WithActor was called
-func (f *FakeContext) AssertWithActorNotCalled(t *testing.T) {
+func (f *FakeContext) AssertWithActorNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithActorCalls) != 0 {
 		t.Error("FakeContext.WithActor called, expected none")
@@ -814,7 +818,7 @@ func (f *FakeContext) WithActorCalledOnce() bool {
 }
 
 // AssertWithActorCalledOnce calls t.Error if FakeContext.WithActor was not called exactly once
-func (f *FakeContext) AssertWithActorCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertWithActorCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithActorCalls) != 1 {
 		t.Errorf("FakeContext.WithActor called %d times, expected 1", len(f.WithActorCalls))
@@ -827,7 +831,7 @@ func (f *FakeContext) WithActorCalledN(n int) bool {
 }
 
 // AssertWithActorCalledN calls t.Error if FakeContext.WithActor was called less than n times
-func (f *FakeContext) AssertWithActorCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertWithActorCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.WithActorCalls) < n {
 		t.Errorf("FakeContext.WithActor called %d times, expected >= %d", len(f.WithActorCalls), n)
@@ -847,7 +851,7 @@ func (_f13 *FakeContext) WithActorCalledWith(value models.User) (found bool) {
 }
 
 // AssertWithActorCalledWith calls t.Error if FakeContext.WithActor was not called with the given values
-func (_f14 *FakeContext) AssertWithActorCalledWith(t *testing.T, value models.User) {
+func (_f14 *FakeContext) AssertWithActorCalledWith(t ContextTestingT, value models.User) {
 	t.Helper()
 	var found bool
 	for _, call := range _f14.WithActorCalls {
@@ -875,7 +879,7 @@ func (_f15 *FakeContext) WithActorCalledOnceWith(value models.User) bool {
 }
 
 // AssertWithActorCalledOnceWith calls t.Error if FakeContext.WithActor was not called exactly once with the given values
-func (_f16 *FakeContext) AssertWithActorCalledOnceWith(t *testing.T, value models.User) {
+func (_f16 *FakeContext) AssertWithActorCalledOnceWith(t ContextTestingT, value models.User) {
 	t.Helper()
 	var count int
 	for _, call := range _f16.WithActorCalls {
@@ -922,7 +926,7 @@ func (f *FakeContext) WithRequestIDCalled() bool {
 }
 
 // AssertWithRequestIDCalled calls t.Error if FakeContext.WithRequestID was not called
-func (f *FakeContext) AssertWithRequestIDCalled(t *testing.T) {
+func (f *FakeContext) AssertWithRequestIDCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithRequestIDCalls) == 0 {
 		t.Error("FakeContext.WithRequestID not called, expected at least one")
@@ -935,7 +939,7 @@ func (f *FakeContext) WithRequestIDNotCalled() bool {
 }
 
 // AssertWithRequestIDNotCalled calls t.Error if FakeContext.WithRequestID was called
-func (f *FakeContext) AssertWithRequestIDNotCalled(t *testing.T) {
+func (f *FakeContext) AssertWithRequestIDNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithRequestIDCalls) != 0 {
 		t.Error("FakeContext.WithRequestID called, expected none")
@@ -948,7 +952,7 @@ func (f *FakeContext) WithRequestIDCalledOnce() bool {
 }
 
 // AssertWithRequestIDCalledOnce calls t.Error if FakeContext.WithRequestID was not called exactly once
-func (f *FakeContext) AssertWithRequestIDCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertWithRequestIDCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithRequestIDCalls) != 1 {
 		t.Errorf("FakeContext.WithRequestID called %d times, expected 1", len(f.WithRequestIDCalls))
@@ -961,7 +965,7 @@ func (f *FakeContext) WithRequestIDCalledN(n int) bool {
 }
 
 // AssertWithRequestIDCalledN calls t.Error if FakeContext.WithRequestID was called less than n times
-func (f *FakeContext) AssertWithRequestIDCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertWithRequestIDCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.WithRequestIDCalls) < n {
 		t.Errorf("FakeContext.WithRequestID called %d times, expected >= %d", len(f.WithRequestIDCalls), n)
@@ -981,7 +985,7 @@ func (_f19 *FakeContext) WithRequestIDCalledWith(value string) (found bool) {
 }
 
 // AssertWithRequestIDCalledWith calls t.Error if FakeContext.WithRequestID was not called with the given values
-func (_f20 *FakeContext) AssertWithRequestIDCalledWith(t *testing.T, value string) {
+func (_f20 *FakeContext) AssertWithRequestIDCalledWith(t ContextTestingT, value string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f20.WithRequestIDCalls {
@@ -1009,7 +1013,7 @@ func (_f21 *FakeContext) WithRequestIDCalledOnceWith(value string) bool {
 }
 
 // AssertWithRequestIDCalledOnceWith calls t.Error if FakeContext.WithRequestID was not called exactly once with the given values
-func (_f22 *FakeContext) AssertWithRequestIDCalledOnceWith(t *testing.T, value string) {
+func (_f22 *FakeContext) AssertWithRequestIDCalledOnceWith(t ContextTestingT, value string) {
 	t.Helper()
 	var count int
 	for _, call := range _f22.WithRequestIDCalls {
@@ -1057,7 +1061,7 @@ func (f *FakeContext) WithValueCalled() bool {
 }
 
 // AssertWithValueCalled calls t.Error if FakeContext.WithValue was not called
-func (f *FakeContext) AssertWithValueCalled(t *testing.T) {
+func (f *FakeContext) AssertWithValueCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithValueCalls) == 0 {
 		t.Error("FakeContext.WithValue not called, expected at least one")
@@ -1070,7 +1074,7 @@ func (f *FakeContext) WithValueNotCalled() bool {
 }
 
 // AssertWithValueNotCalled calls t.Error if FakeContext.WithValue was called
-func (f *FakeContext) AssertWithValueNotCalled(t *testing.T) {
+func (f *FakeContext) AssertWithValueNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithValueCalls) != 0 {
 		t.Error("FakeContext.WithValue called, expected none")
@@ -1083,7 +1087,7 @@ func (f *FakeContext) WithValueCalledOnce() bool {
 }
 
 // AssertWithValueCalledOnce calls t.Error if FakeContext.WithValue was not called exactly once
-func (f *FakeContext) AssertWithValueCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertWithValueCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithValueCalls) != 1 {
 		t.Errorf("FakeContext.WithValue called %d times, expected 1", len(f.WithValueCalls))
@@ -1096,7 +1100,7 @@ func (f *FakeContext) WithValueCalledN(n int) bool {
 }
 
 // AssertWithValueCalledN calls t.Error if FakeContext.WithValue was called less than n times
-func (f *FakeContext) AssertWithValueCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertWithValueCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.WithValueCalls) < n {
 		t.Errorf("FakeContext.WithValue called %d times, expected >= %d", len(f.WithValueCalls), n)
@@ -1116,7 +1120,7 @@ func (_f25 *FakeContext) WithValueCalledWith(key interface{}, value interface{})
 }
 
 // AssertWithValueCalledWith calls t.Error if FakeContext.WithValue was not called with the given values
-func (_f26 *FakeContext) AssertWithValueCalledWith(t *testing.T, key interface{}, value interface{}) {
+func (_f26 *FakeContext) AssertWithValueCalledWith(t ContextTestingT, key interface{}, value interface{}) {
 	t.Helper()
 	var found bool
 	for _, call := range _f26.WithValueCalls {
@@ -1144,7 +1148,7 @@ func (_f27 *FakeContext) WithValueCalledOnceWith(key interface{}, value interfac
 }
 
 // AssertWithValueCalledOnceWith calls t.Error if FakeContext.WithValue was not called exactly once with the given values
-func (_f28 *FakeContext) AssertWithValueCalledOnceWith(t *testing.T, key interface{}, value interface{}) {
+func (_f28 *FakeContext) AssertWithValueCalledOnceWith(t ContextTestingT, key interface{}, value interface{}) {
 	t.Helper()
 	var count int
 	for _, call := range _f28.WithValueCalls {
@@ -1192,7 +1196,7 @@ func (f *FakeContext) WithDeadlineCalled() bool {
 }
 
 // AssertWithDeadlineCalled calls t.Error if FakeContext.WithDeadline was not called
-func (f *FakeContext) AssertWithDeadlineCalled(t *testing.T) {
+func (f *FakeContext) AssertWithDeadlineCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithDeadlineCalls) == 0 {
 		t.Error("FakeContext.WithDeadline not called, expected at least one")
@@ -1205,7 +1209,7 @@ func (f *FakeContext) WithDeadlineNotCalled() bool {
 }
 
 // AssertWithDeadlineNotCalled calls t.Error if FakeContext.WithDeadline was called
-func (f *FakeContext) AssertWithDeadlineNotCalled(t *testing.T) {
+func (f *FakeContext) AssertWithDeadlineNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithDeadlineCalls) != 0 {
 		t.Error("FakeContext.WithDeadline called, expected none")
@@ -1218,7 +1222,7 @@ func (f *FakeContext) WithDeadlineCalledOnce() bool {
 }
 
 // AssertWithDeadlineCalledOnce calls t.Error if FakeContext.WithDeadline was not called exactly once
-func (f *FakeContext) AssertWithDeadlineCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertWithDeadlineCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithDeadlineCalls) != 1 {
 		t.Errorf("FakeContext.WithDeadline called %d times, expected 1", len(f.WithDeadlineCalls))
@@ -1231,7 +1235,7 @@ func (f *FakeContext) WithDeadlineCalledN(n int) bool {
 }
 
 // AssertWithDeadlineCalledN calls t.Error if FakeContext.WithDeadline was called less than n times
-func (f *FakeContext) AssertWithDeadlineCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertWithDeadlineCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.WithDeadlineCalls) < n {
 		t.Errorf("FakeContext.WithDeadline called %d times, expected >= %d", len(f.WithDeadlineCalls), n)
@@ -1251,7 +1255,7 @@ func (_f31 *FakeContext) WithDeadlineCalledWith(deadline time.Time) (found bool)
 }
 
 // AssertWithDeadlineCalledWith calls t.Error if FakeContext.WithDeadline was not called with the given values
-func (_f32 *FakeContext) AssertWithDeadlineCalledWith(t *testing.T, deadline time.Time) {
+func (_f32 *FakeContext) AssertWithDeadlineCalledWith(t ContextTestingT, deadline time.Time) {
 	t.Helper()
 	var found bool
 	for _, call := range _f32.WithDeadlineCalls {
@@ -1279,7 +1283,7 @@ func (_f33 *FakeContext) WithDeadlineCalledOnceWith(deadline time.Time) bool {
 }
 
 // AssertWithDeadlineCalledOnceWith calls t.Error if FakeContext.WithDeadline was not called exactly once with the given values
-func (_f34 *FakeContext) AssertWithDeadlineCalledOnceWith(t *testing.T, deadline time.Time) {
+func (_f34 *FakeContext) AssertWithDeadlineCalledOnceWith(t ContextTestingT, deadline time.Time) {
 	t.Helper()
 	var count int
 	for _, call := range _f34.WithDeadlineCalls {
@@ -1328,7 +1332,7 @@ func (f *FakeContext) WithTimeoutCalled() bool {
 }
 
 // AssertWithTimeoutCalled calls t.Error if FakeContext.WithTimeout was not called
-func (f *FakeContext) AssertWithTimeoutCalled(t *testing.T) {
+func (f *FakeContext) AssertWithTimeoutCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithTimeoutCalls) == 0 {
 		t.Error("FakeContext.WithTimeout not called, expected at least one")
@@ -1341,7 +1345,7 @@ func (f *FakeContext) WithTimeoutNotCalled() bool {
 }
 
 // AssertWithTimeoutNotCalled calls t.Error if FakeContext.WithTimeout was called
-func (f *FakeContext) AssertWithTimeoutNotCalled(t *testing.T) {
+func (f *FakeContext) AssertWithTimeoutNotCalled(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithTimeoutCalls) != 0 {
 		t.Error("FakeContext.WithTimeout called, expected none")
@@ -1354,7 +1358,7 @@ func (f *FakeContext) WithTimeoutCalledOnce() bool {
 }
 
 // AssertWithTimeoutCalledOnce calls t.Error if FakeContext.WithTimeout was not called exactly once
-func (f *FakeContext) AssertWithTimeoutCalledOnce(t *testing.T) {
+func (f *FakeContext) AssertWithTimeoutCalledOnce(t ContextTestingT) {
 	t.Helper()
 	if len(f.WithTimeoutCalls) != 1 {
 		t.Errorf("FakeContext.WithTimeout called %d times, expected 1", len(f.WithTimeoutCalls))
@@ -1367,7 +1371,7 @@ func (f *FakeContext) WithTimeoutCalledN(n int) bool {
 }
 
 // AssertWithTimeoutCalledN calls t.Error if FakeContext.WithTimeout was called less than n times
-func (f *FakeContext) AssertWithTimeoutCalledN(t *testing.T, n int) {
+func (f *FakeContext) AssertWithTimeoutCalledN(t ContextTestingT, n int) {
 	t.Helper()
 	if len(f.WithTimeoutCalls) < n {
 		t.Errorf("FakeContext.WithTimeout called %d times, expected >= %d", len(f.WithTimeoutCalls), n)
@@ -1387,7 +1391,7 @@ func (_f37 *FakeContext) WithTimeoutCalledWith(timeout time.Duration) (found boo
 }
 
 // AssertWithTimeoutCalledWith calls t.Error if FakeContext.WithTimeout was not called with the given values
-func (_f38 *FakeContext) AssertWithTimeoutCalledWith(t *testing.T, timeout time.Duration) {
+func (_f38 *FakeContext) AssertWithTimeoutCalledWith(t ContextTestingT, timeout time.Duration) {
 	t.Helper()
 	var found bool
 	for _, call := range _f38.WithTimeoutCalls {
@@ -1415,7 +1419,7 @@ func (_f39 *FakeContext) WithTimeoutCalledOnceWith(timeout time.Duration) bool {
 }
 
 // AssertWithTimeoutCalledOnceWith calls t.Error if FakeContext.WithTimeout was not called exactly once with the given values
-func (_f40 *FakeContext) AssertWithTimeoutCalledOnceWith(t *testing.T, timeout time.Duration) {
+func (_f40 *FakeContext) AssertWithTimeoutCalledOnceWith(t ContextTestingT, timeout time.Duration) {
 	t.Helper()
 	var count int
 	for _, call := range _f40.WithTimeoutCalls {

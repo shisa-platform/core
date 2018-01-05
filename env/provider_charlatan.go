@@ -2,12 +2,9 @@
 
 package env
 
-import (
-	"reflect"
-	"testing"
+import "reflect"
 
-	"github.com/ansel1/merry"
-)
+import "github.com/ansel1/merry"
 
 // ProviderGetInvocation represents a single call of FakeProvider.Get
 type ProviderGetInvocation struct {
@@ -48,6 +45,14 @@ type ProviderMonitorInvocation struct {
 		Ident1 string
 		Ident2 <-chan Value
 	}
+}
+
+// ProviderTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type ProviderTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -105,7 +110,7 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 }
 
 // NewFakeProviderDefaultFatal returns an instance of FakeProvider with all hooks configured to call t.Fatal
-func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
+func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 	return &FakeProvider{
 		GetHook: func(string) (ident2 string, ident3 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Get")
@@ -127,7 +132,7 @@ func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
 }
 
 // NewFakeProviderDefaultError returns an instance of FakeProvider with all hooks configured to call t.Error
-func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
+func NewFakeProviderDefaultError(t ProviderTestingT) *FakeProvider {
 	return &FakeProvider{
 		GetHook: func(string) (ident2 string, ident3 merry.Error) {
 			t.Error("Unexpected call to Provider.Get")
@@ -176,7 +181,7 @@ func (f *FakeProvider) GetCalled() bool {
 }
 
 // AssertGetCalled calls t.Error if FakeProvider.Get was not called
-func (f *FakeProvider) AssertGetCalled(t *testing.T) {
+func (f *FakeProvider) AssertGetCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetCalls) == 0 {
 		t.Error("FakeProvider.Get not called, expected at least one")
@@ -189,7 +194,7 @@ func (f *FakeProvider) GetNotCalled() bool {
 }
 
 // AssertGetNotCalled calls t.Error if FakeProvider.Get was called
-func (f *FakeProvider) AssertGetNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertGetNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetCalls) != 0 {
 		t.Error("FakeProvider.Get called, expected none")
@@ -202,7 +207,7 @@ func (f *FakeProvider) GetCalledOnce() bool {
 }
 
 // AssertGetCalledOnce calls t.Error if FakeProvider.Get was not called exactly once
-func (f *FakeProvider) AssertGetCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertGetCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetCalls) != 1 {
 		t.Errorf("FakeProvider.Get called %d times, expected 1", len(f.GetCalls))
@@ -215,7 +220,7 @@ func (f *FakeProvider) GetCalledN(n int) bool {
 }
 
 // AssertGetCalledN calls t.Error if FakeProvider.Get was called less than n times
-func (f *FakeProvider) AssertGetCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertGetCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.GetCalls) < n {
 		t.Errorf("FakeProvider.Get called %d times, expected >= %d", len(f.GetCalls), n)
@@ -235,7 +240,7 @@ func (_f2 *FakeProvider) GetCalledWith(ident1 string) (found bool) {
 }
 
 // AssertGetCalledWith calls t.Error if FakeProvider.Get was not called with the given values
-func (_f3 *FakeProvider) AssertGetCalledWith(t *testing.T, ident1 string) {
+func (_f3 *FakeProvider) AssertGetCalledWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.GetCalls {
@@ -263,7 +268,7 @@ func (_f4 *FakeProvider) GetCalledOnceWith(ident1 string) bool {
 }
 
 // AssertGetCalledOnceWith calls t.Error if FakeProvider.Get was not called exactly once with the given values
-func (_f5 *FakeProvider) AssertGetCalledOnceWith(t *testing.T, ident1 string) {
+func (_f5 *FakeProvider) AssertGetCalledOnceWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.GetCalls {
@@ -312,7 +317,7 @@ func (f *FakeProvider) GetIntCalled() bool {
 }
 
 // AssertGetIntCalled calls t.Error if FakeProvider.GetInt was not called
-func (f *FakeProvider) AssertGetIntCalled(t *testing.T) {
+func (f *FakeProvider) AssertGetIntCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetIntCalls) == 0 {
 		t.Error("FakeProvider.GetInt not called, expected at least one")
@@ -325,7 +330,7 @@ func (f *FakeProvider) GetIntNotCalled() bool {
 }
 
 // AssertGetIntNotCalled calls t.Error if FakeProvider.GetInt was called
-func (f *FakeProvider) AssertGetIntNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertGetIntNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetIntCalls) != 0 {
 		t.Error("FakeProvider.GetInt called, expected none")
@@ -338,7 +343,7 @@ func (f *FakeProvider) GetIntCalledOnce() bool {
 }
 
 // AssertGetIntCalledOnce calls t.Error if FakeProvider.GetInt was not called exactly once
-func (f *FakeProvider) AssertGetIntCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertGetIntCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetIntCalls) != 1 {
 		t.Errorf("FakeProvider.GetInt called %d times, expected 1", len(f.GetIntCalls))
@@ -351,7 +356,7 @@ func (f *FakeProvider) GetIntCalledN(n int) bool {
 }
 
 // AssertGetIntCalledN calls t.Error if FakeProvider.GetInt was called less than n times
-func (f *FakeProvider) AssertGetIntCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertGetIntCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.GetIntCalls) < n {
 		t.Errorf("FakeProvider.GetInt called %d times, expected >= %d", len(f.GetIntCalls), n)
@@ -371,7 +376,7 @@ func (_f8 *FakeProvider) GetIntCalledWith(ident1 string) (found bool) {
 }
 
 // AssertGetIntCalledWith calls t.Error if FakeProvider.GetInt was not called with the given values
-func (_f9 *FakeProvider) AssertGetIntCalledWith(t *testing.T, ident1 string) {
+func (_f9 *FakeProvider) AssertGetIntCalledWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f9.GetIntCalls {
@@ -399,7 +404,7 @@ func (_f10 *FakeProvider) GetIntCalledOnceWith(ident1 string) bool {
 }
 
 // AssertGetIntCalledOnceWith calls t.Error if FakeProvider.GetInt was not called exactly once with the given values
-func (_f11 *FakeProvider) AssertGetIntCalledOnceWith(t *testing.T, ident1 string) {
+func (_f11 *FakeProvider) AssertGetIntCalledOnceWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
 	for _, call := range _f11.GetIntCalls {
@@ -448,7 +453,7 @@ func (f *FakeProvider) GetBoolCalled() bool {
 }
 
 // AssertGetBoolCalled calls t.Error if FakeProvider.GetBool was not called
-func (f *FakeProvider) AssertGetBoolCalled(t *testing.T) {
+func (f *FakeProvider) AssertGetBoolCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetBoolCalls) == 0 {
 		t.Error("FakeProvider.GetBool not called, expected at least one")
@@ -461,7 +466,7 @@ func (f *FakeProvider) GetBoolNotCalled() bool {
 }
 
 // AssertGetBoolNotCalled calls t.Error if FakeProvider.GetBool was called
-func (f *FakeProvider) AssertGetBoolNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertGetBoolNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetBoolCalls) != 0 {
 		t.Error("FakeProvider.GetBool called, expected none")
@@ -474,7 +479,7 @@ func (f *FakeProvider) GetBoolCalledOnce() bool {
 }
 
 // AssertGetBoolCalledOnce calls t.Error if FakeProvider.GetBool was not called exactly once
-func (f *FakeProvider) AssertGetBoolCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertGetBoolCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.GetBoolCalls) != 1 {
 		t.Errorf("FakeProvider.GetBool called %d times, expected 1", len(f.GetBoolCalls))
@@ -487,7 +492,7 @@ func (f *FakeProvider) GetBoolCalledN(n int) bool {
 }
 
 // AssertGetBoolCalledN calls t.Error if FakeProvider.GetBool was called less than n times
-func (f *FakeProvider) AssertGetBoolCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertGetBoolCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.GetBoolCalls) < n {
 		t.Errorf("FakeProvider.GetBool called %d times, expected >= %d", len(f.GetBoolCalls), n)
@@ -507,7 +512,7 @@ func (_f14 *FakeProvider) GetBoolCalledWith(ident1 string) (found bool) {
 }
 
 // AssertGetBoolCalledWith calls t.Error if FakeProvider.GetBool was not called with the given values
-func (_f15 *FakeProvider) AssertGetBoolCalledWith(t *testing.T, ident1 string) {
+func (_f15 *FakeProvider) AssertGetBoolCalledWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f15.GetBoolCalls {
@@ -535,7 +540,7 @@ func (_f16 *FakeProvider) GetBoolCalledOnceWith(ident1 string) bool {
 }
 
 // AssertGetBoolCalledOnceWith calls t.Error if FakeProvider.GetBool was not called exactly once with the given values
-func (_f17 *FakeProvider) AssertGetBoolCalledOnceWith(t *testing.T, ident1 string) {
+func (_f17 *FakeProvider) AssertGetBoolCalledOnceWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
 	for _, call := range _f17.GetBoolCalls {
@@ -582,7 +587,7 @@ func (f *FakeProvider) MonitorCalled() bool {
 }
 
 // AssertMonitorCalled calls t.Error if FakeProvider.Monitor was not called
-func (f *FakeProvider) AssertMonitorCalled(t *testing.T) {
+func (f *FakeProvider) AssertMonitorCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.MonitorCalls) == 0 {
 		t.Error("FakeProvider.Monitor not called, expected at least one")
@@ -595,7 +600,7 @@ func (f *FakeProvider) MonitorNotCalled() bool {
 }
 
 // AssertMonitorNotCalled calls t.Error if FakeProvider.Monitor was called
-func (f *FakeProvider) AssertMonitorNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertMonitorNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.MonitorCalls) != 0 {
 		t.Error("FakeProvider.Monitor called, expected none")
@@ -608,7 +613,7 @@ func (f *FakeProvider) MonitorCalledOnce() bool {
 }
 
 // AssertMonitorCalledOnce calls t.Error if FakeProvider.Monitor was not called exactly once
-func (f *FakeProvider) AssertMonitorCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertMonitorCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.MonitorCalls) != 1 {
 		t.Errorf("FakeProvider.Monitor called %d times, expected 1", len(f.MonitorCalls))
@@ -621,7 +626,7 @@ func (f *FakeProvider) MonitorCalledN(n int) bool {
 }
 
 // AssertMonitorCalledN calls t.Error if FakeProvider.Monitor was called less than n times
-func (f *FakeProvider) AssertMonitorCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertMonitorCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.MonitorCalls) < n {
 		t.Errorf("FakeProvider.Monitor called %d times, expected >= %d", len(f.MonitorCalls), n)
@@ -641,7 +646,7 @@ func (_f20 *FakeProvider) MonitorCalledWith(ident1 string, ident2 <-chan Value) 
 }
 
 // AssertMonitorCalledWith calls t.Error if FakeProvider.Monitor was not called with the given values
-func (_f21 *FakeProvider) AssertMonitorCalledWith(t *testing.T, ident1 string, ident2 <-chan Value) {
+func (_f21 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 string, ident2 <-chan Value) {
 	t.Helper()
 	var found bool
 	for _, call := range _f21.MonitorCalls {
@@ -669,7 +674,7 @@ func (_f22 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 <-chan Val
 }
 
 // AssertMonitorCalledOnceWith calls t.Error if FakeProvider.Monitor was not called exactly once with the given values
-func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t *testing.T, ident1 string, ident2 <-chan Value) {
+func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1 string, ident2 <-chan Value) {
 	t.Helper()
 	var count int
 	for _, call := range _f23.MonitorCalls {

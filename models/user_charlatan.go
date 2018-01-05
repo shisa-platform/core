@@ -2,10 +2,6 @@
 
 package models
 
-import (
-	"testing"
-)
-
 // UserStringInvocation represents a single call of FakeUser.String
 type UserStringInvocation struct {
 	Results struct {
@@ -18,6 +14,14 @@ type UserIDInvocation struct {
 	Results struct {
 		Ident1 string
 	}
+}
+
+// UserTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type UserTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -65,7 +69,7 @@ func NewFakeUserDefaultPanic() *FakeUser {
 }
 
 // NewFakeUserDefaultFatal returns an instance of FakeUser with all hooks configured to call t.Fatal
-func NewFakeUserDefaultFatal(t *testing.T) *FakeUser {
+func NewFakeUserDefaultFatal(t UserTestingT) *FakeUser {
 	return &FakeUser{
 		StringHook: func() (ident5 string) {
 			t.Fatal("Unexpected call to User.String")
@@ -79,7 +83,7 @@ func NewFakeUserDefaultFatal(t *testing.T) *FakeUser {
 }
 
 // NewFakeUserDefaultError returns an instance of FakeUser with all hooks configured to call t.Error
-func NewFakeUserDefaultError(t *testing.T) *FakeUser {
+func NewFakeUserDefaultError(t UserTestingT) *FakeUser {
 	return &FakeUser{
 		StringHook: func() (ident5 string) {
 			t.Error("Unexpected call to User.String")
@@ -115,7 +119,7 @@ func (f *FakeUser) StringCalled() bool {
 }
 
 // AssertStringCalled calls t.Error if FakeUser.String was not called
-func (f *FakeUser) AssertStringCalled(t *testing.T) {
+func (f *FakeUser) AssertStringCalled(t UserTestingT) {
 	t.Helper()
 	if len(f.StringCalls) == 0 {
 		t.Error("FakeUser.String not called, expected at least one")
@@ -128,7 +132,7 @@ func (f *FakeUser) StringNotCalled() bool {
 }
 
 // AssertStringNotCalled calls t.Error if FakeUser.String was called
-func (f *FakeUser) AssertStringNotCalled(t *testing.T) {
+func (f *FakeUser) AssertStringNotCalled(t UserTestingT) {
 	t.Helper()
 	if len(f.StringCalls) != 0 {
 		t.Error("FakeUser.String called, expected none")
@@ -141,7 +145,7 @@ func (f *FakeUser) StringCalledOnce() bool {
 }
 
 // AssertStringCalledOnce calls t.Error if FakeUser.String was not called exactly once
-func (f *FakeUser) AssertStringCalledOnce(t *testing.T) {
+func (f *FakeUser) AssertStringCalledOnce(t UserTestingT) {
 	t.Helper()
 	if len(f.StringCalls) != 1 {
 		t.Errorf("FakeUser.String called %d times, expected 1", len(f.StringCalls))
@@ -154,7 +158,7 @@ func (f *FakeUser) StringCalledN(n int) bool {
 }
 
 // AssertStringCalledN calls t.Error if FakeUser.String was called less than n times
-func (f *FakeUser) AssertStringCalledN(t *testing.T, n int) {
+func (f *FakeUser) AssertStringCalledN(t UserTestingT, n int) {
 	t.Helper()
 	if len(f.StringCalls) < n {
 		t.Errorf("FakeUser.String called %d times, expected >= %d", len(f.StringCalls), n)
@@ -179,7 +183,7 @@ func (f *FakeUser) IDCalled() bool {
 }
 
 // AssertIDCalled calls t.Error if FakeUser.ID was not called
-func (f *FakeUser) AssertIDCalled(t *testing.T) {
+func (f *FakeUser) AssertIDCalled(t UserTestingT) {
 	t.Helper()
 	if len(f.IDCalls) == 0 {
 		t.Error("FakeUser.ID not called, expected at least one")
@@ -192,7 +196,7 @@ func (f *FakeUser) IDNotCalled() bool {
 }
 
 // AssertIDNotCalled calls t.Error if FakeUser.ID was called
-func (f *FakeUser) AssertIDNotCalled(t *testing.T) {
+func (f *FakeUser) AssertIDNotCalled(t UserTestingT) {
 	t.Helper()
 	if len(f.IDCalls) != 0 {
 		t.Error("FakeUser.ID called, expected none")
@@ -205,7 +209,7 @@ func (f *FakeUser) IDCalledOnce() bool {
 }
 
 // AssertIDCalledOnce calls t.Error if FakeUser.ID was not called exactly once
-func (f *FakeUser) AssertIDCalledOnce(t *testing.T) {
+func (f *FakeUser) AssertIDCalledOnce(t UserTestingT) {
 	t.Helper()
 	if len(f.IDCalls) != 1 {
 		t.Errorf("FakeUser.ID called %d times, expected 1", len(f.IDCalls))
@@ -218,7 +222,7 @@ func (f *FakeUser) IDCalledN(n int) bool {
 }
 
 // AssertIDCalledN calls t.Error if FakeUser.ID was called less than n times
-func (f *FakeUser) AssertIDCalledN(t *testing.T, n int) {
+func (f *FakeUser) AssertIDCalledN(t UserTestingT, n int) {
 	t.Helper()
 	if len(f.IDCalls) < n {
 		t.Errorf("FakeUser.ID called %d times, expected >= %d", len(f.IDCalls), n)

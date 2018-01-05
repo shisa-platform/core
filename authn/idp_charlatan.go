@@ -2,13 +2,11 @@
 
 package authn
 
-import (
-	"reflect"
-	"testing"
+import "github.com/ansel1/merry"
 
-	"github.com/ansel1/merry"
-	"github.com/percolate/shisa/models"
-)
+import "github.com/percolate/shisa/models"
+
+import "reflect"
 
 // IdentityProviderAuthenticateInvocation represents a single call of FakeIdentityProvider.Authenticate
 type IdentityProviderAuthenticateInvocation struct {
@@ -19,6 +17,14 @@ type IdentityProviderAuthenticateInvocation struct {
 		Ident2 models.User
 		Ident3 merry.Error
 	}
+}
+
+// IdentityProviderTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type IdentityProviderTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -61,7 +67,7 @@ func NewFakeIdentityProviderDefaultPanic() *FakeIdentityProvider {
 }
 
 // NewFakeIdentityProviderDefaultFatal returns an instance of FakeIdentityProvider with all hooks configured to call t.Fatal
-func NewFakeIdentityProviderDefaultFatal(t *testing.T) *FakeIdentityProvider {
+func NewFakeIdentityProviderDefaultFatal(t IdentityProviderTestingT) *FakeIdentityProvider {
 	return &FakeIdentityProvider{
 		AuthenticateHook: func(string) (ident2 models.User, ident3 merry.Error) {
 			t.Fatal("Unexpected call to IdentityProvider.Authenticate")
@@ -71,7 +77,7 @@ func NewFakeIdentityProviderDefaultFatal(t *testing.T) *FakeIdentityProvider {
 }
 
 // NewFakeIdentityProviderDefaultError returns an instance of FakeIdentityProvider with all hooks configured to call t.Error
-func NewFakeIdentityProviderDefaultError(t *testing.T) *FakeIdentityProvider {
+func NewFakeIdentityProviderDefaultError(t IdentityProviderTestingT) *FakeIdentityProvider {
 	return &FakeIdentityProvider{
 		AuthenticateHook: func(string) (ident2 models.User, ident3 merry.Error) {
 			t.Error("Unexpected call to IdentityProvider.Authenticate")
@@ -105,7 +111,7 @@ func (f *FakeIdentityProvider) AuthenticateCalled() bool {
 }
 
 // AssertAuthenticateCalled calls t.Error if FakeIdentityProvider.Authenticate was not called
-func (f *FakeIdentityProvider) AssertAuthenticateCalled(t *testing.T) {
+func (f *FakeIdentityProvider) AssertAuthenticateCalled(t IdentityProviderTestingT) {
 	t.Helper()
 	if len(f.AuthenticateCalls) == 0 {
 		t.Error("FakeIdentityProvider.Authenticate not called, expected at least one")
@@ -118,7 +124,7 @@ func (f *FakeIdentityProvider) AuthenticateNotCalled() bool {
 }
 
 // AssertAuthenticateNotCalled calls t.Error if FakeIdentityProvider.Authenticate was called
-func (f *FakeIdentityProvider) AssertAuthenticateNotCalled(t *testing.T) {
+func (f *FakeIdentityProvider) AssertAuthenticateNotCalled(t IdentityProviderTestingT) {
 	t.Helper()
 	if len(f.AuthenticateCalls) != 0 {
 		t.Error("FakeIdentityProvider.Authenticate called, expected none")
@@ -131,7 +137,7 @@ func (f *FakeIdentityProvider) AuthenticateCalledOnce() bool {
 }
 
 // AssertAuthenticateCalledOnce calls t.Error if FakeIdentityProvider.Authenticate was not called exactly once
-func (f *FakeIdentityProvider) AssertAuthenticateCalledOnce(t *testing.T) {
+func (f *FakeIdentityProvider) AssertAuthenticateCalledOnce(t IdentityProviderTestingT) {
 	t.Helper()
 	if len(f.AuthenticateCalls) != 1 {
 		t.Errorf("FakeIdentityProvider.Authenticate called %d times, expected 1", len(f.AuthenticateCalls))
@@ -144,7 +150,7 @@ func (f *FakeIdentityProvider) AuthenticateCalledN(n int) bool {
 }
 
 // AssertAuthenticateCalledN calls t.Error if FakeIdentityProvider.Authenticate was called less than n times
-func (f *FakeIdentityProvider) AssertAuthenticateCalledN(t *testing.T, n int) {
+func (f *FakeIdentityProvider) AssertAuthenticateCalledN(t IdentityProviderTestingT, n int) {
 	t.Helper()
 	if len(f.AuthenticateCalls) < n {
 		t.Errorf("FakeIdentityProvider.Authenticate called %d times, expected >= %d", len(f.AuthenticateCalls), n)
@@ -164,7 +170,7 @@ func (_f2 *FakeIdentityProvider) AuthenticateCalledWith(ident1 string) (found bo
 }
 
 // AssertAuthenticateCalledWith calls t.Error if FakeIdentityProvider.Authenticate was not called with the given values
-func (_f3 *FakeIdentityProvider) AssertAuthenticateCalledWith(t *testing.T, ident1 string) {
+func (_f3 *FakeIdentityProvider) AssertAuthenticateCalledWith(t IdentityProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.AuthenticateCalls {
@@ -192,7 +198,7 @@ func (_f4 *FakeIdentityProvider) AuthenticateCalledOnceWith(ident1 string) bool 
 }
 
 // AssertAuthenticateCalledOnceWith calls t.Error if FakeIdentityProvider.Authenticate was not called exactly once with the given values
-func (_f5 *FakeIdentityProvider) AssertAuthenticateCalledOnceWith(t *testing.T, ident1 string) {
+func (_f5 *FakeIdentityProvider) AssertAuthenticateCalledOnceWith(t IdentityProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.AuthenticateCalls {
