@@ -74,7 +74,9 @@ func main() {
 			values := merry.Values(e)
 			fs := make([]zapcore.Field, 0, len(values))
 			for name, value := range values {
-				fs = append(fs, zap.Reflect(name.(string), value))
+				if key, ok := name.(string); ok {
+					fs = append(fs, zap.Reflect(key, value))
+				}
 			}
 			logger.Error(merry.Message(e), fs...)
 		}
