@@ -37,6 +37,7 @@ vet:
 	go vet ./...
 
 gen:
+	find . -name '*_charlatan.go' | xargs rm
 	go generate ./...
 
 test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
