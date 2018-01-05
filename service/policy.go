@@ -13,8 +13,8 @@ type Policy struct {
 	// Will unknown query parameters be passed through or
 	// rejected?
 	AllowUnknownQueryParameters bool
-	// Will requests for the route with missing/extra trailing
-	// slash be redirected?
+	// Will requests  with missing/extra trailing slash
+	// be redirected?
 	AllowTrailingSlashRedirects bool
 	// Will URL escaped path parameters be preserved?
 	PreserveEscapedPathParameters bool
