@@ -1767,7 +1767,7 @@ func TestRouterResponseHeaders(t *testing.T) {
 		handlerCalled = true
 
 		response := service.NewEmpty(http.StatusOK)
-		response.Headers().Add("zalgo", "he comes")
+		response.Headers().Add("x-zalgo", "he comes")
 		return response
 	}
 	installHandler(t, cut, handler)
@@ -1778,7 +1778,7 @@ func TestRouterResponseHeaders(t *testing.T) {
 	assert.True(t, handlerCalled, "handler not called")
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
-	assert.Equal(t, "he comes", w.HeaderMap.Get("zalgo"))
+	assert.Equal(t, "he comes", w.HeaderMap.Get("x-zalgo"))
 }
 
 func TestRouterResponseTrailers(t *testing.T) {
@@ -1790,7 +1790,7 @@ func TestRouterResponseTrailers(t *testing.T) {
 		handlerCalled = true
 
 		response := service.NewEmpty(http.StatusOK)
-		response.Trailers().Add("zalgo", "he comes")
+		response.Trailers().Add("x-zalgo", "he comes")
 		return response
 	}
 	installHandler(t, cut, handler)
@@ -1801,7 +1801,7 @@ func TestRouterResponseTrailers(t *testing.T) {
 	assert.True(t, handlerCalled, "handler not called")
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
-	assert.Equal(t, "he comes", w.HeaderMap.Get("zalgo"))
+	assert.Equal(t, "he comes", w.HeaderMap.Get("x-zalgo"))
 }
 
 func TestRouterLoggingEnabled(t *testing.T) {

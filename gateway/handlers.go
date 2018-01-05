@@ -43,5 +43,5 @@ func defaultInternalServerErrorHandler(context.Context, *service.Request, merry.
 }
 
 func defaultRequestIDGenerator(c context.Context, r *service.Request) (string, merry.Error) {
-	return r.GenerateID(), nil
+	return r.ID(), nil
 }

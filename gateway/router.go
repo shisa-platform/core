@@ -41,11 +41,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
 	if idErr != nil {
-		requestID = request.GenerateID()
+		requestID = request.ID()
 	}
 	if requestID == "" {
 		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
-		requestID = request.GenerateID()
+		requestID = request.ID()
 	}
 	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
 
@@ -197,7 +197,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	pipelineStart = time.Now().UTC()
 	for _, handler := range pipeline.Handlers {
-		response = run(handler, ctx, request, &err)
+		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
 			response = endpoint.iseHandler(ctx, request, err)
 			goto finish
@@ -288,7 +288,7 @@ func recovery(fatalError *merry.Error) {
 	*fatalError = merry.New("panic in handler").WithValue("context", arg)
 }
 
-func run(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
+func runHandler(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
 }

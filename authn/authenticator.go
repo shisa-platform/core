@@ -16,6 +16,8 @@ var (
 
 //go:generate charlatan -output=./authenticator_charlatan.go Authenticator
 
+// Authenticator defines a provder for authenticating the
+// principal of a request.
 type Authenticator interface {
 	// Authenticate extracts a token from the request and
 	// resolves it into a user principal.

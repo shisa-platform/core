@@ -5,9 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
+	"github.com/ansel1/merry"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxillary"
@@ -17,7 +21,7 @@ import (
 )
 
 const (
-	defaultPort      = 8000
+	defaultPort      = 9001
 	defaultDebugPort = defaultPort + 1
 	timeFormat       = "2006-01-02T15:04:05+00:00"
 )
@@ -66,6 +70,16 @@ func main() {
 
 	services := []service.Service{NewHelloService(), NewGoodbyeService()}
 	if err := gw.Serve(services, debug); err != nil {
-		logger.Fatal("gateway error", zap.Error(err))
+		for _, e := range multierr.Errors(err) {
+			values := merry.Values(e)
+			fs := make([]zapcore.Field, 0, len(values))
+			for name, value := range values {
+				if key, ok := name.(string); ok {
+					fs = append(fs, zap.Reflect(key, value))
+				}
+			}
+			logger.Error(merry.Message(e), fs...)
+		}
+		os.Exit(1)
 	}
 }

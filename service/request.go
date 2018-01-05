@@ -21,6 +21,8 @@ type Request struct {
 	*http.Request
 	PathParams  []PathParameter
 	QueryParams []QueryParameter
+	id          string
+	clientIP    string
 }
 
 func (r *Request) PathParamExists(name string) bool {
@@ -44,12 +46,39 @@ func (r *Request) QueryParamExists(name string) bool {
 }
 
 // GenerateID creates a globally unique string for the request.
-// It creates a version 5 UUID with the concatenation of current unix nanos,
-// three bytes of random data, the client ip address, the request method and the
-// request URI.
-func (r *Request) GenerateID() string {
+// It creates a version 5 UUID with the concatenation of current
+// unix nanos, three bytes of random data, the client ip address,
+// the request method and the request URI.
+// This method is idempotent.
+func (r *Request) ID() string {
+	if r.id == "" {
+		r.id = GenerateID(r.Request)
+	}
+
+	return r.id
+}
+
+// ClientIP attempts to extract the IP address of the user agent
+// from the request.
+// The "X-Real-IP" and "X-Forwarded-For" headers are checked
+// followed by the `RemoteAddr` field of the request.  An empty
+// string will be returned if nothing can be found.
+func (r *Request) ClientIP() string {
+	if r.clientIP == "" {
+		r.clientIP = ClientIP(r.Request)
+	}
+
+	return r.clientIP
+}
+
+// GenerateID creates a globally unique string for the request.
+// It creates a version 5 UUID with the concatenation of current
+// unix nanos, three bytes of random data, the client ip address,
+// the request method and the request URI.
+// This function is *not* idempotent.
+func GenerateID(r *http.Request) string {
 	now := time.Now().UnixNano()
-	clientAddr := r.ClientIP()
+	clientAddr := ClientIP(r)
 
 	// The following logic is roughly equivilent to:
 	// `fmt.Sprintf("%v%x%v%v%v", now, nonce, clientAddr, r.Method, r.RequestURI)`
@@ -72,7 +101,12 @@ func (r *Request) GenerateID() string {
 	return uuid.New(uuid.ShisaNS, string(b)).String()
 }
 
-func (r *Request) ClientIP() string {
+// ClientIP attempts to extract the IP address of the user agent
+// from the request.
+// The "X-Real-IP" and "X-Forwarded-For" headers are checked
+// followed by the `RemoteAddr` field of the request.  An empty
+// string will be returned if nothing can be found.
+func ClientIP(r *http.Request) string {
 	ip := r.Header.Get("X-Real-IP")
 	if ip == "" {
 		if ip = r.Header.Get("X-Forwarded-For"); ip == "" {
