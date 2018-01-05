@@ -13,11 +13,11 @@ type Policy struct {
 	// Will unknown query parameters be passed through or
 	// rejected?
 	AllowUnknownQueryParameters bool
-	// Redirect requests for routes with the opposite trailing
-	// slash to this endpoint
+	// Will requests  with missing/extra trailing slash
+	// be redirected?
 	AllowTrailingSlashRedirects bool
 	// Will URL escaped path parameters be preserved?
 	PreserveEscapedPathParameters bool
-	// The time budget for requests to the endpoint
+	// The time budget for the pipeline to complete
 	TimeBudget time.Duration
 }
