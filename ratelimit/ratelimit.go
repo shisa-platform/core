@@ -9,7 +9,7 @@ import (
 	"github.com/ansel1/merry"
 )
 
-var limitRegex = regexp.MustCompile(`(.*\d+)/([dhms].*)`)
+var limitRegex = regexp.MustCompile(`^(\d+)/([dhms])$`)
 
 // RateLimit encodes a maximum number of repititions allowed over a time interval.
 type RateLimit struct {
@@ -26,7 +26,7 @@ func FromString(value string) (r RateLimit, merr merry.Error) {
 	}
 
 	limit, err := strconv.Atoi(matches[0][1])
-	if err != nil || 0 > limit {
+	if err != nil {
 		merr = merry.Errorf("%q is not a valid rate limit expression", value)
 		return
 	}
@@ -41,8 +41,6 @@ func FromString(value string) (r RateLimit, merr merry.Error) {
 		r.Period = time.Minute
 	case "s":
 		r.Period = time.Second
-	default:
-		merr = merry.Errorf("%q is not a valid rate limit expression", value)
 	}
 
 	return
