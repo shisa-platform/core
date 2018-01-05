@@ -84,27 +84,20 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		}
 	}()
 
-	waiting := len(g.auxiliaries) + 1
-	for {
+	for i := len(g.auxiliaries) + 1; i != 0; i-- {
 		select {
 		case aerr := <-ach:
 			if !merry.Is(aerr, http.ErrServerClosed) {
 				err = multierr.Append(err, merry.Wrap(aerr))
 			}
-			waiting--
-			if waiting == 0 {
-				return
-			}
 		case gerr := <-gch:
 			if gerr != http.ErrServerClosed {
 				err = multierr.Append(err, merry.Wrap(gerr))
 			}
-			waiting--
-			if waiting == 0 {
-				return
-			}
 		}
 	}
+
+	return
 }
 
 func (g *Gateway) installServices(services []service.Service) merry.Error {
