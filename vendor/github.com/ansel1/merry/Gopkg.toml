@@ -23,12 +23,4 @@
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
-
-[[constraint]]
-  name = "github.com/ansel1/merry"
-  version = "1.0.1"
-
-[[constraint]]
-  name = "gopkg.in/redis.v5"
-  version = "5.2.9"
+  version = "1.1.4"

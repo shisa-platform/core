@@ -4,20 +4,14 @@
 [[projects]]
   name = "github.com/ansel1/merry"
   packages = ["."]
-  revision = "2f92759fd5ad7ea9dc77b73b909b3132b9a5912e"
-  version = "v1.0.1"
+  revision = "c8d518a00eb65f58411f49c1c84ee99c02b699f5"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/go-errors/errors"
-  packages = ["."]
-  revision = "3afebba5a48dbc89b574d890b6b34d9ee10b4785"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -33,8 +27,8 @@
 [[projects]]
   name = "go.uber.org/atomic"
   packages = ["."]
-  revision = "54f72d32435d760d5604f17a82e2435b28dc4ba5"
-  version = "v1.3.0"
+  revision = "8474b86a5a6f79c443ce4b2992817ff32cf208b8"
+  version = "v1.3.1"
 
 [[projects]]
   name = "go.uber.org/multierr"
@@ -57,6 +51,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "abbdee325190a51cbef89729efb44e2fab965b4b593b86358bd06e2afc1e388a"
+  inputs-digest = "e8bcae9c4789713917a7f1f1b756fa4b23193f04bfe9fbd3065e9aeea240d9fe"
   solver-name = "gps-cdcl"
   solver-version = 1
