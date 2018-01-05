@@ -37,10 +37,16 @@ func (r *BasicResponse) StatusCode() int {
 }
 
 func (r *BasicResponse) Headers() http.Header {
+	if r.headers == nil {
+		r.headers = make(http.Headers)
+	}
 	return r.headers
 }
 
 func (r *BasicResponse) Trailers() http.Header {
+	if r.trailers == nil {
+		r.trailers = make(http.Headers)
+	}
 	return r.trailers
 }
 
