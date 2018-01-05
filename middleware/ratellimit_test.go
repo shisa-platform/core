@@ -12,6 +12,7 @@ import (
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/ratelimit"
 	"github.com/percolate/shisa/service"
+	"time"
 )
 
 type clientThrottlerCase struct {
@@ -38,14 +39,13 @@ func checkClientThrottlerCase(t *testing.T, c clientThrottlerCase) {
 		assert.False(t, c.ExpectShortCircuit)
 	}
 
-	c.FakeLimiter.AssertAllowCalledOnce(t)
-	c.FakeLimiter.AssertAllowCalledWith(t, req.ClientIP(), req.Method, req.URL.Path)
+	c.FakeLimiter.AssertAllowCalledOnceWith(t, req.ClientIP(), req.Method, req.URL.Path)
 }
 
 func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return false, nil
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
 		},
 	}
 
@@ -68,8 +68,8 @@ func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
 
 func TestClientThrottlerServiceAllowError(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return false, merry.New("something broke")
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, 0, merry.New("something broke")
 		},
 	}
 
@@ -89,8 +89,8 @@ func TestClientThrottlerServiceAllowError(t *testing.T) {
 
 func TestClientThrottlerServiceThrottled(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return false, nil
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
 		},
 	}
 
@@ -110,8 +110,8 @@ func TestClientThrottlerServiceThrottled(t *testing.T) {
 
 func TestClientThrottlerServicePass(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return true, nil
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
 		},
 	}
 
@@ -156,14 +156,13 @@ func checkUserThrottlerCase(t *testing.T, u userThrottlerCase) {
 		assert.False(t, u.ExpectShortCircuit)
 	}
 
-	u.FakeLimiter.AssertAllowCalledOnce(t)
-	u.FakeLimiter.AssertAllowCalledWith(t, ctx.Actor().ID(), req.Method, req.URL.Path)
+	u.FakeLimiter.AssertAllowCalledOnceWith(t, ctx.Actor().ID(), req.Method, req.URL.Path)
 }
 
 func TestUserThrottlerServiceErrorHandlerHook(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return false, nil
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
 		},
 	}
 
@@ -186,8 +185,8 @@ func TestUserThrottlerServiceErrorHandlerHook(t *testing.T) {
 
 func TestUserThrottlerServiceAllowError(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return false, merry.New("something broke")
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, 0, merry.New("something broke")
 		},
 	}
 
@@ -207,8 +206,8 @@ func TestUserThrottlerServiceAllowError(t *testing.T) {
 
 func TestUserThrottlerServiceThrottled(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return false, nil
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
 		},
 	}
 
@@ -228,8 +227,8 @@ func TestUserThrottlerServiceThrottled(t *testing.T) {
 
 func TestUserThrottlerServicePass(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, merry.Error) {
-			return true, nil
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
 		},
 	}
 

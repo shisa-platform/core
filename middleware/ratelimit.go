@@ -8,8 +8,11 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/ratelimit"
 	"github.com/percolate/shisa/service"
+	"time"
 )
 
+// ClientThrottler is a a rate-limiting middleware that
+// throttles requests from a given ClientIP using its Limiter
 type ClientThrottler struct {
 	// Limiter is a ratelimit.Provider that determines whether
 	// the request should be throttled, based on the request's ClientIP
@@ -29,10 +32,18 @@ func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) servi
 	}
 
 	ip := r.ClientIP()
-	err := throttle(m.Limiter, ip, r)
+	ok, cd, err := throttle(m.Limiter, ip, r)
+
+	if !ok && err == nil {
+		err = merry.New("request throttled, rate limit exceeded").WithHTTPCode(http.StatusTooManyRequests)
+		err = err.WithValue("cooldown", cd).WithValue("clientip", ip)
+		err = err.WithValue("method", r.Method).WithValue("path", r.URL.Path)
+	}
+
 	if err != nil {
 		return m.ErrorHandler(ctx, r, err)
 	}
+
 	return nil
 }
 
@@ -40,10 +51,13 @@ func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Re
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
+// UserThrottler is a a rate-limiting middleware that
+// throttles requests from a given User, via the
+// request Context's Actor) using its Limiter
 type UserThrottler struct {
 	// Limiter is a ratelimit.Provider that determines whether
 	// the request should be throttled, based on the request
-	// context Actor's ID receiver
+	// context Actor's ID method
 	Limiter ratelimit.Provider
 
 	// ErrorHandler optionally customizes the response for an
@@ -59,11 +73,19 @@ func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service
 		m.ErrorHandler = m.defaultErrorHandler
 	}
 
-	actor := ctx.Actor().ID()
-	err := throttle(m.Limiter, actor, r)
+	user := ctx.Actor().ID()
+	ok, cd, err := throttle(m.Limiter, user, r)
+
+	if !ok && err == nil {
+		err = merry.New("request throttled, rate limit exceeded").WithHTTPCode(http.StatusTooManyRequests)
+		err = err.WithValue("cooldown", cd).WithValue("userid", user)
+		err = err.WithValue("method", r.Method).WithValue("path", r.URL.Path)
+	}
+
 	if err != nil {
 		return m.ErrorHandler(ctx, r, err)
 	}
+
 	return nil
 }
 
@@ -71,14 +93,8 @@ func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *service.Requ
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
-func throttle(limiter ratelimit.Provider, actor string, r *service.Request) merry.Error {
+func throttle(limiter ratelimit.Provider, actor string, r *service.Request) (ok bool, cd time.Duration, err merry.Error) {
 	action, path := r.Method, r.URL.Path
-	ok, err := limiter.Allow(actor, action, path)
-
-	if err != nil {
-		return err
-	} else if !ok {
-		return merry.Errorf("throttle %q to %q on %q", actor, action, path).WithHTTPCode(http.StatusTooManyRequests)
-	}
-	return nil
+	ok, cd, err = limiter.Allow(actor, action, path)
+	return
 }

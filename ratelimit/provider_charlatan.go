@@ -5,6 +5,7 @@ package ratelimit
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ansel1/merry"
 )
@@ -31,14 +32,8 @@ type ProviderAllowInvocation struct {
 	}
 	Results struct {
 		Ident1 bool
-		Ident2 merry.Error
-	}
-}
-
-// ProviderPingInvocation represents a single call of FakeProvider.Ping
-type ProviderPingInvocation struct {
-	Results struct {
-		Ident1 error
+		Ident2 time.Duration
+		Ident3 merry.Error
 	}
 }
 
@@ -72,13 +67,11 @@ unexpected calls are made to FakeLimit.
 */
 type FakeProvider struct {
 	LimitHook func(string, string, string) (RateLimit, merry.Error)
-	AllowHook func(string, string, string) (bool, merry.Error)
-	PingHook  func() error
+	AllowHook func(string, string, string) (bool, time.Duration, merry.Error)
 	CloseHook func()
 
 	LimitCalls []*ProviderLimitInvocation
 	AllowCalls []*ProviderAllowInvocation
-	PingCalls  []*ProviderPingInvocation
 	CloseCalls []*ProviderCloseInvocation
 }
 
@@ -88,11 +81,8 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			panic("Unexpected call to Provider.Limit")
 		},
-		AllowHook: func(string, string, string) (ident1 bool, ident2 merry.Error) {
+		AllowHook: func(string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 			panic("Unexpected call to Provider.Allow")
-		},
-		PingHook: func() (ident1 error) {
-			panic("Unexpected call to Provider.Ping")
 		},
 		CloseHook: func() {
 			panic("Unexpected call to Provider.Close")
@@ -107,12 +97,8 @@ func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
 			t.Fatal("Unexpected call to Provider.Limit")
 			return
 		},
-		AllowHook: func(string, string, string) (ident1 bool, ident2 merry.Error) {
+		AllowHook: func(string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Allow")
-			return
-		},
-		PingHook: func() (ident1 error) {
-			t.Fatal("Unexpected call to Provider.Ping")
 			return
 		},
 		CloseHook: func() {
@@ -129,12 +115,8 @@ func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
 			t.Error("Unexpected call to Provider.Limit")
 			return
 		},
-		AllowHook: func(string, string, string) (ident1 bool, ident2 merry.Error) {
+		AllowHook: func(string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 			t.Error("Unexpected call to Provider.Allow")
-			return
-		},
-		PingHook: func() (ident1 error) {
-			t.Error("Unexpected call to Provider.Ping")
 			return
 		},
 		CloseHook: func() {
@@ -147,7 +129,6 @@ func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
 func (f *FakeProvider) Reset() {
 	f.LimitCalls = []*ProviderLimitInvocation{}
 	f.AllowCalls = []*ProviderAllowInvocation{}
-	f.PingCalls = []*ProviderPingInvocation{}
 	f.CloseCalls = []*ProviderCloseInvocation{}
 }
 
@@ -289,17 +270,18 @@ func (_f6 *FakeProvider) LimitResultsForCall(actor string, action string, path s
 	return
 }
 
-func (_f7 *FakeProvider) Allow(actor string, action string, path string) (ident1 bool, ident2 merry.Error) {
+func (_f7 *FakeProvider) Allow(actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 	invocation := new(ProviderAllowInvocation)
 
 	invocation.Parameters.Actor = actor
 	invocation.Parameters.Action = action
 	invocation.Parameters.Path = path
 
-	ident1, ident2 = _f7.AllowHook(actor, action, path)
+	ident1, ident2, ident3 = _f7.AllowHook(actor, action, path)
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
 
 	_f7.AllowCalls = append(_f7.AllowCalls, invocation)
 
@@ -414,11 +396,12 @@ func (_f11 *FakeProvider) AssertAllowCalledOnceWith(t *testing.T, actor string, 
 }
 
 // AllowResultsForCall returns the result values for the first call to FakeProvider.Allow with the given values
-func (_f12 *FakeProvider) AllowResultsForCall(actor string, action string, path string) (ident1 bool, ident2 merry.Error, found bool) {
+func (_f12 *FakeProvider) AllowResultsForCall(actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error, found bool) {
 	for _, call := range _f12.AllowCalls {
 		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			ident1 = call.Results.Ident1
 			ident2 = call.Results.Ident2
+			ident3 = call.Results.Ident3
 			found = true
 			break
 		}
@@ -427,76 +410,12 @@ func (_f12 *FakeProvider) AllowResultsForCall(actor string, action string, path 
 	return
 }
 
-func (_f13 *FakeProvider) Ping() (ident1 error) {
-	invocation := new(ProviderPingInvocation)
-
-	ident1 = _f13.PingHook()
-
-	invocation.Results.Ident1 = ident1
-
-	_f13.PingCalls = append(_f13.PingCalls, invocation)
-
-	return
-}
-
-// PingCalled returns true if FakeProvider.Ping was called
-func (f *FakeProvider) PingCalled() bool {
-	return len(f.PingCalls) != 0
-}
-
-// AssertPingCalled calls t.Error if FakeProvider.Ping was not called
-func (f *FakeProvider) AssertPingCalled(t *testing.T) {
-	t.Helper()
-	if len(f.PingCalls) == 0 {
-		t.Error("FakeProvider.Ping not called, expected at least one")
-	}
-}
-
-// PingNotCalled returns true if FakeProvider.Ping was not called
-func (f *FakeProvider) PingNotCalled() bool {
-	return len(f.PingCalls) == 0
-}
-
-// AssertPingNotCalled calls t.Error if FakeProvider.Ping was called
-func (f *FakeProvider) AssertPingNotCalled(t *testing.T) {
-	t.Helper()
-	if len(f.PingCalls) != 0 {
-		t.Error("FakeProvider.Ping called, expected none")
-	}
-}
-
-// PingCalledOnce returns true if FakeProvider.Ping was called exactly once
-func (f *FakeProvider) PingCalledOnce() bool {
-	return len(f.PingCalls) == 1
-}
-
-// AssertPingCalledOnce calls t.Error if FakeProvider.Ping was not called exactly once
-func (f *FakeProvider) AssertPingCalledOnce(t *testing.T) {
-	t.Helper()
-	if len(f.PingCalls) != 1 {
-		t.Errorf("FakeProvider.Ping called %d times, expected 1", len(f.PingCalls))
-	}
-}
-
-// PingCalledN returns true if FakeProvider.Ping was called at least n times
-func (f *FakeProvider) PingCalledN(n int) bool {
-	return len(f.PingCalls) >= n
-}
-
-// AssertPingCalledN calls t.Error if FakeProvider.Ping was called less than n times
-func (f *FakeProvider) AssertPingCalledN(t *testing.T, n int) {
-	t.Helper()
-	if len(f.PingCalls) < n {
-		t.Errorf("FakeProvider.Ping called %d times, expected >= %d", len(f.PingCalls), n)
-	}
-}
-
-func (_f14 *FakeProvider) Close() {
+func (_f13 *FakeProvider) Close() {
 	invocation := new(ProviderCloseInvocation)
 
-	_f14.CloseHook()
+	_f13.CloseHook()
 
-	_f14.CloseCalls = append(_f14.CloseCalls, invocation)
+	_f13.CloseCalls = append(_f13.CloseCalls, invocation)
 
 	return
 }
