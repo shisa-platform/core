@@ -45,7 +45,7 @@ func checkClientThrottlerCase(t *testing.T, c clientThrottlerCase) {
 func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
 		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return false, time.Hour, nil
+			return false, 0, merry.New("found a teapot")
 		},
 	}
 
@@ -64,6 +64,30 @@ func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
 	}
 
 	checkClientThrottlerCase(t, c)
+}
+
+func TestClientThrottlerServiceRateLimitHandlerHook(t *testing.T) {
+	fl := &ratelimit.FakeProvider{
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
+		},
+	}
+
+	ut := &UserThrottler{
+		Limiter: fl,
+		RateLimitHandler: func(c context.Context, r *service.Request, cd time.Duration) service.Response {
+			return service.NewEmpty(http.StatusTeapot)
+		},
+	}
+
+	c := userThrottlerCase{
+		Throttler:          ut,
+		FakeLimiter:        fl,
+		ExpectShortCircuit: true,
+		StatusCode:         http.StatusTeapot,
+	}
+
+	checkUserThrottlerCase(t, c)
 }
 
 func TestClientThrottlerServiceAllowError(t *testing.T) {
@@ -162,13 +186,37 @@ func checkUserThrottlerCase(t *testing.T, u userThrottlerCase) {
 func TestUserThrottlerServiceErrorHandlerHook(t *testing.T) {
 	fl := &ratelimit.FakeProvider{
 		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return false, time.Hour, nil
+			return false, 0, merry.New("found a teapot")
 		},
 	}
 
 	ut := &UserThrottler{
 		Limiter: fl,
 		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
+			return service.NewEmpty(http.StatusTeapot)
+		},
+	}
+
+	c := userThrottlerCase{
+		Throttler:          ut,
+		FakeLimiter:        fl,
+		ExpectShortCircuit: true,
+		StatusCode:         http.StatusTeapot,
+	}
+
+	checkUserThrottlerCase(t, c)
+}
+
+func TestUserThrottlerServiceRateLimitHandlerHook(t *testing.T) {
+	fl := &ratelimit.FakeProvider{
+		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
+		},
+	}
+
+	ut := &UserThrottler{
+		Limiter: fl,
+		RateLimitHandler: func(c context.Context, r *service.Request, cd time.Duration) service.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}
