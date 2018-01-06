@@ -1,23 +1,20 @@
 package ratelimit
 
 import (
-	"fmt"
+	"github.com/ansel1/merry"
 	"time"
 )
 
+//go:generate charlatan -output=./provider_charlatan.go Provider
+
+// Provider is an interface providing a means to limiting
+// requests based on actor/action/path parameters.
 type Provider interface {
 	// Limit returns the policy based rate limit for the given actor performing the action on the path.
-	Limit(actor, action, path string) (RateLimit, error)
+	Limit(actor, action, path string) (RateLimit, merry.Error)
 	// Allow returns true if the rate limit policy allows the given actor to perform the action on the path.
-	Allow(actor, action, path string) (bool, error)
-	Ping() error
+	// If the rate limit policy disallows the action, the cooldown duration is also returned. Allow only
+	// returns an error due to internal failure.
+	Allow(actor, action, path string) (bool, time.Duration, merry.Error)
 	Close()
-}
-
-type ErrTooManyRequests struct {
-	Cooloff time.Duration
-}
-
-func (e *ErrTooManyRequests) Error() string {
-	return fmt.Sprintf("too many requests.  wait %s", e.Cooloff)
 }
