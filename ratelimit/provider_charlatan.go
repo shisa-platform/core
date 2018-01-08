@@ -2,13 +2,9 @@
 
 package ratelimit
 
-import (
-	"reflect"
-	"testing"
-	"time"
-
-	"github.com/ansel1/merry"
-)
+import "reflect"
+import "github.com/ansel1/merry"
+import "time"
 
 // ProviderLimitInvocation represents a single call of FakeProvider.Limit
 type ProviderLimitInvocation struct {
@@ -39,6 +35,14 @@ type ProviderAllowInvocation struct {
 
 // ProviderCloseInvocation represents a single call of FakeProvider.Close
 type ProviderCloseInvocation struct {
+}
+
+// ProviderTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
+type ProviderTestingT interface {
+	Error(...interface{})
+	Errorf(string, ...interface{})
+	Fatal(...interface{})
+	Helper()
 }
 
 /*
@@ -91,7 +95,7 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 }
 
 // NewFakeProviderDefaultFatal returns an instance of FakeProvider with all hooks configured to call t.Fatal
-func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
+func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 	return &FakeProvider{
 		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Limit")
@@ -109,7 +113,7 @@ func NewFakeProviderDefaultFatal(t *testing.T) *FakeProvider {
 }
 
 // NewFakeProviderDefaultError returns an instance of FakeProvider with all hooks configured to call t.Error
-func NewFakeProviderDefaultError(t *testing.T) *FakeProvider {
+func NewFakeProviderDefaultError(t ProviderTestingT) *FakeProvider {
 	return &FakeProvider{
 		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			t.Error("Unexpected call to Provider.Limit")
@@ -155,7 +159,7 @@ func (f *FakeProvider) LimitCalled() bool {
 }
 
 // AssertLimitCalled calls t.Error if FakeProvider.Limit was not called
-func (f *FakeProvider) AssertLimitCalled(t *testing.T) {
+func (f *FakeProvider) AssertLimitCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.LimitCalls) == 0 {
 		t.Error("FakeProvider.Limit not called, expected at least one")
@@ -168,7 +172,7 @@ func (f *FakeProvider) LimitNotCalled() bool {
 }
 
 // AssertLimitNotCalled calls t.Error if FakeProvider.Limit was called
-func (f *FakeProvider) AssertLimitNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertLimitNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.LimitCalls) != 0 {
 		t.Error("FakeProvider.Limit called, expected none")
@@ -181,7 +185,7 @@ func (f *FakeProvider) LimitCalledOnce() bool {
 }
 
 // AssertLimitCalledOnce calls t.Error if FakeProvider.Limit was not called exactly once
-func (f *FakeProvider) AssertLimitCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertLimitCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.LimitCalls) != 1 {
 		t.Errorf("FakeProvider.Limit called %d times, expected 1", len(f.LimitCalls))
@@ -194,7 +198,7 @@ func (f *FakeProvider) LimitCalledN(n int) bool {
 }
 
 // AssertLimitCalledN calls t.Error if FakeProvider.Limit was called less than n times
-func (f *FakeProvider) AssertLimitCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertLimitCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.LimitCalls) < n {
 		t.Errorf("FakeProvider.Limit called %d times, expected >= %d", len(f.LimitCalls), n)
@@ -214,7 +218,7 @@ func (_f2 *FakeProvider) LimitCalledWith(actor string, action string, path strin
 }
 
 // AssertLimitCalledWith calls t.Error if FakeProvider.Limit was not called with the given values
-func (_f3 *FakeProvider) AssertLimitCalledWith(t *testing.T, actor string, action string, path string) {
+func (_f3 *FakeProvider) AssertLimitCalledWith(t ProviderTestingT, actor string, action string, path string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.LimitCalls {
@@ -242,7 +246,7 @@ func (_f4 *FakeProvider) LimitCalledOnceWith(actor string, action string, path s
 }
 
 // AssertLimitCalledOnceWith calls t.Error if FakeProvider.Limit was not called exactly once with the given values
-func (_f5 *FakeProvider) AssertLimitCalledOnceWith(t *testing.T, actor string, action string, path string) {
+func (_f5 *FakeProvider) AssertLimitCalledOnceWith(t ProviderTestingT, actor string, action string, path string) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.LimitCalls {
@@ -294,7 +298,7 @@ func (f *FakeProvider) AllowCalled() bool {
 }
 
 // AssertAllowCalled calls t.Error if FakeProvider.Allow was not called
-func (f *FakeProvider) AssertAllowCalled(t *testing.T) {
+func (f *FakeProvider) AssertAllowCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.AllowCalls) == 0 {
 		t.Error("FakeProvider.Allow not called, expected at least one")
@@ -307,7 +311,7 @@ func (f *FakeProvider) AllowNotCalled() bool {
 }
 
 // AssertAllowNotCalled calls t.Error if FakeProvider.Allow was called
-func (f *FakeProvider) AssertAllowNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertAllowNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.AllowCalls) != 0 {
 		t.Error("FakeProvider.Allow called, expected none")
@@ -320,7 +324,7 @@ func (f *FakeProvider) AllowCalledOnce() bool {
 }
 
 // AssertAllowCalledOnce calls t.Error if FakeProvider.Allow was not called exactly once
-func (f *FakeProvider) AssertAllowCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertAllowCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.AllowCalls) != 1 {
 		t.Errorf("FakeProvider.Allow called %d times, expected 1", len(f.AllowCalls))
@@ -333,7 +337,7 @@ func (f *FakeProvider) AllowCalledN(n int) bool {
 }
 
 // AssertAllowCalledN calls t.Error if FakeProvider.Allow was called less than n times
-func (f *FakeProvider) AssertAllowCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertAllowCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.AllowCalls) < n {
 		t.Errorf("FakeProvider.Allow called %d times, expected >= %d", len(f.AllowCalls), n)
@@ -353,7 +357,7 @@ func (_f8 *FakeProvider) AllowCalledWith(actor string, action string, path strin
 }
 
 // AssertAllowCalledWith calls t.Error if FakeProvider.Allow was not called with the given values
-func (_f9 *FakeProvider) AssertAllowCalledWith(t *testing.T, actor string, action string, path string) {
+func (_f9 *FakeProvider) AssertAllowCalledWith(t ProviderTestingT, actor string, action string, path string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f9.AllowCalls {
@@ -381,7 +385,7 @@ func (_f10 *FakeProvider) AllowCalledOnceWith(actor string, action string, path 
 }
 
 // AssertAllowCalledOnceWith calls t.Error if FakeProvider.Allow was not called exactly once with the given values
-func (_f11 *FakeProvider) AssertAllowCalledOnceWith(t *testing.T, actor string, action string, path string) {
+func (_f11 *FakeProvider) AssertAllowCalledOnceWith(t ProviderTestingT, actor string, action string, path string) {
 	t.Helper()
 	var count int
 	for _, call := range _f11.AllowCalls {
@@ -426,7 +430,7 @@ func (f *FakeProvider) CloseCalled() bool {
 }
 
 // AssertCloseCalled calls t.Error if FakeProvider.Close was not called
-func (f *FakeProvider) AssertCloseCalled(t *testing.T) {
+func (f *FakeProvider) AssertCloseCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.CloseCalls) == 0 {
 		t.Error("FakeProvider.Close not called, expected at least one")
@@ -439,7 +443,7 @@ func (f *FakeProvider) CloseNotCalled() bool {
 }
 
 // AssertCloseNotCalled calls t.Error if FakeProvider.Close was called
-func (f *FakeProvider) AssertCloseNotCalled(t *testing.T) {
+func (f *FakeProvider) AssertCloseNotCalled(t ProviderTestingT) {
 	t.Helper()
 	if len(f.CloseCalls) != 0 {
 		t.Error("FakeProvider.Close called, expected none")
@@ -452,7 +456,7 @@ func (f *FakeProvider) CloseCalledOnce() bool {
 }
 
 // AssertCloseCalledOnce calls t.Error if FakeProvider.Close was not called exactly once
-func (f *FakeProvider) AssertCloseCalledOnce(t *testing.T) {
+func (f *FakeProvider) AssertCloseCalledOnce(t ProviderTestingT) {
 	t.Helper()
 	if len(f.CloseCalls) != 1 {
 		t.Errorf("FakeProvider.Close called %d times, expected 1", len(f.CloseCalls))
@@ -465,7 +469,7 @@ func (f *FakeProvider) CloseCalledN(n int) bool {
 }
 
 // AssertCloseCalledN calls t.Error if FakeProvider.Close was called less than n times
-func (f *FakeProvider) AssertCloseCalledN(t *testing.T, n int) {
+func (f *FakeProvider) AssertCloseCalledN(t ProviderTestingT, n int) {
 	t.Helper()
 	if len(f.CloseCalls) < n {
 		t.Errorf("FakeProvider.Close called %d times, expected >= %d", len(f.CloseCalls), n)
