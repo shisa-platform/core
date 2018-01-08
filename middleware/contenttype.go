@@ -11,9 +11,9 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	contentTypeHeaderKey = http.CanonicalHeaderKey("Content-Type")
-	acceptHeaderKey      = http.CanonicalHeaderKey("Accept")
+const (
+	ContentTypeHeaderKey = "Content-Type"
+	AcceptHeaderKey      = "Accept"
 )
 
 // RestrictContentTypes is middleware to blacklist incoming

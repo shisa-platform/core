@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	ContentTypeHeaderKey = "Content-Type"
 	LocationHeaderKey    = "Location"
 )
 
@@ -79,7 +78,7 @@ func NewEmpty(status int) Response {
 
 func NewOK(body json.Marshaler) Response {
 	headers := make(http.Header)
-	headers.Set(ContentTypeHeaderKey, jsonContentType)
+	headers.Set(contenttype.ContentTypeHeaderKey, jsonContentType)
 
 	return &JsonResponse{
 		BasicResponse: BasicResponse{

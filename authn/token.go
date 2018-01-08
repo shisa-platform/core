@@ -14,7 +14,7 @@ import (
 // its value is empty or presented scheme doesn't match the value
 // of `scheme`.
 func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request, scheme string) (token string, err merry.Error) {
-	challenge := strings.TrimSpace(r.Header.Get(authHeaderKey))
+	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
 	if challenge == "" {
 		err = merry.New("no challenge provided")
 		err = err.WithUserMessage("Authentication challenge was missing")

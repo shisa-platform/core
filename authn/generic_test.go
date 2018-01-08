@@ -24,7 +24,7 @@ func mustMakeGenericAuthenticator(extractor service.StringExtractor, idp Identit
 
 func TestGenericAuthenticatorTokenExtractorError(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Bearer he:comes")
+	request.Header.Set(AuthnHeaderKey, "Bearer he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	extractor := func(context.Context, *service.Request) (string, merry.Error) {
@@ -39,7 +39,7 @@ func TestGenericAuthenticatorTokenExtractorError(t *testing.T) {
 
 func TestGenericAuthenticatorIdPError(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Zalgo slithy")
+	request.Header.Set(AuthnHeaderKey, "Zalgo slithy")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	extractor := func(context.Context, *service.Request) (string, merry.Error) {
@@ -61,7 +61,7 @@ func TestGenericAuthenticatorIdPError(t *testing.T) {
 
 func TestGenericAuthenticator(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Zalgo he:comes")
+	request.Header.Set(AuthnHeaderKey, "Zalgo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	extractor := func(context.Context, *service.Request) (string, merry.Error) {

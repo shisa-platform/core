@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"net/http"
-
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/authn"
@@ -10,8 +8,8 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	WWWAuthenticateHeaderKey = http.CanonicalHeaderKey("WWW-Authenticate")
+const (
+	WWWAuthenticateHeaderKey = "Www-Authenticate"
 )
 
 // Authentication is middleware to help automate authentication.
