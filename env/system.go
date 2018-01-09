@@ -53,6 +53,10 @@ func (p *systemProvider) Monitor(string, <-chan Value) {
 	// N.B. do nothing, system enviroment vars are not dynamic
 }
 
+func (p *systemProvider) Healthcheck() merry.Error {
+	return nil
+}
+
 func NewSystem() Provider {
 	return new(systemProvider)
 }
