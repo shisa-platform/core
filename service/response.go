@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	LocationHeaderKey    = "Location"
+	LocationHeaderKey = "Location"
 )
 
 var (
