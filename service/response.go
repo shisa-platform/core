@@ -26,7 +26,7 @@ type Response interface {
 }
 
 type BasicResponse struct {
-	Code   int
+	Code     int
 	headers  http.Header
 	trailers http.Header
 }
@@ -70,7 +70,7 @@ func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
 
 func NewEmpty(code int) Response {
 	return &BasicResponse{
-		Code:   Code,
+		Code:     Code,
 		headers:  make(http.Header),
 		trailers: make(http.Header),
 	}
@@ -82,7 +82,7 @@ func NewOK(body json.Marshaler) Response {
 
 	return &JsonResponse{
 		BasicResponse: BasicResponse{
-			Code:   http.StatusOK,
+			Code:     http.StatusOK,
 			headers:  headers,
 			trailers: make(http.Header),
 		},
@@ -106,7 +106,7 @@ func NewSeeOther(location string) Response {
 	headers := make(http.Header)
 	headers.Set(LocationHeaderKey, location)
 	return &BasicResponse{
-		Code:   http.StatusSeeOther,
+		Code:     http.StatusSeeOther,
 		headers:  headers,
 		trailers: make(http.Header),
 	}
@@ -116,7 +116,7 @@ func NewTemporaryRedirect(location string) Response {
 	headers := make(http.Header)
 	headers.Set(LocationHeaderKey, location)
 	return &BasicResponse{
-		Code:   http.StatusTemporaryRedirect,
+		Code:     http.StatusTemporaryRedirect,
 		headers:  headers,
 		trailers: make(http.Header),
 	}
