@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"net/http"
+
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/authn"

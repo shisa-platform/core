@@ -1,8 +1,6 @@
 package authn
 
 import (
-	"net/http"
-
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"

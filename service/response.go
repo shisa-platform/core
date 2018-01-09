@@ -70,7 +70,7 @@ func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
 
 func NewEmpty(code int) Response {
 	return &BasicResponse{
-		Code:     Code,
+		Code:     code,
 		headers:  make(http.Header),
 		trailers: make(http.Header),
 	}

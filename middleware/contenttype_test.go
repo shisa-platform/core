@@ -20,9 +20,9 @@ func requestWithContentType(method string, c []contenttype.ContentType) *service
 
 	for _, cc := range c {
 		if method == http.MethodGet && cc.String() != "/" {
-			req.Header.Add(acceptHeaderKey, cc.String())
+			req.Header.Add(AcceptHeaderKey, cc.String())
 		} else if cc.String() != "/" {
-			req.Header.Add(contentTypeHeaderKey, cc.String())
+			req.Header.Add(contenttype.ContentTypeHeaderKey, cc.String())
 		}
 	}
 	return req

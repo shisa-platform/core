@@ -13,6 +13,7 @@ const (
 	PlainMediaSubtype       = "plain"
 	JsonMediaSubtype        = "json"
 	XmlMediaSubtype         = "xml"
+	ContentTypeHeaderKey    = "Content-Type"
 )
 
 var (
