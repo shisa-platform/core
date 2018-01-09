@@ -31,7 +31,6 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, value, "exists")
 	assert.NoError(t, err)
 
-	defer os.Unsetenv(envvar)
 	setEnv(t, envvar, "")
 
 	value, err = Get(envvar)
@@ -56,7 +55,6 @@ func TestGetInt(t *testing.T) {
 	assert.Equal(t, value, 123)
 	assert.NoError(t, err)
 
-	defer os.Unsetenv(envvar)
 	setEnv(t, envvar, "false")
 
 	value, err = GetInt(envvar)
@@ -81,13 +79,19 @@ func TestGetBool(t *testing.T) {
 	assert.True(t, value)
 	assert.NoError(t, err)
 
-	defer os.Unsetenv(envvar)
 	setEnv(t, envvar, "false")
 
 	value, err = GetBool(envvar)
 
 	assert.False(t, value)
 	assert.NoError(t, err)
+
+	setEnv(t, envvar, "zuul")
+
+	value, err = GetBool(envvar)
+
+	assert.Empty(t, value)
+	assert.Error(t, err)
 }
 
 func TestHealthcheck(t *testing.T) {
