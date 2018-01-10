@@ -21,22 +21,13 @@ func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request,
 		return
 	}
 
-	challengeParts := strings.Split(challenge, " ")
-	if len(challengeParts) != 2 {
-		err = merry.New("wrong challenge parts count")
-		err = err.WithUserMessage("Malformed authentication challenge was provided")
-		err = err.WithValue("challenge", challenge)
-		return
-	}
-
-	if challengeParts[0] != scheme {
+  	if !strings.HasPrefix(challenge, scheme + " ") {
 		err = merry.New("unsupported authn scheme")
 		err = err.WithUserMessage("Unsupported authentication scheme was specified")
-		err = err.WithValue("scheme", challengeParts[0])
-		return
-	}
+  		return
+  	}
 
-	token = challengeParts[1]
+	token = challenge[len(scheme)+1:]
 	return
 }
 
