@@ -15,21 +15,20 @@ const (
 )
 
 // Authentication is middleware to help automate authentication.
-//
-// `Authenticator` must be non-nil or an InternalServiceError
-// status response will be returned.
-// `UnauthorizedHandler` can be set to optionally customize the
-// response for an unknown user.  The default handler will
-// return a 401 status code, the "WWW-Authenticate" header and an
-// empty body.
-// `ErrorHandler` can be set to optionally customize the response
-// for an error. The `err` parameter passed to the handler will
-// have a recommended HTTP status code. The default handler will
-// return the recommended status code, the "WWW-Authenticate"
-// header and an empty body.
 type Authentication struct {
+	// Authenticator must be non-nil or an InternalServiceError
+	// status response will be returned.
 	Authenticator       authn.Authenticator
+	// UnauthorizedHandler can be set to optionally customize the
+	// response for an unknown user.  The default handler will
+	// return a 401 status code, the "WWW-Authenticate" header
+	// and an empty body.
 	UnauthorizedHandler service.Handler
+	// `ErrorHandler` can be set to optionally customize the
+	// response for an error. The `err` parameter passed to the
+	// handler will have a recommended HTTP status code. The
+	// default handler will return the recommended status code,
+	// the "WWW-Authenticate" header and an empty body.
 	ErrorHandler        service.ErrorHandler
 }
 
@@ -42,8 +41,8 @@ func (m *Authentication) Service(ctx context.Context, r *service.Request) servic
 	}
 
 	if m.Authenticator == nil {
-		err := merry.New("authn.Authenticator is nil")
-		err = err.WithUserMessage("Authenticator.Authenticator must be non-nil")
+		err := merry.New("authenticator is nil")
+		err = err.WithUserMessage("middleware.Authentication.Authenticator must be non-nil")
 		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return m.ErrorHandler(ctx, r, err)
 	}
