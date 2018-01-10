@@ -16,10 +16,6 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	backgroundContext = stdctx.Background()
-)
-
 type byName []service.QueryParameter
 
 func (p byName) Len() int           { return len(p) }
@@ -35,7 +31,7 @@ func (p byOrdinal) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
-	ctx := context.New(backgroundContext)
+	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}
 
 	requestIDGenerationStart := time.Now().UTC()
