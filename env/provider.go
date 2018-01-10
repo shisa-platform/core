@@ -21,4 +21,5 @@ type Provider interface {
 	GetInt(string) (int, merry.Error)
 	GetBool(string) (bool, merry.Error)
 	Monitor(string, <-chan Value)
+	Healthcheck() merry.Error
 }

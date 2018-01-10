@@ -3,7 +3,6 @@
 package env
 
 import "reflect"
-
 import "github.com/ansel1/merry"
 
 // ProviderGetInvocation represents a single call of FakeProvider.Get
@@ -47,6 +46,13 @@ type ProviderMonitorInvocation struct {
 	}
 }
 
+// ProviderHealthcheckInvocation represents a single call of FakeProvider.Healthcheck
+type ProviderHealthcheckInvocation struct {
+	Results struct {
+		Ident1 merry.Error
+	}
+}
+
 // ProviderTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
 type ProviderTestingT interface {
 	Error(...interface{})
@@ -80,15 +86,17 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeGet.
 */
 type FakeProvider struct {
-	GetHook     func(string) (string, merry.Error)
-	GetIntHook  func(string) (int, merry.Error)
-	GetBoolHook func(string) (bool, merry.Error)
-	MonitorHook func(string, <-chan Value)
+	GetHook         func(string) (string, merry.Error)
+	GetIntHook      func(string) (int, merry.Error)
+	GetBoolHook     func(string) (bool, merry.Error)
+	MonitorHook     func(string, <-chan Value)
+	HealthcheckHook func() merry.Error
 
-	GetCalls     []*ProviderGetInvocation
-	GetIntCalls  []*ProviderGetIntInvocation
-	GetBoolCalls []*ProviderGetBoolInvocation
-	MonitorCalls []*ProviderMonitorInvocation
+	GetCalls         []*ProviderGetInvocation
+	GetIntCalls      []*ProviderGetIntInvocation
+	GetBoolCalls     []*ProviderGetBoolInvocation
+	MonitorCalls     []*ProviderMonitorInvocation
+	HealthcheckCalls []*ProviderHealthcheckInvocation
 }
 
 // NewFakeProviderDefaultPanic returns an instance of FakeProvider with all hooks configured to panic
@@ -105,6 +113,9 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 		},
 		MonitorHook: func(string, <-chan Value) {
 			panic("Unexpected call to Provider.Monitor")
+		},
+		HealthcheckHook: func() (ident1 merry.Error) {
+			panic("Unexpected call to Provider.Healthcheck")
 		},
 	}
 }
@@ -126,6 +137,10 @@ func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 		},
 		MonitorHook: func(string, <-chan Value) {
 			t.Fatal("Unexpected call to Provider.Monitor")
+			return
+		},
+		HealthcheckHook: func() (ident1 merry.Error) {
+			t.Fatal("Unexpected call to Provider.Healthcheck")
 			return
 		},
 	}
@@ -150,6 +165,10 @@ func NewFakeProviderDefaultError(t ProviderTestingT) *FakeProvider {
 			t.Error("Unexpected call to Provider.Monitor")
 			return
 		},
+		HealthcheckHook: func() (ident1 merry.Error) {
+			t.Error("Unexpected call to Provider.Healthcheck")
+			return
+		},
 	}
 }
 
@@ -158,6 +177,7 @@ func (f *FakeProvider) Reset() {
 	f.GetIntCalls = []*ProviderGetIntInvocation{}
 	f.GetBoolCalls = []*ProviderGetBoolInvocation{}
 	f.MonitorCalls = []*ProviderMonitorInvocation{}
+	f.HealthcheckCalls = []*ProviderHealthcheckInvocation{}
 }
 
 func (_f1 *FakeProvider) Get(ident1 string) (ident2 string, ident3 merry.Error) {
@@ -685,5 +705,69 @@ func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1
 
 	if count != 1 {
 		t.Errorf("FakeProvider.Monitor called %d times with expected parameters, expected one", count)
+	}
+}
+
+func (_f24 *FakeProvider) Healthcheck() (ident1 merry.Error) {
+	invocation := new(ProviderHealthcheckInvocation)
+
+	ident1 = _f24.HealthcheckHook()
+
+	invocation.Results.Ident1 = ident1
+
+	_f24.HealthcheckCalls = append(_f24.HealthcheckCalls, invocation)
+
+	return
+}
+
+// HealthcheckCalled returns true if FakeProvider.Healthcheck was called
+func (f *FakeProvider) HealthcheckCalled() bool {
+	return len(f.HealthcheckCalls) != 0
+}
+
+// AssertHealthcheckCalled calls t.Error if FakeProvider.Healthcheck was not called
+func (f *FakeProvider) AssertHealthcheckCalled(t ProviderTestingT) {
+	t.Helper()
+	if len(f.HealthcheckCalls) == 0 {
+		t.Error("FakeProvider.Healthcheck not called, expected at least one")
+	}
+}
+
+// HealthcheckNotCalled returns true if FakeProvider.Healthcheck was not called
+func (f *FakeProvider) HealthcheckNotCalled() bool {
+	return len(f.HealthcheckCalls) == 0
+}
+
+// AssertHealthcheckNotCalled calls t.Error if FakeProvider.Healthcheck was called
+func (f *FakeProvider) AssertHealthcheckNotCalled(t ProviderTestingT) {
+	t.Helper()
+	if len(f.HealthcheckCalls) != 0 {
+		t.Error("FakeProvider.Healthcheck called, expected none")
+	}
+}
+
+// HealthcheckCalledOnce returns true if FakeProvider.Healthcheck was called exactly once
+func (f *FakeProvider) HealthcheckCalledOnce() bool {
+	return len(f.HealthcheckCalls) == 1
+}
+
+// AssertHealthcheckCalledOnce calls t.Error if FakeProvider.Healthcheck was not called exactly once
+func (f *FakeProvider) AssertHealthcheckCalledOnce(t ProviderTestingT) {
+	t.Helper()
+	if len(f.HealthcheckCalls) != 1 {
+		t.Errorf("FakeProvider.Healthcheck called %d times, expected 1", len(f.HealthcheckCalls))
+	}
+}
+
+// HealthcheckCalledN returns true if FakeProvider.Healthcheck was called at least n times
+func (f *FakeProvider) HealthcheckCalledN(n int) bool {
+	return len(f.HealthcheckCalls) >= n
+}
+
+// AssertHealthcheckCalledN calls t.Error if FakeProvider.Healthcheck was called less than n times
+func (f *FakeProvider) AssertHealthcheckCalledN(t ProviderTestingT, n int) {
+	t.Helper()
+	if len(f.HealthcheckCalls) < n {
+		t.Errorf("FakeProvider.Healthcheck called %d times, expected >= %d", len(f.HealthcheckCalls), n)
 	}
 }

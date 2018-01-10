@@ -11,9 +11,8 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	contentTypeHeaderKey = http.CanonicalHeaderKey("Content-Type")
-	acceptHeaderKey      = http.CanonicalHeaderKey("Accept")
+const (
+	AcceptHeaderKey = "Accept"
 )
 
 // RestrictContentTypes is middleware to blacklist incoming
@@ -52,7 +51,7 @@ func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) se
 }
 
 func (m *RestrictContentTypes) checkPayload(r *service.Request) (err merry.Error) {
-	if values, ok := r.Header[contentTypeHeaderKey]; ok {
+	if values, ok := r.Header[contenttype.ContentTypeHeaderKey]; ok {
 		if len(values) != 1 {
 			err = merry.New("too many content types declared")
 			err = err.WithUserMessage("Content-Type header must be a single value")
@@ -76,7 +75,7 @@ func (m *RestrictContentTypes) checkPayload(r *service.Request) (err merry.Error
 }
 
 func (m *RestrictContentTypes) checkQuery(r *service.Request) (err merry.Error) {
-	if values, ok := r.Header[acceptHeaderKey]; ok {
+	if values, ok := r.Header[AcceptHeaderKey]; ok {
 		for _, value := range values {
 			for _, mediaRange := range strings.Split(value, ",") {
 				mediaRange = strings.TrimSpace(mediaRange)
@@ -141,7 +140,7 @@ func (m *AllowContentTypes) Service(c context.Context, r *service.Request) servi
 }
 
 func (m *AllowContentTypes) checkPayload(r *service.Request) (err merry.Error) {
-	if values, ok := r.Header[contentTypeHeaderKey]; ok {
+	if values, ok := r.Header[contenttype.ContentTypeHeaderKey]; ok {
 		if len(values) != 1 {
 			err = merry.New("too many content types declared")
 			err = err.WithUserMessage("Content-Type header must be a single value")
@@ -166,7 +165,7 @@ func (m *AllowContentTypes) checkPayload(r *service.Request) (err merry.Error) {
 }
 
 func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
-	if values, ok := r.Header[acceptHeaderKey]; ok {
+	if values, ok := r.Header[AcceptHeaderKey]; ok {
 		for _, value := range values {
 			for _, mediaRange := range strings.Split(value, ",") {
 				mediaRange = strings.TrimSpace(mediaRange)

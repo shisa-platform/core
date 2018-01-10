@@ -24,7 +24,7 @@ func mustMakeBearerAuthenticator(idp IdentityProvider) Authenticator {
 
 func TestBearerAuthenticatorBadScheme(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Foo zalgo.he:comes")
+	request.Header.Set(AuthnHeaderKey, "Foo zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	authn := mustMakeBearerAuthenticator(NewFakeIdentityProviderDefaultFatal(t))
@@ -36,7 +36,7 @@ func TestBearerAuthenticatorBadScheme(t *testing.T) {
 
 func TestBearerAuthenticatorUnknownToken(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Bearer zalgo.he:comes")
+	request.Header.Set(AuthnHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	idp := &FakeIdentityProvider{
@@ -55,7 +55,7 @@ func TestBearerAuthenticatorUnknownToken(t *testing.T) {
 
 func TestBearerAuthenticatorIdPError(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Bearer zalgo.he:comes")
+	request.Header.Set(AuthnHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	idp := &FakeIdentityProvider{
@@ -74,7 +74,7 @@ func TestBearerAuthenticatorIdPError(t *testing.T) {
 
 func TestBearerAuthenticator(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(authHeaderKey, "Bearer zalgo.he:comes")
+	request.Header.Set(AuthnHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	expectedUser := &models.FakeUser{

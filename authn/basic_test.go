@@ -37,7 +37,7 @@ func TestBasicAuthTokenExtractorMissingHeader(t *testing.T) {
 
 func TestBasicAuthTokenExtractorEmptyHeader(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "")
+	request.Header.Set(AuthnHeaderKey, "")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
@@ -47,7 +47,7 @@ func TestBasicAuthTokenExtractorEmptyHeader(t *testing.T) {
 
 func TestBasicAuthTokenExtractorBadChallenge(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Foo Zm9vCg== YmFyCg==")
+	request.Header.Set(AuthnHeaderKey, "Foo Zm9vCg== YmFyCg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
@@ -57,7 +57,7 @@ func TestBasicAuthTokenExtractorBadChallenge(t *testing.T) {
 
 func TestBasicAuthTokenExtractorMissingScheme(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Zm9vOmJhcg==")
+	request.Header.Set(AuthnHeaderKey, "Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
@@ -67,7 +67,7 @@ func TestBasicAuthTokenExtractorMissingScheme(t *testing.T) {
 
 func TestBasicAuthTokenExtractorBadScheme(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Foo Zm9vOmJhcg==")
+	request.Header.Set(AuthnHeaderKey, "Foo Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
@@ -77,7 +77,7 @@ func TestBasicAuthTokenExtractorBadScheme(t *testing.T) {
 
 func TestBasicAuthTokenExtractorCorruptCredentials(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Basic x===")
+	request.Header.Set(AuthnHeaderKey, "Basic x===")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
@@ -87,7 +87,7 @@ func TestBasicAuthTokenExtractorCorruptCredentials(t *testing.T) {
 
 func TestBasicAuthTokenExtractor(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
+	request.Header.Set(AuthnHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := BasicAuthTokenExtractor(ctx, request)
@@ -97,7 +97,7 @@ func TestBasicAuthTokenExtractor(t *testing.T) {
 
 func TestBasicAuthenticatorBadToken(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Basic x===")
+	request.Header.Set(AuthnHeaderKey, "Basic x===")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	authn := mustMakeBasicAuthenticator(NewFakeIdentityProviderDefaultFatal(t))
@@ -109,7 +109,7 @@ func TestBasicAuthenticatorBadToken(t *testing.T) {
 
 func TestBasicAuthenticatorUnknownToken(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
+	request.Header.Set(AuthnHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	idp := &FakeIdentityProvider{
@@ -128,7 +128,7 @@ func TestBasicAuthenticatorUnknownToken(t *testing.T) {
 
 func TestBasicAuthenticatorIdPError(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
+	request.Header.Set(AuthnHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	idp := &FakeIdentityProvider{
@@ -147,7 +147,7 @@ func TestBasicAuthenticatorIdPError(t *testing.T) {
 
 func TestBasicAuthenticator(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
-	request.Header.Set(authHeaderKey, "Basic Zm9vOmJhcg==")
+	request.Header.Set(AuthnHeaderKey, "Basic Zm9vOmJhcg==")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	expectedUser := &models.FakeUser{

@@ -1,8 +1,6 @@
 package authn
 
 import (
-	"net/http"
-
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
@@ -10,8 +8,8 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	authHeaderKey = http.CanonicalHeaderKey("Authorization")
+const (
+	AuthnHeaderKey = "Authorization"
 )
 
 //go:generate charlatan -output=./authenticator_charlatan.go Authenticator
