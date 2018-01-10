@@ -21,11 +21,11 @@ func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request,
 		return
 	}
 
-  	if !strings.HasPrefix(challenge, scheme + " ") {
+	if !strings.HasPrefix(challenge, scheme+" ") {
 		err = merry.New("unsupported authn scheme")
 		err = err.WithUserMessage("Unsupported authentication scheme was specified")
-  		return
-  	}
+		return
+	}
 
 	token = challenge[len(scheme)+1:]
 	return

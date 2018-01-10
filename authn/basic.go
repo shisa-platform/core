@@ -25,12 +25,12 @@ func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token str
 	}
 
 	const prefix = "Basic "
-  	if !strings.HasPrefix(challenge, prefix) {
+	if !strings.HasPrefix(challenge, prefix) {
 		err = merry.New("unsupported authn scheme")
 		err = err.WithUserMessage("Unsupported authentication scheme was specified")
-  		return
-  	}
- 
+		return
+	}
+
 	credentials, b64err := base64.StdEncoding.DecodeString(challenge[len(prefix):])
 	if b64err != nil {
 		err = merry.Wrap(b64err)
