@@ -36,7 +36,7 @@ func (s MemberStatus) String() string {
 	case StatusFailed:
 		return "failed"
 	default:
-		return fmt.Sprintf("unknown MemberStatus: %d", s)
+		return "unknown"
 	}
 }
 
@@ -105,13 +105,14 @@ func (p *consulProvider) Healthcheck() merry.Error {
 		return nil
 	}
 
-	return merry.Errorf("bad consul agent status: %s", s)
+	return merry.New("consul agent not alive").WithValue("status", s.String())
 }
 
 func (p *consulProvider) status() (status MemberStatus, merr merry.Error) {
 	s, err := p.agent.Self()
 	if err != nil {
 		merr = merry.Wrap(err)
+		return
 	}
 
 	status, ok := s["Member"]["Status"].(MemberStatus)
