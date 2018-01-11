@@ -1,7 +1,6 @@
 package env
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/ansel1/merry"
