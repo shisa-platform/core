@@ -154,7 +154,7 @@ func TestDefaultRedirectHandlerNoSlashNonGet(t *testing.T) {
 	assert.Equal(t, 0, buf.Len())
 }
 
-func TestDefautlRequestIDGenerator(t *testing.T) {
+func TestDefaultRequestIDGenerator(t *testing.T) {
 	request := &service.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 

@@ -244,5 +244,5 @@ func installPipeline(handlers []service.Handler, pipeline *service.Pipeline) (*s
 	}
 	sort.Sort(fields(result.QueryFields))
 
-	return pipeline, nil
+	return result, nil
 }
