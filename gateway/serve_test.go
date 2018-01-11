@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
 )
 
@@ -258,4 +259,19 @@ func TestGatewayAuxillaryServer(t *testing.T) {
 
 	aux.AssertServeCalledOnce(t)
 	aux.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
+}
+
+func teapotHandler(context.Context, *service.Request) service.Response {
+	return service.NewEmpty(http.StatusTeapot)
+}
+
+func TestInstallPipelineAppliesServiceHandlers(t *testing.T) {
+	pipeline := &service.Pipeline{Handlers: []service.Handler{dummyHandler}}
+
+	augpipe, err := installPipeline([]service.Handler{teapotHandler}, pipeline)
+
+	assert.NoError(t, err)
+	assert.Len(t, augpipe.Handlers, 2)
+	assert.Equal(t, augpipe.Handlers[0](nil, nil).StatusCode(), 418)
+	assert.Equal(t, augpipe.Handlers[1](nil, nil).StatusCode(), 200)
 }
