@@ -37,25 +37,14 @@ func TestMemberStatusString(t *testing.T) {
 }
 
 func TestNewConsul(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
-	}
+	ac := &consulapi.Client{}
 
-	c := NewConsul(fcc)
+	c := NewConsul(ac)
 	cs := c.(*consulProvider)
 
-	fcc.AssertAgentCalledOnce(t)
-	fcc.AssertKVCalledOnce(t)
-
-	assert.Equal(t, s, cs.agent)
-	assert.Equal(t, kvg, cs.kv)
+	assert.NotNil(t, c)
+	assert.NotNil(t, cs.agent)
+	assert.NotNil(t, cs.kv)
 }
 
 func TestConsulProviderGet(t *testing.T) {
@@ -65,15 +54,10 @@ func TestConsulProviderGet(t *testing.T) {
 			return &consulapi.KVPair{Value: defaultVal}, nil, nil
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.Get(defaultKey)
 
@@ -89,15 +73,10 @@ func TestConsulProviderGetError(t *testing.T) {
 			return nil, nil, merry.New("get error")
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.Get(defaultKey)
 
@@ -113,15 +92,10 @@ func TestConsulProviderGetEmpty(t *testing.T) {
 			return &consulapi.KVPair{Value: []byte("")}, nil, nil
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.Get(defaultKey)
 
@@ -137,15 +111,10 @@ func TestConsulProviderGetInt(t *testing.T) {
 			return &consulapi.KVPair{Value: defaultIntVal}, nil, nil
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.GetInt(defaultKey)
 
@@ -161,15 +130,10 @@ func TestConsulProviderGetIntError(t *testing.T) {
 			return nil, nil, merry.New("get error")
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.GetInt(defaultKey)
 
@@ -185,15 +149,10 @@ func TestConsulProviderGetIntParseFailure(t *testing.T) {
 			return &consulapi.KVPair{Value: defaultVal}, nil, nil
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.GetInt(defaultKey)
 
@@ -209,15 +168,10 @@ func TestConsulProviderGetBool(t *testing.T) {
 			return &consulapi.KVPair{Value: defaultBoolVal}, nil, nil
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.GetBool(defaultKey)
 
@@ -233,15 +187,10 @@ func TestConsulProviderGetBoolError(t *testing.T) {
 			return nil, nil, merry.New("get error")
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.GetBool(defaultKey)
 
@@ -257,15 +206,10 @@ func TestConsulProviderGetBoolParseFailure(t *testing.T) {
 			return &consulapi.KVPair{Value: defaultVal}, nil, nil
 		},
 	}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	r, err := c.GetBool(defaultKey)
 
@@ -284,15 +228,10 @@ func TestConsulProviderHealthcheck(t *testing.T) {
 		},
 	}
 	kvg := &FakeKVGetter{}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	err := c.Healthcheck()
 
@@ -307,15 +246,10 @@ func TestConsulProviderHealthcheckStatusError(t *testing.T) {
 		},
 	}
 	kvg := &FakeKVGetter{}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	err := c.Healthcheck()
 
@@ -333,15 +267,10 @@ func TestConsulProviderHealthcheckNotAlive(t *testing.T) {
 		},
 	}
 	kvg := &FakeKVGetter{}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	err := c.Healthcheck()
 
@@ -359,15 +288,10 @@ func TestConsulProviderStatusUnparseable(t *testing.T) {
 		},
 	}
 	kvg := &FakeKVGetter{}
-	fcc := &FakeConsulClient{
-		AgentHook: func() Selfer {
-			return s
-		},
-		KVHook: func() KVGetter {
-			return kvg
-		},
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
 	}
-	c := NewConsul(fcc)
 
 	err := c.Healthcheck()
 
