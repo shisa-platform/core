@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/ansel1/merry"
@@ -20,6 +21,7 @@ type clientThrottlerCase struct {
 	FakeLimiter        *ratelimit.FakeProvider
 	ExpectShortCircuit bool
 	StatusCode         int
+	CoolDown           string
 }
 
 func checkClientThrottlerCase(t *testing.T, c clientThrottlerCase) {
@@ -35,6 +37,9 @@ func checkClientThrottlerCase(t *testing.T, c clientThrottlerCase) {
 	if res != nil {
 		assert.True(t, c.ExpectShortCircuit)
 		assert.Equal(t, c.StatusCode, res.StatusCode())
+		if c.CoolDown != "" {
+			assert.Equal(t, c.CoolDown, res.Headers().Get(RetryAfterHeaderKey))
+		}
 	} else {
 		assert.False(t, c.ExpectShortCircuit)
 	}
@@ -73,21 +78,21 @@ func TestClientThrottlerServiceRateLimitHandlerHook(t *testing.T) {
 		},
 	}
 
-	ut := &UserThrottler{
+	ut := &ClientThrottler{
 		Limiter: fl,
 		RateLimitHandler: func(c context.Context, r *service.Request, cd time.Duration) service.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}
 
-	c := userThrottlerCase{
+	c := clientThrottlerCase{
 		Throttler:          ut,
 		FakeLimiter:        fl,
 		ExpectShortCircuit: true,
 		StatusCode:         http.StatusTeapot,
 	}
 
-	checkUserThrottlerCase(t, c)
+	checkClientThrottlerCase(t, c)
 }
 
 func TestClientThrottlerServiceAllowError(t *testing.T) {
@@ -127,9 +132,23 @@ func TestClientThrottlerServiceThrottled(t *testing.T) {
 		FakeLimiter:        fl,
 		ExpectShortCircuit: true,
 		StatusCode:         http.StatusTooManyRequests,
+		CoolDown:           strconv.Itoa(60*60),
 	}
 
 	checkClientThrottlerCase(t, c)
+}
+
+func TestClientThrottlerServiceNilLimiter(t *testing.T) {
+	ctx := context.New(nil)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	req := &service.Request{Request: httpReq}
+
+	ut := &ClientThrottler{}
+	res := ut.Service(ctx, req)
+
+	assert.NotNil(t, res)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 }
 
 func TestClientThrottlerServicePass(t *testing.T) {
@@ -157,6 +176,7 @@ type userThrottlerCase struct {
 	FakeLimiter        *ratelimit.FakeProvider
 	ExpectShortCircuit bool
 	StatusCode         int
+	CoolDown           string
 }
 
 func checkUserThrottlerCase(t *testing.T, u userThrottlerCase) {
@@ -176,6 +196,9 @@ func checkUserThrottlerCase(t *testing.T, u userThrottlerCase) {
 	if res != nil {
 		assert.True(t, u.ExpectShortCircuit)
 		assert.Equal(t, u.StatusCode, res.StatusCode())
+		if u.CoolDown != "" {
+			assert.Equal(t, u.CoolDown, res.Headers().Get(RetryAfterHeaderKey))
+		}
 	} else {
 		assert.False(t, u.ExpectShortCircuit)
 	}
@@ -268,9 +291,23 @@ func TestUserThrottlerServiceThrottled(t *testing.T) {
 		FakeLimiter:        fl,
 		ExpectShortCircuit: true,
 		StatusCode:         http.StatusTooManyRequests,
+		CoolDown:           strconv.Itoa(60*60),
 	}
 
 	checkUserThrottlerCase(t, c)
+}
+
+func TestUserThrottlerServiceNilLimiter(t *testing.T) {
+	ctx := context.New(nil)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	req := &service.Request{Request: httpReq}
+
+	ut := &UserThrottler{}
+	res := ut.Service(ctx, req)
+
+	assert.NotNil(t, res)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 }
 
 func TestUserThrottlerServicePass(t *testing.T) {

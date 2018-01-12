@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -12,8 +12,8 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-var (
-	RetryAfterHeaderKey = http.CanonicalHeaderKey("Retry-After")
+const (
+	RetryAfterHeaderKey = "Retry-After"
 )
 
 type RateLimitHandler func(context.Context, *service.Request, time.Duration) service.Response
@@ -21,8 +21,9 @@ type RateLimitHandler func(context.Context, *service.Request, time.Duration) ser
 // ClientThrottler is a a rate-limiting middleware that
 // throttles requests from a given ClientIP using its Limiter
 type ClientThrottler struct {
-	// Limiter is a ratelimit.Provider that determines whether
-	// the request should be throttled, based on the request's ClientIP
+	// Limiter determines whether the request should be throttled
+	// based on the request's ClientIP.  This must be non-nil or
+	// an InternalServiceError status response will be returned.
 	Limiter ratelimit.Provider
 
 	// RateLimitHandler optionally customizes the response for a
@@ -43,6 +44,14 @@ func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) servi
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
+
+	if m.Limiter == nil {
+		err := merry.New("limiter is nil")
+		err = err.WithUserMessage("middleware.ClientThrottler.Limiter must be non-nil")
+		err = err.WithHTTPCode(http.StatusInternalServerError)
+		return m.ErrorHandler(ctx, r, err)
+	}
+
 	if m.RateLimitHandler == nil {
 		m.RateLimitHandler = m.defaultRateLimitHandler
 	}
@@ -65,19 +74,21 @@ func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Re
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
-func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) (res service.Response) {
-	res = service.NewEmpty(http.StatusTooManyRequests)
-	res.Headers().Set(RetryAfterHeaderKey, fmt.Sprintf("%v", cd.Seconds()))
-	return
+func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
+	response := service.NewEmpty(http.StatusTooManyRequests)
+	response.Headers().Set(RetryAfterHeaderKey, strconv.Itoa(int(cd/time.Second)))
+
+	return response
 }
 
 // UserThrottler is a a rate-limiting middleware that
 // throttles requests from a given User, via the
 // request Context's Actor) using its Limiter
 type UserThrottler struct {
-	// Limiter is a ratelimit.Provider that determines whether
-	// the request should be throttled, based on the request
-	// context Actor's ID method
+	// Limiter determines whether the request should be throttled
+	// based on the context Actor's `ID` method.  This must be
+	// non-nil or an InternalServiceError status response will be
+	// returned.
 	Limiter ratelimit.Provider
 
 	// RateLimitHandler optionally customizes the response for a
@@ -98,6 +109,14 @@ func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
+
+	if m.Limiter == nil {
+		err := merry.New("limiter is nil")
+		err = err.WithUserMessage("middleware.UserThrottler.Limiter must be non-nil")
+		err = err.WithHTTPCode(http.StatusInternalServerError)
+		return m.ErrorHandler(ctx, r, err)
+	}
+
 	if m.RateLimitHandler == nil {
 		m.RateLimitHandler = m.defaultRateLimitHandler
 	}
@@ -120,14 +139,14 @@ func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *service.Requ
 	return service.NewEmpty(merry.HTTPCode(err))
 }
 
-func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) (res service.Response) {
-	res = service.NewEmpty(http.StatusTooManyRequests)
-	res.Headers().Set(RetryAfterHeaderKey, fmt.Sprintf("%v", cd.Seconds()))
-	return
+func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
+	response := service.NewEmpty(http.StatusTooManyRequests)
+	response.Headers().Set(RetryAfterHeaderKey, strconv.Itoa(int(cd/time.Second)))
+
+	return response
 }
 
-func throttle(limiter ratelimit.Provider, actor string, r *service.Request) (ok bool, cd time.Duration, err merry.Error) {
+func throttle(limiter ratelimit.Provider, actor string, r *service.Request) (bool, time.Duration, merry.Error) {
 	action, path := r.Method, r.URL.Path
-	ok, cd, err = limiter.Allow(actor, action, path)
-	return
+	return limiter.Allow(actor, action, path)
 }
