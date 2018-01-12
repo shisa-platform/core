@@ -3,7 +3,6 @@
 package authn
 
 import "reflect"
-
 import "github.com/ansel1/merry"
 import "github.com/percolate/shisa/context"
 import "github.com/percolate/shisa/models"
