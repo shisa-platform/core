@@ -7,12 +7,6 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 )
 
-//go:generate charlatan -output=./consulclient_charlatan.go ConsulClient
-type ConsulClient interface {
-	Agent() Selfer
-	KV() KVGetter
-}
-
 //go:generate charlatan -output=./consulselfer_charlatan.go Selfer
 type Selfer interface {
 	Self() (map[string]map[string]interface{}, error)
@@ -58,7 +52,7 @@ type consulProvider struct {
 	kv    KVGetter
 }
 
-func NewConsul(c ConsulClient) Provider {
+func NewConsul(c *consulapi.Client) Provider {
 	return &consulProvider{c.Agent(), c.KV()}
 }
 
