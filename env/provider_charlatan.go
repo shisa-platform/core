@@ -2,8 +2,9 @@
 
 package env
 
-import "reflect"
 import "github.com/ansel1/merry"
+
+import "reflect"
 
 // ProviderGetInvocation represents a single call of FakeProvider.Get
 type ProviderGetInvocation struct {

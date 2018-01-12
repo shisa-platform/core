@@ -7,10 +7,24 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 )
 
+//go:generate charlatan -output=./consulclient_charlatan.go ConsulClient
 type ConsulClient interface {
-	Agent() *consulapi.Agent
-	KV() *consulapi.KV
+	Agent() Selfer
+	KV() KVGetter
 }
+
+//go:generate charlatan -output=./consulselfer_charlatan.go Selfer
+type Selfer interface {
+	Self() (map[string]map[string]interface{}, error)
+}
+
+//go:generate charlatan -output=./consulkvgetter_charlatan.go KVGetter
+type KVGetter interface {
+	Get(string, *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error)
+}
+
+var _ Selfer = (*consulapi.Agent)(nil)
+var _ KVGetter = (*consulapi.KV)(nil)
 
 type MemberStatus int
 
@@ -40,8 +54,8 @@ func (s MemberStatus) String() string {
 }
 
 type consulProvider struct {
-	agent *consulapi.Agent
-	kv    *consulapi.KV
+	agent Selfer
+	kv    KVGetter
 }
 
 func NewConsul(c ConsulClient) Provider {
