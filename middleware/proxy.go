@@ -108,21 +108,21 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 
 	// Remove hop-by-hop headers in the request.
 	// See https://tools.ietf.org/html/rfc2616#section-13.5.1
-  	for _, h := range hopHeaders {
+	for _, h := range hopHeaders {
 		delete(request.Header, h)
-  	}
-  
+	}
+
 	if clientIP, _, err := net.SplitHostPort(request.RemoteAddr); err == nil {
-  		// If we aren't the first proxy retain prior
-  		// X-Forwarded-For information as a comma+space
-  		// separated list and fold multiple headers into one.
-  		if prior, ok := request.Header["X-Forwarded-For"]; ok {
-  			clientIP = strings.Join(prior, ", ") + ", " + clientIP
-  		}
-  		request.Header.Set("X-Forwarded-For", clientIP)
-  	}
-  
-  	response, err := m.Invoker(ctx, request)
+		// If we aren't the first proxy retain prior
+		// X-Forwarded-For information as a comma+space
+		// separated list and fold multiple headers into one.
+		if prior, ok := request.Header["X-Forwarded-For"]; ok {
+			clientIP = strings.Join(prior, ", ") + ", " + clientIP
+		}
+		request.Header.Set("X-Forwarded-For", clientIP)
+	}
+
+	response, err := m.Invoker(ctx, request)
 	if err != nil {
 		err = err.WithHTTPCode(http.StatusBadGateway)
 		return m.ErrorHandler(ctx, request, err)
@@ -147,10 +147,10 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 
 	// Remove hop-by-hop headers in the response.
 	// See https://tools.ietf.org/html/rfc2616#section-13.5.1
-  	for _, h := range hopHeaders {
+	for _, h := range hopHeaders {
 		delete(response.Headers(), h)
-  	}
-  
+	}
+
 	if m.Responder == nil {
 		return response
 	}

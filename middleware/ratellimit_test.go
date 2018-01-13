@@ -132,7 +132,7 @@ func TestClientThrottlerServiceThrottled(t *testing.T) {
 		FakeLimiter:        fl,
 		ExpectShortCircuit: true,
 		StatusCode:         http.StatusTooManyRequests,
-		CoolDown:           strconv.Itoa(60*60),
+		CoolDown:           strconv.Itoa(60 * 60),
 	}
 
 	checkClientThrottlerCase(t, c)
@@ -291,7 +291,7 @@ func TestUserThrottlerServiceThrottled(t *testing.T) {
 		FakeLimiter:        fl,
 		ExpectShortCircuit: true,
 		StatusCode:         http.StatusTooManyRequests,
-		CoolDown:           strconv.Itoa(60*60),
+		CoolDown:           strconv.Itoa(60 * 60),
 	}
 
 	checkUserThrottlerCase(t, c)

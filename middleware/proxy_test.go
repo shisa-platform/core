@@ -330,7 +330,7 @@ func TestReverseProxyUncontactableProxy(t *testing.T) {
 	assert.Equal(t, 0, buf.Len())
 }
 
-func TestReverseProxyNilResponderResponse(t *testing.T) {	
+func TestReverseProxyNilResponderResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(helloWorldHandler))
 	defer server.Close()
 
@@ -373,7 +373,7 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 	assert.Equal(t, 0, buf.Len())
 }
 
-func TestReverseProxy(t *testing.T) {	
+func TestReverseProxy(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(helloWorldHandler))
 	defer server.Close()
 
