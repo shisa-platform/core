@@ -31,16 +31,6 @@ func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestAuthenticationHeaderTokenExtractorBadChallenge(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
-	request.Header.Set(AuthnHeaderKey, "Zalgo he comes")
-	ctx := context.NewFakeContextDefaultFatal(t)
-
-	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
-	assert.Empty(t, token)
-	assert.Error(t, err)
-}
-
 func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
 	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Zalgo")

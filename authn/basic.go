@@ -3,6 +3,7 @@ package authn
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/ansel1/merry"
 
@@ -16,16 +17,24 @@ import (
 // colon-concatentated userid-password as specified in RFC 7617.
 // An error is returned if the credentials cannot be extracted.
 func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token string, err merry.Error) {
-	rawCredentails, err := AuthenticationHeaderTokenExtractor(ctx, r, "Basic")
-	if err != nil {
+	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
+	if challenge == "" {
+		err = merry.New("no challenge provided")
+		err = err.WithUserMessage("Authentication challenge was missing")
 		return
 	}
 
-	credentials, b64err := base64.StdEncoding.DecodeString(rawCredentails)
+	const prefix = "Basic "
+	if !strings.HasPrefix(challenge, prefix) {
+		err = merry.New("unsupported authn scheme")
+		err = err.WithUserMessage("Unsupported authentication scheme was specified")
+		return
+	}
+
+	credentials, b64err := base64.StdEncoding.DecodeString(challenge[len(prefix):])
 	if b64err != nil {
 		err = merry.Wrap(b64err)
 		err = err.WithUserMessage("Malformed authentication credentials were provided")
-		err = err.WithValue("credentials", rawCredentails)
 		return
 	}
 
@@ -35,7 +44,6 @@ func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token str
 
 type basicAuthenticator struct {
 	idp       IdentityProvider
-	realm     string
 	challenge string
 }
 
@@ -49,10 +57,6 @@ func (m *basicAuthenticator) Authenticate(ctx context.Context, r *service.Reques
 }
 
 func (m *basicAuthenticator) Challenge() string {
-	if m.challenge == "" {
-		m.challenge = fmt.Sprintf("Basic realm=%q", m.realm)
-	}
-
 	return m.challenge
 }
 
@@ -64,5 +68,5 @@ func NewBasicAuthenticator(idp IdentityProvider, realm string) (Authenticator, m
 		return nil, merry.New("Identity provider must be non-nil")
 	}
 
-	return &basicAuthenticator{idp: idp, realm: realm}, nil
+	return &basicAuthenticator{idp: idp, challenge: fmt.Sprintf("Basic realm=%q", realm)}, nil
 }

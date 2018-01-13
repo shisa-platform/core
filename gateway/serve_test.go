@@ -157,7 +157,7 @@ func TestGatewayFailingAuxillary(t *testing.T) {
 
 	aux := &auxillary.FakeServer{
 		AddressHook: func() string {
-			return ":9002"
+			return "127.0.0.1:0"
 		},
 		NameHook: func() string {
 			return "aux"
@@ -179,7 +179,7 @@ func TestGatewayFailingAuxillary(t *testing.T) {
 func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	cut := &Gateway{
 		Name:    "test",
-		Address: ":9003",
+		Address: "127.0.0.1:0",
 	}
 
 	pipline := &service.Pipeline{Handlers: []service.Handler{dummyHandler}}
@@ -226,7 +226,7 @@ func TestGatewayAuxillaryServer(t *testing.T) {
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
 		Name:        "test",
-		Address:     ":9005",
+		Address:     "127.0.0.1:0",
 		GracePeriod: expectedGracePeriod,
 	}
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -234,7 +234,7 @@ func TestGatewayAuxillaryServer(t *testing.T) {
 
 	aux := &auxillary.FakeServer{
 		AddressHook: func() string {
-			return ":9006"
+			return "127.0.0.1:0"
 		},
 		NameHook: func() string {
 			return "fake"
