@@ -71,13 +71,13 @@ func TestDebugServer(t *testing.T) {
 	logger := zap.NewExample()
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			Addr:             ":9999",
+			Addr:             "127.0.0.1:0",
 			DisableKeepAlive: true,
 		},
 		Logger: logger,
 	}
 	assert.Equal(t, "debug", cut.Name())
-	assert.Equal(t, ":9999", cut.Address())
+	assert.Equal(t, "127.0.0.1:0", cut.Address())
 
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown(0) })
 	defer timer.Stop()
