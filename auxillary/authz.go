@@ -12,5 +12,5 @@ import (
 // Authorizer defines a provder for authorizing principals to
 // make requests.
 type Authorizer interface {
-	Authorize(context.Context, *service.Request) merry.Error
+	Authorize(context.Context, *service.Request) (bool, merry.Error)
 }
