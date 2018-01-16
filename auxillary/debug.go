@@ -19,6 +19,7 @@ const (
 
 var (
 	backgroundContext = stdctx.Background()
+	debugStats = new(expvar.Map)
 )
 
 type DebugServer struct {
@@ -35,7 +36,14 @@ type DebugServer struct {
 }
 
 func (s *DebugServer) init() {
+	now := time.Now().UTC().Format(startTimeFormat)
 	s.HTTPServer.init()
+	debugStats = debugStats.Init()
+	AuxillaryStats.Set("debug", debugStats)
+	debugStats.Set("hits", new(expvar.Int))
+	startTime := new(expvar.String)
+	startTime.Set(now)
+	debugStats.Set("starttime", startTime)
 
 	if s.Path == "" {
 		s.Path = defaultDebugServerPath
@@ -72,13 +80,14 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	debugStats.Add("hits", 1)
 	ri := ResponseInterceptor{
 		Logger:   s.requestLog,
 		Delegate: w,
 		Start:    time.Now().UTC(),
 	}
 
-	ctx := context.New(backgroundContext)
+	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)

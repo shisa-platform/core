@@ -2,6 +2,7 @@ package auxillary
 
 import (
 	"crypto/tls"
+	"expvar"
 	"net/http"
 	"time"
 
@@ -16,6 +17,11 @@ import (
 
 const (
 	defaultRequestIDResponseHeader = "X-Request-ID"
+	startTimeFormat                = "2006-01-02T15:04:05+00:00"
+)
+
+var (
+	AuxillaryStats = expvar.NewMap("auxillary")
 )
 
 type HTTPServer struct {
