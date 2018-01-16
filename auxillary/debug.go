@@ -94,19 +94,9 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri.Header().Set(s.RequestIDHeaderName, requestID)
 
 	var writeErr error
-
-	if s.Authentication != nil {
-		if response := s.Authentication.Service(ctx, request); response != nil {
-			writeErr = writeResponse(&ri, response)
-			goto finish
-		}
-		if s.Authorizer != nil {
-			if err := s.Authorizer.Authorize(ctx, request); err != nil {
-				response := s.Authentication.UnauthorizedHandler(ctx, request)
-				writeErr = writeResponse(&ri, response)
-				goto finish
-			}
-		}
+	if response := s.Authenticate(ctx, request); response != nil {
+		writeErr = writeResponse(&ri, response)
+		goto finish
 	}
 
 	if s.Path == r.URL.Path {

@@ -129,6 +129,26 @@ func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (s
 	return r.ID(), nil
 }
 
+func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response service.Response) {
+	if s.Authentication == nil {
+		return
+	}
+
+	if response = s.Authentication.Service(ctx, request); response != nil {
+		return
+	}
+	if s.Authorizer != nil {
+		if ok, err := s.Authorizer.Authorize(ctx, request); !ok {
+			return s.Authentication.UnauthorizedHandler(ctx, request)
+		} else if err != nil {
+			err = err.WithHTTPCode(http.StatusUnauthorized)
+			return s.Authentication.ErrorHandler(ctx, request, err)
+		}
+	}
+
+	return
+}
+
 // ResponseInterceptor implements `http.ResponseWriter` to capture
 // and log the response sent to a user agent.
 // Use it to wrap a standard  `http.ResponseWriter` and log the

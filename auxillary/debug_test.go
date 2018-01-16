@@ -40,8 +40,8 @@ type stubAuthorizer struct {
 	Err merry.Error
 }
 
-func (a stubAuthorizer) Authorize(context.Context, *service.Request) merry.Error {
-	return a.Err
+func (a stubAuthorizer) Authorize(context.Context, *service.Request) (bool, merry.Error) {
+	return a.Err == nil, a.Err
 }
 
 func TestDebugServerEmpty(t *testing.T) {
