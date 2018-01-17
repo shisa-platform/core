@@ -32,32 +32,32 @@ func (m statusMarshaler) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.status)
 }
 
-// Healthchecker is named object that can report its status. If
-// object is unable to perform its function it should return an
-// error with the UserMessage explaining the problem.
+// Healthchecker is a named resource that can report its status.
+// If the resource is unable to perform its function it should
+// return an error with the UserMessage explaining the problem.
 type Healthchecker interface {
-	// Name is the object's name for external reporting
+	// Name is the resource's name for external reporting
 	Name() string
-	// Healthcheck returns an error iff the object has a problem.
+	// Healthcheck returns an error iff the resource has a problem.
 	Healthcheck() merry.Error
 }
 
 // HealthcheckServer serves JSON status reports of all configured
-// `Healthchecker` objects to the given address and path.  If all
-// objects return no error a 200 status code is returned,
+// `Healthchecker` resources to the given address and path.  If
+// all resources return no error a 200 status code is returned,
 // otherwise a 503 is returned.
-// The status report is a JSON Object with the `Name()` of the
-// objects as keys and either the `merry.UserMessage` of the
+// The status report is a JSON Resource with the `Name()` of the
+// resources as keys and either the `merry.UserMessage` of the
 // error or `"OK"` as the value.
 type HealthcheckServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/healthcheck" if empty
 
-	// Checkers are the objects to include in the status report.
+	// Checkers are the resources to include in the status report.
 	Checkers []Healthchecker
 
-	// Logger optionally specifies the logger to use by the Healthcheck
-	// server.
+	// Logger optionally specifies the logger to use by the
+	// Healthcheck server.
 	// If nil all logging is disabled.
 	Logger *zap.Logger
 
