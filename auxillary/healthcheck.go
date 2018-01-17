@@ -134,7 +134,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri.Header().Set(s.RequestIDHeaderName, requestID)
 
 	code := http.StatusOK
-	status := make(map[string]string, len(s.Checks))
+	status := make(map[string]string, len(s.Checkers))
 
 	var response service.Response
 	if response = s.Authenticate(ctx, request); response != nil {
@@ -147,7 +147,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	for _, check := range s.Checks {
+	for _, check := range s.Checkers {
 		if err := check.Healthcheck(); err != nil {
 			status[check.Name()] = merry.UserMessage(err)
 			code = http.StatusServiceUnavailable

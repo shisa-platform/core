@@ -419,7 +419,7 @@ func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 
 func TestHealthcheckServerServeHTTP(t *testing.T) {
 	cut := HealthcheckServer{
-		Checks: []Healthchecker{stubHealthchecker{name: "pass"}},
+		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}},
 		Logger: zap.NewExample(),
 	}
 	cut.init()
@@ -445,7 +445,7 @@ func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
 	message := "help me I'm trapped in a software bug factory!"
 	ng := stubHealthchecker{name: "fail", err: merry.New("i blewed up!").WithUserMessage(message)}
 	cut := HealthcheckServer{
-		Checks: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
+		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
 		Logger: zap.NewExample(),
 	}
 	cut.init()
