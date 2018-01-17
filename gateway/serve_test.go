@@ -8,7 +8,7 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
 )
@@ -146,7 +146,7 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGatewayFailingAuxillary(t *testing.T) {
+func TestGatewayFailingAuxiliary(t *testing.T) {
 	cut := &Gateway{
 		Name:    "test",
 		Address: ":9001",
@@ -155,7 +155,7 @@ func TestGatewayFailingAuxillary(t *testing.T) {
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	aux := &auxillary.FakeServer{
+	aux := &auxiliary.FakeServer{
 		AddressHook: func() string {
 			return "127.0.0.1:0"
 		},
@@ -222,7 +222,7 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	assert.NotNil(t, e.iseHandler)
 }
 
-func TestGatewayAuxillaryServer(t *testing.T) {
+func TestGatewayAuxiliaryServer(t *testing.T) {
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
 		Name:        "test",
@@ -232,7 +232,7 @@ func TestGatewayAuxillaryServer(t *testing.T) {
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	aux := &auxillary.FakeServer{
+	aux := &auxiliary.FakeServer{
 		AddressHook: func() string {
 			return "127.0.0.1:0"
 		},

@@ -1,4 +1,4 @@
-package auxillary
+package auxiliary
 
 import (
 	"github.com/ansel1/merry"

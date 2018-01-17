@@ -9,7 +9,7 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/service"
 )
 
@@ -28,11 +28,11 @@ type endpoint struct {
 	iseHandler        service.ErrorHandler
 }
 
-func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxillary.Server) error {
+func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxiliary.Server) error {
 	return g.serve(false, services, auxiliaries)
 }
 
-func (g *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxillary.Server) error {
+func (g *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxiliary.Server) error {
 	return g.serve(true, services, auxiliaries)
 }
 
@@ -44,7 +44,7 @@ func (g *Gateway) Shutdown() (err error) {
 	err = merry.Wrap(g.base.Shutdown(ctx))
 
 	for _, aux := range g.auxiliaries {
-		g.Logger.Info("shutting down auxillary", zap.String("name", aux.Name()))
+		g.Logger.Info("shutting down auxiliary", zap.String("name", aux.Name()))
 		err = multierr.Append(err, merry.Wrap(aux.Shutdown(g.GracePeriod)))
 	}
 
@@ -52,7 +52,7 @@ func (g *Gateway) Shutdown() (err error) {
 	return
 }
 
-func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxillary.Server) (err error) {
+func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxiliary.Server) (err error) {
 	if len(services) == 0 {
 		return merry.New("services must not be empty")
 	}
@@ -68,8 +68,8 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 	ach := make(chan error, len(g.auxiliaries))
 	for _, aux := range g.auxiliaries {
-		g.Logger.Info("starting auxillary server", zap.String("name", aux.Name()), zap.String("address", aux.Address()))
-		go func(server auxillary.Server) {
+		g.Logger.Info("starting auxiliary server", zap.String("name", aux.Name()), zap.String("address", aux.Address()))
+		go func(server auxiliary.Server) {
 			ach <- server.Serve()
 		}(aux)
 	}

@@ -1,4 +1,4 @@
-package auxillary
+package auxiliary
 
 import (
 	stdctx "context"
@@ -72,7 +72,7 @@ func (s *HealthcheckServer) init() {
 	s.HTTPServer.init()
 
 	healthcheckStats = healthcheckStats.Init()
-	AuxillaryStats.Set("healthcheck", healthcheckStats)
+	AuxiliaryStats.Set("healthcheck", healthcheckStats)
 	healthcheckStats.Set("hits", new(expvar.Int))
 	startTime := new(expvar.String)
 	startTime.Set(now)
