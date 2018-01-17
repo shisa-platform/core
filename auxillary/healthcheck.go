@@ -38,7 +38,9 @@ func (m statusMarshaler) MarshalJSON() ([]byte, error) {
 type Healthchecker interface {
 	// Name is the resource's name for external reporting
 	Name() string
-	// Healthcheck returns an error iff the resource has a problem.
+	// Healthcheck should return an error if the resource has a
+	// problem and should not be considered reliable for further
+	// requests.
 	Healthcheck() merry.Error
 }
 
