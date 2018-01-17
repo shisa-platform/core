@@ -21,7 +21,7 @@ const (
 
 var (
 	healthcheckStats = new(expvar.Map)
-	jsonContentType = contenttype.ApplicationJson.String()
+	jsonContentType  = contenttype.ApplicationJson.String()
 )
 
 type statusMarshaler struct {
@@ -149,7 +149,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	response = &service.JsonResponse{
 		BasicResponse: service.BasicResponse{
-			Code:     code,
+			Code: code,
 		},
 		Payload: statusMarshaler{status},
 	}

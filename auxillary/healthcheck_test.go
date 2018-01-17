@@ -19,7 +19,7 @@ import (
 
 type stubHealthchecker struct {
 	name string
-	err merry.Error
+	err  merry.Error
 }
 
 func (h stubHealthchecker) Name() string {

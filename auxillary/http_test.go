@@ -29,7 +29,7 @@ func (r unserializableResponse) Serialize(io.Writer) (int, error) {
 }
 
 type stubAuthorizer struct {
-	ok bool
+	ok  bool
 	err merry.Error
 }
 

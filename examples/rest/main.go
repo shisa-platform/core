@@ -22,19 +22,19 @@ import (
 )
 
 const (
-	defaultPort      = 9001
-	defaultDebugPort = defaultPort + 1
+	defaultPort            = 9001
+	defaultDebugPort       = defaultPort + 1
 	defaultHealthcheckPort = defaultDebugPort + 1
-	timeFormat       = "2006-01-02T15:04:05+00:00"
+	timeFormat             = "2006-01-02T15:04:05+00:00"
 )
 
-type authorizer struct {}
+type authorizer struct{}
 
 func (a authorizer) Authorize(ctx context.Context, r *service.Request) (bool, merry.Error) {
 	return ctx.Actor().ID() == "0", nil
 }
 
-type dependencyStub struct {}
+type dependencyStub struct{}
 
 func (d dependencyStub) Name() string {
 	return "stub"
@@ -84,17 +84,17 @@ func main() {
 
 	debug := &auxillary.DebugServer{
 		HTTPServer: auxillary.HTTPServer{
-			Addr: fmt.Sprintf(":%d", *debugPort),
+			Addr:           fmt.Sprintf(":%d", *debugPort),
 			Authentication: &authN,
-			Authorizer: authZ,
+			Authorizer:     authZ,
 		},
 		Logger: logger,
 	}
 	healthcheck := &auxillary.HealthcheckServer{
 		HTTPServer: auxillary.HTTPServer{
-			Addr: fmt.Sprintf(":%d", *healthcheckPort),
+			Addr:           fmt.Sprintf(":%d", *healthcheckPort),
 			Authentication: &authN,
-			Authorizer: authZ,
+			Authorizer:     authZ,
 		},
 		Checks: []auxillary.Healthchecker{dependencyStub{}},
 		Logger: logger,
