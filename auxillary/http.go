@@ -2,6 +2,7 @@ package auxillary
 
 import (
 	"crypto/tls"
+	"expvar"
 	"net/http"
 	"time"
 
@@ -16,6 +17,11 @@ import (
 
 const (
 	defaultRequestIDResponseHeader = "X-Request-ID"
+	startTimeFormat                = "2006-01-02T15:04:05+00:00"
+)
+
+var (
+	AuxillaryStats = expvar.NewMap("auxillary")
 )
 
 type HTTPServer struct {
@@ -127,6 +133,26 @@ func (s *HTTPServer) init() {
 
 func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (string, merry.Error) {
 	return r.ID(), nil
+}
+
+func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response service.Response) {
+	if s.Authentication == nil {
+		return
+	}
+
+	if response = s.Authentication.Service(ctx, request); response != nil {
+		return
+	}
+	if s.Authorizer != nil {
+		if ok, err := s.Authorizer.Authorize(ctx, request); err != nil {
+			err = err.WithHTTPCode(http.StatusUnauthorized)
+			return s.Authentication.ErrorHandler(ctx, request, err)
+		} else if !ok {
+			return s.Authentication.UnauthorizedHandler(ctx, request)
+		}
+	}
+
+	return
 }
 
 // ResponseInterceptor implements `http.ResponseWriter` to capture

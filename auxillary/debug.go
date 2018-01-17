@@ -18,9 +18,11 @@ const (
 )
 
 var (
-	backgroundContext = stdctx.Background()
+	debugStats = new(expvar.Map)
 )
 
+// DebugServer serves values from the `expvar` package to the
+// configured address and path.
 type DebugServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/debug/vars" if empty
@@ -35,7 +37,14 @@ type DebugServer struct {
 }
 
 func (s *DebugServer) init() {
+	now := time.Now().UTC().Format(startTimeFormat)
 	s.HTTPServer.init()
+	debugStats = debugStats.Init()
+	AuxillaryStats.Set("debug", debugStats)
+	debugStats.Set("hits", new(expvar.Int))
+	startTime := new(expvar.String)
+	startTime.Set(now)
+	debugStats.Set("starttime", startTime)
 
 	if s.Path == "" {
 		s.Path = defaultDebugServerPath
@@ -66,19 +75,21 @@ func (s *DebugServer) Serve() error {
 }
 
 func (s *DebugServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(backgroundContext, timeout)
+	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
 	defer cancel()
 	return merry.Wrap(s.base.Shutdown(ctx))
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	debugStats.Add("hits", 1)
+
 	ri := ResponseInterceptor{
 		Logger:   s.requestLog,
 		Delegate: w,
 		Start:    time.Now().UTC(),
 	}
 
-	ctx := context.New(backgroundContext)
+	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)
@@ -94,19 +105,9 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri.Header().Set(s.RequestIDHeaderName, requestID)
 
 	var writeErr error
-
-	if s.Authentication != nil {
-		if response := s.Authentication.Service(ctx, request); response != nil {
-			writeErr = writeResponse(&ri, response)
-			goto finish
-		}
-		if s.Authorizer != nil {
-			if err := s.Authorizer.Authorize(ctx, request); err != nil {
-				response := s.Authentication.UnauthorizedHandler(ctx, request)
-				writeErr = writeResponse(&ri, response)
-				goto finish
-			}
-		}
+	if response := s.Authenticate(ctx, request); response != nil {
+		writeErr = writeResponse(&ri, response)
+		goto finish
 	}
 
 	if s.Path == r.URL.Path {
