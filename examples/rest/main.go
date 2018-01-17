@@ -15,6 +15,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
@@ -23,8 +24,25 @@ import (
 const (
 	defaultPort      = 9001
 	defaultDebugPort = defaultPort + 1
+	defaultHealthcheckPort = defaultDebugPort + 1
 	timeFormat       = "2006-01-02T15:04:05+00:00"
 )
+
+type authorizer struct {}
+
+func (a authorizer) Authorize(ctx context.Context, r *service.Request) (bool, merry.Error) {
+	return ctx.Actor().ID() == "0", nil
+}
+
+type dependencyStub struct {}
+
+func (d dependencyStub) Name() string {
+	return "stub"
+}
+
+func (d dependencyStub) Healthcheck() merry.Error {
+	return nil
+}
 
 func main() {
 	now := time.Now().UTC().Format(timeFormat)
@@ -33,6 +51,7 @@ func main() {
 
 	port := flag.Int("port", defaultPort, "Specify service port")
 	debugPort := flag.Int("debugport", defaultDebugPort, "Specify debug port")
+	healthcheckPort := flag.Int("healthcheckport", defaultHealthcheckPort, "Specify healthcheck port")
 
 	flag.Parse()
 
@@ -44,13 +63,15 @@ func main() {
 	defer logger.Sync()
 
 	idp := &SimpleIdentityProvider{
-		Users: []User{User{"1", "Boss", "password"}},
+		Users: []User{User{"0", "Admin", "password"}, User{"1", "Boss", "password"}},
 	}
+
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
 		panic(err)
 	}
 	authN := middleware.Authentication{Authenticator: authenticator}
+	authZ := authorizer{}
 
 	gw := &gateway.Gateway{
 		Name:            "hello",
@@ -64,12 +85,23 @@ func main() {
 	debug := &auxillary.DebugServer{
 		HTTPServer: auxillary.HTTPServer{
 			Addr: fmt.Sprintf(":%d", *debugPort),
+			Authentication: &authN,
+			Authorizer: authZ,
 		},
+		Logger: logger,
+	}
+	healthcheck := &auxillary.HealthcheckServer{
+		HTTPServer: auxillary.HTTPServer{
+			Addr: fmt.Sprintf(":%d", *healthcheckPort),
+			Authentication: &authN,
+			Authorizer: authZ,
+		},
+		Checks: []auxillary.Healthchecker{dependencyStub{}},
 		Logger: logger,
 	}
 
 	services := []service.Service{NewHelloService(), NewGoodbyeService()}
-	if err := gw.Serve(services, debug); err != nil {
+	if err := gw.Serve(services, debug, healthcheck); err != nil {
 		for _, e := range multierr.Errors(err) {
 			values := merry.Values(e)
 			fs := make([]zapcore.Field, 0, len(values))
