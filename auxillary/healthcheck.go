@@ -42,11 +42,19 @@ type Healthchecker interface {
 	Healthcheck() merry.Error
 }
 
+// HealthcheckServer serves JSON status reports of all configured
+// `Healthchecker` objects to the given address and path.  If all
+// objects return no error a 200 status code is returned,
+// otherwise a 503 is returned.
+// The status report is a JSON Object with the `Name()` of the
+// objects as keys and either the `merry.UserMessage` of the
+// error or `"OK"` as the value.
 type HealthcheckServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/healthcheck" if empty
 
-	Checks []Healthchecker
+	// Checkers are the objects to include in the status report.
+	Checkers []Healthchecker
 
 	// Logger optionally specifies the logger to use by the Healthcheck
 	// server.

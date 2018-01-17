@@ -21,6 +21,8 @@ var (
 	debugStats = new(expvar.Map)
 )
 
+// DebugServer serves values from the `expvar` package to the
+// configured address and path.
 type DebugServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/debug/vars" if empty
