@@ -96,8 +96,8 @@ func main() {
 			Authentication: &authN,
 			Authorizer:     authZ,
 		},
-		Checks: []auxillary.Healthchecker{dependencyStub{}},
-		Logger: logger,
+		Checkers: []auxillary.Healthchecker{dependencyStub{}},
+		Logger:   logger,
 	}
 
 	services := []service.Service{NewHelloService(), NewGoodbyeService()}
