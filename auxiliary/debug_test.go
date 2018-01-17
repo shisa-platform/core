@@ -1,4 +1,4 @@
-package auxillary
+package auxiliary
 
 import (
 	"net/http"

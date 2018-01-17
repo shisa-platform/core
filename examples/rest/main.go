@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/authn"
-	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/middleware"
@@ -82,21 +82,21 @@ func main() {
 		Logger:          logger,
 	}
 
-	debug := &auxillary.DebugServer{
-		HTTPServer: auxillary.HTTPServer{
+	debug := &auxiliary.DebugServer{
+		HTTPServer: auxiliary.HTTPServer{
 			Addr:           fmt.Sprintf(":%d", *debugPort),
 			Authentication: &authN,
 			Authorizer:     authZ,
 		},
 		Logger: logger,
 	}
-	healthcheck := &auxillary.HealthcheckServer{
-		HTTPServer: auxillary.HTTPServer{
+	healthcheck := &auxiliary.HealthcheckServer{
+		HTTPServer: auxiliary.HTTPServer{
 			Addr:           fmt.Sprintf(":%d", *healthcheckPort),
 			Authentication: &authN,
 			Authorizer:     authZ,
 		},
-		Checkers: []auxillary.Healthchecker{dependencyStub{}},
+		Checkers: []auxiliary.Healthchecker{dependencyStub{}},
 		Logger:   logger,
 	}
 

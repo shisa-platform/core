@@ -1,4 +1,4 @@
-package auxillary
+package auxiliary
 
 import (
 	"crypto/tls"
@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	AuxillaryStats = expvar.NewMap("auxillary")
+	AuxiliaryStats = expvar.NewMap("auxiliary")
 )
 
 type HTTPServer struct {

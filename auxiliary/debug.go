@@ -1,4 +1,4 @@
-package auxillary
+package auxiliary
 
 import (
 	stdctx "context"
@@ -40,7 +40,7 @@ func (s *DebugServer) init() {
 	now := time.Now().UTC().Format(startTimeFormat)
 	s.HTTPServer.init()
 	debugStats = debugStats.Init()
-	AuxillaryStats.Set("debug", debugStats)
+	AuxiliaryStats.Set("debug", debugStats)
 	debugStats.Set("hits", new(expvar.Int))
 	startTime := new(expvar.String)
 	startTime.Set(now)

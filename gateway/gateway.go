@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/auxillary"
+	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
@@ -107,7 +107,7 @@ type Gateway struct {
 	Logger *zap.Logger
 
 	base        http.Server
-	auxiliaries []auxillary.Server
+	auxiliaries []auxiliary.Server
 	tree        *node
 
 	requestLog *zap.Logger
