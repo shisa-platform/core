@@ -17,8 +17,21 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func TestDebugServerEmpty(t *testing.T) {
-	cut := DebugServer{}
+type stubHealthchecker struct {
+	name string
+	err merry.Error
+}
+
+func (h stubHealthchecker) Name() string {
+	return h.name
+}
+
+func (h stubHealthchecker) Healthcheck() merry.Error {
+	return h.err
+}
+
+func TestHealthcheckServerEmpty(t *testing.T) {
+	cut := HealthcheckServer{}
 
 	err := cut.Serve()
 	assert.Error(t, err)
@@ -27,8 +40,8 @@ func TestDebugServerEmpty(t *testing.T) {
 	assert.NotNil(t, cut.Logger)
 }
 
-func TestDebugServerMisconfiguredTLS(t *testing.T) {
-	cut := DebugServer{
+func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Addr:   ":9900",
 			UseTLS: true,
@@ -40,16 +53,16 @@ func TestDebugServerMisconfiguredTLS(t *testing.T) {
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 }
 
-func TestDebugServer(t *testing.T) {
+func TestHealthcheckServer(t *testing.T) {
 	logger := zap.NewExample()
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Addr:             "127.0.0.1:0",
 			DisableKeepAlive: true,
 		},
 		Logger: logger,
 	}
-	assert.Equal(t, "debug", cut.Name())
+	assert.Equal(t, "healthcheck", cut.Name())
 	assert.Equal(t, "127.0.0.1:0", cut.Address())
 
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown(0) })
@@ -62,23 +75,23 @@ func TestDebugServer(t *testing.T) {
 	assert.Equal(t, logger, cut.Logger)
 }
 
-func TestDebugServerServeHTTPBadPath(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/secrets", nil)
+func TestHealthcheckServerServeHTTPBadPath(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/plonk", nil)
 	w := httptest.NewRecorder()
 
-	cut := DebugServer{}
+	cut := HealthcheckServer{}
 	cut.init()
 
 	cut.ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
-	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "text/plain; charset=utf-8", w.HeaderMap.Get("Content-Type"))
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPCustomPath(t *testing.T) {
-	cut := DebugServer{
+func TestHealthcheckServerServeHTTPCustomPath(t *testing.T) {
+	cut := HealthcheckServer{
 		Path: "/foo/bar",
 	}
 	cut.init()
@@ -90,12 +103,12 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
-	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "application/json", w.HeaderMap.Get("Content-Type"))
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
-	cut := DebugServer{
+func TestHealthcheckServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return "", merry.New("i blewed up!")
@@ -112,13 +125,13 @@ func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
-	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "application/json", w.HeaderMap.Get("Content-Type"))
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
-	cut := DebugServer{
+func TestHealthcheckServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return "", nil
@@ -135,14 +148,14 @@ func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
-	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "application/json", w.HeaderMap.Get("Content-Type"))
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
+func TestHealthcheckServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 	requestID := "abc123"
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return requestID, nil
@@ -159,12 +172,12 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
-	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "application/json", w.HeaderMap.Get("Content-Type"))
 	assert.Equal(t, requestID, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthenticationFail(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
@@ -174,7 +187,7 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 			return challenge
 		},
 	}
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
@@ -195,7 +208,7 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
@@ -205,7 +218,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			return challenge
 		},
 	}
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
@@ -230,7 +243,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
@@ -240,7 +253,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 			return challenge
 		},
 	}
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
@@ -268,7 +281,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthentication(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthentication(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
@@ -279,7 +292,7 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 			return challenge
 		},
 	}
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
@@ -301,7 +314,7 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthorizationError(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
@@ -335,7 +348,7 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthorizationFail(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
@@ -347,7 +360,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{ok: false}
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
@@ -369,7 +382,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPAuthorization(t *testing.T) {
+func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
@@ -381,7 +394,7 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{ok: true}
-	cut := DebugServer{
+	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
@@ -404,8 +417,9 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTP(t *testing.T) {
-	cut := DebugServer{
+func TestHealthcheckServerServeHTTP(t *testing.T) {
+	cut := HealthcheckServer{
+		Checks: []Healthchecker{stubHealthchecker{name: "pass"}},
 		Logger: zap.NewExample(),
 	}
 	cut.init()
@@ -417,7 +431,39 @@ func TestDebugServerServeHTTP(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
+	assert.Equal(t, "application/json", w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+
+	expectedJson := `{
+  "pass": "OK"
+}`
+	assert.JSONEq(t, expectedJson, w.Body.String())
+}
+
+func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
+	message := "help me I'm trapped in a software bug factory!"
+	ng := stubHealthchecker{name: "fail", err: merry.New("i blewed up!").WithUserMessage(message)}
+	cut := HealthcheckServer{
+		Checks: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
+		Logger: zap.NewExample(),
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
+
+	expectedJson := `{
+  "pass": "OK",
+  "fail": "help me I'm trapped in a software bug factory!"
+}`
+	assert.JSONEq(t, expectedJson, w.Body.String())
 }

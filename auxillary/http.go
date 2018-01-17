@@ -144,11 +144,11 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request)
 		return
 	}
 	if s.Authorizer != nil {
-		if ok, err := s.Authorizer.Authorize(ctx, request); !ok {
-			return s.Authentication.UnauthorizedHandler(ctx, request)
-		} else if err != nil {
+		if ok, err := s.Authorizer.Authorize(ctx, request); err != nil {
 			err = err.WithHTTPCode(http.StatusUnauthorized)
 			return s.Authentication.ErrorHandler(ctx, request, err)
+		} else if !ok {
+			return s.Authentication.UnauthorizedHandler(ctx, request)
 		}
 	}
 

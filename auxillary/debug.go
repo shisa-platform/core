@@ -18,7 +18,6 @@ const (
 )
 
 var (
-	backgroundContext = stdctx.Background()
 	debugStats = new(expvar.Map)
 )
 
@@ -74,13 +73,14 @@ func (s *DebugServer) Serve() error {
 }
 
 func (s *DebugServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(backgroundContext, timeout)
+	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
 	defer cancel()
 	return merry.Wrap(s.base.Shutdown(ctx))
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	debugStats.Add("hits", 1)
+
 	ri := ResponseInterceptor{
 		Logger:   s.requestLog,
 		Delegate: w,
