@@ -5,6 +5,7 @@ import (
 
 	"github.com/ansel1/merry"
 	consulapi "github.com/hashicorp/consul/api"
+	consulwatch "github.com/hashicorp/consul/watch"
 )
 
 //go:generate charlatan -output=./consulselfer_charlatan.go Selfer
@@ -19,6 +20,7 @@ type KVGetter interface {
 
 var _ Selfer = (*consulapi.Agent)(nil)
 var _ KVGetter = (*consulapi.KV)(nil)
+var _ Provider = (*consulProvider)(nil)
 
 type MemberStatus int
 
@@ -98,8 +100,27 @@ func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
 	return r, nil
 }
 
-func (p *consulProvider) Monitor(string, <-chan Value) {
-	// N.B. do nothing, not implemented
+func (p *consulProvider) Monitor(key string, v chan<- Value) {
+	m := make(map[string]interface{})
+
+	m["type"] = "key"
+	m["key"] = key
+
+	handler := func(i uint64, result interface{}) {
+		r := result.(Value)
+		v <- r
+		return
+	}
+
+	plan, err := consulwatch.Parse(m)
+	if err != nil {
+		panic(err)
+	}
+
+	plan.Handler = handler
+	plan.Run("")
+
+	return
 }
 
 func (p *consulProvider) Healthcheck() merry.Error {
