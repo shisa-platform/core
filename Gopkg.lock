@@ -15,7 +15,7 @@
 
 [[projects]]
   name = "github.com/hashicorp/consul"
-  packages = ["api"]
+  packages = ["api","watch"]
   revision = "b55059fc3d0327c92c41431e57dfd2df3f956b03"
   version = "v1.0.2"
 
@@ -42,6 +42,12 @@
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  revision = "b4575eea38cca1123ec2dc90c26529b5c5acfcff"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -81,6 +87,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ea0ac4586c86351c2ec61a00f7dc1e3e5303b324150d2abbae78498b8b0ceec6"
+  inputs-digest = "fd3c67d4a1a056ce4ca50b7c6b85d088e12a28a2051cb56ba9529c6a858ae31b"
   solver-name = "gps-cdcl"
   solver-version = 1
