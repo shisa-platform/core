@@ -2,9 +2,8 @@
 
 package env
 
-import "reflect"
-
 import consulapi "github.com/hashicorp/consul/api"
+import "reflect"
 
 // KVGetterGetInvocation represents a single call of FakeKVGetter.Get
 type KVGetterGetInvocation struct {
