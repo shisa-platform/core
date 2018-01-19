@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	AuxiliaryStats = expvar.NewMap("auxiliary")
+	AuxiliaryStats = new(expvar.Map)
 )
 
 type HTTPServer struct {

@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	stats = expvar.NewMap("gateway")
+	gatewayExpvar = expvar.NewMap("gateway")
 )
 
 type Gateway struct {
@@ -117,7 +117,8 @@ type Gateway struct {
 
 func (g *Gateway) init() {
 	g.started = true
-	stats = stats.Init()
+	gatewayExpvar = gatewayExpvar.Init()
+	gatewayExpvar.Set("auxiliary", auxiliary.AuxiliaryStats)
 	g.base.Addr = g.Address
 	g.base.TLSConfig = g.TLSConfig
 	g.base.ReadTimeout = g.ReadTimeout
@@ -164,10 +165,10 @@ func (g *Gateway) init() {
 func connstate(con net.Conn, state http.ConnState) {
 	switch state {
 	case http.StateNew:
-		stats.Add("total_connections", 1)
-		stats.Add("connected", 1)
+		gatewayExpvar.Add("total_connections", 1)
+		gatewayExpvar.Add("connected", 1)
 	case http.StateClosed, http.StateHijacked:
-		stats.Add("connected", -1)
+		gatewayExpvar.Add("connected", -1)
 	}
 }
 
