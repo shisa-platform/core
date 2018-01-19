@@ -5,7 +5,6 @@ import (
 
 	"github.com/ansel1/merry"
 	consulapi "github.com/hashicorp/consul/api"
-	consulwatch "github.com/hashicorp/consul/watch"
 )
 
 //go:generate charlatan -output=./consulselfer_charlatan.go Selfer
@@ -101,24 +100,39 @@ func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
 }
 
 func (p *consulProvider) Monitor(key string, v chan<- Value) {
-	m := make(map[string]interface{})
+	lastIndex := uint64(0)
+	lastResult := Value{}
 
-	m["type"] = "key"
-	m["key"] = key
+	for {
+		opts := &consulapi.QueryOptions{WaitIndex: lastIndex}
+		kvp, meta, err := p.kv.Get(key, opts)
+		if err != nil {
+			break
+		}
 
-	handler := func(i uint64, result interface{}) {
-		r := result.(Value)
-		v <- r
-		return
+		// If index didn't change, continue
+		if lastIndex == meta.LastIndex {
+			continue
+		}
+
+		// Continue if index changed, but the K/V pair didn't
+		val := Value{Name: string(kvp.Key), Value: string(kvp.Value)}
+		if lastIndex != 0 && lastResult == val {
+			continue
+		}
+
+		// Reset if index stops being monotonic
+		if meta.LastIndex < lastIndex {
+			lastIndex = 0
+		}
+
+		// Handle the updated result
+		if lastIndex != 0 {
+			v <- val
+		}
+		lastIndex = meta.LastIndex
+		lastResult = val
 	}
-
-	plan, err := consulwatch.Parse(m)
-	if err != nil {
-		panic(err)
-	}
-
-	plan.Handler = handler
-	plan.Run("")
 
 	return
 }
