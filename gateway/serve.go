@@ -2,6 +2,7 @@ package gateway
 
 import (
 	stdctx "context"
+	"expvar"
 	"net/http"
 	"sort"
 
@@ -101,6 +102,8 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 }
 
 func (g *Gateway) installServices(services []service.Service) merry.Error {
+	servicesExpvar := new(expvar.Map)
+	gatewayExpvar.Set("services", servicesExpvar)
 	for _, svc := range services {
 		if svc.Name() == "" {
 			return merry.New("service name cannot be empty")
@@ -108,6 +111,9 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 		if len(svc.Endpoints()) == 0 {
 			return merry.New("service endpoints cannot be empty").WithValue("service", svc.Name())
 		}
+
+		serviceVar := new(expvar.Map)
+		servicesExpvar.Set(svc.Name(), serviceVar)
 
 		g.Logger.Info("installing service", zap.String("name", svc.Name()))
 		for i, endp := range svc.Endpoints() {
@@ -224,6 +230,8 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 			if err := g.tree.addRoute(endp.Route, &e); err != nil {
 				return err
 			}
+
+			serviceVar.Set(e.Route, e)
 		}
 	}
 

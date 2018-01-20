@@ -9,15 +9,15 @@ import (
 type Policy struct {
 	// Will malformed query parameters be passed through or
 	// rejected?
-	AllowMalformedQueryParameters bool
+	AllowMalformedQueryParameters bool `json:",omitempty"`
 	// Will unknown query parameters be passed through or
 	// rejected?
-	AllowUnknownQueryParameters bool
+	AllowUnknownQueryParameters bool `json:",omitempty"`
 	// Will requests  with missing/extra trailing slash
 	// be redirected?
-	AllowTrailingSlashRedirects bool
+	AllowTrailingSlashRedirects bool `json:",omitempty"`
 	// Will URL escaped path parameters be preserved?
-	PreserveEscapedPathParameters bool
+	PreserveEscapedPathParameters bool `json:",omitempty"`
 	// The time budget for the pipeline to complete
-	TimeBudget time.Duration
+	TimeBudget time.Duration `json:",omitempty"`
 }
