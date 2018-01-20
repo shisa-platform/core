@@ -100,6 +100,7 @@ func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
 }
 
 func (p *consulProvider) Monitor(key string, v chan<- Value) {
+	initial := true
 	lastIndex := uint64(0)
 	lastResult := Value{}
 
@@ -117,7 +118,7 @@ func (p *consulProvider) Monitor(key string, v chan<- Value) {
 
 		// Continue if index changed, but the K/V pair didn't
 		val := Value{Name: string(kvp.Key), Value: string(kvp.Value)}
-		if lastIndex != 0 && lastResult == val {
+		if !initial && lastResult == val {
 			continue
 		}
 
@@ -127,9 +128,11 @@ func (p *consulProvider) Monitor(key string, v chan<- Value) {
 		}
 
 		// Handle the updated result
-		if lastIndex != 0 {
+		if !initial {
 			v <- val
 		}
+
+		initial = false
 		lastIndex = meta.LastIndex
 		lastResult = val
 	}
