@@ -54,26 +54,40 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		err           merry.Error
 		response      service.Response
 		pipeline      *service.Pipeline
+		findPathStart time.Time
 		pipelineStart time.Time
 		pipelineTime  time.Duration
+		handlersTime  time.Duration
+		findPathTime  time.Duration
+		endpoint      *endpoint
+		path          string
+		params        []service.QueryParameter
+		pathParams    []service.PathParameter
+		tsr           bool
 		invalidParams bool
 		missingParams bool
-		params        []service.QueryParameter
 	)
 
-	findPathStart := time.Now().UTC()
-	path := request.URL.EscapedPath()
-	endpoint, pathParams, tsr, err := g.tree.getValue(path)
-	findPathTime := time.Now().UTC().Sub(findPathStart)
-
-	if g.Authentication != nil {
-		if response = g.Authentication.Service(ctx, request); response != nil {
+	handlersStart := time.Now().UTC()
+	for _, handler := range g.Handlers {
+		response = runHandler(handler, ctx, request, &err)
+		if err != nil {
+			response = g.InternalServerErrorHandler(ctx, request, err)
+			goto finish
+		}
+		if response != nil {
 			goto finish
 		}
 	}
+	handlersTime = time.Now().UTC().Sub(handlersStart)
+
+	findPathStart = time.Now().UTC()
+	path = request.URL.EscapedPath()
+	endpoint, pathParams, tsr, err = g.tree.getValue(path)
+	findPathTime = time.Now().UTC().Sub(findPathStart)
 
 	if err != nil {
-		response = defaultInternalServerErrorHandler(ctx, request, err)
+		response = g.InternalServerErrorHandler(ctx, request, err)
 		goto finish
 	}
 
@@ -236,7 +250,7 @@ finish:
 	elapsed := end.Sub(start)
 
 	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
-		fs := make([]zapcore.Field, 13, 15)
+		fs := make([]zapcore.Field, 14, 16)
 		fs[0] = zap.String("request-id", requestID)
 		fs[1] = zap.String("client-ip-address", request.ClientIP())
 		fs[2] = zap.String("method", request.Method)
@@ -250,6 +264,7 @@ finish:
 		fs[10] = zap.Duration("find-endpoint", findPathTime)
 		fs[11] = zap.Duration("pipline", pipelineTime)
 		fs[12] = zap.Duration("serialization", serializationTime)
+		fs[13] = zap.Duration("handlers", handlersTime)
 		if endpoint != nil {
 			fs = append(fs, zap.String("service", endpoint.serviceName))
 		}

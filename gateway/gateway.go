@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
-	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
 
@@ -88,11 +87,18 @@ type Gateway struct {
 	// If nil then `service.Request.GenerateID` will be used.
 	RequestIDGenerator service.StringExtractor
 
-	// Authentication optionally enforces authentication before
-	// other request validation.  This is recommended to prevent
-	// leaking details about the implementation to unknown user
-	// agents.
-	Authentication *middleware.Authentication
+	// Handlers define handlers to run on all request before
+	// any other dispatch or validation.
+	// Example uses would be rate limiting or authentication.
+	Handlers []service.Handler
+
+	// InternalServerErrorHandler optionally customizes the
+	// response returned to the user agent when the gateway
+	// encounters an error trying to service the requst before
+	// the corresponding endpoint has been determined.
+	// If nil the default handler will return a 500 status code
+	// with an empty body.
+	InternalServerErrorHandler service.ErrorHandler
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
@@ -150,6 +156,10 @@ func (g *Gateway) init() {
 
 	if g.NotFoundHandler == nil {
 		g.NotFoundHandler = defaultNotFoundHandler
+	}
+
+	if g.InternalServerErrorHandler == nil {
+		g.InternalServerErrorHandler = defaultInternalServerErrorHandler
 	}
 
 	if g.Logger == nil {
