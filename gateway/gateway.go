@@ -1,7 +1,9 @@
 package gateway
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"expvar"
 	"net"
 	"net/http"
@@ -31,7 +33,7 @@ type Gateway struct {
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
 	GracePeriod      time.Duration // Timeout for graceful shutdown of open connections
-	TLSConfig        *tls.Config   // optional TLS config, used by ServeTLS and ListenAndServeTLS
+	TLSConfig        *tls.Config   `json:"-"` // optional TLS config, used by ServeTLS and ListenAndServeTLS
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// request, including the body.
@@ -76,7 +78,7 @@ type Gateway struct {
 	// automatically closed when the function returns.
 	// If TLSNextProto is not nil, HTTP/2 support is not enabled
 	// automatically.
-	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
+	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler) `json:"-"`
 
 	// RequestIDHeaderName optionally customizes the name of the
 	// response header for the request id.
@@ -86,25 +88,25 @@ type Gateway struct {
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `service.Request.GenerateID` will be used.
-	RequestIDGenerator service.StringExtractor
+	RequestIDGenerator service.StringExtractor `json:"-"`
 
 	// Authentication optionally enforces authentication before
 	// other request validation.  This is recommended to prevent
 	// leaking details about the implementation to unknown user
 	// agents.
-	Authentication *middleware.Authentication
+	Authentication *middleware.Authentication `json:"-"`
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
 	// service a request path.
 	// If nil the default handler will return a 404 status code
 	// with an empty body.
-	NotFoundHandler service.Handler
+	NotFoundHandler service.Handler `json:"-"`
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
 	// If nil all logging is disabled.
-	Logger *zap.Logger
+	Logger *zap.Logger `json:"-"`
 
 	base        http.Server
 	auxiliaries []auxiliary.Server
@@ -118,6 +120,7 @@ type Gateway struct {
 func (g *Gateway) init() {
 	g.started = true
 	gatewayExpvar = gatewayExpvar.Init()
+	gatewayExpvar.Set("settings", g)
 	gatewayExpvar.Set("auxiliary", auxiliary.AuxiliaryStats)
 	g.base.Addr = g.Address
 	g.base.TLSConfig = g.TLSConfig
@@ -178,4 +181,12 @@ func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
 		g.Logger.Info("interrupt received!")
 		g.Shutdown()
 	}
+}
+
+// String implements `expvar.Var.String`
+func (g *Gateway) String() string {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.Encode(g)
+	return buf.String()
 }
