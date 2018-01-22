@@ -235,6 +235,7 @@ func TestConsulProviderMonitorNoChange(t *testing.T) {
 		kv:    kvg,
 	}
 	v := make(chan Value, 5)
+
 	go c.Monitor(defaultKey, v)
 
 	assert.Empty(t, v)
@@ -258,6 +259,7 @@ func TestConsulProviderMonitorIndexChange(t *testing.T) {
 		kv:    kvg,
 	}
 	v := make(chan Value, 5)
+
 	go c.Monitor(defaultKey, v)
 
 	assert.Empty(t, v)
@@ -288,7 +290,9 @@ func TestConsulProviderMonitorChange(t *testing.T) {
 		kv:    kvg,
 	}
 	v := make(chan Value, 2)
+
 	go c.Monitor(defaultKey, v)
+
 	v1 := <-v
 	v2 := <-v
 
@@ -308,6 +312,7 @@ func TestConsulProviderMonitorIndexReset(t *testing.T) {
 	kvg := &FakeKVGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
+
 			if i == 12 && swap {
 				i = 10
 				swap = false
@@ -331,7 +336,9 @@ func TestConsulProviderMonitorIndexReset(t *testing.T) {
 		kv:    kvg,
 	}
 	v := make(chan Value, 5)
+
 	go c.Monitor(defaultKey, v)
+
 	v1 := <-v
 	v2 := <-v
 	v3 := <-v
