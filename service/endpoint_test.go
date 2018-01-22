@@ -188,6 +188,37 @@ func TestDeleteEndpointWithPolicy(t *testing.T) {
 	assert.Nil(t, cut.Trace)
 }
 
+func TestEndpointExpvarStringExerciseComma(t *testing.T) {
+	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
+	cut.Get.QueryFields = []Field{
+		{Name: "thing", Required: true},
+	}
+	cut.Put = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+
+	val := cut.String()
+	t.Logf("%#v", cut.Get.Policy)
+
+	assert.NotEmpty(t, val)
+	expectedJSON := `{
+  "GET": {
+    "Policy": {
+      "AllowTrailingSlashRedirects": true
+    },
+    "Handlers": 1,
+    "QueryFields": [
+      {"Name": "thing", "Regex": null, "Required": true}
+    ]
+  },
+  "PUT": {
+    "Policy": {},
+    "Handlers": 1
+  }
+}`
+	assert.JSONEq(t, expectedJSON, val)
+}
+
 func TestEndpointExpvarString(t *testing.T) {
 	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
 	cut.Get.QueryFields = []Field{
