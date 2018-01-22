@@ -29,7 +29,7 @@ type Field struct {
 	Default      string         `json:",omitempty"` // Default value for `Name`
 	Validator    Validator      `json:"-"`          // Optional validator of value(s)
 	Multiplicity uint           `json:",omitempty"` // Value count, 0 is unlimited
-	Required     bool           `json:",omitempty"` // Is this input mandatory?
+	Required     bool           // Is this input mandatory?
 }
 
 // Match returns true if the given key name is for this Field
