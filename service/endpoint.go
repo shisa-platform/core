@@ -1,6 +1,10 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
+	"strconv"
+
 	"github.com/percolate/shisa/context"
 )
 
@@ -153,4 +157,82 @@ func DeleteEndpointWithPolicy(route string, policy Policy, handlers ...Handler) 
 			Handlers: handlers,
 		},
 	}
+}
+
+// String implements `expvar.Var.String`
+func (e Endpoint) String() string {
+	var buf bytes.Buffer
+	var written bool
+	buf.WriteByte('{')
+	if e.Head != nil {
+		written = true
+		buf.WriteString("\"HEAD\":")
+		e.Head.jsonify(&buf)
+	}
+	if e.Get != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"GET\":")
+		e.Get.jsonify(&buf)
+	}
+	if e.Put != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"PUT\":")
+		e.Put.jsonify(&buf)
+	}
+	if e.Post != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"POST\":")
+		e.Post.jsonify(&buf)
+	}
+	if e.Patch != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"PATCH\":")
+		e.Patch.jsonify(&buf)
+	}
+	if e.Delete != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"DELETE\":")
+		e.Delete.jsonify(&buf)
+	}
+	if e.Connect != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"CONNECT\":")
+		e.Connect.jsonify(&buf)
+	}
+	if e.Options != nil {
+		comma(&written, &buf)
+		buf.WriteString("\"OPTIONS\":")
+		e.Options.jsonify(&buf)
+	}
+	if e.Trace != nil {
+		if written {
+			buf.WriteByte(',')
+		}
+		buf.WriteString("\"TRACE\":")
+		e.Trace.jsonify(&buf)
+	}
+	buf.WriteByte('}')
+
+	return buf.String()
+}
+
+func comma(rest *bool, buf *bytes.Buffer) {
+	if *rest {
+		buf.WriteByte(',')
+	} else {
+		*rest = true
+	}
+}
+
+func (p Pipeline) jsonify(buf *bytes.Buffer) {
+	enc := json.NewEncoder(buf)
+	buf.WriteString("{\"Policy\":")
+	enc.Encode(p.Policy)
+	buf.WriteString(",\"Handlers\":")
+	buf.WriteString(strconv.Itoa(len(p.Handlers)))
+	if len(p.QueryFields) != 0 {
+		buf.WriteString(",\"QueryFields\":")
+		enc.Encode(p.QueryFields)
+	}
+	buf.WriteByte('}')
 }

@@ -187,3 +187,114 @@ func TestDeleteEndpointWithPolicy(t *testing.T) {
 	assert.Nil(t, cut.Options)
 	assert.Nil(t, cut.Trace)
 }
+
+func TestEndpointExpvarStringExerciseComma(t *testing.T) {
+	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
+	cut.Get.QueryFields = []Field{
+		{Name: "thing", Required: true},
+	}
+	cut.Put = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+
+	val := cut.String()
+	t.Logf("%#v", cut.Get.Policy)
+
+	assert.NotEmpty(t, val)
+	expectedJSON := `{
+  "GET": {
+    "Policy": {
+      "AllowTrailingSlashRedirects": true
+    },
+    "Handlers": 1,
+    "QueryFields": [
+      {"Name": "thing", "Regex": null, "Required": true}
+    ]
+  },
+  "PUT": {
+    "Policy": {},
+    "Handlers": 1
+  }
+}`
+	assert.JSONEq(t, expectedJSON, val)
+}
+
+func TestEndpointExpvarString(t *testing.T) {
+	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
+	cut.Get.QueryFields = []Field{
+		{Name: "thing", Required: true},
+	}
+	cut.Head = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Put = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Post = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Patch = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Delete = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Connect = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Options = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+	cut.Trace = &Pipeline{
+		Handlers: []Handler{testHandler},
+	}
+
+	val := cut.String()
+	t.Logf("%#v", cut.Get.Policy)
+
+	assert.NotEmpty(t, val)
+	expectedJSON := `{
+  "HEAD": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "GET": {
+    "Policy": {
+      "AllowTrailingSlashRedirects": true
+    },
+    "Handlers": 1,
+    "QueryFields": [
+      {"Name": "thing", "Regex": null, "Required": true}
+    ]
+  },
+  "PUT": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "POST": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "PATCH": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "DELETE": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "CONNECT": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "OPTIONS": {
+    "Policy": {},
+    "Handlers": 1
+  },
+  "TRACE": {
+    "Policy": {},
+    "Handlers": 1
+  }
+}`
+	assert.JSONEq(t, expectedJSON, val)
+}
