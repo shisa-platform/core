@@ -26,7 +26,7 @@ type Validator func([]string) merry.Error
 type Field struct {
 	Name         string         // Match keys by exact value
 	Regex        *regexp.Regexp // Match keys by pattern
-	Default      string         `json:",omitempty"` // Default for Name when no input
+	Default      string         `json:",omitempty"` // Default value for `Name`
 	Validator    Validator      `json:"-"`          // Optional validator of value(s)
 	Multiplicity uint           `json:",omitempty"` // Value count, 0 is unlimited
 	Required     bool           `json:",omitempty"` // Is this input mandatory?
