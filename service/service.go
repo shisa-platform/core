@@ -50,7 +50,8 @@ type Service interface {
 
 	// InternalServerErrorHandler optionally customizes the
 	// response returned to the user agent when the gateway
-	// encounters an error trying to service a request.
+	// encounters an error trying to service a request to an
+	// endoint of this service.
 	// If nil the default handler will return a 500 status code
 	// with an empty body.
 	InternalServerErrorHandler() ErrorHandler

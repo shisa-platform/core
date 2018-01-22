@@ -70,22 +70,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	authN := middleware.Authentication{Authenticator: authenticator}
-	authZ := authorizer{}
+	authN := &middleware.Authentication{Authenticator: authenticator}
 
 	gw := &gateway.Gateway{
 		Name:            "hello",
 		Address:         fmt.Sprintf(":%d", *port),
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
-		Authentication:  &authN,
+		Handlers:        []service.Handler{authN.Service},
 		Logger:          logger,
 	}
 
+	authZ := authorizer{}
 	debug := &auxiliary.DebugServer{
 		HTTPServer: auxiliary.HTTPServer{
 			Addr:           fmt.Sprintf(":%d", *debugPort),
-			Authentication: &authN,
+			Authentication: authN,
 			Authorizer:     authZ,
 		},
 		Logger: logger,
@@ -93,7 +93,7 @@ func main() {
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
 			Addr:           fmt.Sprintf(":%d", *healthcheckPort),
-			Authentication: &authN,
+			Authentication: authN,
 			Authorizer:     authZ,
 		},
 		Checkers: []auxiliary.Healthchecker{dependencyStub{}},

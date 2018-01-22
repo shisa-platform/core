@@ -181,7 +181,26 @@ func TestRouterCustomRequestIDHeaderKey(t *testing.T) {
 	assert.NotEmpty(t, w.HeaderMap.Get(headerKey))
 }
 
-func TestRouterAuthentictionNGResponse(t *testing.T) {
+func TestRouterHandlersPanic(t *testing.T) {
+	var handlerCalled bool
+	handler := func(context.Context, *service.Request) service.Response {
+		handlerCalled = true
+		panic(merry.New("i blewed up!"))
+	}
+	cut := &Gateway{
+		Handlers: []service.Handler{handler},
+	}
+	cut.init()
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
@@ -192,9 +211,7 @@ func TestRouterAuthentictionNGResponse(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Authentication: &middleware.Authentication{
-			Authenticator: authn,
-		},
+		Handlers: []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 	}
 	cut.init()
 
@@ -206,7 +223,7 @@ func TestRouterAuthentictionNGResponse(t *testing.T) {
 	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
 }
 
-func TestRouterAuthentictionOKResponse(t *testing.T) {
+func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
@@ -218,9 +235,7 @@ func TestRouterAuthentictionOKResponse(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Authentication: &middleware.Authentication{
-			Authenticator: authn,
-		},
+		Handlers: []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 	}
 	cut.init()
 
