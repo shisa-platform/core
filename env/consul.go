@@ -2,6 +2,7 @@ package env
 
 import (
 	"strconv"
+	"sync"
 
 	"github.com/ansel1/merry"
 	consulapi "github.com/hashicorp/consul/api"
@@ -15,11 +16,20 @@ type Selfer interface {
 //go:generate charlatan -output=./consulkvgetter_charlatan.go KVGetter
 type KVGetter interface {
 	Get(string, *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error)
+	List(string, *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error)
 }
 
 var _ Selfer = (*consulapi.Agent)(nil)
 var _ KVGetter = (*consulapi.KV)(nil)
 var _ Provider = (*consulProvider)(nil)
+
+type kvMonitor struct {
+	Mon        chan<- Value
+	Initial    bool
+	LastIndex  uint64
+	LastResult Value
+	Deleted    bool
+}
 
 type MemberStatus int
 
@@ -51,10 +61,14 @@ func (s MemberStatus) String() string {
 type consulProvider struct {
 	agent Selfer
 	kv    KVGetter
+
+	mux   sync.Mutex
+	once  sync.Once
+	kvMap map[string]*kvMonitor
 }
 
 func NewConsul(c *consulapi.Client) Provider {
-	return &consulProvider{c.Agent(), c.KV()}
+	return &consulProvider{c.Agent(), c.KV(), sync.Mutex{}, sync.Once{}, nil}
 }
 
 func (p *consulProvider) Get(name string) (string, merry.Error) {
@@ -100,42 +114,14 @@ func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
 }
 
 func (p *consulProvider) Monitor(key string, v chan<- Value) {
-	initial := true
-	lastIndex := uint64(0)
-	lastResult := Value{}
+	p.once.Do(func() {
+		p.kvMap = make(map[string]*kvMonitor)
+		go p.initMonitor()
+	})
 
-	for {
-		opts := &consulapi.QueryOptions{WaitIndex: lastIndex}
-		kvp, meta, err := p.kv.Get(key, opts)
-		if err != nil {
-			break
-		}
-
-		// If index didn't change, continue
-		if lastIndex == meta.LastIndex {
-			continue
-		}
-
-		// Continue if index changed, but the K/V pair didn't
-		val := Value{Name: string(kvp.Key), Value: string(kvp.Value)}
-		if !initial && lastResult == val {
-			continue
-		}
-
-		// Reset if index stops being monotonic
-		if meta.LastIndex < lastIndex {
-			lastIndex = 0
-		}
-
-		// Handle the updated result
-		if !initial {
-			v <- val
-		}
-
-		initial = false
-		lastIndex = meta.LastIndex
-		lastResult = val
-	}
+	p.mux.Lock()
+	p.kvMap[key] = &kvMonitor{Mon: v, Initial: true}
+	p.mux.Unlock()
 
 	return
 }
@@ -165,5 +151,69 @@ func (p *consulProvider) status() (status MemberStatus, merr merry.Error) {
 		merr = merry.New("invalid member status for call to agent.Self")
 	}
 
+	return
+}
+
+func (p *consulProvider) initMonitor() {
+	lastIndex := uint64(0)
+
+	for {
+		opts := &consulapi.QueryOptions{WaitIndex: lastIndex}
+		kvps, meta, err := p.kv.List("", opts)
+		if err != nil {
+			break
+		}
+
+		// Have to keep track of deleted keys
+		found := make(map[string]bool)
+
+		lastIndex = meta.LastIndex
+
+		p.mux.Lock()
+		for _, kvp := range kvps {
+			key := string(kvp.Key)
+			kvMon, ok := p.kvMap[key]
+			if !ok {
+				continue
+			}
+
+			found[key] = true
+
+			// If index didn't change, continue
+			if kvMon.LastIndex == meta.LastIndex {
+				continue
+			}
+
+			// Continue if index changed, but the K/V pair didn't
+			val := Value{Name: key, Value: string(kvp.Value)}
+			if !kvMon.Initial && kvMon.LastResult == val {
+				continue
+			}
+
+			// Reset if index stops being monotonic
+			if meta.LastIndex < kvMon.LastIndex {
+				kvMon.LastIndex = 0
+			}
+
+			// Handle the updated result
+			if !kvMon.Initial {
+				kvMon.Mon <- val
+			}
+
+			kvMon.Initial = false
+			kvMon.LastIndex = meta.LastIndex
+			kvMon.LastResult = val
+			kvMon.Deleted = false
+		}
+
+		// Send blank Value if key is deleted
+		for k, v := range p.kvMap {
+			if _, ok := found[k]; !ok && !v.Deleted {
+				v.Mon <- Value{}
+				v.Deleted = true
+			}
+		}
+		p.mux.Unlock()
+	}
 	return
 }
