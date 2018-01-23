@@ -283,6 +283,10 @@ finish:
 	if writeErr != nil {
 		g.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
 	}
+	respErr := response.Err()
+	if respErr != nil {
+		g.Logger.Error(respErr.Error(), zap.String("request-id", requestID), zap.Error(writeErr))
+	}
 }
 
 func recovery(fatalError *merry.Error) {
