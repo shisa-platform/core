@@ -621,6 +621,7 @@ func TestConsulProviderIsMonitoring(t *testing.T) {
 func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
 	i := uint64(10)
 	s := &FakeSelfer{}
+	shut := make(chan struct{})
 
 	kvg := &FakeKVGetter{}
 	c := &consulProvider{
@@ -629,7 +630,10 @@ func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
 	}
 
 	kvg.ListHook = func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
-		defer func() { c.Shutdown() }()
+		defer func() {
+			c.Shutdown()
+			close(shut)
+		}()
 		defer func() { i++ }()
 
 		return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
@@ -637,7 +641,10 @@ func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
 
 	v := make(chan Value)
 	c.Monitor(defaultKey, v)
+	_, ok := <-shut
 
+	assert.False(t, ok)
+	assert.False(t, c.IsMonitoring())
 }
 
 func TestConsulProviderHealthcheck(t *testing.T) {
