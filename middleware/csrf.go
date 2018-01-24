@@ -177,7 +177,7 @@ func (m *CSRFProtector) defaultCheckOrigin(expected, actual url.URL) bool {
 }
 
 func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmpty(merry.HTTPCode(err))
+	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 func (m *CSRFProtector) defaultIsExempt(c context.Context, r *service.Request) bool {

@@ -223,7 +223,7 @@ func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
-					return unserializableResponse{}
+					return unserializableResponse()
 				},
 			},
 		},

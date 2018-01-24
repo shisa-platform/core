@@ -10,22 +10,24 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type unserializableResponse struct{}
-
-func (r unserializableResponse) StatusCode() int {
-	return 500
-}
-
-func (r unserializableResponse) Headers() http.Header {
-	return nil
-}
-
-func (r unserializableResponse) Trailers() http.Header {
-	return nil
-}
-
-func (r unserializableResponse) Serialize(io.Writer) (int, error) {
-	return 0, merry.New("i blewed up")
+func unserializableResponse() service.Response {
+	return &service.FakeResponse{
+		StatusCodeHook: func() int {
+			return http.StatusInternalServerError
+		},
+		HeadersHook: func() http.Header {
+			return nil
+		},
+		TrailersHook: func() http.Header {
+			return nil
+		},
+		ErrHook: func() error {
+			return nil
+		},
+		SerializeHook: func(io.Writer) (int, error) {
+			return 0, merry.New("i blewed up!")
+		},
+	}
 }
 
 type stubAuthorizer struct {

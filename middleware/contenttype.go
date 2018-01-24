@@ -100,7 +100,7 @@ func (m *RestrictContentTypes) checkQuery(r *service.Request) (err merry.Error) 
 }
 
 func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmpty(merry.HTTPCode(err))
+	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 // AllowContentTypes is middleware to whitelist incoming
@@ -187,5 +187,5 @@ func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
 }
 
 func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmpty(merry.HTTPCode(err))
+	return service.NewEmptyError(merry.HTTPCode(err), err)
 }

@@ -22,6 +22,7 @@ type Response interface {
 	StatusCode() int
 	Headers() http.Header
 	Trailers() http.Header
+	Err() error
 	Serialize(io.Writer) (int, error)
 }
 
@@ -49,6 +50,10 @@ func (r *BasicResponse) Trailers() http.Header {
 	return r.trailers
 }
 
+func (r *BasicResponse) Err() error {
+	return nil
+}
+
 func (r *BasicResponse) Serialize(io.Writer) (int, error) {
 	return 0, nil
 }
@@ -73,6 +78,26 @@ func NewEmpty(code int) Response {
 		Code:     code,
 		headers:  make(http.Header),
 		trailers: make(http.Header),
+	}
+}
+
+type ErrorResponse struct {
+	BasicResponse
+	Error error
+}
+
+func (r *ErrorResponse) Err() error {
+	return r.Error
+}
+
+func NewEmptyError(code int, err error) Response {
+	return &ErrorResponse{
+		BasicResponse: BasicResponse{
+			Code:     code,
+			headers:  make(http.Header),
+			trailers: make(http.Header),
+		},
+		Error: err,
 	}
 }
 

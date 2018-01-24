@@ -19,24 +19,24 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type failingResponse struct {
-	code int
-}
-
-func (r failingResponse) StatusCode() int {
-	return r.code
-}
-
-func (r failingResponse) Headers() http.Header {
-	return nil
-}
-
-func (r failingResponse) Trailers() http.Header {
-	return nil
-}
-
-func (r failingResponse) Serialize(io.Writer) (int, error) {
-	return 0, errors.New("i blewed up!")
+func failingResponse(status int) service.Response {
+	return &service.FakeResponse{
+		StatusCodeHook: func() int {
+			return status
+		},
+		HeadersHook: func() http.Header {
+			return nil
+		},
+		TrailersHook: func() http.Header {
+			return nil
+		},
+		ErrHook: func() error {
+			return nil
+		},
+		SerializeHook: func(io.Writer) (int, error) {
+			return 0, errors.New("i blewed up!")
+		},
+	}
 }
 
 func installService(t *testing.T, g *Gateway, svc service.Service) {
@@ -1853,7 +1853,7 @@ func TestRouterSerializationError(t *testing.T) {
 	handler := func(ctx context.Context, r *service.Request) service.Response {
 		handlerCalled = true
 
-		response := failingResponse{code: http.StatusOK}
+		response := failingResponse(http.StatusOK)
 		return response
 	}
 	installHandler(t, cut, handler)

@@ -71,7 +71,7 @@ func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) servi
 }
 
 func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmpty(merry.HTTPCode(err))
+	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
@@ -136,7 +136,7 @@ func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service
 }
 
 func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmpty(merry.HTTPCode(err))
+	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
