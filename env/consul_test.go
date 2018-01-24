@@ -235,8 +235,6 @@ func TestConsulProviderMonitorNoChange(t *testing.T) {
 	c := &consulProvider{
 		agent: s,
 		kv:    kvg,
-		mux:   sync.Mutex{},
-		once:  sync.Once{},
 	}
 	v := make(chan Value, 5)
 
@@ -342,8 +340,6 @@ func TestConsulProviderMonitorIndexReset(t *testing.T) {
 	c := &consulProvider{
 		agent: s,
 		kv:    kvg,
-		mux:   sync.Mutex{},
-		once:  sync.Once{},
 	}
 	v := make(chan Value, 5)
 
@@ -387,8 +383,6 @@ func TestConsulProviderMonitorMultipleKeys(t *testing.T) {
 	c := &consulProvider{
 		agent: s,
 		kv:    kvg,
-		mux:   sync.Mutex{},
-		once:  sync.Once{},
 	}
 	v := make(chan Value, 2)
 
@@ -476,8 +470,6 @@ func TestConsulProviderMonitorDeletedKey(t *testing.T) {
 	c := &consulProvider{
 		agent: s,
 		kv:    kvg,
-		mux:   sync.Mutex{},
-		once:  sync.Once{},
 	}
 
 	v := make(chan Value, 1)
@@ -554,8 +546,6 @@ func TestConsulProviderMonitorErrorHandler(t *testing.T) {
 
 		agent: s,
 		kv:    kvg,
-		mux:   sync.Mutex{},
-		once:  sync.Once{},
 	}
 
 	v := make(chan Value)
