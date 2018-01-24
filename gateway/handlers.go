@@ -38,8 +38,8 @@ func defaultRedirectHandler(c context.Context, r *service.Request) (resp service
 	return
 }
 
-func defaultInternalServerErrorHandler(context.Context, *service.Request, merry.Error) service.Response {
-	return service.NewEmpty(http.StatusInternalServerError)
+func defaultInternalServerErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+	return service.NewEmptyError(http.StatusInternalServerError, err)
 }
 
 func defaultRequestIDGenerator(c context.Context, r *service.Request) (string, merry.Error) {

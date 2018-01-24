@@ -179,7 +179,7 @@ func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request)
 }
 
 func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmpty(merry.HTTPCode(err))
+	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 // ProxyResponse is an adapter for `http.Response` to the
@@ -198,6 +198,10 @@ func (r ProxyResponse) Headers() http.Header {
 
 func (r ProxyResponse) Trailers() http.Header {
 	return r.Trailer
+}
+
+func (r ProxyResponse) Err() error {
+	return nil
 }
 
 func (r ProxyResponse) Serialize(w io.Writer) (n int, err error) {
