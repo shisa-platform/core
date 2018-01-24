@@ -67,7 +67,7 @@ type consulProvider struct {
 	kvMap map[string]*kvMonitor
 }
 
-func NewConsul(c *consulapi.Client) Provider {
+func NewConsul(c *consulapi.Client) *consulProvider {
 	return &consulProvider{agent: c.Agent(), kv: c.KV(), mux: sync.Mutex{}, once: sync.Once{}}
 }
 

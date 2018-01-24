@@ -41,11 +41,10 @@ func TestNewConsul(t *testing.T) {
 	ac := &consulapi.Client{}
 
 	c := NewConsul(ac)
-	cs := c.(*consulProvider)
 
 	assert.NotNil(t, c)
-	assert.NotNil(t, cs.agent)
-	assert.NotNil(t, cs.kv)
+	assert.NotNil(t, c.agent)
+	assert.NotNil(t, c.kv)
 }
 
 func TestConsulProviderGet(t *testing.T) {
