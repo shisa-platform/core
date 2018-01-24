@@ -93,9 +93,9 @@ func (r *ErrorResponse) Err() error {
 func NewEmptyError(code int, err error) Response {
 	return &ErrorResponse{
 		BasicResponse: BasicResponse{
-		Code:     code,
-		headers:  make(http.Header),
-		trailers: make(http.Header),
+			Code:     code,
+			headers:  make(http.Header),
+			trailers: make(http.Header),
 		},
 		Error: err,
 	}
