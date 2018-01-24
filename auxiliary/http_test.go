@@ -10,7 +10,6 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-
 func unserializableResponse() service.Response {
 	return &service.FakeResponse{
 		StatusCodeHook: func() int {
