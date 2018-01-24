@@ -530,6 +530,116 @@ func TestConsulProviderMonitorRevenant(t *testing.T) {
 	assert.Equal(t, e2, <-v)
 }
 
+func TestConsulProviderShutdown(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case i % 2:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	v := make(chan Value, 2)
+
+	c.Monitor(defaultKey, v)
+	<-v
+
+	c.Shutdown()
+	_, ok := <-c.stopCh
+
+	c.Shutdown() // should be a noop
+
+	assert.True(t, c.stop)
+	assert.False(t, ok)
+}
+
+func TestConsulProviderShutdownNotMonitoring(t *testing.T) {
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+	c.Shutdown() // should be a noop
+
+	assert.Nil(t, c.stopCh)
+	assert.False(t, c.IsMonitoring())
+}
+
+func TestConsulProviderIsMonitoring(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case i % 2:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	v := make(chan Value)
+
+	c.Monitor(defaultKey, v)
+	m1 := c.IsMonitoring()
+	<-v
+
+	c.Shutdown()
+	_, ok := <-c.stopCh
+	m2 := c.IsMonitoring()
+
+	c.Shutdown() // should be a noop
+
+	assert.True(t, c.stop)
+	assert.False(t, ok)
+	assert.True(t, m1)
+	assert.False(t, m2)
+}
+
+func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	kvg.ListHook = func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+		defer func() { c.Shutdown() }()
+		defer func() { i++ }()
+
+		return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+	}
+
+	v := make(chan Value)
+	c.Monitor(defaultKey, v)
+
+}
+
 func TestConsulProviderHealthcheck(t *testing.T) {
 	s := &FakeSelfer{
 		SelfHook: func() (map[string]map[string]interface{}, error) {

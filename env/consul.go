@@ -1,6 +1,7 @@
 package env
 
 import (
+	"context"
 	"strconv"
 	"sync"
 
@@ -65,10 +66,18 @@ type consulProvider struct {
 	mux   sync.Mutex
 	once  sync.Once
 	kvMap map[string]*kvMonitor
+
+	stop       bool
+	stopCh     chan struct{}
+	stopLock   sync.Mutex
+	cancelFunc context.CancelFunc
 }
 
 func NewConsul(c *consulapi.Client) *consulProvider {
-	return &consulProvider{agent: c.Agent(), kv: c.KV(), mux: sync.Mutex{}, once: sync.Once{}}
+	return &consulProvider{
+		agent: c.Agent(),
+		kv:    c.KV(),
+	}
 }
 
 func (p *consulProvider) Get(name string) (string, merry.Error) {
@@ -116,12 +125,35 @@ func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
 func (p *consulProvider) Monitor(key string, v chan<- Value) {
 	p.once.Do(func() {
 		p.kvMap = make(map[string]*kvMonitor)
+		p.stopCh = make(chan struct{})
 		go p.monitorLoop()
 	})
 
 	p.mux.Lock()
 	p.kvMap[key] = &kvMonitor{ch: v, init: true}
 	p.mux.Unlock()
+
+	return
+}
+
+func (p *consulProvider) Shutdown() {
+	if p.stopCh == nil {
+		return
+	}
+
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+
+	if p.stop {
+		return
+	}
+	p.stop = true
+
+	if p.cancelFunc != nil {
+		p.cancelFunc()
+	}
+
+	close(p.stopCh)
 
 	return
 }
@@ -157,10 +189,20 @@ func (p *consulProvider) status() (status MemberStatus, merr merry.Error) {
 func (p *consulProvider) monitorLoop() {
 	lastIndex := uint64(0)
 
-	for {
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancelFunc = cancel
+
+	for !p.shouldStop() {
 		opts := &consulapi.QueryOptions{WaitIndex: lastIndex}
-		kvps, meta, err := p.kv.List("", opts)
+
+		kvps, meta, err := p.kv.List("", opts.WithContext(ctx))
 		if err != nil {
+			break
+		}
+
+		// Check if we should terminate since the function
+		// could have blocked for a while
+		if p.shouldStop() {
 			break
 		}
 
@@ -218,4 +260,23 @@ func (p *consulProvider) monitorLoop() {
 		p.mux.Unlock()
 	}
 	return
+}
+
+func (p *consulProvider) shouldStop() bool {
+	select {
+	case <-p.stopCh:
+		return true
+	default:
+		return false
+	}
+}
+
+func (p *consulProvider) IsMonitoring() bool {
+	if p.stopCh == nil {
+		return false
+	}
+
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+	return !p.stop
 }
