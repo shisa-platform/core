@@ -43,7 +43,7 @@ type ProviderGetBoolInvocation struct {
 type ProviderMonitorInvocation struct {
 	Parameters struct {
 		Ident1 string
-		Ident2 <-chan Value
+		Ident2 chan<- Value
 	}
 }
 
@@ -90,7 +90,7 @@ type FakeProvider struct {
 	GetHook         func(string) (string, merry.Error)
 	GetIntHook      func(string) (int, merry.Error)
 	GetBoolHook     func(string) (bool, merry.Error)
-	MonitorHook     func(string, <-chan Value)
+	MonitorHook     func(string, chan<- Value)
 	HealthcheckHook func() merry.Error
 
 	GetCalls         []*ProviderGetInvocation
@@ -112,7 +112,7 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 		GetBoolHook: func(string) (ident2 bool, ident3 merry.Error) {
 			panic("Unexpected call to Provider.GetBool")
 		},
-		MonitorHook: func(string, <-chan Value) {
+		MonitorHook: func(string, chan<- Value) {
 			panic("Unexpected call to Provider.Monitor")
 		},
 		HealthcheckHook: func() (ident1 merry.Error) {
@@ -136,7 +136,7 @@ func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 			t.Fatal("Unexpected call to Provider.GetBool")
 			return
 		},
-		MonitorHook: func(string, <-chan Value) {
+		MonitorHook: func(string, chan<- Value) {
 			t.Fatal("Unexpected call to Provider.Monitor")
 			return
 		},
@@ -162,7 +162,7 @@ func NewFakeProviderDefaultError(t ProviderTestingT) *FakeProvider {
 			t.Error("Unexpected call to Provider.GetBool")
 			return
 		},
-		MonitorHook: func(string, <-chan Value) {
+		MonitorHook: func(string, chan<- Value) {
 			t.Error("Unexpected call to Provider.Monitor")
 			return
 		},
@@ -589,7 +589,7 @@ func (_f18 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ide
 	return
 }
 
-func (_f19 *FakeProvider) Monitor(ident1 string, ident2 <-chan Value) {
+func (_f19 *FakeProvider) Monitor(ident1 string, ident2 chan<- Value) {
 	invocation := new(ProviderMonitorInvocation)
 
 	invocation.Parameters.Ident1 = ident1
@@ -655,7 +655,7 @@ func (f *FakeProvider) AssertMonitorCalledN(t ProviderTestingT, n int) {
 }
 
 // MonitorCalledWith returns true if FakeProvider.Monitor was called with the given values
-func (_f20 *FakeProvider) MonitorCalledWith(ident1 string, ident2 <-chan Value) (found bool) {
+func (_f20 *FakeProvider) MonitorCalledWith(ident1 string, ident2 chan<- Value) (found bool) {
 	for _, call := range _f20.MonitorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
@@ -667,7 +667,7 @@ func (_f20 *FakeProvider) MonitorCalledWith(ident1 string, ident2 <-chan Value) 
 }
 
 // AssertMonitorCalledWith calls t.Error if FakeProvider.Monitor was not called with the given values
-func (_f21 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 string, ident2 <-chan Value) {
+func (_f21 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 string, ident2 chan<- Value) {
 	t.Helper()
 	var found bool
 	for _, call := range _f21.MonitorCalls {
@@ -683,7 +683,7 @@ func (_f21 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 str
 }
 
 // MonitorCalledOnceWith returns true if FakeProvider.Monitor was called exactly once with the given values
-func (_f22 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 <-chan Value) bool {
+func (_f22 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 chan<- Value) bool {
 	var count int
 	for _, call := range _f22.MonitorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
@@ -695,7 +695,7 @@ func (_f22 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 <-chan Val
 }
 
 // AssertMonitorCalledOnceWith calls t.Error if FakeProvider.Monitor was not called exactly once with the given values
-func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1 string, ident2 <-chan Value) {
+func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1 string, ident2 chan<- Value) {
 	t.Helper()
 	var count int
 	for _, call := range _f23.MonitorCalls {

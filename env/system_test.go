@@ -113,7 +113,7 @@ func TestMonitor(t *testing.T) {
 	assert.Empty(t, value)
 	assert.Error(t, err)
 
-	ch := make(<-chan Value, 1)
+	ch := make(chan Value, 1)
 	cut.Monitor(envvar, ch)
 
 	defer os.Unsetenv(envvar)

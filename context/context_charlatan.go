@@ -2,10 +2,10 @@
 
 package context
 
-import "reflect"
 import "context"
 import "time"
 import "github.com/percolate/shisa/models"
+import "reflect"
 
 // ContextDeadlineInvocation represents a single call of FakeContext.Deadline
 type ContextDeadlineInvocation struct {

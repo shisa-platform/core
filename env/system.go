@@ -49,7 +49,7 @@ func (p *systemProvider) GetBool(name string) (bool, merry.Error) {
 	return false, NameNotSet.Here().WithValue("name", name)
 }
 
-func (p *systemProvider) Monitor(string, <-chan Value) {
+func (p *systemProvider) Monitor(string, chan<- Value) {
 	// N.B. do nothing, system enviroment vars are not dynamic
 }
 

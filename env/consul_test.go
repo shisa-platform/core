@@ -1,6 +1,7 @@
 package env
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ansel1/merry"
@@ -40,11 +41,10 @@ func TestNewConsul(t *testing.T) {
 	ac := &consulapi.Client{}
 
 	c := NewConsul(ac)
-	cs := c.(*consulProvider)
 
 	assert.NotNil(t, c)
-	assert.NotNil(t, cs.agent)
-	assert.NotNil(t, cs.kv)
+	assert.NotNil(t, c.agent)
+	assert.NotNil(t, c.kv)
 }
 
 func TestConsulProviderGet(t *testing.T) {
@@ -216,6 +216,461 @@ func TestConsulProviderGetBoolParseFailure(t *testing.T) {
 	assert.False(t, r)
 	assert.Error(t, err)
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
+func TestConsulProviderMonitorNoChange(t *testing.T) {
+	i := uint64(10)
+	z := 0
+	s := &FakeSelfer{}
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { z++ }()
+			if z < 3 {
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i}, nil
+			} else {
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+	v := make(chan Value, 5)
+
+	c.Monitor(defaultKey, v)
+
+	assert.Empty(t, v)
+}
+
+func TestConsulProviderMonitorIndexChange(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+			if i < 13 {
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			} else {
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+		mux:   sync.Mutex{},
+		once:  sync.Once{},
+	}
+	v := make(chan Value, 5)
+
+	c.Monitor(defaultKey, v)
+
+	assert.Empty(t, v)
+}
+
+func TestConsulProviderMonitorChange(t *testing.T) {
+	i := uint64(10)
+	newVal := "NEW_VAL"
+	s := &FakeSelfer{}
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: []byte(newVal)}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+		mux:   sync.Mutex{},
+		once:  sync.Once{},
+	}
+	v := make(chan Value, 2)
+
+	c.Monitor(defaultKey, v)
+
+	v1 := <-v
+	v2 := <-v
+
+	expectedV1 := Value{defaultKey, newVal}
+	expectedV2 := Value{defaultKey, string(defaultVal)}
+
+	assert.Equal(t, expectedV1, v1)
+	assert.Equal(t, expectedV2, v2)
+}
+
+func TestConsulProviderMonitorIndexReset(t *testing.T) {
+	i := uint64(10)
+	newVal := "NEW_VAL"
+	s := &FakeSelfer{}
+
+	swap := true
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			if i == 12 && swap {
+				i = 10
+				swap = false
+			}
+
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: []byte(newVal)}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+	v := make(chan Value, 5)
+
+	c.Monitor(defaultKey, v)
+
+	v1 := <-v
+	v2 := <-v
+	v3 := <-v
+	v4 := <-v
+
+	expectedNew := Value{defaultKey, newVal}
+	expectedDefault := Value{defaultKey, string(defaultVal)}
+
+	assert.Equal(t, expectedNew, v1)
+	assert.Equal(t, expectedDefault, v2)
+	assert.Equal(t, expectedNew, v3)
+	assert.Equal(t, expectedDefault, v4)
+}
+
+func TestConsulProviderMonitorMultipleKeys(t *testing.T) {
+	i := uint64(10)
+	anyKey := "ANY"
+	newVal := "NEW_VAL"
+	s := &FakeSelfer{}
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: anyKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: []byte(newVal)}, {Key: anyKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: anyKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+	v := make(chan Value, 2)
+
+	c.Monitor(defaultKey, v)
+
+	v1 := <-v
+	v2 := <-v
+
+	expectedNew := Value{defaultKey, newVal}
+	expectedDefault := Value{defaultKey, string(defaultVal)}
+
+	assert.Equal(t, expectedNew, v1)
+	assert.Equal(t, expectedDefault, v2)
+}
+
+func TestConsulProviderMonitorMultipleMonitor(t *testing.T) {
+	i := uint64(10)
+	anyKey := "ANY"
+	newVal := "NEW_VAL"
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: anyKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: []byte(newVal)}, {Key: anyKey, Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: anyKey, Value: []byte(newVal)}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+		mux:   sync.Mutex{},
+		once:  sync.Once{},
+	}
+
+	v := make(chan Value, 2)
+	z := make(chan Value, 1)
+
+	c.Monitor(defaultKey, v)
+	c.Monitor(anyKey, z)
+
+	v1 := <-v
+	v2 := <-v
+
+	expectedNew := Value{defaultKey, newVal}
+	expectedDefault := Value{defaultKey, string(defaultVal)}
+	expectedAny := Value{anyKey, newVal}
+
+	assert.Equal(t, expectedNew, v1)
+	assert.Equal(t, expectedDefault, v2)
+	assert.Equal(t, expectedAny, <-z)
+}
+
+func TestConsulProviderMonitorDeletedKey(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	v := make(chan Value, 1)
+
+	c.Monitor(defaultKey, v)
+
+	expected := Value{}
+
+	assert.Equal(t, expected, <-v)
+}
+
+func TestConsulProviderMonitorRevenant(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 13:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+		mux:   sync.Mutex{},
+		once:  sync.Once{},
+	}
+
+	v := make(chan Value, 2)
+
+	c.Monitor(defaultKey, v)
+
+	e1 := Value{}
+	e2 := Value{defaultKey, string(defaultVal)}
+
+	assert.Equal(t, e1, <-v)
+	assert.Equal(t, e2, <-v)
+}
+
+func TestConsulProviderMonitorErrorHandler(t *testing.T) {
+	e := merry.New("stop")
+	var called error
+
+	calledCh := make(chan struct{})
+
+	errorHandler := func(err error) {
+		called = err
+		close(calledCh)
+		return
+	}
+
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			return nil, nil, e
+		},
+	}
+	c := &consulProvider{
+		ErrorHandler: errorHandler,
+
+		agent: s,
+		kv:    kvg,
+	}
+
+	v := make(chan Value)
+
+	c.Monitor(defaultKey, v)
+	<-calledCh
+
+	assert.Equal(t, e, called)
+}
+
+func TestConsulProviderShutdown(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case i % 2:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	v := make(chan Value, 2)
+
+	c.Monitor(defaultKey, v)
+	<-v
+
+	c.Shutdown()
+	_, ok := <-c.stopCh
+
+	c.Shutdown() // should be a noop
+
+	assert.True(t, c.stop)
+	assert.False(t, ok)
+}
+
+func TestConsulProviderShutdownNotMonitoring(t *testing.T) {
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+	c.Shutdown() // should be a noop
+
+	assert.Nil(t, c.stopCh)
+	assert.False(t, c.IsMonitoring())
+}
+
+func TestConsulProviderIsMonitoring(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case i % 2:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	v := make(chan Value)
+
+	c.Monitor(defaultKey, v)
+	m1 := c.IsMonitoring()
+	<-v
+
+	c.Shutdown()
+	_, ok := <-c.stopCh
+	m2 := c.IsMonitoring()
+
+	c.Shutdown() // should be a noop
+
+	assert.True(t, c.stop)
+	assert.False(t, ok)
+	assert.True(t, m1)
+	assert.False(t, m2)
+}
+
+func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+	shut := make(chan struct{})
+
+	kvg := &FakeKVGetter{}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	kvg.ListHook = func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+		defer func() {
+			c.Shutdown()
+			close(shut)
+		}()
+		defer func() { i++ }()
+
+		return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+	}
+
+	v := make(chan Value)
+	c.Monitor(defaultKey, v)
+	_, ok := <-shut
+
+	assert.False(t, ok)
+	assert.False(t, c.IsMonitoring())
 }
 
 func TestConsulProviderHealthcheck(t *testing.T) {
