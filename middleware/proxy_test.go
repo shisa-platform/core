@@ -403,6 +403,7 @@ func TestReverseProxy(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode())
 	assert.True(t, routerInvoked)
 	assert.Empty(t, response.Trailers())
+	assert.NoError(t, response.Err())
 
 	var buf bytes.Buffer
 	size, err := response.Serialize(&buf)
