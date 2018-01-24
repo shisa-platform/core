@@ -34,6 +34,8 @@ type kvMonitor struct {
 
 type MemberStatus int
 
+type ErrorHandler func(error)
+
 const (
 	StatusNone MemberStatus = iota
 	StatusAlive
@@ -71,6 +73,8 @@ type consulProvider struct {
 	stopCh     chan struct{}
 	stopLock   sync.Mutex
 	cancelFunc context.CancelFunc
+
+	ErrorHandler ErrorHandler
 }
 
 func NewConsul(c *consulapi.Client) *consulProvider {
@@ -197,6 +201,9 @@ func (p *consulProvider) monitorLoop() {
 
 		kvps, meta, err := p.kv.List("", opts.WithContext(ctx))
 		if err != nil {
+			if p.ErrorHandler != nil {
+				p.ErrorHandler(err)
+			}
 			break
 		}
 

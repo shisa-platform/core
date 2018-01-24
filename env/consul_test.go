@@ -530,6 +530,42 @@ func TestConsulProviderMonitorRevenant(t *testing.T) {
 	assert.Equal(t, e2, <-v)
 }
 
+func TestConsulProviderMonitorErrorHandler(t *testing.T) {
+	e := merry.New("stop")
+	var called error
+
+	calledCh := make(chan struct{})
+
+	errorHandler := func(err error) {
+		called = err
+		close(calledCh)
+		return
+	}
+
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			return nil, nil, e
+		},
+	}
+	c := &consulProvider{
+		ErrorHandler: errorHandler,
+
+		agent: s,
+		kv:    kvg,
+		mux:   sync.Mutex{},
+		once:  sync.Once{},
+	}
+
+	v := make(chan Value)
+
+	c.Monitor(defaultKey, v)
+	<-calledCh
+
+	assert.Equal(t, e, called)
+}
+
 func TestConsulProviderShutdown(t *testing.T) {
 	i := uint64(10)
 	s := &FakeSelfer{}
