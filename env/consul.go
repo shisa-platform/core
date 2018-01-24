@@ -24,11 +24,11 @@ var _ KVGetter = (*consulapi.KV)(nil)
 var _ Provider = (*consulProvider)(nil)
 
 type kvMonitor struct {
-	Mon        chan<- Value
-	Initial    bool
-	LastIndex  uint64
-	LastResult Value
-	Deleted    bool
+	ch         chan<- Value
+	init       bool
+	lastIndex  uint64
+	lastResult Value
+	del        bool
 }
 
 type MemberStatus int
@@ -68,7 +68,7 @@ type consulProvider struct {
 }
 
 func NewConsul(c *consulapi.Client) Provider {
-	return &consulProvider{c.Agent(), c.KV(), sync.Mutex{}, sync.Once{}, nil}
+	return &consulProvider{agent: c.Agent(), kv: c.KV(), mux: sync.Mutex{}, once: sync.Once{}}
 }
 
 func (p *consulProvider) Get(name string) (string, merry.Error) {
@@ -116,11 +116,11 @@ func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
 func (p *consulProvider) Monitor(key string, v chan<- Value) {
 	p.once.Do(func() {
 		p.kvMap = make(map[string]*kvMonitor)
-		go p.initMonitor()
+		go p.monitorLoop()
 	})
 
 	p.mux.Lock()
-	p.kvMap[key] = &kvMonitor{Mon: v, Initial: true}
+	p.kvMap[key] = &kvMonitor{ch: v, init: true}
 	p.mux.Unlock()
 
 	return
@@ -154,7 +154,7 @@ func (p *consulProvider) status() (status MemberStatus, merr merry.Error) {
 	return
 }
 
-func (p *consulProvider) initMonitor() {
+func (p *consulProvider) monitorLoop() {
 	lastIndex := uint64(0)
 
 	for {
@@ -180,37 +180,39 @@ func (p *consulProvider) initMonitor() {
 			found[key] = true
 
 			// If index didn't change, continue
-			if kvMon.LastIndex == meta.LastIndex {
+			if kvMon.lastIndex == meta.LastIndex {
 				continue
 			}
 
 			// Continue if index changed, but the K/V pair didn't
 			val := Value{Name: key, Value: string(kvp.Value)}
-			if !kvMon.Initial && kvMon.LastResult == val {
+			if !kvMon.init && kvMon.lastResult == val {
 				continue
 			}
 
 			// Reset if index stops being monotonic
-			if meta.LastIndex < kvMon.LastIndex {
-				kvMon.LastIndex = 0
+			if meta.LastIndex < kvMon.lastIndex {
+				kvMon.lastIndex = 0
 			}
 
 			// Handle the updated result
-			if !kvMon.Initial {
-				kvMon.Mon <- val
+			if !kvMon.init {
+				kvMon.ch <- val
 			}
 
-			kvMon.Initial = false
-			kvMon.LastIndex = meta.LastIndex
-			kvMon.LastResult = val
-			kvMon.Deleted = false
+			kvMon.init = false
+			kvMon.lastIndex = meta.LastIndex
+			kvMon.lastResult = val
+			kvMon.del = false
 		}
 
 		// Send blank Value if key is deleted
 		for k, v := range p.kvMap {
-			if _, ok := found[k]; !ok && !v.Deleted {
-				v.Mon <- Value{}
-				v.Deleted = true
+			if _, ok := found[k]; !ok && !v.del {
+				val := Value{}
+				v.ch <- val
+				v.lastResult = val
+				v.del = true
 			}
 		}
 		p.mux.Unlock()

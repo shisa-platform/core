@@ -490,6 +490,47 @@ func TestConsulProviderMonitorDeletedKey(t *testing.T) {
 	assert.Equal(t, expected, <-v)
 }
 
+func TestConsulProviderMonitorRevenant(t *testing.T) {
+	i := uint64(10)
+	s := &FakeSelfer{}
+
+	kvg := &FakeKVGetter{
+		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
+			defer func() { i++ }()
+
+			switch i {
+			case 10:
+				// First value is not written to channel - Monitor only sends changed vals to channel
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 11:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 12:
+				return []*consulapi.KVPair{}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			case 13:
+				return []*consulapi.KVPair{{Key: defaultKey, Value: defaultVal}, {Key: "ANY", Value: defaultVal}}, &consulapi.QueryMeta{LastIndex: i + 1}, nil
+			default:
+				return nil, nil, merry.New("stop")
+			}
+		},
+	}
+	c := &consulProvider{
+		agent: s,
+		kv:    kvg,
+		mux:   sync.Mutex{},
+		once:  sync.Once{},
+	}
+
+	v := make(chan Value, 2)
+
+	c.Monitor(defaultKey, v)
+
+	e1 := Value{}
+	e2 := Value{defaultKey, string(defaultVal)}
+
+	assert.Equal(t, e1, <-v)
+	assert.Equal(t, e2, <-v)
+}
+
 func TestConsulProviderHealthcheck(t *testing.T) {
 	s := &FakeSelfer{
 		SelfHook: func() (map[string]map[string]interface{}, error) {
