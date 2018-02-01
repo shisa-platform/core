@@ -45,6 +45,7 @@ test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
 examples:
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/rest github.com/percolate/shisa/examples/rest
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/rpc github.com/percolate/shisa/examples/rpc
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/gw github.com/percolate/shisa/examples/gw
 
 coverage/%:
 	go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic github.com/percolate/shisa/$(@F)

@@ -76,8 +76,6 @@ func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
 func NewEmpty(code int) Response {
 	return &BasicResponse{
 		Code:     code,
-		headers:  make(http.Header),
-		trailers: make(http.Header),
 	}
 }
 
@@ -94,8 +92,6 @@ func NewEmptyError(code int, err error) Response {
 	return &ErrorResponse{
 		BasicResponse: BasicResponse{
 			Code:     code,
-			headers:  make(http.Header),
-			trailers: make(http.Header),
 		},
 		Error: err,
 	}
