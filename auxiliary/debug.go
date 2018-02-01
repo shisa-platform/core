@@ -103,12 +103,12 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var writeErr error
 	if response := s.Authenticate(ctx, request); response != nil {
-		writeErr = writeResponse(&ri, response)
+		writeErr = httpx.WriteResponse(ri, response)
 		goto finish
 	}
 
 	if s.Path == r.URL.Path {
-		s.delegate.ServeHTTP(&ri, r)
+		s.delegate.ServeHTTP(ri, r)
 	} else {
 		ri.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		ri.WriteHeader(http.StatusNotFound)
@@ -123,23 +123,4 @@ finish:
 	if writeErr != nil {
 		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
 	}
-}
-
-func writeResponse(w http.ResponseWriter, response service.Response) (err error) {
-	for k, vs := range response.Headers() {
-		w.Header()[k] = vs
-	}
-	for k := range response.Trailers() {
-		w.Header().Add("Trailer", k)
-	}
-
-	w.WriteHeader(response.StatusCode())
-
-	_, err = response.Serialize(w)
-
-	for k, vs := range response.Trailers() {
-		w.Header()[k] = vs
-	}
-
-	return
 }

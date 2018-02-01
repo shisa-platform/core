@@ -163,7 +163,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response.Headers().Set(contenttype.ContentTypeHeaderKey, jsonContentType)
 
 finish:
-	writeErr := writeResponse(&ri, response)
+	writeErr := httpx.WriteResponse(ri, response)
 	ri.Flush(ctx, request)
 
 	if idErr != nil {

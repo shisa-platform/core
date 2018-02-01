@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/middleware"
@@ -153,67 +151,4 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request)
 	}
 
 	return
-}
-
-// ResponseInterceptor implements `http.ResponseWriter` to capture
-// and log the response sent to a user agent.
-// Use it to wrap a standard  `http.ResponseWriter` and log the
-// request to a logger named "request" at the `Info` level.  All
-// fields are required.
-type ResponseInterceptor struct {
-	Logger   *zap.Logger         // The logger for requests
-	Delegate http.ResponseWriter // The underlying writer
-	Start    time.Time           // The response start time
-	status   int
-	size     int
-}
-
-func (i *ResponseInterceptor) Header() http.Header {
-	return i.Delegate.Header()
-}
-
-func (i *ResponseInterceptor) Write(data []byte) (int, error) {
-	size, err := i.Delegate.Write(data)
-	i.size += size
-
-	return size, err
-}
-
-func (i *ResponseInterceptor) WriteHeader(status int) {
-	i.status = status
-	i.Delegate.WriteHeader(status)
-}
-
-// Flush logs the requst to a logger named "request" at the
-// `Info` level.
-// No logging is peformed of either the logger doesn't exist or
-// the `Info` level is not configured.  If the underlying writer
-// implements `http.Flusher` then the `Flush` method will be
-// called.
-func (i *ResponseInterceptor) Flush(ctx context.Context, r *service.Request) {
-	if ce := i.Logger.Check(zap.InfoLevel, "request"); ce != nil {
-		end := time.Now().UTC()
-		elapsed := end.Sub(i.Start)
-		if i.status == 0 {
-			i.status = http.StatusOK
-		}
-		fs := make([]zapcore.Field, 9, 10)
-		fs[0] = zap.String("request-id", ctx.RequestID())
-		fs[1] = zap.String("client-ip-address", r.ClientIP())
-		fs[2] = zap.String("method", r.Method)
-		fs[3] = zap.String("uri", r.URL.RequestURI())
-		fs[4] = zap.Int("status-code", i.status)
-		fs[5] = zap.Int("response-size", i.size)
-		fs[6] = zap.String("user-agent", r.UserAgent())
-		fs[7] = zap.Time("start", i.Start)
-		fs[8] = zap.Duration("elapsed", elapsed)
-		if u := ctx.Actor(); u != nil {
-			fs = append(fs, zap.String("user-id", u.ID()))
-		}
-		ce.Write(fs...)
-	}
-
-	if f, ok := i.Delegate.(http.Flusher); ok {
-		f.Flush()
-	}
 }
