@@ -285,7 +285,7 @@ finish:
 	}
 	respErr := response.Err()
 	if respErr != nil {
-		g.Logger.Error(respErr.Error(), zap.String("request-id", requestID), zap.Error(writeErr))
+		g.Logger.Error(respErr.Error(), zap.String("request-id", requestID), zap.Error(respErr))
 	}
 }
 
