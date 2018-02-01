@@ -66,6 +66,7 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// xxx - build idp service for authn and validation
 	ctx := context.New(req.Context())
 	request := &service.Request{Request: req}
+	request.ParseQueryParameters()
 
 	var requestID string
 	if values, exists := request.Header["X-Request-Id"]; exists {
@@ -106,7 +107,7 @@ respond:
 
 finish:
 	ri.Flush(ctx, request)
-	if if respponse != nil && response.Err() != nil {
+	if response != nil && response.Err() != nil {
 		s.Logger.Error(response.Err().Error(), zap.String("request-id", requestID), zap.Error(response.Err()))
 	}
 }
@@ -123,14 +124,9 @@ func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service
 		return service.NewEmptyError(http.StatusBadRequest, merry.New("missing user id"))
 	}
 
-	// xxx - use requeste.ParseQueryParameters()
-	if err := request.ParseForm(); err != nil {
-		return service.NewEmpty(http.StatusBadRequest)
-	}
-
 	who := userID
-	if name, ok := request.Form["name"]; ok {
-		who = name[0]
+	if len(request.QueryParams) == 1 && request.QueryParams[0].Name == "name" {
+		who = request.QueryParams[0].Values[0]
 	}
 
 	return SimpleResponse(fmt.Sprintf("{\"goodbye\": %q}", who))
