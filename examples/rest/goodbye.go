@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ansel1/merry"
+	"go.uber.org/zap"
+
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
-
-	"go.uber.org/zap"
 )
 
 var hits = new(expvar.Map)
@@ -62,13 +63,21 @@ type Goodbye struct {
 func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ri := httpx.NewInterceptor(w, s.Logger)
 
+	// xxx - build idp service for authn and validation
 	ctx := context.New(req.Context())
 	request := &service.Request{Request: req}
 
-	var (
-		response service.Response
-		writeErr error
-	)
+	var requestID string
+	if values, exists := request.Header["X-Request-Id"]; exists {
+		requestID = values[0]
+	} else {
+		requestID = request.ID()
+		s.Logger.Warn("missing upstream request id", zap.String("request-id", requestID))
+	}
+
+	ctx = context.WithRequestID(ctx, requestID)
+
+	var response service.Response
 
 	if req.Method != http.MethodGet {
 		response = service.NewEmpty(http.StatusMethodNotAllowed)
@@ -91,12 +100,14 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 respond:
-	writeErr = httpx.WriteResponse(ri, response)
+	if err := httpx.WriteResponse(ri, response); err != nil {
+		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(err))
+	}
 
 finish:
 	ri.Flush(ctx, request)
-	if writeErr != nil {
-		s.Logger.Error("error serializing response", zap.String("request-id", ctx.RequestID()), zap.Error(writeErr))
+	if if respponse != nil && response.Err() != nil {
+		s.Logger.Error(response.Err().Error(), zap.String("request-id", requestID), zap.Error(response.Err()))
 	}
 }
 
@@ -105,11 +116,19 @@ func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) service.R
 }
 
 func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service.Response {
+	var userID string
+	if values, exists := request.Header["X-User-Id"]; exists {
+		userID = values[0]
+	} else {
+		return service.NewEmptyError(http.StatusBadRequest, merry.New("missing user id"))
+	}
+
+	// xxx - use requeste.ParseQueryParameters()
 	if err := request.ParseForm(); err != nil {
 		return service.NewEmpty(http.StatusBadRequest)
 	}
 
-	who := "world"
+	who := userID
 	if name, ok := request.Form["name"]; ok {
 		who = name[0]
 	}
