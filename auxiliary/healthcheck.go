@@ -12,6 +12,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -112,13 +113,9 @@ func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	healthcheckStats.Add("hits", 1)
+	ri := httpx.NewInterceptor(w, s.requestLog)
 
-	ri := ResponseInterceptor{
-		Logger:   s.requestLog,
-		Delegate: w,
-		Start:    time.Now().UTC(),
-	}
+	healthcheckStats.Add("hits", 1)
 
 	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}

@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -81,13 +82,9 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	debugStats.Add("hits", 1)
+	ri := httpx.NewInterceptor(w, s.requestLog)
 
-	ri := ResponseInterceptor{
-		Logger:   s.requestLog,
-		Delegate: w,
-		Start:    time.Now().UTC(),
-	}
+	debugStats.Add("hits", 1)
 
 	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}
