@@ -45,7 +45,7 @@ func (r *Request) QueryParamExists(name string) bool {
 	return false
 }
 
-// GenerateID creates a globally unique string for the request.
+// ID returns a globally unique string for the request.
 // It creates a version 5 UUID with the concatenation of current
 // unix nanos, three bytes of random data, the client ip address,
 // the request method and the request URI.
