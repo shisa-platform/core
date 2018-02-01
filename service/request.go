@@ -3,10 +3,12 @@ package service
 import (
 	"crypto/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/multierr"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/uuid"
@@ -23,6 +25,68 @@ type Request struct {
 	QueryParams []QueryParameter
 	id          string
 	clientIP    string
+}
+
+func (r *Request) ParseQueryParameters() merry.Error {
+	m := make(map[string]QueryParameter)
+	query := r.URL.RawQuery
+	var err error
+
+	for i := 0; query != ""; {
+		key := query
+		if idx := strings.IndexAny(key, "&;"); idx >= 0 {
+			key, query = key[:idx], key[idx+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if idx := strings.Index(key, "="); idx >= 0 {
+			key, value = key[:idx], key[idx+1:]
+		}
+
+		key1, err1 := url.QueryUnescape(key)
+		if err1 == nil {
+			key = key1
+		}
+
+		p, found := m[key]
+		if !found {
+			p.Name = key
+			p.Ordinal = i
+			p.Unknown = true
+		}
+
+		if err1 != nil {
+			err = multierr.Append(err, err1)
+			p.Invalid = true
+		}
+
+		value1, err1 := url.QueryUnescape(value)
+		if err1 == nil {
+			value = value1
+		} else {
+			err = multierr.Append(err, err1)
+			p.Invalid = true
+		}
+
+		p.Values = append(p.Values, value)
+		if err1 != nil {
+			p.Invalid = true
+		}
+
+		m[key] = p
+		i++
+	}
+
+	r.QueryParams = make([]QueryParameter, len(m))
+	for _, v := range m {
+		r.QueryParams[v.Ordinal] = v
+	}
+
+	return merry.Wrap(err)
 }
 
 func (r *Request) PathParamExists(name string) bool {

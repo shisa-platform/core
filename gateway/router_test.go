@@ -861,48 +861,6 @@ func TestRouterPathParamtersPreserveEscaping(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParametersIgnoreEmptyQueryPair(t *testing.T) {
-	cut := &Gateway{}
-	cut.init()
-
-	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) service.Response {
-		handlerCalled = true
-		assert.Len(t, r.QueryParams, 2)
-		for _, p := range r.QueryParams {
-			switch p.Ordinal {
-			case 0:
-				assert.Len(t, p.Values, 1)
-				assert.Equal(t, "zalgo", p.Name)
-				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.True(t, p.Unknown)
-			case 1:
-				assert.Len(t, p.Values, 1)
-				assert.Equal(t, "waits", p.Name)
-				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.True(t, p.Unknown)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
-			}
-		}
-
-		return service.NewEmpty(http.StatusOK)
-	}
-
-	installHandler(t, cut, handler)
-
-	w := httptest.NewRecorder()
-	uri := expectedRoute + "?zalgo=he:comes&&waits=behind%20the%20walls"
-	request := httptest.NewRequest(http.MethodGet, uri, nil)
-	cut.ServeHTTP(w, request)
-
-	assert.True(t, handlerCalled, "handler not called")
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
 func TestRouterQueryParametersForbidMalformed(t *testing.T) {
 	cut := &Gateway{}
 	cut.init()

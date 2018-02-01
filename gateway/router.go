@@ -22,12 +22,6 @@ func (p byName) Len() int           { return len(p) }
 func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-type byOrdinal []service.QueryParameter
-
-func (p byOrdinal) Len() int           { return len(p) }
-func (p byOrdinal) Less(i, j int) bool { return p[i].Ordinal < p[j].Ordinal }
-func (p byOrdinal) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
@@ -47,8 +41,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.WithRequestID(ctx, requestID)
 
-	parseQuery(&request.QueryParams, request.URL.RawQuery)
-	sort.Sort(byOrdinal(request.QueryParams))
+	request.ParseQueryParameters()
 
 	var (
 		err           merry.Error
@@ -306,53 +299,4 @@ func recovery(fatalError *merry.Error) {
 func runHandler(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
-}
-
-func parseQuery(ps *[]service.QueryParameter, query string) {
-	m := make(map[string]service.QueryParameter)
-	i := 0
-
-	for query != "" {
-		key := query
-		if i := strings.IndexAny(key, "&;"); i >= 0 {
-			key, query = key[:i], key[i+1:]
-		} else {
-			query = ""
-		}
-		if key == "" {
-			continue
-		}
-		value := ""
-		if i := strings.Index(key, "="); i >= 0 {
-			key, value = key[:i], key[i+1:]
-		}
-
-		key1, err1 := url.QueryUnescape(key)
-		if err1 == nil {
-			key = key1
-		}
-		value1, err1 := url.QueryUnescape(value)
-		if err1 == nil {
-			value = value1
-		}
-
-		p, found := m[key]
-		if !found {
-			p.Name = key
-			p.Ordinal = i
-			p.Unknown = true
-		}
-		p.Values = append(p.Values, value)
-		if err1 != nil {
-			p.Invalid = true
-		}
-
-		m[key] = p
-		i++
-	}
-
-	*ps = make([]service.QueryParameter, 0, len(m))
-	for _, v := range m {
-		*ps = append(*ps, v)
-	}
 }
