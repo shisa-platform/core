@@ -64,7 +64,3 @@ func main() {
 		server.Shutdown(context.Background())
 	}
 }
-
-func serve() {
-
-}
