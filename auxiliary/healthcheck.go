@@ -150,6 +150,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err := check.Healthcheck(); err != nil {
 			status[check.Name()] = merry.UserMessage(err)
 			code = http.StatusServiceUnavailable
+			s.Logger.Info("healthcheck failed", zap.String("name", check.Name()), zap.String("reason", err.Error()), zap.Error(err))
 			continue
 		}
 		status[check.Name()] = "OK"
