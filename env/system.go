@@ -62,13 +62,13 @@ func NewSystem() Provider {
 }
 
 func Get(name string) (string, merry.Error) {
-	return defaultProvider.Get(name)
+	return DefaultProvider.Get(name)
 }
 
 func GetInt(name string) (int, merry.Error) {
-	return defaultProvider.GetInt(name)
+	return DefaultProvider.GetInt(name)
 }
 
 func GetBool(name string) (bool, merry.Error) {
-	return defaultProvider.GetBool(name)
+	return DefaultProvider.GetBool(name)
 }
