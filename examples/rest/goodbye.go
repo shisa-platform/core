@@ -20,7 +20,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-const IdpAddrEnv = "IDP_ADDR"
+const idpServiceAddrEnv = "IDP_ADDR"
 
 var hits = new(expvar.Map)
 
@@ -82,18 +82,11 @@ func (r SimpleResponse) StatusCode() int {
 }
 
 func (r SimpleResponse) Headers() http.Header {
-	now := time.Now().UTC().Format(time.RFC1123)
 	headers := make(http.Header)
 
 	headers.Set("Content-Type", "application/json")
-
-	headers.Set("Cache-Control", "private, max-age=0")
-	headers.Set("Date", now)
-	headers.Set("Expires", now)
-	headers.Set("Last-Modified", now)
 	headers.Set("X-Content-Type-Options", "nosniff")
 	headers.Set("X-Frame-Options", "DENY")
-	headers.Set("X-Xss-Protection", "1; mode=block")
 
 	return headers
 }
@@ -183,28 +176,20 @@ func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) service.R
 		Details: map[string]string{"idp": "OK"},
 	}
 
-	addr, envErr := env.Get(IdpAddrEnv)
-	if envErr != nil {
-		response.Error = envErr
+	client, err := connect()
+	if err != nil {
+		response.Error = err
 		response.Ready = false
-		response.Details["idp"] = envErr.Error()
-		return response
-	}
-
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
-	if rpcErr != nil {
-		response.Error = rpcErr
-		response.Ready = false
-		response.Details["idp"] = envErr.Error()
+		response.Details["idp"] = err.Error()
 		return response
 	}
 
 	var arg, ready bool
-	rpcErr = client.Call("Idp.Healthcheck", &arg, &ready)
+	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
 	if rpcErr != nil {
 		response.Error = rpcErr
 		response.Ready = false
-		response.Details["idp"] = envErr.Error()
+		response.Details["idp"] = rpcErr.Error()
 	}
 	if !ready {
 		response.Ready = false
@@ -222,19 +207,14 @@ func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service
 		return service.NewEmptyError(http.StatusBadRequest, merry.New("missing user id"))
 	}
 
-	addr, envErr := env.Get(IdpAddrEnv)
-	if envErr != nil {
-		return service.NewEmptyError(http.StatusInternalServerError, envErr)
-	}
-
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
-	if rpcErr != nil {
-		return service.NewEmptyError(http.StatusInternalServerError, rpcErr)
+	client, err := connect()
+	if err != nil {
+		return service.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
 	message := idp.Message{RequestID: ctx.RequestID(), Value: userID}
 	var user idp.User
-	rpcErr = client.Call("Idp.FindUser", &message, &user)
+	rpcErr := client.Call("Idp.FindUser", &message, &user)
 	if rpcErr != nil {
 		return service.NewEmptyError(http.StatusInternalServerError, rpcErr)
 	}
@@ -248,4 +228,18 @@ func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service
 	}
 
 	return SimpleResponse(fmt.Sprintf("{\"goodbye\": %q}", who))
+}
+
+func connect() (*rpc.Client, error) {
+	addr, envErr := env.Get(idpServiceAddrEnv)
+	if envErr != nil {
+		return nil, envErr
+	}
+
+	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return client, nil
 }

@@ -1,44 +1,83 @@
 package main
 
 import (
-	"strings"
+	"net/rpc"
 
 	"github.com/ansel1/merry"
 
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/models"
+	"github.com/percolate/shisa/examples/idp/server"
 )
 
-type User struct {
-	Ident string
-	Name  string
-	Pass  string
+type simpleUser struct {
+	ident string
 }
 
-func (u User) ID() string {
-	return u.Ident
+func (u simpleUser) ID() string {
+	return u.ident
 }
 
-func (u User) String() string {
-	return u.Name
+func (u simpleUser) String() string {
+	return u.ident
 }
 
-type SimpleIdentityProvider struct {
-	Users []User
+type ExampleIdentityProvider struct {
+	Env env.Provider
 }
 
-func (p *SimpleIdentityProvider) Authenticate(credentials string) (models.User, merry.Error) {
-	credentialParts := strings.Split(credentials, ":")
-	if len(credentialParts) != 2 {
-		err := merry.New("wrong credential parts count")
-		err = err.WithUserMessage("Malformed Basic Authentication credentials were provided")
+func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials string) (models.User, merry.Error) {
+	client, err := p.connect()
+	if err != nil {
 		return nil, err
 	}
 
-	for _, u := range p.Users {
-		if u.Name == credentialParts[0] && u.Pass == credentialParts[1] {
-			return u, nil
-		}
+	message := idp.Message{RequestID: ctx.RequestID(), Value: credentials}
+	var userID string
+	rpcErr := client.Call("Idp.AuthenticateToken", &message, &userID)
+	if rpcErr != nil {
+		return nil, merry.Wrap(rpcErr)
+	}
+	if userID == "" {
+		return nil, nil
 	}
 
-	return nil, nil
+	return simpleUser{ident: userID}, nil
+}
+
+func (p *ExampleIdentityProvider) Name() string {
+	return "idp"
+}
+
+func (p *ExampleIdentityProvider) Healthcheck() merry.Error {
+	client, err := p.connect()
+	if err != nil {
+		return err
+	}
+
+	var arg, ready bool
+	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
+	if rpcErr != nil {
+		return merry.Wrap(rpcErr).WithUserMessage("unable to complete request")
+	}
+	if !ready {
+		return merry.New("not ready").WithUserMessage("not ready")
+	}
+
+	return nil
+}
+
+func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
+	addr, envErr := env.Get(idpServiceAddrEnv)
+	if envErr != nil {
+		return nil, envErr.WithUserMessage("address environment variable not found")
+	}
+
+	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	if rpcErr != nil {
+		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
+	}
+
+	return client, nil
 }

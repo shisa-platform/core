@@ -54,9 +54,9 @@ func main() {
 	server := http.Server{}
 	listener, err := httpx.HTTPListenerForAddress(*addr)
 	if err != nil {
-		logger.Error("open listener", zap.Error(err))
+		logger.Error("opening listener", zap.Error(err))
 	}
-	logger.Info("starting idp server", zap.String("addr", listener.Addr().String()))
+	logger.Info("starting idp service", zap.String("addr", listener.Addr().String()))
 
 	errCh := make(chan error, 1)
 	go func() {

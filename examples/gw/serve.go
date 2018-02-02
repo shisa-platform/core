@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -12,19 +11,18 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxiliary"
-	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
 
-func serve(addr, debugAddr, healthcheckAddr string) {
+func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	idp := &ExampleIdentityProvider{Env: env.DefaultProvider}
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
-		panic(err)
+		logger.Fatal("creating authenticator", zap.Error(err))
 	}
 	authN := &middleware.Authentication{Authenticator: authenticator}
 
