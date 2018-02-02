@@ -33,7 +33,7 @@ var (
 )
 
 // Route returns the request to contact the proxied server.
-type Route func(context.Context, *service.Request) *service.Request
+type Route func(context.Context, *service.Request) (*service.Request, merry.Error)
 
 // Invoke sends the proxied request and returns the response.
 type Invoke func(context.Context, *service.Request) (service.Response, merry.Error)
@@ -82,7 +82,11 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	request := m.Router(ctx, r)
+	request, err := m.Router(ctx, r)
+	if err != nil {
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		return m.ErrorHandler(ctx, r, err)
+	}
 	if request == nil {
 		err := merry.New("proxy request is nil")
 		err = err.WithUserMessage("middleware.ReverseProxy.Router returned nil request")
