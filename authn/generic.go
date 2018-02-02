@@ -24,7 +24,7 @@ func (m *genericAuthenticator) Authenticate(ctx context.Context, r *service.Requ
 		return nil, err
 	}
 
-	return m.idp.Authenticate(credentials)
+	return m.idp.Authenticate(ctx, credentials)
 }
 
 func (m *genericAuthenticator) Challenge() string {

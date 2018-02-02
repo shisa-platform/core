@@ -40,7 +40,7 @@ func TestBearerAuthenticatorUnknownToken(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	idp := &FakeIdentityProvider{
-		AuthenticateHook: func(token string) (models.User, merry.Error) {
+		AuthenticateHook: func(_ context.Context, token string) (models.User, merry.Error) {
 			assert.Equal(t, "zalgo.he:comes", token)
 			return nil, nil
 		},
@@ -59,7 +59,7 @@ func TestBearerAuthenticatorIdPError(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	idp := &FakeIdentityProvider{
-		AuthenticateHook: func(token string) (models.User, merry.Error) {
+		AuthenticateHook: func(_ context.Context, token string) (models.User, merry.Error) {
 			assert.Equal(t, "zalgo.he:comes", token)
 			return nil, merry.New("i blewed up!")
 		},
@@ -81,7 +81,7 @@ func TestBearerAuthenticator(t *testing.T) {
 		IDHook: func() string { return "1" },
 	}
 	idp := &FakeIdentityProvider{
-		AuthenticateHook: func(token string) (models.User, merry.Error) {
+		AuthenticateHook: func(_ context.Context, token string) (models.User, merry.Error) {
 			assert.Equal(t, "zalgo.he:comes", token)
 			return expectedUser, nil
 		},

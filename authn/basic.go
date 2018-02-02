@@ -53,7 +53,7 @@ func (m *basicAuthenticator) Authenticate(ctx context.Context, r *service.Reques
 		return nil, err
 	}
 
-	return m.idp.Authenticate(credentials)
+	return m.idp.Authenticate(ctx, credentials)
 }
 
 func (m *basicAuthenticator) Challenge() string {

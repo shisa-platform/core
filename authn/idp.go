@@ -3,6 +3,7 @@ package authn
 import (
 	"github.com/ansel1/merry"
 
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/models"
 )
 
@@ -11,5 +12,5 @@ import (
 // IdentityProvider is a service that resolves tokens into
 // principals.
 type IdentityProvider interface {
-	Authenticate(string) (models.User, merry.Error)
+	Authenticate(context.Context, string) (models.User, merry.Error)
 }
