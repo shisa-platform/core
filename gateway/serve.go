@@ -69,7 +69,7 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 	ach := make(chan error, len(g.auxiliaries))
 	for _, aux := range g.auxiliaries {
-		g.Logger.Info("starting auxiliary server", zap.String("name", aux.Name()), zap.String("address", aux.Address()))
+		g.Logger.Info("starting auxiliary server", zap.String("name", aux.Name()))
 		go func(server auxiliary.Server) {
 			ach <- server.Serve()
 		}(aux)
