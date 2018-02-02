@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
@@ -51,35 +50,6 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 }
 
 type HelloService struct {
-	service.ServiceAdapter
-	endpoints []service.Endpoint
-}
-
-func NewHelloService() *HelloService {
-	policy := service.Policy{
-		TimeBudget:                  time.Millisecond * 5,
-		AllowTrailingSlashRedirects: true,
-	}
-
-	svc := &HelloService{}
-
-	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
-	greeting.Get.QueryFields = []service.Field{
-		language,
-		{Name: "name", Multiplicity: 1},
-	}
-
-	svc.endpoints = []service.Endpoint{greeting}
-
-	return svc
-}
-
-func (s *HelloService) Name() string {
-	return "hello"
-}
-
-func (s *HelloService) Endpoints() []service.Endpoint {
-	return s.endpoints
 }
 
 func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service.Response {
@@ -96,7 +66,6 @@ func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service
 	}
 
 	response := service.NewOK(Greeting{fmt.Sprintf("%s %s", greeting, interlocutor)})
-	addCommonHeaders(response)
 
 	return response
 }
