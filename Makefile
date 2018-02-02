@@ -45,6 +45,7 @@ test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
 examples:
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/rest github.com/percolate/shisa/examples/rest
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/rpc github.com/percolate/shisa/examples/rpc
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/idp github.com/percolate/shisa/examples/idp
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/gw github.com/percolate/shisa/examples/gw
 
 coverage/%:
