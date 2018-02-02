@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	defaultProvider = NewSystem()
+	DefaultProvider = NewSystem()
 )
 
 type systemProvider struct{}
