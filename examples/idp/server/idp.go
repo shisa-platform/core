@@ -2,7 +2,6 @@ package idp
 
 import (
 	"errors"
-	"expvar"
 	"strings"
 
 	"go.uber.org/zap"
@@ -21,11 +20,9 @@ type Message struct {
 
 type Idp struct {
 	Logger *zap.Logger
-	Hits   *expvar.Map
 }
 
 func (s *Idp) AuthenticateToken(message *Message, reply *string) (err error) {
-	s.Hits.Add("AuthenticateToken", 1)
 	defer func() {
 		s.Logger.Info("AuthenticateToken", zap.String("request-id", message.RequestID), zap.Bool("OK", reply != nil), zap.Error(err))
 	}()
@@ -47,8 +44,6 @@ func (s *Idp) AuthenticateToken(message *Message, reply *string) (err error) {
 }
 
 func (s *Idp) FindUser(message *Message, reply *User) (err error) {
-	s.Hits.Add("FindUser", 1)
-
 	for _, user := range users {
 		if user.Ident == message.Value {
 			*reply = user
@@ -61,7 +56,6 @@ func (s *Idp) FindUser(message *Message, reply *User) (err error) {
 }
 
 func (s *Idp) Healthcheck(_ bool, reply *bool) (err error) {
-	s.Hits.Add("Healthcheck", 1)
 	*reply = true
 
 	s.Logger.Info("Healthcheck", zap.Bool("ready", true))
