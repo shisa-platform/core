@@ -8,8 +8,8 @@ import (
 
 type Message struct {
 	RequestID string
-	Language string
-	Name     string
+	Language  string
+	Name      string
 }
 
 type Hello struct {

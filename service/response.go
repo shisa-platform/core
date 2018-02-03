@@ -15,7 +15,7 @@ const (
 
 var (
 	jsonContentType = contenttype.ApplicationJson.String()
-	bufPool = sync.Pool{
+	bufPool         = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, 32*1024)
 		},

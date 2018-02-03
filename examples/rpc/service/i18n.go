@@ -8,7 +8,7 @@ var (
 	French            = "fr"
 	Japanese          = "ja"
 	SimplifiedChinese = "zh-Hans"
-	greetings = map[string]string{
+	greetings         = map[string]string{
 		AmericanEnglish:   "Hello",
 		BritishEnglish:    "Cheerio",
 		EuropeanSpanish:   "Hola",
