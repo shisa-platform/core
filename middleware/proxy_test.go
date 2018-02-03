@@ -357,7 +357,7 @@ func TestReverseProxyUncontactableProxy(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	request := &service.Request{Request: r}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(r.Context())
 
 	response := cut.Service(ctx, request)
 
@@ -399,7 +399,7 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	request := &service.Request{Request: r}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(r.Context())
 
 	response := cut.Service(ctx, request)
 
@@ -437,7 +437,7 @@ func TestReverseProxy(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	request := &service.Request{Request: r}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(r.Context())
 
 	response := cut.Service(ctx, request)
 

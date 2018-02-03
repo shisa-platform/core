@@ -26,7 +26,7 @@ func (h stubHealthchecker) Name() string {
 	return h.name
 }
 
-func (h stubHealthchecker) Healthcheck() merry.Error {
+func (h stubHealthchecker) Healthcheck(context.Context) merry.Error {
 	return h.err
 }
 
