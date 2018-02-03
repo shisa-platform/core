@@ -45,6 +45,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Logger: logger,
 	}
 
+	hello := NewHelloService(env.DefaultProvider)
 	goodbye := NewGoodbyeService(env.DefaultProvider)
 
 	healthcheck := &auxiliary.HealthcheckServer{
@@ -53,11 +54,11 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Authentication: authN,
 			Authorizer:     authZ,
 		},
-		Checkers: []auxiliary.Healthchecker{idp, goodbye},
+		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
 		Logger:   logger,
 	}
 
-	services := []service.Service{NewHelloService(), goodbye}
+	services := []service.Service{hello, goodbye}
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {
 		for _, e := range multierr.Errors(err) {

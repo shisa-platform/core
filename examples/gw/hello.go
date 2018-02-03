@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"net/rpc"
 	"time"
 
+	"github.com/ansel1/merry"
+
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/service"
 )
@@ -71,26 +76,39 @@ func (s *HelloService) Endpoints() []service.Endpoint {
 }
 
 func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service.Response {
-	var greeting string
-	interlocutor := ctx.Actor().String()
+	client, err := s.connect()
+	if err != nil {
+		return service.NewEmptyError(http.StatusInternalServerError, err)
+	}
+
+	message := hello.Message{
+		RequestID: ctx.RequestID(),
+		Name: ctx.Actor().String(),
+	}
 
 	for _, param := range r.QueryParams {
 		switch param.Name {
 		case "language":
-			greeting = greetings[param.Values[0]]
+			message.Language = param.Values[0]
 		case "name":
-			interlocutor = param.Values[0]
+			message.Name = param.Values[0]
 		}
 	}
 
-	response := service.NewOK(Greeting{fmt.Sprintf("%s %s", greeting, interlocutor)})
+	var reply string
+	rpcErr := client.Call("Hello.Greeting", &message, &reply)
+	if rpcErr != nil {
+		return service.NewEmptyError(http.StatusInternalServerError, rpcErr)
+	}
+
+	response := service.NewOK(Greeting{reply})
 	addCommonHeaders(response)
 
 	return response
 }
 
 func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
-	client, err := p.connect()
+	client, err := s.connect()
 	if err != nil {
 		return err
 	}
@@ -108,7 +126,7 @@ func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 	return nil
 }
 
-func (p *HelloService) connect() (*rpc.Client, merry.Error) {
+func (s *HelloService) connect() (*rpc.Client, merry.Error) {
 	addr, envErr := env.Get(helloServiceAddrEnv)
 	if envErr != nil {
 		return nil, envErr.WithUserMessage("address environment variable not found")
