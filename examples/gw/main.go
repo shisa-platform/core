@@ -9,6 +9,7 @@ import (
 
 const (
 	goodbyeServiceAddrEnv = "GOODBYE_SERVICE_ADDR"
+	helloServiceAddrEnv   = "HELLO_SERVICE_ADDR"
 	idpServiceAddrEnv     = "IDP_SERVICE_ADDR"
 )
 

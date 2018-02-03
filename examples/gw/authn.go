@@ -7,7 +7,7 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
-	"github.com/percolate/shisa/examples/idp/server"
+	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/models"
 )
 
@@ -70,7 +70,7 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
-	addr, envErr := env.Get(idpServiceAddrEnv)
+	addr, envErr := p.Env.Get(idpServiceAddrEnv)
 	if envErr != nil {
 		return nil, envErr.WithUserMessage("address environment variable not found")
 	}

@@ -5,38 +5,23 @@ import (
 	"time"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/service"
 )
 
 var (
-	AmericanEnglish   = "en-US"
-	BritishEnglish    = "en-GB"
-	EuropeanSpanish   = "es-ES"
-	Finnish           = "fi"
-	French            = "fr"
-	Japanese          = "ja"
-	SimplifiedChinese = "zh-Hans"
-	tags              = []string{
-		AmericanEnglish,
-		BritishEnglish,
-		EuropeanSpanish,
-		Finnish,
-		French,
-		Japanese,
-		SimplifiedChinese,
-	}
-	greetings = map[string]string{
-		AmericanEnglish:   "Hello",
-		BritishEnglish:    "Cheerio",
-		EuropeanSpanish:   "Hola",
-		Finnish:           "Hei",
-		French:            "Bonjour",
-		Japanese:          "こんにちは",
-		SimplifiedChinese: "你好",
+	tags = []string{
+		hello.AmericanEnglish,
+		hello.BritishEnglish,
+		hello.EuropeanSpanish,
+		hello.Finnish,
+		hello.French,
+		hello.Japanese,
+		hello.SimplifiedChinese,
 	}
 	language = service.Field{
 		Name:         "language",
-		Default:      AmericanEnglish,
+		Default:      hello.AmericanEnglish,
 		Validator:    service.StringSliceValidator{tags}.Validate,
 		Multiplicity: 1,
 	}
@@ -52,16 +37,19 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 
 type HelloService struct {
 	service.ServiceAdapter
+	env       env.Provider
 	endpoints []service.Endpoint
 }
 
-func NewHelloService() *HelloService {
+func NewHelloService(environment env.Provider) *HelloService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 
-	svc := &HelloService{}
+	svc := &HelloService{
+		env: environment,
+	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
 	greeting.Get.QueryFields = []service.Field{
@@ -99,4 +87,37 @@ func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service
 	addCommonHeaders(response)
 
 	return response
+}
+
+func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
+	client, err := p.connect()
+	if err != nil {
+		return err
+	}
+
+	var ready bool
+	arg := ctx.RequestID()
+	rpcErr := client.Call("Hello.Healthcheck", &arg, &ready)
+	if rpcErr != nil {
+		return merry.Wrap(rpcErr).WithUserMessage("unable to complete request")
+	}
+	if !ready {
+		return merry.New("not ready").WithUserMessage("not ready")
+	}
+
+	return nil
+}
+
+func (p *HelloService) connect() (*rpc.Client, merry.Error) {
+	addr, envErr := env.Get(helloServiceAddrEnv)
+	if envErr != nil {
+		return nil, envErr.WithUserMessage("address environment variable not found")
+	}
+
+	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	if rpcErr != nil {
+		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
+	}
+
+	return client, nil
 }

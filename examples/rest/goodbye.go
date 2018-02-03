@@ -15,7 +15,7 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
-	"github.com/percolate/shisa/examples/idp/server"
+	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
