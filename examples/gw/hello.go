@@ -15,19 +15,10 @@ import (
 )
 
 var (
-	tags = []string{
-		hello.AmericanEnglish,
-		hello.BritishEnglish,
-		hello.EuropeanSpanish,
-		hello.Finnish,
-		hello.French,
-		hello.Japanese,
-		hello.SimplifiedChinese,
-	}
 	language = service.Field{
 		Name:         "language",
 		Default:      hello.AmericanEnglish,
-		Validator:    service.StringSliceValidator{tags}.Validate,
+		Validator:    service.StringSliceValidator{hello.SupportedLanguages}.Validate,
 		Multiplicity: 1,
 	}
 )

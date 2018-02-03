@@ -8,6 +8,15 @@ var (
 	French            = "fr"
 	Japanese          = "ja"
 	SimplifiedChinese = "zh-Hans"
+	SupportedLanguages = []string{
+		AmericanEnglish,
+		BritishEnglish,
+		EuropeanSpanish,
+		Finnish,
+		French,
+		Japanese,
+		SimplifiedChinese,
+	}
 	greetings         = map[string]string{
 		AmericanEnglish:   "Hello",
 		BritishEnglish:    "Cheerio",
