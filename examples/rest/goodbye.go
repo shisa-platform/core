@@ -20,7 +20,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-const idpServiceAddrEnv = "IDP_ADDR"
+const idpServiceAddrEnv = "IDP_SERVICE_ADDR"
 
 var hits = new(expvar.Map)
 
