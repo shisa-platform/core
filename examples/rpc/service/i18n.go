@@ -1,13 +1,13 @@
 package hello
 
 var (
-	AmericanEnglish   = "en-US"
-	BritishEnglish    = "en-GB"
-	EuropeanSpanish   = "es-ES"
-	Finnish           = "fi"
-	French            = "fr"
-	Japanese          = "ja"
-	SimplifiedChinese = "zh-Hans"
+	AmericanEnglish    = "en-US"
+	BritishEnglish     = "en-GB"
+	EuropeanSpanish    = "es-ES"
+	Finnish            = "fi"
+	French             = "fr"
+	Japanese           = "ja"
+	SimplifiedChinese  = "zh-Hans"
 	SupportedLanguages = []string{
 		AmericanEnglish,
 		BritishEnglish,
@@ -17,7 +17,7 @@ var (
 		Japanese,
 		SimplifiedChinese,
 	}
-	greetings         = map[string]string{
+	greetings = map[string]string{
 		AmericanEnglish:   "Hello",
 		BritishEnglish:    "Cheerio",
 		EuropeanSpanish:   "Hola",
