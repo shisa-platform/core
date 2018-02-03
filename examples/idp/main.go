@@ -52,6 +52,7 @@ func main() {
 	rpc.HandleHTTP()
 
 	server := http.Server{}
+
 	listener, err := httpx.HTTPListenerForAddress(*addr)
 	if err != nil {
 		logger.Error("opening listener", zap.Error(err))

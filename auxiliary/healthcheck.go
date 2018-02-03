@@ -99,11 +99,17 @@ func (s *HealthcheckServer) Name() string {
 func (s *HealthcheckServer) Serve() error {
 	s.init()
 
+	listener, err := httpx.HTTPListenerForAddress(s.Addr)
+	if err != nil {
+		return err
+	}
+	s.Logger.Info("healthcheck service started", zap.String("addr", listener.Addr().String()))
+
 	if s.UseTLS {
-		return s.base.ListenAndServeTLS("", "")
+		return s.base.ServeTLS(listener, "", "")
 	}
 
-	return s.base.ListenAndServe()
+	return s.base.Serve(listener)
 }
 
 func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {

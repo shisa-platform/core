@@ -49,6 +49,7 @@ func main() {
 	server := http.Server{
 		Handler: service,
 	}
+
 	listener, err := httpx.HTTPListenerForAddress(*addr)
 	if err != nil {
 		logger.Error("opening listener", zap.Error(err))

@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -75,13 +76,18 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		}(aux)
 	}
 
-	g.Logger.Info("starting gateway", zap.String("addr", g.Address))
 	gch := make(chan error, 1)
 	go func() {
+		listener, err := httpx.HTTPListenerForAddress(g.Address)
+		if err != nil {
+			gch <- err
+			return
+		}
+		g.Logger.Info("gateway started", zap.String("addr", listener.Addr().String()))
 		if tls {
-			gch <- g.base.ListenAndServeTLS("", "")
+			gch <- g.base.ServeTLS(listener, "", "")
 		} else {
-			gch <- g.base.ListenAndServe()
+			gch <- g.base.Serve(listener)
 		}
 	}()
 
