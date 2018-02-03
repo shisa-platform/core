@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -11,6 +13,14 @@ import (
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
+
+type Farewell struct {
+	Message string
+}
+
+func (g Farewell) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("{\"farewell\": %q}", g.Message)), nil
+}
 
 type GoodbyeService struct {
 	service.ServiceAdapter
@@ -91,9 +101,24 @@ func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (
 
 	return request, nil
 }
--
-func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, response service.Response) service.Response {
-	addCommonHeaders(response)
 
-	return response
+func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, response service.Response) service.Response {
+	var buf bytes.Buffer
+	if _, err := response.Serialize(&buf); err != nil {
+		return service.NewEmptyError(http.StatusBadGateway, err)
+	}
+	body := make(map[string]string)
+	if err := json.Unmarshal(buf.Bytes(), &body); err != nil {
+		return service.NewEmptyError(http.StatusBadGateway, err)
+	}
+	who, ok := body["goodbye"]
+	if !ok {
+		err := merry.New("goodbye key missing from response")
+		return service.NewEmptyError(http.StatusBadGateway, err)
+	}
+
+	farewell := service.NewOK(Farewell{"goodbye " + who})
+	addCommonHeaders(farewell)
+
+	return farewell
 }
