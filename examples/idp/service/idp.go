@@ -44,7 +44,7 @@ func (s *Idp) AuthenticateToken(message *Message, reply *string) (err error) {
 	return
 }
 
-func (s *Idp) FindUser(message *Message, reply *User) (err error) {
+func (s *Idp) FindUser(message *Message, reply *User) error {
 	for _, user := range users {
 		if user.Ident == message.Value {
 			*reply = user
@@ -53,12 +53,12 @@ func (s *Idp) FindUser(message *Message, reply *User) (err error) {
 	}
 
 	s.Logger.Info("FindUser", zap.String("request-id", message.RequestID), zap.String("user-id", message.Value), zap.Bool("found", reply != nil))
-	return
+	return nil
 }
 
-func (s *Idp) Healthcheck(requestID string, reply *bool) (err error) {
+func (s *Idp) Healthcheck(requestID string, reply *bool) error {
 	*reply = true
 
 	s.Logger.Info("Healthcheck", zap.String("request-id", requestID), zap.Bool("ready", true))
-	return
+	return nil
 }

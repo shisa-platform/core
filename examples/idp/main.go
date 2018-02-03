@@ -15,7 +15,7 @@ import (
 	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
-	service "github.com/percolate/shisa/examples/idp/server"
+	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -27,9 +27,9 @@ func main() {
 	startTime := new(expvar.String)
 	startTime.Set(start.Format(timeFormat))
 
-	idp := expvar.NewMap("idp")
-	idp.Set("start-time", startTime)
-	idp.Set("uptime", expvar.Func(func() interface{} {
+	idpVar := expvar.NewMap("idp")
+	idpVar.Set("start-time", startTime)
+	idpVar.Set("uptime", expvar.Func(func() interface{} {
 		now := time.Now().UTC()
 		return now.Sub(start).String()
 	}))
@@ -47,7 +47,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	service := &service.Idp{Logger: logger}
+	service := &idp.Idp{Logger: logger}
 	rpc.Register(service)
 	rpc.HandleHTTP()
 
