@@ -103,7 +103,12 @@ func (s *HealthcheckServer) Serve() error {
 	if err != nil {
 		return err
 	}
-	s.Logger.Info("healthcheck service started", zap.String("addr", listener.Addr().String()))
+
+	addr := listener.Addr().String()
+	addrVar := new(expvar.String)
+	addrVar.Set(addr)
+	healthcheckStats.Set("addr", addrVar)
+	s.Logger.Info("healthcheck service started", zap.String("addr", addr))
 
 	if s.UseTLS {
 		return s.base.ServeTLS(listener, "", "")
