@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"io"
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/ansel1/merry"
 
@@ -14,11 +12,6 @@ import (
 )
 
 var (
-	bufPool = sync.Pool{
-		New: func() interface{} {
-			return make([]byte, 32*1024)
-		},
-	}
 	hopHeaders = []string{
 		"Connection",
 		"Proxy-Connection", // non-standard, sent by libcurl
@@ -186,55 +179,11 @@ func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request)
 		return nil, merry.Wrap(err).WithHTTPCode(http.StatusBadGateway)
 	}
 
-	return ProxyResponse{response}, nil
+	return service.ResponseAdapter{response}, nil
 }
 
 func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
-}
-
-// ProxyResponse is an adapter for `http.Response` to the
-// `service.Response` interface.
-type ProxyResponse struct {
-	*http.Response
-}
-
-func (r ProxyResponse) StatusCode() int {
-	return r.Response.StatusCode
-}
-
-func (r ProxyResponse) Headers() http.Header {
-	return r.Header
-}
-
-func (r ProxyResponse) Trailers() http.Header {
-	return r.Trailer
-}
-
-func (r ProxyResponse) Err() error {
-	return nil
-}
-
-func (r ProxyResponse) Serialize(w io.Writer) (n int, err error) {
-	buf := getBuffer()
-	defer putBuffer(buf)
-
-	var nw int64
-	nw, err = io.CopyBuffer(w, r.Body, buf)
-	n = int(nw)
-	r.Body.Close()
-
-	return
-}
-
-func getBuffer() []byte {
-	buf := bufPool.Get().([]byte)
-	buf = buf[:cap(buf)]
-	return buf
-}
-
-func putBuffer(buf []byte) {
-	bufPool.Put(buf)
 }
 
 func cloneQueryParams(p []service.QueryParameter) []service.QueryParameter {
