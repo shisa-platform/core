@@ -170,36 +170,6 @@ finish:
 	}
 }
 
-func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) service.Response {
-	response := Healthcheck{
-		Ready:   true,
-		Details: map[string]string{"idp": "OK"},
-	}
-
-	client, err := connect()
-	if err != nil {
-		response.Error = err
-		response.Ready = false
-		response.Details["idp"] = err.Error()
-		return response
-	}
-
-	var ready bool
-	arg := ctx.RequestID()
-	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
-	if rpcErr != nil {
-		response.Error = rpcErr
-		response.Ready = false
-		response.Details["idp"] = rpcErr.Error()
-	}
-	if !ready {
-		response.Ready = false
-		response.Details["idp"] = "not ready"
-	}
-
-	return response
-}
-
 func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service.Response {
 	var userID string
 	if values, exists := request.Header["X-User-Id"]; exists {
@@ -229,6 +199,36 @@ func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service
 	}
 
 	return SimpleResponse(fmt.Sprintf("{\"goodbye\": %q}", who))
+}
+
+func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) service.Response {
+	response := Healthcheck{
+		Ready:   true,
+		Details: map[string]string{"idp": "OK"},
+	}
+
+	client, err := connect()
+	if err != nil {
+		response.Error = err
+		response.Ready = false
+		response.Details["idp"] = err.Error()
+		return response
+	}
+
+	var ready bool
+	arg := ctx.RequestID()
+	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
+	if rpcErr != nil {
+		response.Error = rpcErr
+		response.Ready = false
+		response.Details["idp"] = rpcErr.Error()
+	}
+	if !ready {
+		response.Ready = false
+		response.Details["idp"] = "not ready"
+	}
+
+	return response
 }
 
 func connect() (*rpc.Client, error) {

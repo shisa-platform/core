@@ -83,7 +83,7 @@ func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service
 
 	message := hello.Message{
 		RequestID: ctx.RequestID(),
-		Name:      ctx.Actor().String(),
+		UserID:    ctx.Actor().ID(),
 	}
 
 	for _, param := range r.QueryParams {
