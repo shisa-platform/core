@@ -82,7 +82,17 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	request, err := m.Router(ctx, r)
+	request := &service.Request{Request: r.WithContext(ctx)}
+
+	request.Header = cloneHeaders(r.Header)
+	request.QueryParams = cloneQueryParams(r.QueryParams)
+	request.PathParams = clonePathParams(r.PathParams)
+
+	if r.ContentLength == 0 {
+		request.Body = nil
+	}
+
+	request, err := m.Router(ctx, request)
 	if err != nil {
 		err = err.WithHTTPCode(http.StatusBadGateway)
 		return m.ErrorHandler(ctx, r, err)
@@ -94,9 +104,6 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	if r.ContentLength == 0 {
-		request.Body = nil
-	}
 	request.Close = false
 
 	// Remove hop-by-hop headers listed in the "Connection"
@@ -228,4 +235,29 @@ func getBuffer() []byte {
 
 func putBuffer(buf []byte) {
 	bufPool.Put(buf)
+}
+
+func cloneQueryParams(p []service.QueryParameter) []service.QueryParameter {
+	p2 := make([]service.QueryParameter, len(p))
+	copy(p2, p)
+
+	return p2
+}
+
+func clonePathParams(p []service.PathParameter) []service.PathParameter {
+	p2 := make([]service.PathParameter, len(p))
+	copy(p2, p)
+
+	return p2
+}
+
+func cloneHeaders(h http.Header) http.Header {
+	h2 := make(http.Header, len(h))
+	for k, vv := range h {
+		vv2 := make([]string, len(vv))
+		copy(vv2, vv)
+		h2[k] = vv2
+	}
+
+	return h2
 }

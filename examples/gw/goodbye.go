@@ -82,14 +82,16 @@ func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (
 		return nil, envErr
 	}
 
+	request.URL.Scheme = "http"
 	request.URL.Host = addr
+	request.URL.Path = "/goodbye"
 
 	request.Header.Set("X-Request-Id", ctx.RequestID())
 	request.Header.Set("X-User-Id", ctx.Actor().ID())
 
 	return request, nil
 }
-
+-
 func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, response service.Response) service.Response {
 	addCommonHeaders(response)
 
