@@ -48,13 +48,24 @@ func (s *GoodbyeService) Endpoints() []service.Endpoint {
 	return s.endpoints
 }
 
-func (s *GoodbyeService) Healthcheck() merry.Error {
+func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 	addr, envErr := s.env.Get(goodbyeServiceAddrEnv)
 	if envErr != nil {
 		return envErr.WithUserMessage("address environment variable not found")
 	}
 
-	response, err := http.Get("http://" + addr + "/healthcheck")
+	url := "http://" + addr + "/healthcheck"
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return merry.Wrap(err).WithUserMessage("unable to create request")
+	}
+	request.Header.Set("X-Request-Id", ctx.RequestID())
+
+	if ctx.Actor() != nil {
+		request.Header.Set("X-User-Id", ctx.Actor().ID())
+	}
+
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return merry.Wrap(err).WithUserMessage("unable to complete request")
 	}

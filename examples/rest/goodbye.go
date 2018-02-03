@@ -184,7 +184,8 @@ func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) service.R
 		return response
 	}
 
-	var arg, ready bool
+	var ready bool
+	arg := ctx.RequestID()
 	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
 	if rpcErr != nil {
 		response.Error = rpcErr

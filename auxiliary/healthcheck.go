@@ -42,7 +42,7 @@ type Healthchecker interface {
 	// Healthcheck should return an error if the resource has a
 	// problem and should not be considered reliable for further
 	// requests.
-	Healthcheck() merry.Error
+	Healthcheck(context.Context) merry.Error
 }
 
 // HealthcheckServer serves JSON status reports of all configured
@@ -147,7 +147,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, check := range s.Checkers {
-		if err := check.Healthcheck(); err != nil {
+		if err := check.Healthcheck(ctx); err != nil {
 			status[check.Name()] = merry.UserMessage(err)
 			code = http.StatusServiceUnavailable
 			s.Logger.Info("healthcheck failed", zap.String("name", check.Name()), zap.String("reason", err.Error()), zap.Error(err))

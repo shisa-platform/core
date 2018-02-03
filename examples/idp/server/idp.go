@@ -56,9 +56,9 @@ func (s *Idp) FindUser(message *Message, reply *User) (err error) {
 	return
 }
 
-func (s *Idp) Healthcheck(_ bool, reply *bool) (err error) {
+func (s *Idp) Healthcheck(requestID string, reply *bool) (err error) {
 	*reply = true
 
-	s.Logger.Info("Healthcheck", zap.Bool("ready", true))
+	s.Logger.Info("Healthcheck", zap.String("request-id", requestID), zap.Bool("ready", true))
 	return
 }

@@ -50,13 +50,14 @@ func (p *ExampleIdentityProvider) Name() string {
 	return "idp"
 }
 
-func (p *ExampleIdentityProvider) Healthcheck() merry.Error {
+func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 	client, err := p.connect()
 	if err != nil {
 		return err
 	}
 
-	var arg, ready bool
+	var ready bool
+	arg := ctx.RequestID()
 	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
 	if rpcErr != nil {
 		return merry.Wrap(rpcErr).WithUserMessage("unable to complete request")
