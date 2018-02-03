@@ -20,7 +20,7 @@ import (
 
 const (
 	defaultRequestIDResponseHeader = "X-Request-ID"
-	timeFormat            = "2006-01-02T15:04:05+00:00"
+	timeFormat                     = "2006-01-02T15:04:05+00:00"
 )
 
 var (
@@ -131,7 +131,7 @@ func (g *Gateway) init() {
 	startTime := new(expvar.String)
 	startTime.Set(start.Format(timeFormat))
 	gatewayExpvar.Set("start-time", startTime)
-	gatewayExpvar.Set("uptime", expvar.Func(func () interface{} {
+	gatewayExpvar.Set("uptime", expvar.Func(func() interface{} {
 		now := time.Now().UTC()
 		return now.Sub(start).String()
 	}))

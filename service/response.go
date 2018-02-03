@@ -75,7 +75,7 @@ func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
 
 func NewEmpty(code int) Response {
 	return &BasicResponse{
-		Code:     code,
+		Code: code,
 	}
 }
 
@@ -91,7 +91,7 @@ func (r *ErrorResponse) Err() error {
 func NewEmptyError(code int, err error) Response {
 	return &ErrorResponse{
 		BasicResponse: BasicResponse{
-			Code:     code,
+			Code: code,
 		},
 		Error: err,
 	}

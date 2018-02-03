@@ -7,8 +7,8 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
-	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/examples/idp/server"
+	"github.com/percolate/shisa/models"
 )
 
 type simpleUser struct {

@@ -17,10 +17,10 @@ import (
 // request to a logger named "request" at the `Info` level.
 type ResponseInterceptor struct {
 	http.ResponseWriter
-	logger   *zap.Logger
-	start    time.Time
-	status   int
-	size     int
+	logger *zap.Logger
+	start  time.Time
+	status int
+	size   int
 }
 
 func (i *ResponseInterceptor) Header() http.Header {
@@ -74,7 +74,7 @@ func (i *ResponseInterceptor) Flush(ctx context.Context, request *service.Reques
 func NewInterceptor(w http.ResponseWriter, logger *zap.Logger) *ResponseInterceptor {
 	return &ResponseInterceptor{
 		ResponseWriter: w,
-		logger: logger,
-		start: time.Now().UTC(),
+		logger:         logger,
+		start:          time.Now().UTC(),
 	}
 }

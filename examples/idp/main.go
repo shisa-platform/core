@@ -15,8 +15,8 @@ import (
 	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/httpx"
 	service "github.com/percolate/shisa/examples/idp/server"
+	"github.com/percolate/shisa/httpx"
 )
 
 const timeFormat = "2006-01-02T15:04:05+00:00"

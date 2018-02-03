@@ -13,9 +13,10 @@ var (
 		User{"user:2", "Boss", "password"},
 	}
 )
+
 type Message struct {
 	RequestID string
-	Value string
+	Value     string
 }
 
 type Idp struct {

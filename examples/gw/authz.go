@@ -7,7 +7,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type SimpleAuthorization struct{
+type SimpleAuthorization struct {
 	AllowedIDs []string
 }
 
@@ -20,4 +20,3 @@ func (a SimpleAuthorization) Authorize(ctx context.Context, r *service.Request) 
 
 	return false, nil
 }
-
