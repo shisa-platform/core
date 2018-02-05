@@ -1,7 +1,7 @@
 # Example Identity Provider Service
 
 This is a sample of an Identity Provider (IdP) service to offload
-Authentication (AuthN) and Authorization (AuthZ) decisions to a 
+Authentication (AuthN) and Authorization (AuthZ) decisions to a
 separate system.
 
 ## Running

@@ -1,7 +1,7 @@
 # RESTful Web Service
 
 This is a sample of a "legacy" RESTful web service that implements the
-Goodbye service.  The IdP service is required to be running and 
+Goodbye service.  The IdP service is required to be running and
 accessible.
 
 ## Running
@@ -12,7 +12,7 @@ where `host` is optional.  If `host` is provided it must be a hostname
 or (v4 or v6) IP address.
 
     export IDP_SERVICE_ADDR=":9601"
-    
+
 See the [parent README.MD](../README.md) for instructions to run
 the example services together.
 

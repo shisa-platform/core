@@ -1,7 +1,7 @@
 # API Gateway Example
 
 This is a sample implementation of an API Gateway using Shisa.  It
-written to talk to the other example services to show a complete 
+written to talk to the other example services to show a complete
 working mult-service configuration.
 
 ## Running
