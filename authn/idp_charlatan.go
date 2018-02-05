@@ -3,7 +3,7 @@
 package authn
 
 import "github.com/ansel1/merry"
-
+import "github.com/percolate/shisa/context"
 import "github.com/percolate/shisa/models"
 
 import "reflect"
@@ -11,11 +11,12 @@ import "reflect"
 // IdentityProviderAuthenticateInvocation represents a single call of FakeIdentityProvider.Authenticate
 type IdentityProviderAuthenticateInvocation struct {
 	Parameters struct {
-		Ident1 string
+		Ident1 context.Context
+		Ident2 string
 	}
 	Results struct {
-		Ident2 models.User
-		Ident3 merry.Error
+		Ident3 models.User
+		Ident4 merry.Error
 	}
 }
 
@@ -35,7 +36,7 @@ Use it in your tests as in this example:
 
 	func TestWithIdentityProvider(t *testing.T) {
 		f := &authn.FakeIdentityProvider{
-			AuthenticateHook: func(ident1 string) (ident2 models.User, ident3 merry.Error) {
+			AuthenticateHook: func(ident1 context.Context, ident2 string) (ident3 models.User, ident4 merry.Error) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -52,7 +53,7 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeAuthenticate.
 */
 type FakeIdentityProvider struct {
-	AuthenticateHook func(string) (models.User, merry.Error)
+	AuthenticateHook func(context.Context, string) (models.User, merry.Error)
 
 	AuthenticateCalls []*IdentityProviderAuthenticateInvocation
 }
@@ -60,7 +61,7 @@ type FakeIdentityProvider struct {
 // NewFakeIdentityProviderDefaultPanic returns an instance of FakeIdentityProvider with all hooks configured to panic
 func NewFakeIdentityProviderDefaultPanic() *FakeIdentityProvider {
 	return &FakeIdentityProvider{
-		AuthenticateHook: func(string) (ident2 models.User, ident3 merry.Error) {
+		AuthenticateHook: func(context.Context, string) (ident3 models.User, ident4 merry.Error) {
 			panic("Unexpected call to IdentityProvider.Authenticate")
 		},
 	}
@@ -69,7 +70,7 @@ func NewFakeIdentityProviderDefaultPanic() *FakeIdentityProvider {
 // NewFakeIdentityProviderDefaultFatal returns an instance of FakeIdentityProvider with all hooks configured to call t.Fatal
 func NewFakeIdentityProviderDefaultFatal(t IdentityProviderTestingT) *FakeIdentityProvider {
 	return &FakeIdentityProvider{
-		AuthenticateHook: func(string) (ident2 models.User, ident3 merry.Error) {
+		AuthenticateHook: func(context.Context, string) (ident3 models.User, ident4 merry.Error) {
 			t.Fatal("Unexpected call to IdentityProvider.Authenticate")
 			return
 		},
@@ -79,7 +80,7 @@ func NewFakeIdentityProviderDefaultFatal(t IdentityProviderTestingT) *FakeIdenti
 // NewFakeIdentityProviderDefaultError returns an instance of FakeIdentityProvider with all hooks configured to call t.Error
 func NewFakeIdentityProviderDefaultError(t IdentityProviderTestingT) *FakeIdentityProvider {
 	return &FakeIdentityProvider{
-		AuthenticateHook: func(string) (ident2 models.User, ident3 merry.Error) {
+		AuthenticateHook: func(context.Context, string) (ident3 models.User, ident4 merry.Error) {
 			t.Error("Unexpected call to IdentityProvider.Authenticate")
 			return
 		},
@@ -90,15 +91,16 @@ func (f *FakeIdentityProvider) Reset() {
 	f.AuthenticateCalls = []*IdentityProviderAuthenticateInvocation{}
 }
 
-func (_f1 *FakeIdentityProvider) Authenticate(ident1 string) (ident2 models.User, ident3 merry.Error) {
+func (_f1 *FakeIdentityProvider) Authenticate(ident1 context.Context, ident2 string) (ident3 models.User, ident4 merry.Error) {
 	invocation := new(IdentityProviderAuthenticateInvocation)
 
 	invocation.Parameters.Ident1 = ident1
+	invocation.Parameters.Ident2 = ident2
 
-	ident2, ident3 = _f1.AuthenticateHook(ident1)
+	ident3, ident4 = _f1.AuthenticateHook(ident1, ident2)
 
-	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
+	invocation.Results.Ident4 = ident4
 
 	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 
@@ -158,9 +160,9 @@ func (f *FakeIdentityProvider) AssertAuthenticateCalledN(t IdentityProviderTesti
 }
 
 // AuthenticateCalledWith returns true if FakeIdentityProvider.Authenticate was called with the given values
-func (_f2 *FakeIdentityProvider) AuthenticateCalledWith(ident1 string) (found bool) {
+func (_f2 *FakeIdentityProvider) AuthenticateCalledWith(ident1 context.Context, ident2 string) (found bool) {
 	for _, call := range _f2.AuthenticateCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
 		}
@@ -170,11 +172,11 @@ func (_f2 *FakeIdentityProvider) AuthenticateCalledWith(ident1 string) (found bo
 }
 
 // AssertAuthenticateCalledWith calls t.Error if FakeIdentityProvider.Authenticate was not called with the given values
-func (_f3 *FakeIdentityProvider) AssertAuthenticateCalledWith(t IdentityProviderTestingT, ident1 string) {
+func (_f3 *FakeIdentityProvider) AssertAuthenticateCalledWith(t IdentityProviderTestingT, ident1 context.Context, ident2 string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.AuthenticateCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
 		}
@@ -186,10 +188,10 @@ func (_f3 *FakeIdentityProvider) AssertAuthenticateCalledWith(t IdentityProvider
 }
 
 // AuthenticateCalledOnceWith returns true if FakeIdentityProvider.Authenticate was called exactly once with the given values
-func (_f4 *FakeIdentityProvider) AuthenticateCalledOnceWith(ident1 string) bool {
+func (_f4 *FakeIdentityProvider) AuthenticateCalledOnceWith(ident1 context.Context, ident2 string) bool {
 	var count int
 	for _, call := range _f4.AuthenticateCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
 	}
@@ -198,11 +200,11 @@ func (_f4 *FakeIdentityProvider) AuthenticateCalledOnceWith(ident1 string) bool 
 }
 
 // AssertAuthenticateCalledOnceWith calls t.Error if FakeIdentityProvider.Authenticate was not called exactly once with the given values
-func (_f5 *FakeIdentityProvider) AssertAuthenticateCalledOnceWith(t IdentityProviderTestingT, ident1 string) {
+func (_f5 *FakeIdentityProvider) AssertAuthenticateCalledOnceWith(t IdentityProviderTestingT, ident1 context.Context, ident2 string) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.AuthenticateCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
 	}
@@ -213,11 +215,11 @@ func (_f5 *FakeIdentityProvider) AssertAuthenticateCalledOnceWith(t IdentityProv
 }
 
 // AuthenticateResultsForCall returns the result values for the first call to FakeIdentityProvider.Authenticate with the given values
-func (_f6 *FakeIdentityProvider) AuthenticateResultsForCall(ident1 string) (ident2 models.User, ident3 merry.Error, found bool) {
+func (_f6 *FakeIdentityProvider) AuthenticateResultsForCall(ident1 context.Context, ident2 string) (ident3 models.User, ident4 merry.Error, found bool) {
 	for _, call := range _f6.AuthenticateCalls {
-		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
-			ident2 = call.Results.Ident2
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3
+			ident4 = call.Results.Ident4
 			found = true
 			break
 		}

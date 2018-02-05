@@ -5,10 +5,12 @@ import (
 	"strconv"
 
 	"github.com/ansel1/merry"
+
+	"github.com/percolate/shisa/context"
 )
 
 var (
-	defaultProvider = NewSystem()
+	DefaultProvider = NewSystem()
 )
 
 type systemProvider struct{}
@@ -53,7 +55,7 @@ func (p *systemProvider) Monitor(string, chan<- Value) {
 	// N.B. do nothing, system enviroment vars are not dynamic
 }
 
-func (p *systemProvider) Healthcheck() merry.Error {
+func (p *systemProvider) Healthcheck(context.Context) merry.Error {
 	return nil
 }
 
@@ -62,13 +64,13 @@ func NewSystem() Provider {
 }
 
 func Get(name string) (string, merry.Error) {
-	return defaultProvider.Get(name)
+	return DefaultProvider.Get(name)
 }
 
 func GetInt(name string) (int, merry.Error) {
-	return defaultProvider.GetInt(name)
+	return DefaultProvider.GetInt(name)
 }
 
 func GetBool(name string) (bool, merry.Error) {
-	return defaultProvider.GetBool(name)
+	return DefaultProvider.GetBool(name)
 }

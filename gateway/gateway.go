@@ -20,6 +20,7 @@ import (
 
 const (
 	defaultRequestIDResponseHeader = "X-Request-ID"
+	timeFormat                     = "2006-01-02T15:04:05+00:00"
 )
 
 var (
@@ -124,10 +125,19 @@ type Gateway struct {
 }
 
 func (g *Gateway) init() {
-	g.started = true
+	start := time.Now().UTC()
+
 	gatewayExpvar = gatewayExpvar.Init()
+	startTime := new(expvar.String)
+	startTime.Set(start.Format(timeFormat))
+	gatewayExpvar.Set("start-time", startTime)
+	gatewayExpvar.Set("uptime", expvar.Func(func() interface{} {
+		now := time.Now().UTC()
+		return now.Sub(start).String()
+	}))
 	gatewayExpvar.Set("settings", g)
 	gatewayExpvar.Set("auxiliary", auxiliary.AuxiliaryStats)
+
 	g.base.Addr = g.Address
 	g.base.TLSConfig = g.TLSConfig
 	g.base.ReadTimeout = g.ReadTimeout
@@ -173,6 +183,7 @@ func (g *Gateway) init() {
 	g.panicLog = g.Logger.Named("panic")
 
 	g.tree = new(node)
+	g.started = true
 }
 
 func connstate(con net.Conn, state http.ConnState) {

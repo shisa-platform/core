@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -67,11 +68,22 @@ func (s *DebugServer) Name() string {
 func (s *DebugServer) Serve() error {
 	s.init()
 
-	if s.UseTLS {
-		return s.base.ListenAndServeTLS("", "")
+	listener, err := httpx.HTTPListenerForAddress(s.Addr)
+	if err != nil {
+		return err
 	}
 
-	return s.base.ListenAndServe()
+	addr := listener.Addr().String()
+	addrVar := new(expvar.String)
+	addrVar.Set(addr)
+	debugStats.Set("addr", addrVar)
+	s.Logger.Info("debug service started", zap.String("addr", addr))
+
+	if s.UseTLS {
+		return s.base.ServeTLS(listener, "", "")
+	}
+
+	return s.base.Serve(listener)
 }
 
 func (s *DebugServer) Shutdown(timeout time.Duration) error {
@@ -81,13 +93,9 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	debugStats.Add("hits", 1)
+	ri := httpx.NewInterceptor(w, s.requestLog)
 
-	ri := ResponseInterceptor{
-		Logger:   s.requestLog,
-		Delegate: w,
-		Start:    time.Now().UTC(),
-	}
+	debugStats.Add("hits", 1)
 
 	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}
@@ -106,12 +114,12 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var writeErr error
 	if response := s.Authenticate(ctx, request); response != nil {
-		writeErr = writeResponse(&ri, response)
+		writeErr = httpx.WriteResponse(ri, response)
 		goto finish
 	}
 
 	if s.Path == r.URL.Path {
-		s.delegate.ServeHTTP(&ri, r)
+		s.delegate.ServeHTTP(ri, r)
 	} else {
 		ri.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		ri.WriteHeader(http.StatusNotFound)
@@ -126,23 +134,4 @@ finish:
 	if writeErr != nil {
 		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
 	}
-}
-
-func writeResponse(w http.ResponseWriter, response service.Response) (err error) {
-	for k, vs := range response.Headers() {
-		w.Header()[k] = vs
-	}
-	for k := range response.Trailers() {
-		w.Header().Add("Trailer", k)
-	}
-
-	w.WriteHeader(response.StatusCode())
-
-	_, err = response.Serialize(w)
-
-	for k, vs := range response.Trailers() {
-		w.Header()[k] = vs
-	}
-
-	return
 }

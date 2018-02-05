@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"io"
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/ansel1/merry"
 
@@ -14,11 +12,6 @@ import (
 )
 
 var (
-	bufPool = sync.Pool{
-		New: func() interface{} {
-			return make([]byte, 32*1024)
-		},
-	}
 	hopHeaders = []string{
 		"Connection",
 		"Proxy-Connection", // non-standard, sent by libcurl
@@ -33,7 +26,7 @@ var (
 )
 
 // Route returns the request to contact the proxied server.
-type Route func(context.Context, *service.Request) *service.Request
+type Route func(context.Context, *service.Request) (*service.Request, merry.Error)
 
 // Invoke sends the proxied request and returns the response.
 type Invoke func(context.Context, *service.Request) (service.Response, merry.Error)
@@ -82,7 +75,21 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	request := m.Router(ctx, r)
+	request := &service.Request{Request: r.WithContext(ctx)}
+
+	request.Header = cloneHeaders(r.Header)
+	request.QueryParams = cloneQueryParams(r.QueryParams)
+	request.PathParams = clonePathParams(r.PathParams)
+
+	if r.ContentLength == 0 {
+		request.Body = nil
+	}
+
+	request, err := m.Router(ctx, request)
+	if err != nil {
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		return m.ErrorHandler(ctx, r, err)
+	}
 	if request == nil {
 		err := merry.New("proxy request is nil")
 		err = err.WithUserMessage("middleware.ReverseProxy.Router returned nil request")
@@ -90,9 +97,6 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	if r.ContentLength == 0 {
-		request.Body = nil
-	}
 	request.Close = false
 
 	// Remove hop-by-hop headers listed in the "Connection"
@@ -175,53 +179,34 @@ func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request)
 		return nil, merry.Wrap(err).WithHTTPCode(http.StatusBadGateway)
 	}
 
-	return ProxyResponse{response}, nil
+	return service.ResponseAdapter{response}, nil
 }
 
 func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-// ProxyResponse is an adapter for `http.Response` to the
-// `service.Response` interface.
-type ProxyResponse struct {
-	*http.Response
+func cloneQueryParams(p []service.QueryParameter) []service.QueryParameter {
+	p2 := make([]service.QueryParameter, len(p))
+	copy(p2, p)
+
+	return p2
 }
 
-func (r ProxyResponse) StatusCode() int {
-	return r.Response.StatusCode
+func clonePathParams(p []service.PathParameter) []service.PathParameter {
+	p2 := make([]service.PathParameter, len(p))
+	copy(p2, p)
+
+	return p2
 }
 
-func (r ProxyResponse) Headers() http.Header {
-	return r.Header
-}
+func cloneHeaders(h http.Header) http.Header {
+	h2 := make(http.Header, len(h))
+	for k, vv := range h {
+		vv2 := make([]string, len(vv))
+		copy(vv2, vv)
+		h2[k] = vv2
+	}
 
-func (r ProxyResponse) Trailers() http.Header {
-	return r.Trailer
-}
-
-func (r ProxyResponse) Err() error {
-	return nil
-}
-
-func (r ProxyResponse) Serialize(w io.Writer) (n int, err error) {
-	buf := getBuffer()
-	defer putBuffer(buf)
-
-	var nw int64
-	nw, err = io.CopyBuffer(w, r.Body, buf)
-	n = int(nw)
-	r.Body.Close()
-
-	return
-}
-
-func getBuffer() []byte {
-	buf := bufPool.Get().([]byte)
-	buf = buf[:cap(buf)]
-	return buf
-}
-
-func putBuffer(buf []byte) {
-	bufPool.Put(buf)
+	return h2
 }

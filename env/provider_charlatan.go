@@ -4,6 +4,7 @@ package env
 
 import "github.com/ansel1/merry"
 
+import "github.com/percolate/shisa/context"
 import "reflect"
 
 // ProviderGetInvocation represents a single call of FakeProvider.Get
@@ -49,8 +50,11 @@ type ProviderMonitorInvocation struct {
 
 // ProviderHealthcheckInvocation represents a single call of FakeProvider.Healthcheck
 type ProviderHealthcheckInvocation struct {
+	Parameters struct {
+		Ident1 context.Context
+	}
 	Results struct {
-		Ident1 merry.Error
+		Ident2 merry.Error
 	}
 }
 
@@ -91,7 +95,7 @@ type FakeProvider struct {
 	GetIntHook      func(string) (int, merry.Error)
 	GetBoolHook     func(string) (bool, merry.Error)
 	MonitorHook     func(string, chan<- Value)
-	HealthcheckHook func() merry.Error
+	HealthcheckHook func(context.Context) merry.Error
 
 	GetCalls         []*ProviderGetInvocation
 	GetIntCalls      []*ProviderGetIntInvocation
@@ -115,7 +119,7 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 		MonitorHook: func(string, chan<- Value) {
 			panic("Unexpected call to Provider.Monitor")
 		},
-		HealthcheckHook: func() (ident1 merry.Error) {
+		HealthcheckHook: func(context.Context) (ident2 merry.Error) {
 			panic("Unexpected call to Provider.Healthcheck")
 		},
 	}
@@ -140,7 +144,7 @@ func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 			t.Fatal("Unexpected call to Provider.Monitor")
 			return
 		},
-		HealthcheckHook: func() (ident1 merry.Error) {
+		HealthcheckHook: func(context.Context) (ident2 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Healthcheck")
 			return
 		},
@@ -166,7 +170,7 @@ func NewFakeProviderDefaultError(t ProviderTestingT) *FakeProvider {
 			t.Error("Unexpected call to Provider.Monitor")
 			return
 		},
-		HealthcheckHook: func() (ident1 merry.Error) {
+		HealthcheckHook: func(context.Context) (ident2 merry.Error) {
 			t.Error("Unexpected call to Provider.Healthcheck")
 			return
 		},
@@ -709,12 +713,14 @@ func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1
 	}
 }
 
-func (_f24 *FakeProvider) Healthcheck() (ident1 merry.Error) {
+func (_f24 *FakeProvider) Healthcheck(ident1 context.Context) (ident2 merry.Error) {
 	invocation := new(ProviderHealthcheckInvocation)
 
-	ident1 = _f24.HealthcheckHook()
+	invocation.Parameters.Ident1 = ident1
 
-	invocation.Results.Ident1 = ident1
+	ident2 = _f24.HealthcheckHook(ident1)
+
+	invocation.Results.Ident2 = ident2
 
 	_f24.HealthcheckCalls = append(_f24.HealthcheckCalls, invocation)
 
@@ -771,4 +777,72 @@ func (f *FakeProvider) AssertHealthcheckCalledN(t ProviderTestingT, n int) {
 	if len(f.HealthcheckCalls) < n {
 		t.Errorf("FakeProvider.Healthcheck called %d times, expected >= %d", len(f.HealthcheckCalls), n)
 	}
+}
+
+// HealthcheckCalledWith returns true if FakeProvider.Healthcheck was called with the given values
+func (_f25 *FakeProvider) HealthcheckCalledWith(ident1 context.Context) (found bool) {
+	for _, call := range _f25.HealthcheckCalls {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			found = true
+			break
+		}
+	}
+
+	return
+}
+
+// AssertHealthcheckCalledWith calls t.Error if FakeProvider.Healthcheck was not called with the given values
+func (_f26 *FakeProvider) AssertHealthcheckCalledWith(t ProviderTestingT, ident1 context.Context) {
+	t.Helper()
+	var found bool
+	for _, call := range _f26.HealthcheckCalls {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("FakeProvider.Healthcheck not called with expected parameters")
+	}
+}
+
+// HealthcheckCalledOnceWith returns true if FakeProvider.Healthcheck was called exactly once with the given values
+func (_f27 *FakeProvider) HealthcheckCalledOnceWith(ident1 context.Context) bool {
+	var count int
+	for _, call := range _f27.HealthcheckCalls {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			count++
+		}
+	}
+
+	return count == 1
+}
+
+// AssertHealthcheckCalledOnceWith calls t.Error if FakeProvider.Healthcheck was not called exactly once with the given values
+func (_f28 *FakeProvider) AssertHealthcheckCalledOnceWith(t ProviderTestingT, ident1 context.Context) {
+	t.Helper()
+	var count int
+	for _, call := range _f28.HealthcheckCalls {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("FakeProvider.Healthcheck called %d times with expected parameters, expected one", count)
+	}
+}
+
+// HealthcheckResultsForCall returns the result values for the first call to FakeProvider.Healthcheck with the given values
+func (_f29 *FakeProvider) HealthcheckResultsForCall(ident1 context.Context) (ident2 merry.Error, found bool) {
+	for _, call := range _f29.HealthcheckCalls {
+		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+			ident2 = call.Results.Ident2
+			found = true
+			break
+		}
+	}
+
+	return
 }

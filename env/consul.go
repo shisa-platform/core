@@ -1,12 +1,14 @@
 package env
 
 import (
-	"context"
+	stdctx "context"
 	"strconv"
 	"sync"
 
 	"github.com/ansel1/merry"
-	consulapi "github.com/hashicorp/consul/api"
+	consul "github.com/hashicorp/consul/api"
+
+	"github.com/percolate/shisa/context"
 )
 
 //go:generate charlatan -output=./consulselfer_charlatan.go Selfer
@@ -16,12 +18,12 @@ type Selfer interface {
 
 //go:generate charlatan -output=./consulkvgetter_charlatan.go KVGetter
 type KVGetter interface {
-	Get(string, *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error)
-	List(string, *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error)
+	Get(string, *consul.QueryOptions) (*consul.KVPair, *consul.QueryMeta, error)
+	List(string, *consul.QueryOptions) (consul.KVPairs, *consul.QueryMeta, error)
 }
 
-var _ Selfer = (*consulapi.Agent)(nil)
-var _ KVGetter = (*consulapi.KV)(nil)
+var _ Selfer = (*consul.Agent)(nil)
+var _ KVGetter = (*consul.KV)(nil)
 var _ Provider = (*consulProvider)(nil)
 
 type kvMonitor struct {
@@ -72,12 +74,12 @@ type consulProvider struct {
 	stop       bool
 	stopCh     chan struct{}
 	stopLock   sync.Mutex
-	cancelFunc context.CancelFunc
+	cancelFunc stdctx.CancelFunc
 
 	ErrorHandler ErrorHandler
 }
 
-func NewConsul(c *consulapi.Client) *consulProvider {
+func NewConsul(c *consul.Client) *consulProvider {
 	return &consulProvider{
 		agent: c.Agent(),
 		kv:    c.KV(),
@@ -162,7 +164,7 @@ func (p *consulProvider) Shutdown() {
 	return
 }
 
-func (p *consulProvider) Healthcheck() merry.Error {
+func (p *consulProvider) Healthcheck(context.Context) merry.Error {
 	s, err := p.status()
 	if err != nil {
 		return err
@@ -193,11 +195,11 @@ func (p *consulProvider) status() (status MemberStatus, merr merry.Error) {
 func (p *consulProvider) monitorLoop() {
 	lastIndex := uint64(0)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := stdctx.WithCancel(stdctx.Background())
 	p.cancelFunc = cancel
 
 	for !p.shouldStop() {
-		opts := &consulapi.QueryOptions{WaitIndex: lastIndex}
+		opts := &consul.QueryOptions{WaitIndex: lastIndex}
 
 		kvps, meta, err := p.kv.List("", opts.WithContext(ctx))
 		if err != nil {

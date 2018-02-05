@@ -1,0 +1,14 @@
+digraph {
+    randir = LR;
+
+    gw [label="API Gateway"];
+    idp [label="IdP Service"];
+    rest [label="REST Service"];
+    rpc [label="RPC Service"];
+
+    gw -> idp [label="rpc"];
+    gw -> rest [label="http"];
+    gw -> rpc [label="rpc"];
+    rest -> idp [label="rpc"];
+    rpc -> idp [label="rpc"];
+}
