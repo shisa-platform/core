@@ -76,7 +76,7 @@ You can now access these URLs for the services:
 
 ### API Gateway
 
-The `healthcheck` and `debug` endpoints require authentication by the 
+The `healthcheck` and `debug` endpoints require authentication by the
 "admin" user: `Admin:password`.  The `api/greeting` and `api/farewell`
 endpoints can be accessed by the "admin" user or `Boss:password`.
 
