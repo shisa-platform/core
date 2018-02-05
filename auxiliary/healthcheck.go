@@ -12,6 +12,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -41,7 +42,7 @@ type Healthchecker interface {
 	// Healthcheck should return an error if the resource has a
 	// problem and should not be considered reliable for further
 	// requests.
-	Healthcheck() merry.Error
+	Healthcheck(context.Context) merry.Error
 }
 
 // HealthcheckServer serves JSON status reports of all configured
@@ -98,11 +99,22 @@ func (s *HealthcheckServer) Name() string {
 func (s *HealthcheckServer) Serve() error {
 	s.init()
 
-	if s.UseTLS {
-		return s.base.ListenAndServeTLS("", "")
+	listener, err := httpx.HTTPListenerForAddress(s.Addr)
+	if err != nil {
+		return err
 	}
 
-	return s.base.ListenAndServe()
+	addr := listener.Addr().String()
+	addrVar := new(expvar.String)
+	addrVar.Set(addr)
+	healthcheckStats.Set("addr", addrVar)
+	s.Logger.Info("healthcheck service started", zap.String("addr", addr))
+
+	if s.UseTLS {
+		return s.base.ServeTLS(listener, "", "")
+	}
+
+	return s.base.Serve(listener)
 }
 
 func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {
@@ -112,13 +124,9 @@ func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	healthcheckStats.Add("hits", 1)
+	ri := httpx.NewInterceptor(w, s.requestLog)
 
-	ri := ResponseInterceptor{
-		Logger:   s.requestLog,
-		Delegate: w,
-		Start:    time.Now().UTC(),
-	}
+	healthcheckStats.Add("hits", 1)
 
 	ctx := context.New(r.Context())
 	request := &service.Request{Request: r}
@@ -150,9 +158,10 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, check := range s.Checkers {
-		if err := check.Healthcheck(); err != nil {
+		if err := check.Healthcheck(ctx); err != nil {
 			status[check.Name()] = merry.UserMessage(err)
 			code = http.StatusServiceUnavailable
+			s.Logger.Info("healthcheck failed", zap.String("name", check.Name()), zap.String("reason", err.Error()), zap.Error(err))
 			continue
 		}
 		status[check.Name()] = "OK"
@@ -166,7 +175,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response.Headers().Set(contenttype.ContentTypeHeaderKey, jsonContentType)
 
 finish:
-	writeErr := writeResponse(&ri, response)
+	writeErr := httpx.WriteResponse(ri, response)
 	ri.Flush(ctx, request)
 
 	if idErr != nil {

@@ -22,7 +22,7 @@ func (m *bearerAuthenticator) Authenticate(ctx context.Context, r *service.Reque
 		return nil, err
 	}
 
-	return m.idp.Authenticate(credentials)
+	return m.idp.Authenticate(ctx, credentials)
 }
 
 func (m *bearerAuthenticator) Challenge() string {

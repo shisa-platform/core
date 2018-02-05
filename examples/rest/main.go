@@ -1,117 +1,72 @@
 package main
 
 import (
+	"context"
 	"expvar"
 	"flag"
-	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/percolate/shisa/authn"
-	"github.com/percolate/shisa/auxiliary"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/gateway"
-	"github.com/percolate/shisa/middleware"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
-const (
-	defaultPort            = 9001
-	defaultDebugPort       = defaultPort + 1
-	defaultHealthcheckPort = defaultDebugPort + 1
-	timeFormat             = "2006-01-02T15:04:05+00:00"
-)
+const timeFormat = "2006-01-02T15:04:05+00:00"
 
-type authorizer struct{}
-
-func (a authorizer) Authorize(ctx context.Context, r *service.Request) (bool, merry.Error) {
-	return ctx.Actor().ID() == "0", nil
-}
-
-type dependencyStub struct{}
-
-func (d dependencyStub) Name() string {
-	return "stub"
-}
-
-func (d dependencyStub) Healthcheck() merry.Error {
-	return nil
-}
+var goodbye = expvar.NewMap("goodbye")
 
 func main() {
-	now := time.Now().UTC().Format(timeFormat)
-	startTime := expvar.NewString("starttime")
-	startTime.Set(now)
+	start := time.Now().UTC()
 
-	port := flag.Int("port", defaultPort, "Specify service port")
-	debugPort := flag.Int("debugport", defaultDebugPort, "Specify debug port")
-	healthcheckPort := flag.Int("healthcheckport", defaultHealthcheckPort, "Specify healthcheck port")
+	startTime := new(expvar.String)
+	startTime.Set(start.Format(timeFormat))
+	goodbye.Set("start-time", startTime)
+	goodbye.Set("uptime", expvar.Func(func() interface{} {
+		now := time.Now().UTC()
+		return now.Sub(start).String()
+	}))
 
+	addr := flag.String("addr", "", "service address")
 	flag.Parse()
 
 	logger, err := zap.NewProduction()
 	if err != nil {
-		log.Fatalf("error initializing logger: %v", err)
+		log.Fatalf("initializing logger: %v", err)
 	}
 
 	defer logger.Sync()
 
-	idp := &SimpleIdentityProvider{
-		Users: []User{User{"0", "Admin", "password"}, User{"1", "Boss", "password"}},
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	service := &Goodbye{Logger: logger}
+	server := http.Server{
+		Handler: service,
 	}
 
-	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
+	listener, err := httpx.HTTPListenerForAddress(*addr)
 	if err != nil {
-		panic(err)
+		logger.Error("opening listener", zap.Error(err))
 	}
-	authN := &middleware.Authentication{Authenticator: authenticator}
+	logger.Info("starting goodbye service", zap.String("addr", listener.Addr().String()))
 
-	gw := &gateway.Gateway{
-		Name:            "hello",
-		Address:         fmt.Sprintf(":%d", *port),
-		HandleInterrupt: true,
-		GracePeriod:     2 * time.Second,
-		Handlers:        []service.Handler{authN.Service},
-		Logger:          logger,
-	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- server.Serve(listener)
+	}()
 
-	authZ := authorizer{}
-	debug := &auxiliary.DebugServer{
-		HTTPServer: auxiliary.HTTPServer{
-			Addr:           fmt.Sprintf(":%d", *debugPort),
-			Authentication: authN,
-			Authorizer:     authZ,
-		},
-		Logger: logger,
-	}
-	healthcheck := &auxiliary.HealthcheckServer{
-		HTTPServer: auxiliary.HTTPServer{
-			Addr:           fmt.Sprintf(":%d", *healthcheckPort),
-			Authentication: authN,
-			Authorizer:     authZ,
-		},
-		Checkers: []auxiliary.Healthchecker{dependencyStub{}},
-		Logger:   logger,
-	}
-
-	services := []service.Service{NewHelloService(), NewGoodbyeService()}
-	if err := gw.Serve(services, debug, healthcheck); err != nil {
-		for _, e := range multierr.Errors(err) {
-			values := merry.Values(e)
-			fs := make([]zapcore.Field, 0, len(values))
-			for name, value := range values {
-				if key, ok := name.(string); ok {
-					fs = append(fs, zap.Reflect(key, value))
-				}
-			}
-			logger.Error(merry.Message(e), fs...)
+	select {
+	case err := <-errCh:
+		if !merry.Is(err, http.ErrServerClosed) {
+			logger.Error("starting server", zap.Error(err))
 		}
-		os.Exit(1)
+	case <-interrupt:
+		server.Shutdown(context.Background())
 	}
 }

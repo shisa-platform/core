@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/percolate/shisa/contenttype"
 )
@@ -14,6 +15,11 @@ const (
 
 var (
 	jsonContentType = contenttype.ApplicationJson.String()
+	bufPool         = sync.Pool{
+		New: func() interface{} {
+			return make([]byte, 32*1024)
+		},
+	}
 )
 
 //go:generate charlatan -output=./response_charlatan.go Response
@@ -75,9 +81,7 @@ func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
 
 func NewEmpty(code int) Response {
 	return &BasicResponse{
-		Code:     code,
-		headers:  make(http.Header),
-		trailers: make(http.Header),
+		Code: code,
 	}
 }
 
@@ -93,9 +97,7 @@ func (r *ErrorResponse) Err() error {
 func NewEmptyError(code int, err error) Response {
 	return &ErrorResponse{
 		BasicResponse: BasicResponse{
-			Code:     code,
-			headers:  make(http.Header),
-			trailers: make(http.Header),
+			Code: code,
 		},
 		Error: err,
 	}
@@ -145,4 +147,48 @@ func NewTemporaryRedirect(location string) Response {
 		headers:  headers,
 		trailers: make(http.Header),
 	}
+}
+
+// ResponseAdapter is an adapter for `http.Response` to the
+// `service.Response` interface.
+type ResponseAdapter struct {
+	*http.Response
+}
+
+func (r ResponseAdapter) StatusCode() int {
+	return r.Response.StatusCode
+}
+
+func (r ResponseAdapter) Headers() http.Header {
+	return r.Header
+}
+
+func (r ResponseAdapter) Trailers() http.Header {
+	return r.Trailer
+}
+
+func (r ResponseAdapter) Err() error {
+	return nil
+}
+
+func (r ResponseAdapter) Serialize(w io.Writer) (n int, err error) {
+	buf := getBuffer()
+	defer putBuffer(buf)
+
+	var nw int64
+	nw, err = io.CopyBuffer(w, r.Body, buf)
+	n = int(nw)
+	r.Body.Close()
+
+	return
+}
+
+func getBuffer() []byte {
+	buf := bufPool.Get().([]byte)
+	buf = buf[:cap(buf)]
+	return buf
+}
+
+func putBuffer(buf []byte) {
+	bufPool.Put(buf)
 }

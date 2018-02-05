@@ -15,7 +15,7 @@ import (
 	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/examples/rpc/service"
+	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -27,9 +27,9 @@ func main() {
 	startTime := new(expvar.String)
 	startTime.Set(start.Format(timeFormat))
 
-	helloVar := expvar.NewMap("hello")
-	helloVar.Set("start-time", startTime)
-	helloVar.Set("uptime", expvar.Func(func() interface{} {
+	idpVar := expvar.NewMap("idp")
+	idpVar.Set("start-time", startTime)
+	idpVar.Set("uptime", expvar.Func(func() interface{} {
 		now := time.Now().UTC()
 		return now.Sub(start).String()
 	}))
@@ -47,7 +47,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	service := &hello.Hello{Logger: logger}
+	service := &idp.Idp{Logger: logger}
 	rpc.Register(service)
 	rpc.HandleHTTP()
 
@@ -57,7 +57,7 @@ func main() {
 	if err != nil {
 		logger.Error("opening listener", zap.Error(err))
 	}
-	logger.Info("starting hello service", zap.String("addr", listener.Addr().String()))
+	logger.Info("starting idp service", zap.String("addr", listener.Addr().String()))
 
 	errCh := make(chan error, 1)
 	go func() {

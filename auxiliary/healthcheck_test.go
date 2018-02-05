@@ -26,7 +26,7 @@ func (h stubHealthchecker) Name() string {
 	return h.name
 }
 
-func (h stubHealthchecker) Healthcheck() merry.Error {
+func (h stubHealthchecker) Healthcheck(context.Context) merry.Error {
 	return h.err
 }
 
@@ -43,7 +43,7 @@ func TestHealthcheckServerEmpty(t *testing.T) {
 func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":9900",
+			Addr:   ":0",
 			UseTLS: true,
 		},
 	}

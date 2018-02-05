@@ -2,6 +2,8 @@ package env
 
 import (
 	"github.com/ansel1/merry"
+
+	"github.com/percolate/shisa/context"
 )
 
 var (
@@ -21,5 +23,5 @@ type Provider interface {
 	GetInt(string) (int, merry.Error)
 	GetBool(string) (bool, merry.Error)
 	Monitor(string, chan<- Value)
-	Healthcheck() merry.Error
+	Healthcheck(context.Context) merry.Error
 }

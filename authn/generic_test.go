@@ -46,7 +46,7 @@ func TestGenericAuthenticatorIdPError(t *testing.T) {
 		return "slithy", nil
 	}
 	idp := &FakeIdentityProvider{
-		AuthenticateHook: func(token string) (models.User, merry.Error) {
+		AuthenticateHook: func(_ context.Context, token string) (models.User, merry.Error) {
 			assert.Equal(t, "slithy", token)
 			return nil, merry.New("the <center> cannot hold")
 		},
@@ -71,7 +71,7 @@ func TestGenericAuthenticator(t *testing.T) {
 		IDHook: func() string { return "1" },
 	}
 	idp := &FakeIdentityProvider{
-		AuthenticateHook: func(token string) (models.User, merry.Error) {
+		AuthenticateHook: func(_ context.Context, token string) (models.User, merry.Error) {
 			assert.Equal(t, "he:comes", token)
 			return expectedUser, nil
 		},

@@ -1,12 +1,15 @@
 package env
 
 import (
+	stdctx "context"
 	"sync"
 	"testing"
 
 	"github.com/ansel1/merry"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/percolate/shisa/context"
 )
 
 const defaultKey = "DEFAULT_KEY"
@@ -688,7 +691,8 @@ func TestConsulProviderHealthcheck(t *testing.T) {
 		kv:    kvg,
 	}
 
-	err := c.Healthcheck()
+	ctx := context.New(stdctx.Background())
+	err := c.Healthcheck(ctx)
 
 	assert.NoError(t, err)
 	s.AssertSelfCalledOnce(t)
@@ -706,7 +710,8 @@ func TestConsulProviderHealthcheckStatusError(t *testing.T) {
 		kv:    kvg,
 	}
 
-	err := c.Healthcheck()
+	ctx := context.New(stdctx.Background())
+	err := c.Healthcheck(ctx)
 
 	assert.Error(t, err)
 	s.AssertSelfCalledOnce(t)
@@ -727,7 +732,8 @@ func TestConsulProviderHealthcheckNotAlive(t *testing.T) {
 		kv:    kvg,
 	}
 
-	err := c.Healthcheck()
+	ctx := context.New(stdctx.Background())
+	err := c.Healthcheck(ctx)
 
 	assert.Error(t, err)
 	s.AssertSelfCalledOnce(t)
@@ -748,7 +754,8 @@ func TestConsulProviderStatusUnparseable(t *testing.T) {
 		kv:    kvg,
 	}
 
-	err := c.Healthcheck()
+	ctx := context.New(stdctx.Background())
+	err := c.Healthcheck(ctx)
 
 	assert.Error(t, err)
 	s.AssertSelfCalledOnce(t)
