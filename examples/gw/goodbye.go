@@ -118,7 +118,7 @@ func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, respon
 		return service.NewEmptyError(http.StatusBadGateway, err)
 	}
 
-	farewell := service.NewOK(Farewell{"goodbye " + who})
+	farewell := service.NewOK(Farewell{"Goodbye " + who})
 	addCommonHeaders(farewell)
 
 	return farewell
