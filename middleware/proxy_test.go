@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/ansel1/merry"
@@ -267,6 +268,7 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 			assert.Empty(t, r.Header.Get("Transfer-Encoding"))
 			assert.Empty(t, r.Header.Get("Connection"))
 			assert.Empty(t, r.Header.Get("Zalgo"))
+			assert.True(t, strings.HasPrefix(r.Header.Get("X-Forwarded-For"), "10.10.10.10, "))
 			return service.NewEmpty(http.StatusOK), nil
 		},
 	}
@@ -277,6 +279,7 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 	request.Header.Set("Zalgo", "he comes")
 	request.Header.Set("Upgrade", "IRC/6.9, zalgo/666")
 	request.Header.Set("Transfer-Encoding", "bitrot")
+	request.Header.Set("X-Forwarded-For", "10.10.10.10")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := cut.Service(ctx, request)
