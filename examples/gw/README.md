@@ -69,5 +69,5 @@ version: 1
               required:
                 - farewell
             example:
-              farewell: "goodbye Boss"
+              farewell: "Goodbye Boss"
 ```
