@@ -21,7 +21,7 @@ func NewRequestEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
 }
 
 func (e *RequestEncoder) AddArray(key string, marshaler ArrayMarshaler) error {
-	
+	return nil
 }
 
 func (e *RequestEncoder) AddObject(key string, marshaler ObjectMarshaler) error {
@@ -121,10 +121,10 @@ func (e *RequestEncoder) OpenNamespace(key string) {
 }
 
 func (e *RequestEncoder) Clone() Encoder {
-	
+	return nil
 }
 
 func (e *RequestEncoder) EncodeEntry(Entry, []Field) (*buffer.Buffer, error) {
-	
+	return nil, nil
 }
 
