@@ -1,7 +1,8 @@
 package sd
 
 import (
-	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/ansel1/merry"
 	consul "github.com/hashicorp/consul/api"
@@ -36,16 +37,15 @@ func (r *consulRegistrar) Deregister() merry.Error {
 }
 
 type consulResolver struct {
-	client      *consul.Client
-	passingOnly bool
+	client *consul.Client
 }
 
-func NewConsulResolver(client *consul.Client, passingOnly bool) *consulResolver {
-	return &consulResolver{client, passingOnly}
+func NewConsulResolver(client *consul.Client) *consulResolver {
+	return &consulResolver{client}
 }
 
-func (r *consulResolver) Resolve(name string) (nodes []string, merr merry.Error) {
-	ses, _, err := r.client.Health().Service(name, "", r.passingOnly, nil)
+func (r *consulResolver) Resolve(name string, passingOnly bool) (nodes []string, merr merry.Error) {
+	ses, _, err := r.client.Health().Service(name, "", passingOnly, nil)
 	if err != nil {
 		merr = merry.Wrap(err)
 		return
@@ -57,7 +57,7 @@ func (r *consulResolver) Resolve(name string) (nodes []string, merr merry.Error)
 		if s.Service.Address != "" {
 			addr = s.Service.Address
 		}
-		nodes[i] = fmt.Sprintf("%s:%d", addr, s.Service.Port)
+		nodes[i] = net.JoinHostPort(addr, strconv.Itoa(s.Service.Port))
 	}
 	return
 }

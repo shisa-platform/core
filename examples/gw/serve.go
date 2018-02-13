@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -14,11 +15,21 @@ import (
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/middleware"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
+	conf := consul.DefaultConfig()
+	c, e := consul.NewClient(conf)
+	if e != nil {
+		panic(e)
+	}
+
+	res := sd.NewConsulResolver(c)
+
 	idp := &ExampleIdentityProvider{Env: env.DefaultProvider}
+	idp.resolver = res
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
@@ -46,7 +57,10 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 
 	hello := NewHelloService(env.DefaultProvider)
+	hello.resolver = res
+
 	goodbye := NewGoodbyeService(env.DefaultProvider)
+	goodbye.resolver = res
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{

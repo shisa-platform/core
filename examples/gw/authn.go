@@ -9,6 +9,7 @@ import (
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/models"
+	"github.com/percolate/shisa/sd"
 )
 
 type simpleUser struct {
@@ -24,7 +25,8 @@ func (u simpleUser) String() string {
 }
 
 type ExampleIdentityProvider struct {
-	Env env.Provider
+	Env      env.Provider
+	resolver sd.Resolver
 }
 
 func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials string) (models.User, merry.Error) {
@@ -70,12 +72,16 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
-	addr, envErr := p.Env.Get(idpServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr.WithUserMessage("address environment variable not found")
+	addrs, err := p.resolver.Resolve(p.Name(), true)
+	if err != nil {
+		return nil, err.WithUserMessage("address service not found")
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	if len(addrs) < 1 {
+		return nil, merry.New("no healthy hosts")
+	}
+
+	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
 	if rpcErr != nil {
 		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
 	}

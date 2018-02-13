@@ -5,18 +5,22 @@ import (
 	"expvar"
 	"flag"
 	"log"
+	"net"
 	"net/http"
 	"net/rpc"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/ansel1/merry"
+	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 )
 
 const timeFormat = "2006-01-02T15:04:05+00:00"
@@ -63,6 +67,36 @@ func main() {
 	go func() {
 		errCh <- server.Serve(listener)
 	}()
+
+	address, sport, err := net.SplitHostPort(*addr)
+	if err != nil {
+		log.Fatalf("parsing addr/port: %v", err)
+	}
+
+	port, err := strconv.Atoi(sport)
+	if err != nil {
+		log.Fatalf("parsing port: %v", err)
+	}
+
+	conf := consul.DefaultConfig()
+	c, err := consul.NewClient(conf)
+	if err != nil {
+		panic(err)
+	}
+
+	reg := sd.NewConsulRegistrar(c, &consul.AgentServiceRegistration{
+		ID:      "idp",
+		Name:    "idp",
+		Port:    port,
+		Address: address,
+	})
+
+	err = reg.Register()
+	defer reg.Deregister()
+
+	if err != nil {
+		panic(err)
+	}
 
 	select {
 	case err := <-errCh:

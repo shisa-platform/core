@@ -11,6 +11,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/rpc/service"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -35,6 +36,7 @@ type HelloService struct {
 	service.ServiceAdapter
 	env       env.Provider
 	endpoints []service.Endpoint
+	resolver  sd.Resolver
 }
 
 func NewHelloService(environment env.Provider) *HelloService {
@@ -118,12 +120,16 @@ func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (s *HelloService) connect() (*rpc.Client, merry.Error) {
-	addr, envErr := env.Get(helloServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr.WithUserMessage("address environment variable not found")
+	addrs, err := s.resolver.Resolve(s.Name(), true)
+	if err != nil {
+		return nil, err.WithUserMessage("service registry not found")
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	if len(addrs) < 1 {
+		return nil, merry.New("no healthy hosts")
+	}
+
+	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
 	if rpcErr != nil {
 		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
 	}

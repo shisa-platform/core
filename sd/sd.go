@@ -1,16 +1,14 @@
 package sd
 
+import "github.com/ansel1/merry"
+
 type Registrar interface {
 	Register()
 	Deregister()
 }
 
-type Node string
-
-type Nodes []Node
-
 type Resolver interface {
-	Resolve(name string) Nodes
+	Resolve(name string, passingOnly bool) ([]string, merry.Error)
 }
 
 type AsyncResolver interface {

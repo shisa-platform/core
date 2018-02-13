@@ -12,6 +12,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/middleware"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -27,6 +28,7 @@ type GoodbyeService struct {
 	service.ServiceAdapter
 	env       env.Provider
 	endpoints []service.Endpoint
+	resolver  sd.Resolver
 }
 
 func NewGoodbyeService(environment env.Provider) *GoodbyeService {
@@ -60,12 +62,16 @@ func (s *GoodbyeService) Endpoints() []service.Endpoint {
 }
 
 func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
-	addr, envErr := s.env.Get(goodbyeServiceAddrEnv)
-	if envErr != nil {
-		return envErr.WithUserMessage("address environment variable not found")
+	addrs, merr := s.resolver.Resolve(s.Name(), true)
+	if merr != nil {
+		return merr
 	}
 
-	url := "http://" + addr + "/healthcheck"
+	if len(addrs) < 1 {
+		return merry.New("no healthy hosts")
+	}
+
+	url := "http://" + addrs[0] + "/healthcheck"
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return merry.Wrap(err).WithUserMessage("unable to create request")
@@ -88,13 +94,17 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (*service.Request, merry.Error) {
-	addr, envErr := s.env.Get(goodbyeServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr
+	addrs, err := s.resolver.Resolve(s.Name(), true)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(addrs) < 1 {
+		return nil, err.WithUserMessage("no healthy hosts")
 	}
 
 	request.URL.Scheme = "http"
-	request.URL.Host = addr
+	request.URL.Host = addrs[0]
 	request.URL.Path = "/goodbye"
 
 	request.Header.Set("X-Request-Id", ctx.RequestID())
