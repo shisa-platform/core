@@ -5,12 +5,10 @@ import (
 	"expvar"
 	"flag"
 	"log"
-	"net"
 	"net/http"
 	"net/rpc"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -23,7 +21,10 @@ import (
 	"github.com/percolate/shisa/sd"
 )
 
-const timeFormat = "2006-01-02T15:04:05+00:00"
+const (
+	timeFormat = "2006-01-02T15:04:05+00:00"
+	name       = "hello"
+)
 
 func main() {
 	start := time.Now().UTC()
@@ -44,16 +45,6 @@ func main() {
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("initializing logger: %v", err)
-	}
-
-	address, sport, err := net.SplitHostPort(*addr)
-	if err != nil {
-		log.Fatalf("parsing port: %v", err)
-	}
-
-	port, err := strconv.Atoi(sport)
-	if err != nil {
-		log.Fatalf("parsing port: %v", err)
 	}
 
 	defer logger.Sync()
@@ -84,15 +75,10 @@ func main() {
 		panic(err)
 	}
 
-	reg := sd.NewConsulRegistrar(c, &consul.AgentServiceRegistration{
-		ID:      "hello",
-		Name:    "hello",
-		Port:    port,
-		Address: address,
-	})
+	reg := sd.NewConsul(c)
 
-	err = reg.Register()
-	defer reg.Deregister()
+	err = reg.Register(name, listener.Addr().String())
+	defer reg.Deregister(name)
 
 	if err != nil {
 		panic(err)

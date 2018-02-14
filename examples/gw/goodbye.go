@@ -62,7 +62,7 @@ func (s *GoodbyeService) Endpoints() []service.Endpoint {
 }
 
 func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
-	addrs, merr := s.resolver.Resolve(s.Name(), true)
+	addrs, merr := s.resolver.Resolve(s.Name())
 	if merr != nil {
 		return merr
 	}
@@ -94,7 +94,7 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (*service.Request, merry.Error) {
-	addrs, err := s.resolver.Resolve(s.Name(), true)
+	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
 		return nil, err
 	}

@@ -8,44 +8,54 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
-type consulRegistrar struct {
-	client  *consul.Client
-	servreg *consul.AgentServiceRegistration
-}
-
-func NewConsulRegistrar(client *consul.Client, servreg *consul.AgentServiceRegistration) *consulRegistrar {
-	return &consulRegistrar{
-		client:  client,
-		servreg: servreg,
-	}
-}
-
-func (r *consulRegistrar) Register() merry.Error {
-	e := r.client.Agent().ServiceRegister(r.servreg)
-	if e != nil {
-		return merry.Wrap(e)
-	}
-	return nil
-}
-
-func (r *consulRegistrar) Deregister() merry.Error {
-	e := r.client.Agent().ServiceDeregister(r.servreg.ID)
-	if e != nil {
-		return merry.Wrap(e)
-	}
-	return nil
-}
-
-type consulResolver struct {
+type consulSD struct {
 	client *consul.Client
 }
 
-func NewConsulResolver(client *consul.Client) *consulResolver {
-	return &consulResolver{client}
+var _ Registrar = &consulSD{}
+var _ Resolver = &consulSD{}
+
+func NewConsul(client *consul.Client) *consulSD {
+	return &consulSD{
+		client: client,
+	}
 }
 
-func (r *consulResolver) Resolve(name string, passingOnly bool) (nodes []string, merr merry.Error) {
-	ses, _, err := r.client.Health().Service(name, "", passingOnly, nil)
+func (r *consulSD) Register(name, addr string) merry.Error {
+	address, sport, err := net.SplitHostPort(addr)
+	if err != nil {
+		return merry.Errorf("splitting addr/port: %v", err)
+	}
+
+	port, err := strconv.Atoi(sport)
+	if err != nil {
+		return merry.Errorf("parsing port: %v", err)
+	}
+
+	servreg := &consul.AgentServiceRegistration{
+		ID:      name,
+		Name:    name,
+		Port:    port,
+		Address: address,
+	}
+
+	e := r.client.Agent().ServiceRegister(servreg)
+	if e != nil {
+		return merry.Wrap(e)
+	}
+	return nil
+}
+
+func (r *consulSD) Deregister(name string) merry.Error {
+	e := r.client.Agent().ServiceDeregister(name)
+	if e != nil {
+		return merry.Wrap(e)
+	}
+	return nil
+}
+
+func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
+	ses, _, err := r.client.Health().Service(name, "", true, nil)
 	if err != nil {
 		merr = merry.Wrap(err)
 		return

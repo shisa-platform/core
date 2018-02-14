@@ -120,7 +120,7 @@ func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (s *HelloService) connect() (*rpc.Client, merry.Error) {
-	addrs, err := s.resolver.Resolve(s.Name(), true)
+	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
 		return nil, err.WithUserMessage("service registry not found")
 	}

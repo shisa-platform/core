@@ -26,7 +26,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		panic(e)
 	}
 
-	res := sd.NewConsulResolver(c)
+	res := sd.NewConsul(c)
 
 	idp := &ExampleIdentityProvider{Env: env.DefaultProvider}
 	idp.resolver = res

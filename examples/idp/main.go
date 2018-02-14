@@ -5,12 +5,10 @@ import (
 	"expvar"
 	"flag"
 	"log"
-	"net"
 	"net/http"
 	"net/rpc"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -23,7 +21,10 @@ import (
 	"github.com/percolate/shisa/sd"
 )
 
-const timeFormat = "2006-01-02T15:04:05+00:00"
+const (
+	timeFormat = "2006-01-02T15:04:05+00:00"
+	name       = "idp"
+)
 
 func main() {
 	start := time.Now().UTC()
@@ -68,31 +69,16 @@ func main() {
 		errCh <- server.Serve(listener)
 	}()
 
-	address, sport, err := net.SplitHostPort(*addr)
-	if err != nil {
-		log.Fatalf("parsing addr/port: %v", err)
-	}
-
-	port, err := strconv.Atoi(sport)
-	if err != nil {
-		log.Fatalf("parsing port: %v", err)
-	}
-
 	conf := consul.DefaultConfig()
 	c, err := consul.NewClient(conf)
 	if err != nil {
 		panic(err)
 	}
 
-	reg := sd.NewConsulRegistrar(c, &consul.AgentServiceRegistration{
-		ID:      "idp",
-		Name:    "idp",
-		Port:    port,
-		Address: address,
-	})
+	reg := sd.NewConsul(c)
 
-	err = reg.Register()
-	defer reg.Deregister()
+	err = reg.Register(name, listener.Addr().String())
+	defer reg.Deregister(name)
 
 	if err != nil {
 		panic(err)
