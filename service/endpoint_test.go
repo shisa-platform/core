@@ -198,7 +198,6 @@ func TestEndpointExpvarStringExerciseComma(t *testing.T) {
 	}
 
 	val := cut.String()
-	t.Logf("%#v", cut.Get.Policy)
 
 	assert.NotEmpty(t, val)
 	expectedJSON := `{
@@ -250,7 +249,6 @@ func TestEndpointExpvarString(t *testing.T) {
 	}
 
 	val := cut.String()
-	t.Logf("%#v", cut.Get.Policy)
 
 	assert.NotEmpty(t, val)
 	expectedJSON := `{
