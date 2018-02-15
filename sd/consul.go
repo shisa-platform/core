@@ -1,6 +1,7 @@
 package sd
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 
@@ -21,7 +22,7 @@ func NewConsul(client *consul.Client) *consulSD {
 	}
 }
 
-func (r *consulSD) Register(name, addr string) merry.Error {
+func (r *consulSD) Register(serviceID, addr string) merry.Error {
 	address, sport, err := net.SplitHostPort(addr)
 	if err != nil {
 		return merry.Errorf("splitting addr/port: %v", err)
@@ -33,8 +34,8 @@ func (r *consulSD) Register(name, addr string) merry.Error {
 	}
 
 	servreg := &consul.AgentServiceRegistration{
-		ID:      name,
-		Name:    name,
+		ID:      serviceID,
+		Name:    serviceID,
 		Port:    port,
 		Address: address,
 	}
@@ -46,8 +47,8 @@ func (r *consulSD) Register(name, addr string) merry.Error {
 	return nil
 }
 
-func (r *consulSD) Deregister(name string) merry.Error {
-	e := r.client.Agent().ServiceDeregister(name)
+func (r *consulSD) Deregister(serviceID string) merry.Error {
+	e := r.client.Agent().ServiceDeregister(serviceID)
 	if e != nil {
 		return merry.Wrap(e)
 	}
@@ -70,4 +71,30 @@ func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
 		nodes[i] = net.JoinHostPort(addr, strconv.Itoa(s.Service.Port))
 	}
 	return
+}
+
+func (r *consulSD) AddHealthcheck(serviceID, url string) merry.Error {
+	acr := &consul.AgentCheckRegistration{
+		ID:   fmt.Sprintf("%s-healthcheck", serviceID),
+		Name: fmt.Sprintf("%s-healthcheck", serviceID),
+		AgentServiceCheck: consul.AgentServiceCheck{
+			TCP:      url,
+			Interval: "5s",
+		},
+	}
+
+	err := r.client.Agent().CheckRegister(acr)
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	return nil
+}
+
+func (r *consulSD) RemoveHealthcheck(serviceID, url string) merry.Error {
+	err := r.client.Agent().CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
+	if err != nil {
+		return merry.Wrap(err)
+	}
+	return nil
 }

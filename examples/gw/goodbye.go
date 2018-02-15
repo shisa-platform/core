@@ -71,25 +71,6 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 		return merry.New("no healthy hosts")
 	}
 
-	url := "http://" + addrs[0] + "/healthcheck"
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return merry.Wrap(err).WithUserMessage("unable to create request")
-	}
-	request.Header.Set("X-Request-Id", ctx.RequestID())
-
-	if ctx.Actor() != nil {
-		request.Header.Set("X-User-Id", ctx.Actor().ID())
-	}
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return merry.Wrap(err).WithUserMessage("unable to complete request")
-	}
-	if response.StatusCode != http.StatusOK {
-		return merry.New("not ready").WithUserMessage("not ready")
-	}
-
 	return nil
 }
 

@@ -3,8 +3,10 @@ package sd
 import "github.com/ansel1/merry"
 
 type Registrar interface {
-	Register(name, addr string) merry.Error
-	Deregister(name string) merry.Error
+	Register(serviceID, addr string) merry.Error
+	Deregister(serviceID string) merry.Error
+	AddHealthcheck(serviceID, url string) merry.Error
+	RemoveHealthcheck(serviceID, url string) merry.Error
 }
 
 type Resolver interface {

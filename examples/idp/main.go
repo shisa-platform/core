@@ -84,6 +84,13 @@ func main() {
 		panic(err)
 	}
 
+	err = reg.AddHealthcheck(name, listener.Addr().String())
+	defer reg.RemoveHealthcheck(name, listener.Addr().String())
+
+	if err != nil {
+		panic(err)
+	}
+
 	select {
 	case err := <-errCh:
 		if !merry.Is(err, http.ErrServerClosed) {

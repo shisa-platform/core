@@ -101,19 +101,13 @@ func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service
 }
 
 func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
-	client, err := s.connect()
+	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
-		return err
+		return err.WithUserMessage("service registry not found")
 	}
 
-	var ready bool
-	arg := ctx.RequestID()
-	rpcErr := client.Call("Hello.Healthcheck", &arg, &ready)
-	if rpcErr != nil {
-		return merry.Wrap(rpcErr).WithUserMessage("unable to complete request")
-	}
-	if !ready {
-		return merry.New("not ready").WithUserMessage("not ready")
+	if len(addrs) < 1 {
+		return merry.New("no healthy hosts")
 	}
 
 	return nil
