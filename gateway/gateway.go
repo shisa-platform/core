@@ -27,6 +27,21 @@ var (
 	gatewayExpvar = expvar.NewMap("gateway")
 )
 
+// ResponseSnapshot captures details about the response sent to
+// the user agent.
+type ResponseSnapshot struct {
+	// Status code returned to the user agent
+	StatusCode  int
+	// Size of the response body in bytes
+	Size        int
+	// Time request servicing began
+	StartTime   time.Time
+	// Duration of request servicing
+	ElapsedTime time.Duration
+	// Timing metrics captured during request servicing
+	Metrics     map[string]time.Duration
+}
+
 type Gateway struct {
 	Address          string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
@@ -109,6 +124,17 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler service.Handler `json:"-"`
 
+	// ErrorHandler optionally customizes how errors encountered
+	// servicing a request are disposed.
+	// If nil the error is sent to the `Error` level of the
+	// `Logger` field with the request id as a field.
+	ErrorHandler func(context.Context, *service.Request, merry.Error) `json:"-"`
+
+	// CompletionHandler optionally customizes the behavior after
+	// a request has been serviced.
+	// If nil no action will be taken.
+	CompletionHandler func(context.Context, *service.Request, ResponseSnapshot) `json:"-"`
+
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
 	// If nil all logging is disabled.
@@ -118,8 +144,6 @@ type Gateway struct {
 	auxiliaries []auxiliary.Server
 	tree        *node
 
-	requestLog *zap.Logger
-	panicLog   *zap.Logger
 	started    bool
 }
 
@@ -178,8 +202,10 @@ func (g *Gateway) init() {
 	if g.Logger == nil {
 		g.Logger = zap.NewNop()
 	}
-	g.requestLog = g.Logger.Named("request")
-	g.panicLog = g.Logger.Named("panic")
+
+	if g.ErrorHandler == nil {
+		g.ErrorHandler = g.defaultErrorHandler
+	}
 
 	g.tree = new(node)
 	g.started = true
