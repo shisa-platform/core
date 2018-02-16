@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"

@@ -204,7 +204,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for i, handler := range pipeline.Handlers {
 		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
-		f	err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
+			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
 			response = endpoint.iseHandler(ctx, request, err)
 			goto finish
 		}
@@ -232,9 +232,6 @@ finish:
 
 	w.WriteHeader(response.StatusCode())
 	size, writeErr := response.Serialize(w)
-	if writeErr != nil {
-		writeErr = merry.WithMessage(err, "serializing response")
-	}
 
 	for k, vs := range response.Trailers() {
 		w.Header()[k] = vs
@@ -248,7 +245,7 @@ finish:
 	serializationTime := end.Sub(serializationStart)
 	elapsed := end.Sub(start)
 
-	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
+	if ce := g.Logger.Check(zap.InfoLevel, "request"); ce != nil {
 		fs := make([]zapcore.Field, 14, 16)
 		fs[0] = zap.String("request-id", requestID)
 		fs[1] = zap.String("client-ip-address", request.ClientIP())
@@ -274,17 +271,18 @@ finish:
 	}
 
 	if idErr != nil {
-		g.Logger.Warn(, zap.String("request-id", requestID), zap.Error(idErr))
+		g.ErrorHandler(ctx, request, idErr)
 	}
 	if err != nil {
-		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
+		g.ErrorHandler(ctx, request, err)
 	}
-	if writeErr != nil {
-		g.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	if writeErr1 != nil {
+		g.ErrorHandler(ctx, request, writeErr1)
 	}
-	respErr := response.Err()
+	respErr := merry.WithMessage(response.Err(), "handler failed")
 	if respErr != nil {
-		g.Logger.Error(respErr.Error(), zap.String("request-id", requestID), zap.Error(respErr))
+		g.ErrorHandler(ctx, request, respErr)
 	}
 }
 
