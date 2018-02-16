@@ -30,10 +30,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
 	if idErr != nil {
+		idErr = merry.WithMessage(idErr, "generating request id")
 		requestID = request.ID()
 	}
 	if requestID == "" {
-		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		idErr = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
 	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
@@ -61,9 +62,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 
 	handlersStart := time.Now().UTC()
-	for _, handler := range g.Handlers {
+	for i, handler := range g.Handlers {
 		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
+			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
 			response = g.InternalServerErrorHandler(ctx, request, err)
 			goto finish
 		}
@@ -79,6 +81,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	findPathTime = time.Now().UTC().Sub(findPathStart)
 
 	if err != nil {
+		err = merry.WithMessage(err, "routing request")
 		response = g.InternalServerErrorHandler(ctx, request, err)
 		goto finish
 	}
@@ -198,9 +201,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineStart = time.Now().UTC()
-	for _, handler := range pipeline.Handlers {
+	for i, handler := range pipeline.Handlers {
 		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
+		f	err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
 			response = endpoint.iseHandler(ctx, request, err)
 			goto finish
 		}
@@ -211,7 +215,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pipelineTime = time.Now().UTC().Sub(pipelineStart)
 
 	if response == nil {
-		err = merry.New("internal error").WithUserMessage("no response from pipeline")
+		err = merry.New("no response from pipeline")
 		response = endpoint.iseHandler(ctx, request, err)
 	}
 
@@ -228,6 +232,9 @@ finish:
 
 	w.WriteHeader(response.StatusCode())
 	size, writeErr := response.Serialize(w)
+	if writeErr != nil {
+		writeErr = merry.WithMessage(err, "serializing response")
+	}
 
 	for k, vs := range response.Trailers() {
 		w.Header()[k] = vs
@@ -267,7 +274,7 @@ finish:
 	}
 
 	if idErr != nil {
-		g.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+		g.Logger.Warn(, zap.String("request-id", requestID), zap.Error(idErr))
 	}
 	if err != nil {
 		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
