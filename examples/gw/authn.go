@@ -72,7 +72,7 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
-	addrs, err := p.resolver.Resolve(p.Name())
+	addrs, err := p.Resolver.Resolve(p.Name())
 	if err != nil {
 		return nil, err.WithUserMessage("address service not found")
 	}
