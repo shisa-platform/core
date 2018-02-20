@@ -34,7 +34,7 @@ func main() {
 		return now.Sub(start).String()
 	}))
 
-	addr := flag.String("addr", "", "service address")
+	addr := flag.String("addr", ":0", "service address")
 	flag.Parse()
 
 	logger, err := zap.NewProduction()
