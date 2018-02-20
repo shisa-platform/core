@@ -78,13 +78,13 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 	q := u.Query()
 
 	acr := &consul.AgentCheckRegistration{
-		ID:   popQuery(q, "id"),
-		Name: fmt.Sprintf("%s-healthcheck", serviceID),
-		Notes: popQuery(q, "notes"),
+		ID:        popQuery(q, "id"),
+		Name:      fmt.Sprintf("%s-healthcheck", serviceID),
+		Notes:     popQuery(q, "notes"),
 		ServiceID: serviceID,
 		AgentServiceCheck: consul.AgentServiceCheck{
 			Interval: popQuery(q, "interval"),
-			Status: popQuery(q, "status"),
+			Status:   popQuery(q, "status"),
 		},
 	}
 

@@ -46,7 +46,7 @@ func NewHelloService(environment env.Provider, res sd.Resolver) *HelloService {
 	}
 
 	svc := &HelloService{
-		env: environment,
+		env:      environment,
 		resolver: res,
 	}
 

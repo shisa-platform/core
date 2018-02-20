@@ -76,7 +76,7 @@ func main() {
 
 	reg := sd.NewConsul(c)
 
-	if err := reg.Register(name, listener.Addr().String()	); err != nil {
+	if err := reg.Register(name, listener.Addr().String()); err != nil {
 		logger.Fatal("service failed to register", zap.Error(err))
 	}
 	defer reg.Deregister(name)

@@ -38,7 +38,7 @@ func NewGoodbyeService(environment env.Provider, res sd.Resolver) *GoodbyeServic
 	}
 
 	svc := &GoodbyeService{
-		env: environment,
+		env:      environment,
 		resolver: res,
 	}
 
