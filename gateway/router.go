@@ -8,11 +8,22 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
+)
+
+const (
+	// RequestIdGenerationMetricKey is the `ResponseSnapshot` metric for generating the request id
+	RequestIdGenerationMetricKey = "request-id-generation"
+	// FindEndpointMetricKey is the `ResponseSnapshot` metric for resolving the request's endpoint
+	FindEndpointMetricKey = "find-endpoint"
+	// RunGatewayHandlersMetricKey is the `ResponseSnapshot` metric for running the Gateway level handlers
+	RunGatewayHandlersMetricKey = "handlers"
+	// RunEndpointPipelineMetricKey is the `ResponseSnapshot` metric for running the endpoint's pipeline
+	RunEndpointPipelineMetricKey = "pipeline"
+	// SerializeResponseMetricKey is the `ResponseSnapshot` metric for serializing the response
+	SerializeResponseMetricKey = "serialization"
 )
 
 type byName []service.QueryParameter
@@ -37,7 +48,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		idErr = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
-	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
+	requestIDGenerationStop := time.Now().UTC()
 
 	ctx = context.WithRequestID(ctx, requestID)
 
@@ -48,10 +59,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response      service.Response
 		pipeline      *service.Pipeline
 		findPathStart time.Time
+		findPathStop  time.Time
 		pipelineStart time.Time
-		pipelineTime  time.Duration
-		handlersTime  time.Duration
-		findPathTime  time.Duration
+		pipelineStop  time.Time
+		handlersStop  time.Time
 		endpoint      *endpoint
 		path          string
 		params        []service.QueryParameter
@@ -67,18 +78,20 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
 			response = g.InternalServerErrorHandler(ctx, request, err)
+			handlersStop = time.Now().UTC()
 			goto finish
 		}
 		if response != nil {
+			handlersStop = time.Now().UTC()
 			goto finish
 		}
 	}
-	handlersTime = time.Now().UTC().Sub(handlersStart)
+	handlersStop = time.Now().UTC()
 
 	findPathStart = time.Now().UTC()
 	path = request.URL.EscapedPath()
 	endpoint, pathParams, tsr, err = g.tree.getValue(path)
-	findPathTime = time.Now().UTC().Sub(findPathStart)
+	findPathStop = time.Now().UTC()
 
 	if err != nil {
 		err = merry.WithMessage(err, "routing request")
@@ -206,13 +219,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
 			response = endpoint.iseHandler(ctx, request, err)
+			pipelineStop = time.Now().UTC()
 			goto finish
 		}
 		if response != nil {
 			break
 		}
 	}
-	pipelineTime = time.Now().UTC().Sub(pipelineStart)
+	pipelineStop = time.Now().UTC()
 
 	if response == nil {
 		err = merry.New("no response from pipeline")
@@ -242,32 +256,29 @@ finish:
 	}
 
 	end := time.Now().UTC()
-	serializationTime := end.Sub(serializationStart)
-	elapsed := end.Sub(start)
 
-	if ce := g.Logger.Check(zap.InfoLevel, "request"); ce != nil {
-		fs := make([]zapcore.Field, 14, 16)
-		fs[0] = zap.String("request-id", requestID)
-		fs[1] = zap.String("client-ip-address", request.ClientIP())
-		fs[2] = zap.String("method", request.Method)
-		fs[3] = zap.String("uri", request.URL.RequestURI())
-		fs[4] = zap.Int("status-code", response.StatusCode())
-		fs[5] = zap.Int("response-size", size)
-		fs[6] = zap.String("user-agent", request.UserAgent())
-		fs[7] = zap.Time("start", start)
-		fs[8] = zap.Duration("elapsed", elapsed)
-		fs[9] = zap.Duration("request-id-generation", requestIDGenerationTime)
-		fs[10] = zap.Duration("find-endpoint", findPathTime)
-		fs[11] = zap.Duration("pipline", pipelineTime)
-		fs[12] = zap.Duration("serialization", serializationTime)
-		fs[13] = zap.Duration("handlers", handlersTime)
-		if endpoint != nil {
-			fs = append(fs, zap.String("service", endpoint.serviceName))
+	if g.CompletionHandler != nil {
+		snapshot := ResponseSnapshot{
+			StatusCode: response.StatusCode(),
+			Size:       size,
+			Start:      start,
+			Elapsed:    end.Sub(start),
+			Metrics:    make(map[string]time.Duration),
 		}
-		if u := ctx.Actor(); u != nil {
-			fs = append(fs, zap.String("user-id", u.ID()))
+		idGeneration := requestIDGenerationStop.Sub(requestIDGenerationStart)
+		snapshot.Metrics[RequestIdGenerationMetricKey] = idGeneration
+		if len(g.Handlers) != 0 {
+			snapshot.Metrics[RunGatewayHandlersMetricKey] = handlersStop.Sub(handlersStart)
 		}
-		ce.Write(fs...)
+		if !findPathStart.IsZero() {
+			snapshot.Metrics[FindEndpointMetricKey] = findPathStop.Sub(findPathStart)
+		}
+		if !pipelineStart.IsZero() {
+			snapshot.Metrics[RunEndpointPipelineMetricKey] = pipelineStop.Sub(pipelineStart)
+		}
+		snapshot.Metrics[SerializeResponseMetricKey] = end.Sub(serializationStart)
+
+		g.CompletionHandler(ctx, request, snapshot)
 	}
 
 	if idErr != nil {
@@ -293,7 +304,7 @@ func recovery(fatalError *merry.Error) {
 	}
 
 	if err, ok := arg.(error); ok {
-		*fatalError = merry.Wrap(err)
+		*fatalError = merry.WithMessage(err, "panic in handler")
 		return
 	}
 

@@ -33,15 +33,15 @@ var (
 // the user agent.
 type ResponseSnapshot struct {
 	// Status code returned to the user agent
-	StatusCode  int
+	StatusCode int
 	// Size of the response body in bytes
-	Size        int
+	Size int
 	// Time request servicing began
-	StartTime   time.Time
+	Start time.Time
 	// Duration of request servicing
-	ElapsedTime time.Duration
+	Elapsed time.Duration
 	// Timing metrics captured during request servicing
-	Metrics     map[string]time.Duration
+	Metrics map[string]time.Duration
 }
 
 type Gateway struct {
@@ -49,7 +49,7 @@ type Gateway struct {
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
 	GracePeriod      time.Duration // Timeout for graceful shutdown of open connections
-	TLSConfig        *tls.Config   `json:"-"` // optional TLS config, used by ServeTLS and ListenAndServeTLS
+	TLSConfig        *tls.Config   `json:"-"` // optional TLS config, used by ServeTLS
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// request, including the body.
@@ -146,7 +146,7 @@ type Gateway struct {
 	auxiliaries []auxiliary.Server
 	tree        *node
 
-	started    bool
+	started bool
 }
 
 func (g *Gateway) init() {
