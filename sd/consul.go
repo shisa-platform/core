@@ -78,13 +78,21 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 	q := u.Query()
 
 	acr := &consul.AgentCheckRegistration{
-		ID:        popQuery(q, "id"),
+		ID:        popQueryString(q, "id"),
 		Name:      fmt.Sprintf("%s-healthcheck", serviceID),
-		Notes:     popQuery(q, "notes"),
+		Notes:     popQueryString(q, "notes"),
 		ServiceID: serviceID,
 		AgentServiceCheck: consul.AgentServiceCheck{
-			Interval: popQuery(q, "interval"),
-			Status:   popQuery(q, "status"),
+			CheckID:           popQueryString(q, "checkid"),
+			Args:              popQuerySlice(q, "args"),
+			DockerContainerID: popQueryString(q, "dockercontainerid"),
+			Shell:             popQueryString(q, "shell"),
+			Interval:          popQueryString(q, "interval"),
+			Timeout:           popQueryString(q, "timeout"),
+			TTL:               popQueryString(q, "ttl"),
+			Method:            popQueryString(q, "method"),
+			Status:            popQueryString(q, "status"),
+			TLSSkipVerify:     popQueryBool(q, "tlsskipverify"),
 		},
 	}
 
@@ -107,6 +115,8 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		acr.AgentServiceCheck.HTTP = s
 	}
 
+	acr.Header = q
+
 	err := r.client.Agent().CheckRegister(acr)
 	if err != nil {
 		return merry.Wrap(err)
@@ -123,11 +133,31 @@ func (r *consulSD) ClearChecks(serviceID string) merry.Error {
 	return nil
 }
 
-func popQuery(v url.Values, key string) (re string) {
+func popQueryString(v url.Values, key string) (re string) {
 	val, ok := v[key]
 	if ok {
 		delete(v, key)
 		re = val[0]
+	}
+	return
+}
+
+func popQueryBool(v url.Values, key string) (re bool) {
+	val, ok := v[key]
+	if ok {
+		delete(v, key)
+	}
+	if len(val) > 0 {
+		re, _ = strconv.ParseBool(val[0])
+	}
+	return
+}
+
+func popQuerySlice(v url.Values, key string) (re []string) {
+	val, ok := v[key]
+	if ok {
+		delete(v, key)
+		re = val
 	}
 	return
 }
