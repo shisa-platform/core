@@ -1065,6 +1065,23 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "serf wan port > 0",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ports": {
+					"serf_wan": -1
+				},
+				"advertise_addr_wan": "1.2.3.4"
+			}`},
+			hcl: []string{`
+				ports {
+					serf_wan = -1
+				}
+				advertise_addr_wan = "1.2.3.4"
+			`},
+			err: "ports.serf_wan must be a valid port from 1 to 65535",
+		},
+		{
 			desc: "serf bind address lan template",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "serf_lan": "{{ printf \"1.2.3.4\" }}" }`},
@@ -1858,6 +1875,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.Checks = []*structs.CheckDefinition{
 					&structs.CheckDefinition{Name: "a", Script: "/bin/true"},
 					&structs.CheckDefinition{Name: "b", Script: "/bin/false"},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "grpc check",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			},
+			hcl: []string{
+				`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
 				}
 				rt.DataDir = dataDir
 			},
@@ -3887,6 +3922,8 @@ func TestSanitize(t *testing.T) {
         {
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
+            "GRPC": "",
+            "GRPCUseTLS": false,
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -4016,6 +4053,8 @@ func TestSanitize(t *testing.T) {
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
+                "GRPC": "",
+                "GRPCUseTLS": false,
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
