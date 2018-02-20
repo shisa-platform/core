@@ -10,6 +10,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -258,7 +259,7 @@ finish:
 	end := time.Now().UTC()
 
 	if g.CompletionHandler != nil {
-		snapshot := ResponseSnapshot{
+		snapshot := httpx.ResponseSnapshot{
 			StatusCode: response.StatusCode(),
 			Size:       size,
 			Start:      start,

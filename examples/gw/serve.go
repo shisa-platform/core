@@ -14,6 +14,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
@@ -27,14 +28,14 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	authN := &middleware.Authentication{Authenticator: authenticator}
 
-	rl := &requestLogger{logger}
+	lh := logHandler{logger}
 	gw := &gateway.Gateway{
 		Address:           addr,
 		HandleInterrupt:   true,
 		GracePeriod:       2 * time.Second,
 		Handlers:          []service.Handler{authN.Service},
 		Logger:            logger,
-		CompletionHandler: rl.log,
+		CompletionHandler: lh.completion,
 	}
 
 	authZ := SimpleAuthorization{[]string{"user:1"}}
@@ -77,11 +78,11 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 }
 
-type requestLogger struct {
+type logHandler struct {
 	logger *zap.Logger
 }
 
-func (l *requestLogger) log(c context.Context, r *service.Request, s gateway.ResponseSnapshot) {
+func (l logHandler) completion(c context.Context, r *service.Request, s httpx.ResponseSnapshot) {
 	fs := make([]zapcore.Field, 9, 10+len(s.Metrics))
 	fs[0] = zap.String("request-id", c.RequestID())
 	fs[1] = zap.String("client-ip-address", r.ClientIP())

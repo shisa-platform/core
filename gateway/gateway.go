@@ -17,6 +17,7 @@ import (
 
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -28,21 +29,6 @@ const (
 var (
 	gatewayExpvar = expvar.NewMap("gateway")
 )
-
-// ResponseSnapshot captures details about the response sent to
-// the user agent.
-type ResponseSnapshot struct {
-	// Status code returned to the user agent
-	StatusCode int
-	// Size of the response body in bytes
-	Size int
-	// Time request servicing began
-	Start time.Time
-	// Duration of request servicing
-	Elapsed time.Duration
-	// Timing metrics captured during request servicing
-	Metrics map[string]time.Duration
-}
 
 type Gateway struct {
 	Address          string        // TCP address to listen on, ":http" if empty
@@ -135,7 +121,7 @@ type Gateway struct {
 	// CompletionHandler optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHandler func(context.Context, *service.Request, ResponseSnapshot) `json:"-"`
+	CompletionHandler func(context.Context, *service.Request, httpx.ResponseSnapshot) `json:"-"`
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
