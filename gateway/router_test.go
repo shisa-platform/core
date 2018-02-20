@@ -73,6 +73,11 @@ func (m *mockErrorHandler) Handle(context.Context, *service.Request, merry.Error
 	m.calls++
 }
 
+func (m *mockErrorHandler) assertNotCalled(t *testing.T) {
+	t.Helper()
+	assert.Equal(t, 0, m.calls, "unexpected error handler calls")
+}
+
 func (m *mockErrorHandler) assertCalled(t *testing.T) {
 	t.Helper()
 	assert.NotEqual(t, 0, m.calls, "error handler not called")
@@ -86,11 +91,13 @@ func (m *mockErrorHandler) assertCalledN(t *testing.T, expected int) {
 func TestRouterCustomRequestIDGenerator(t *testing.T) {
 	expectedRequestID := "zalgo-he-comes"
 	var generatorCalled bool
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
 			generatorCalled = true
 			return expectedRequestID, nil
 		},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -100,6 +107,7 @@ func TestRouterCustomRequestIDGenerator(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, generatorCalled, "custom request id generator not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Equal(t, expectedRequestID, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -168,7 +176,10 @@ func TestRouterCustomRequestIDGeneratorEmptyResult(t *testing.T) {
 }
 
 func TestRouterDefaultRequestIDGenerator(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -183,6 +194,7 @@ func TestRouterDefaultRequestIDGenerator(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -190,8 +202,10 @@ func TestRouterDefaultRequestIDGenerator(t *testing.T) {
 
 func TestRouterCustomRequestIDHeaderKey(t *testing.T) {
 	headerKey := "x-zalgo"
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		RequestIDHeaderName: headerKey,
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -200,6 +214,7 @@ func TestRouterCustomRequestIDHeaderKey(t *testing.T) {
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(headerKey))
@@ -237,14 +252,17 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 			return challenge
 		},
 	}
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		Handlers: []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
@@ -261,8 +279,10 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 			return challenge
 		},
 	}
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		Handlers: []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -279,6 +299,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Empty(t, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
@@ -309,7 +330,10 @@ func TestRouterTreeFailure(t *testing.T) {
 }
 
 func TestRouterBadRoute(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	installHandler(t, cut, dummyHandler)
@@ -318,17 +342,20 @@ func TestRouterBadRoute(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/zalgo", nil)
 	cut.ServeHTTP(w, request)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterBadRouteCustomHandler(t *testing.T) {
 	var handlerCalled bool
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -339,12 +366,16 @@ func TestRouterBadRouteCustomHandler(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "not found handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterHeadMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -364,12 +395,16 @@ func TestRouterHeadMethod(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterGetMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -386,12 +421,16 @@ func TestRouterGetMethod(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterPutMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -408,12 +447,16 @@ func TestRouterPutMethod(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterPostMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -430,12 +473,16 @@ func TestRouterPostMethod(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterPatchMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -457,7 +504,10 @@ func TestRouterPatchMethod(t *testing.T) {
 }
 
 func TestRouterDeleteMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -479,7 +529,10 @@ func TestRouterDeleteMethod(t *testing.T) {
 }
 
 func TestRouterConnectMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -504,7 +557,10 @@ func TestRouterConnectMethod(t *testing.T) {
 }
 
 func TestRouterOptionsMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -524,12 +580,16 @@ func TestRouterOptionsMethod(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterTraceMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -549,12 +609,16 @@ func TestRouterTraceMethod(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterBadMethod(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	installHandler(t, cut, dummyHandler)
@@ -563,12 +627,16 @@ func TestRouterBadMethod(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPut, expectedRoute, nil)
 	cut.ServeHTTP(w, request)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterBadMethodCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -585,13 +653,17 @@ func TestRouterBadMethodCustomHandler(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPut, expectedRoute, nil)
 	cut.ServeHTTP(w, request)
 
-	assert.True(t, handlerCalled)
+	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterBadMethodRedirect(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	installHandler(t, cut, dummyHandler)
@@ -601,17 +673,20 @@ func TestRouterBadMethodRedirect(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPut, route, nil)
 	cut.ServeHTTP(w, request)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterBadMethodRedirectCustomHandler(t *testing.T) {
 	var handlerCalled bool
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -622,33 +697,16 @@ func TestRouterBadMethodRedirectCustomHandler(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPut, route, nil)
 	cut.ServeHTTP(w, request)
 
-	assert.True(t, handlerCalled)
+	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterExtraSlashRedirectForbidden(t *testing.T) {
-	cut := &Gateway{}
-	cut.init()
-
-	installHandler(t, cut, dummyHandler)
-
-	w := httptest.NewRecorder()
-	route := expectedRoute + "/"
-	request := httptest.NewRequest(http.MethodGet, route, nil)
-	cut.ServeHTTP(w, request)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
-func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
-	var handlerCalled bool
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
-			handlerCalled = true
-			return service.NewEmpty(http.StatusForbidden)
-		},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -659,13 +717,41 @@ func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, route, nil)
 	cut.ServeHTTP(w, request)
 
-	assert.True(t, handlerCalled)
+	errHandler.assertNotCalled(t)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
+	var handlerCalled bool
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
+			handlerCalled = true
+			return service.NewEmpty(http.StatusForbidden)
+		},
+		ErrorHandler: errHandler.Handle,
+	}
+	cut.init()
+
+	installHandler(t, cut, dummyHandler)
+
+	w := httptest.NewRecorder()
+	route := expectedRoute + "/"
+	request := httptest.NewRequest(http.MethodGet, route, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterExtraSlashRedirectAllowed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
@@ -676,13 +762,17 @@ func TestRouterExtraSlashRedirectAllowed(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, route, nil)
 	cut.ServeHTTP(w, request)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusSeeOther, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Equal(t, expectedRoute, w.HeaderMap.Get(service.LocationHeaderKey))
 }
 
 func TestRouterExtraSlashRedirectForbiddenCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -701,12 +791,16 @@ func TestRouterExtraSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to redirect handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -726,32 +820,15 @@ func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "not found handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterMissingSlashRedirectForbidden(t *testing.T) {
-	cut := &Gateway{}
-	cut.init()
-
-	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
-	installEndpoints(t, cut, []service.Endpoint{endpoint})
-
-	w := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
-	cut.ServeHTTP(w, request)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
-func TestRouterMissingSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
-	var handlerCalled bool
+	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
-			handlerCalled = true
-			return service.NewEmpty(http.StatusForbidden)
-		},
+		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
 
@@ -762,13 +839,41 @@ func TestRouterMissingSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) 
 	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
 	cut.ServeHTTP(w, request)
 
-	assert.True(t, handlerCalled)
+	errHandler.assertNotCalled(t)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterMissingSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
+	var handlerCalled bool
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		NotFoundHandler: func(ctx context.Context, r *service.Request) service.Response {
+			handlerCalled = true
+			return service.NewEmpty(http.StatusForbidden)
+		},
+		ErrorHandler: errHandler.Handle,
+	}
+	cut.init()
+
+	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterMissingSlashRedirectAllowed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	route := expectedRoute + "/"
@@ -781,13 +886,17 @@ func TestRouterMissingSlashRedirectAllowed(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
 	cut.ServeHTTP(w, request)
 
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusSeeOther, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Equal(t, route, w.HeaderMap.Get(service.LocationHeaderKey))
 }
 
 func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -806,12 +915,16 @@ func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to redirect handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -831,12 +944,16 @@ func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "not found handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterPathParamters(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -859,12 +976,16 @@ func TestRouterPathParamters(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterPathParamtersPreserveEscaping(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -888,12 +1009,16 @@ func TestRouterPathParamtersPreserveEscaping(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersForbidMalformed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -911,12 +1036,16 @@ func TestRouterQueryParametersForbidMalformed(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var routeHandlerCalled bool
@@ -943,12 +1072,16 @@ func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 
 	assert.False(t, routeHandlerCalled, "unexpected call to route handler")
 	assert.True(t, handlerCalled, "malformed query handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersAllowMalformed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -985,12 +1118,16 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusPaymentRequired, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithoutFields(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1028,12 +1165,16 @@ func TestRouterQueryParametersWithoutFields(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1055,12 +1196,16 @@ func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1090,12 +1235,16 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1117,12 +1266,16 @@ func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1154,12 +1307,16 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 
 	assert.True(t, queryHandlerCalled, "malformed query handler not called")
 	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusPaymentRequired, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1203,12 +1360,16 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1251,12 +1412,16 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFields(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1299,12 +1464,16 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1333,12 +1502,16 @@ func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1389,12 +1562,16 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1416,12 +1593,16 @@ func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1471,12 +1652,16 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1529,12 +1714,16 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1578,12 +1767,16 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 	cut.ServeHTTP(w, request)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterContextDeadlineSet(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1602,6 +1795,7 @@ func TestRouterContextDeadlineSet(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
@@ -1749,7 +1943,10 @@ func TestRouterHandlersNoResultCustomISEHandler(t *testing.T) {
 }
 
 func TestRouterMultipleHandlersEarlyExit(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handler1Called bool
@@ -1778,12 +1975,16 @@ func TestRouterMultipleHandlersEarlyExit(t *testing.T) {
 	assert.True(t, handler1Called, "handler one not called")
 	assert.False(t, handler2Called, "unexpected handler two call")
 	assert.False(t, handler3Called, "unexpected handler three call")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusPaymentRequired, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
 func TestRouterResponseHeaders(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1800,13 +2001,17 @@ func TestRouterResponseHeaders(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Equal(t, "he comes", w.HeaderMap.Get("x-zalgo"))
 }
 
 func TestRouterResponseTrailers(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	var handlerCalled bool
@@ -1823,6 +2028,7 @@ func TestRouterResponseTrailers(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	errHandler.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.Equal(t, "he comes", w.HeaderMap.Get("x-zalgo"))
@@ -1878,7 +2084,10 @@ func TestRouterSerializationError(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	cut := &Gateway{}
+	errHandler := new(mockErrorHandler)
+	cut := &Gateway{
+		ErrorHandler: errHandler.Handle,
+	}
 	cut.init()
 
 	installHandler(t, cut, dummyHandler)
@@ -1886,6 +2095,7 @@ func TestRouter(t *testing.T) {
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
 
+	errHandler.assertNotCalled(t)
 	assert.True(t, w.Flushed)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
