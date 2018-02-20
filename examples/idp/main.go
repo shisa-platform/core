@@ -4,19 +4,23 @@ import (
 	"context"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/rpc"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/ansel1/merry"
+	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 )
 
 const (
@@ -66,6 +70,29 @@ func main() {
 	go func() {
 		errCh <- server.Serve(listener)
 	}()
+
+	conf := consul.DefaultConfig()
+	c, err := consul.NewClient(conf)
+	if err != nil {
+		logger.Fatal("consul client failed to initialize", zap.Error(err))
+	}
+
+	reg := sd.NewConsul(c)
+
+	if err := reg.Register(name, listener.Addr().String()); err != nil {
+		logger.Fatal("service failed to register", zap.Error(err))
+	}
+	defer reg.Deregister(name)
+
+	surl, err := url.Parse(fmt.Sprintf("tcp://%s/%s?name=%s&interval=5s", listener.Addr().String(), rpc.DefaultRPCPath, name))
+	if err != nil {
+		logger.Fatal("healthcheck url failed to parse", zap.Error(err))
+	}
+
+	if err := reg.AddCheck(name, surl); err != nil {
+		logger.Fatal("healthcheck failed to register", zap.Error(err))
+	}
+	defer reg.ClearChecks(name)
 
 	select {
 	case err := <-errCh:

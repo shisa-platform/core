@@ -81,7 +81,7 @@ func main() {
 	}
 	defer reg.Deregister(name)
 
-	surl, err := url.Parse(fmt.Sprintf("http://%s/healthcheck?name=goodbye&interval=5s", listener.Addr().String()))
+	surl, err := url.Parse(fmt.Sprintf("http://%s/healthcheck?name=%s&interval=5s", listener.Addr().String(), name))
 	if err != nil {
 		logger.Fatal("healthcheck url failed to parse", zap.Error(err))
 	}
