@@ -205,7 +205,7 @@ func TestRouterCustomRequestIDHeaderKey(t *testing.T) {
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		RequestIDHeaderName: headerKey,
-		ErrorHandler: errHandler.Handle,
+		ErrorHandler:        errHandler.Handle,
 	}
 	cut.init()
 
@@ -228,8 +228,18 @@ func TestRouterHandlersPanic(t *testing.T) {
 	}
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
-		Handlers: []service.Handler{handler},
+		Handlers:     []service.Handler{handler},
 		ErrorHandler: errHandler.Handle,
+		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
 	}
 	cut.init()
 
@@ -254,8 +264,18 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	}
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
-		Handlers: []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
+		Handlers:     []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHandler: errHandler.Handle,
+		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+			assert.Equal(t, http.StatusUnauthorized, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
 	}
 	cut.init()
 
@@ -281,8 +301,20 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	}
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
-		Handlers: []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
+		Handlers:     []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHandler: errHandler.Handle,
+		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+			assert.Equal(t, http.StatusOK, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
+			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
+			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
 	}
 	cut.init()
 
@@ -2034,30 +2066,6 @@ func TestRouterResponseTrailers(t *testing.T) {
 	assert.Equal(t, "he comes", w.HeaderMap.Get("x-zalgo"))
 }
 
-func TestRouterLoggingEnabled(t *testing.T) {
-	cut := &Gateway{
-		Logger: zap.NewExample(),
-	}
-	cut.init()
-
-	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) service.Response {
-		handlerCalled = true
-
-		user := &models.FakeUser{IDHook: func() string { return "123" }}
-		ctx = ctx.WithActor(user)
-		return service.NewEmpty(http.StatusOK)
-	}
-	installHandler(t, cut, handler)
-
-	w := httptest.NewRecorder()
-	cut.ServeHTTP(w, fakeRequest)
-
-	assert.True(t, handlerCalled, "handler not called")
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
 func TestRouterSerializationError(t *testing.T) {
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
@@ -2087,6 +2095,17 @@ func TestRouter(t *testing.T) {
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		ErrorHandler: errHandler.Handle,
+		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+			assert.Equal(t, http.StatusOK, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
+			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
 	}
 	cut.init()
 
@@ -2160,7 +2179,7 @@ func TestGatewayHandlerResponseWithError(t *testing.T) {
 	}
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
-		Handlers: []service.Handler{gwHandler},
+		Handlers:     []service.Handler{gwHandler},
 		ErrorHandler: errHandler.Handle,
 	}
 	cut.init()
