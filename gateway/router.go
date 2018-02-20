@@ -280,9 +280,9 @@ finish:
 	if writeErr1 != nil {
 		g.ErrorHandler(ctx, request, writeErr1)
 	}
-	respErr := merry.WithMessage(response.Err(), "handler failed")
-	if respErr != nil {
-		g.ErrorHandler(ctx, request, respErr)
+	respErr := response.Err()
+	if respErr != nil && respErr != err {
+		g.ErrorHandler(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }
 
