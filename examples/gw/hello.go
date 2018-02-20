@@ -39,7 +39,7 @@ type HelloService struct {
 	resolver  sd.Resolver
 }
 
-func NewHelloService(environment env.Provider) *HelloService {
+func NewHelloService(environment env.Provider, res sd.Resolver) *HelloService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
@@ -47,6 +47,7 @@ func NewHelloService(environment env.Provider) *HelloService {
 
 	svc := &HelloService{
 		env: environment,
+		resolver: res,
 	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)

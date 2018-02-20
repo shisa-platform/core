@@ -31,7 +31,7 @@ type GoodbyeService struct {
 	resolver  sd.Resolver
 }
 
-func NewGoodbyeService(environment env.Provider) *GoodbyeService {
+func NewGoodbyeService(environment env.Provider, res sd.Resolver) *GoodbyeService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
@@ -39,6 +39,7 @@ func NewGoodbyeService(environment env.Provider) *GoodbyeService {
 
 	svc := &GoodbyeService{
 		env: environment,
+		resolver: res,
 	}
 
 	proxy := middleware.ReverseProxy{

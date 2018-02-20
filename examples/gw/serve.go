@@ -28,8 +28,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 
 	res := sd.NewConsul(c)
 
-	idp := &ExampleIdentityProvider{Env: env.DefaultProvider}
-	idp.resolver = res
+	idp := &ExampleIdentityProvider{Env: env.DefaultProvider, Resolver: res}
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
@@ -56,11 +55,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Logger: logger,
 	}
 
-	hello := NewHelloService(env.DefaultProvider)
-	hello.resolver = res
+	hello := NewHelloService(env.DefaultProvider, res)
 
-	goodbye := NewGoodbyeService(env.DefaultProvider)
-	goodbye.resolver = res
+	goodbye := NewGoodbyeService(env.DefaultProvider, res)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{

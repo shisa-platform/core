@@ -26,7 +26,7 @@ func (u simpleUser) String() string {
 
 type ExampleIdentityProvider struct {
 	Env      env.Provider
-	resolver sd.Resolver
+	Resolver sd.Resolver
 }
 
 func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials string) (models.User, merry.Error) {
