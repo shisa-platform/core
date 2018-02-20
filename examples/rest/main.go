@@ -52,7 +52,7 @@ func main() {
 
 	listener, err := httpx.HTTPListenerForAddress(*addr)
 	if err != nil {
-		logger.Error("opening listener", zap.Error(err))
+		logger.Fatal("opening listener", zap.Error(err))
 	}
 	logger.Info("starting goodbye service", zap.String("addr", listener.Addr().String()))
 
