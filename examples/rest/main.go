@@ -71,23 +71,23 @@ func main() {
 	conf := consul.DefaultConfig()
 	c, err := consul.NewClient(conf)
 	if err != nil {
-		panic(err)
+		logger.Fatal("consul client failed to initialize", zap.Error(err))
 	}
 
 	reg := sd.NewConsul(c)
 
 	if err := reg.Register(name, listener.Addr().String()	); err != nil {
-		panic(err)
+		logger.Fatal("service failed to register", zap.Error(err))
 	}
 	defer reg.Deregister(name)
 
 	surl, err := url.Parse(fmt.Sprintf("http://%s/healthcheck?name=goodbye&interval=5s", listener.Addr().String()))
 	if err != nil {
-		panic(err)
+		logger.Fatal("healthcheck url failed to parse", zap.Error(err))
 	}
 
 	if err := reg.AddCheck(name, surl); err != nil {
-		panic(err)
+		logger.Fatal("healthcheck failed to register", zap.Error(err))
 	}
 	defer reg.ClearChecks(name)
 
