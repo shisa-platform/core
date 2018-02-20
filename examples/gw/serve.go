@@ -101,3 +101,7 @@ func (l logHandler) completion(c context.Context, r *service.Request, s httpx.Re
 	}
 	l.logger.Info("request", fs...)
 }
+
+func (l logHandler) error(ctx context.Context, _ *service.Request, err merry.Error) {
+	l.logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
+}

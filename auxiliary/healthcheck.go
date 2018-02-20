@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/contenttype"
@@ -133,10 +134,11 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)
 	if idErr != nil {
+		idErr = merry.WithMessage(idErr, "generating request id")
 		requestID = request.ID()
 	}
 	if requestID == "" {
-		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		idErr = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
 
@@ -145,6 +147,7 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	code := http.StatusOK
 	status := make(map[string]string, len(s.Checkers))
+	var errs error
 
 	var response service.Response
 	if response = s.Authenticate(ctx, request); response != nil {
@@ -159,9 +162,9 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, check := range s.Checkers {
 		if err := check.Healthcheck(ctx); err != nil {
-			status[check.Name()] = merry.UserMessage(err)
+			status[check.Name()] = err.Error()
 			code = http.StatusServiceUnavailable
-			s.Logger.Info("healthcheck failed", zap.String("name", check.Name()), zap.String("reason", err.Error()), zap.Error(err))
+			errs = multierr.Append(errs, err.WithValue("name", check.Name()))
 			continue
 		}
 		status[check.Name()] = "OK"
@@ -178,10 +181,20 @@ finish:
 	writeErr := httpx.WriteResponse(ri, response)
 	ri.Flush(ctx, request)
 
-	if idErr != nil {
-		s.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+	if idErr != nil && s.ErrorHandler != nil {
+		s.ErrorHandler(ctx, request, idErr)
 	}
-	if writeErr != nil {
-		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	if writeErr1 != nil && s.ErrorHandler != nil {
+		s.ErrorHandler(ctx, request, writeErr1)
+	}
+	if errs != nil && s.ErrorHandler != nil {
+		for _, e := range multierr.Errors(errs) {
+			s.ErrorHandler(ctx, request, merry.WithMessage(e, "check failed"))
+		}
+	}
+	respErr := response.Err()
+	if respErr != nil && s.ErrorHandler != nil {
+		s.ErrorHandler(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }

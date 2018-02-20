@@ -102,10 +102,11 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)
 	if idErr != nil {
+		idErr = merry.WithMessage(idErr, "generating request id")
 		requestID = request.ID()
 	}
 	if requestID == "" {
-		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		idErr = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
 
@@ -128,10 +129,11 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 finish:
 	ri.Flush(ctx, request)
 
-	if idErr != nil {
-		s.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+	if idErr != nil && s.ErrorHandler != nil {
+		s.ErrorHandler(ctx, request, idErr)
 	}
-	if writeErr != nil {
-		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	if writeErr1 != nil && s.ErrorHandler != nil {
+		s.ErrorHandler(ctx, request, writeErr1)
 	}
 }
