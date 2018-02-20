@@ -23,7 +23,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	conf := consul.DefaultConfig()
 	c, e := consul.NewClient(conf)
 	if e != nil {
-		panic(e)
+		logger.Fatal("consul failed to initialize", zap.Error(e))
 	}
 
 	res := sd.NewConsul(c)
