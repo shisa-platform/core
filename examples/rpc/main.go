@@ -13,12 +13,10 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
-	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/sd"
 )
 
 const (
@@ -68,28 +66,6 @@ func main() {
 	go func() {
 		errCh <- server.Serve(listener)
 	}()
-
-	conf := consul.DefaultConfig()
-	c, err := consul.NewClient(conf)
-	if err != nil {
-		panic(err)
-	}
-
-	reg := sd.NewConsul(c)
-
-	err = reg.Register(name, listener.Addr().String())
-	defer reg.Deregister(name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = reg.AddHealthcheck(name, listener.Addr().String())
-	defer reg.RemoveHealthcheck(name, listener.Addr().String())
-
-	if err != nil {
-		panic(err)
-	}
 
 	select {
 	case err := <-errCh:

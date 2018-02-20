@@ -3,6 +3,7 @@ package sd
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"strconv"
 
 	"github.com/ansel1/merry"
@@ -73,14 +74,37 @@ func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
 	return
 }
 
-func (r *consulSD) AddHealthcheck(serviceID, url string) merry.Error {
+func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
+	q := u.Query()
+
 	acr := &consul.AgentCheckRegistration{
-		ID:   fmt.Sprintf("%s-healthcheck", serviceID),
+		ID:   popQuery(q, "id"),
 		Name: fmt.Sprintf("%s-healthcheck", serviceID),
+		Notes: popQuery(q, "notes"),
+		ServiceID: serviceID,
 		AgentServiceCheck: consul.AgentServiceCheck{
-			TCP:      url,
-			Interval: "5s",
+			Interval: popQuery(q, "interval"),
+			Status: popQuery(q, "status"),
 		},
+	}
+
+	enc := q.Encode()
+
+	switch u.Scheme {
+	// TODO: wait for https://github.com/hashicorp/consul/commit/c3e94970a09db21b1a3de947ae28577980a18161
+	// to get released before handling GRPC
+	case "grpc":
+		//acr.AgentServiceCheck.GRPC = fmt.Sprintf("grpc://%s%s", u.Host, u.Path)
+	case "tcp":
+		acr.AgentServiceCheck.TCP = u.Host
+	case "http", "https":
+		var s string
+		if len(enc) > 0 {
+			s = fmt.Sprintf("%s://%s%s?%s", u.Scheme, u.Host, u.Path, enc)
+		} else {
+			s = fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
+		}
+		acr.AgentServiceCheck.HTTP = s
 	}
 
 	err := r.client.Agent().CheckRegister(acr)
@@ -91,10 +115,19 @@ func (r *consulSD) AddHealthcheck(serviceID, url string) merry.Error {
 	return nil
 }
 
-func (r *consulSD) RemoveHealthcheck(serviceID, url string) merry.Error {
+func (r *consulSD) ClearChecks(serviceID string) merry.Error {
 	err := r.client.Agent().CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
 	if err != nil {
 		return merry.Wrap(err)
 	}
 	return nil
+}
+
+func popQuery(v url.Values, key string) (re string) {
+	val, ok := v[key]
+	if ok {
+		delete(v, key)
+		re = val[0]
+	}
+	return
 }

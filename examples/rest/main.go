@@ -4,8 +4,10 @@ import (
 	"context"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -74,19 +76,20 @@ func main() {
 
 	reg := sd.NewConsul(c)
 
-	err = reg.Register(name, listener.Addr().String())
+	if err := reg.Register(name, listener.Addr().String()	); err != nil {
+		panic(err)
+	}
 	defer reg.Deregister(name)
 
+	surl, err := url.Parse(fmt.Sprintf("http://%s/healthcheck?name=goodbye&interval=5s", listener.Addr().String()))
 	if err != nil {
 		panic(err)
 	}
 
-	err = reg.AddHealthcheck(name, listener.Addr().String())
-	defer reg.RemoveHealthcheck(name, listener.Addr().String())
-
-	if err != nil {
+	if err := reg.AddCheck(name, surl); err != nil {
 		panic(err)
 	}
+	defer reg.ClearChecks(name)
 
 	select {
 	case err := <-errCh:
