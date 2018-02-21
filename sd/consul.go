@@ -83,16 +83,10 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		Notes:     popQueryString(q, "notes"),
 		ServiceID: serviceID,
 		AgentServiceCheck: consul.AgentServiceCheck{
-			CheckID:           popQueryString(q, "checkid"),
-			Args:              popQuerySlice(q, "args"),
-			DockerContainerID: popQueryString(q, "dockercontainerid"),
-			Shell:             popQueryString(q, "shell"),
-			Interval:          popQueryString(q, "interval"),
-			Timeout:           popQueryString(q, "timeout"),
-			TTL:               popQueryString(q, "ttl"),
-			Method:            popQueryString(q, "method"),
-			Status:            popQueryString(q, "status"),
-			TLSSkipVerify:     popQueryBool(q, "tlsskipverify"),
+			CheckID:       popQueryString(q, "checkid"),
+			Timeout:       popQueryString(q, "timeout"),
+			Status:        popQueryString(q, "status"),
+			TLSSkipVerify: popQueryBool(q, "tlsskipverify"),
 		},
 	}
 
@@ -100,15 +94,54 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 	// TODO: wait for https://github.com/hashicorp/consul/commit/c3e94970a09db21b1a3de947ae28577980a18161
 	// to get released before handling GRPC
 	case "grpc":
-		//acr.AgentServiceCheck.GRPC = fmt.Sprintf("grpc://%s%s", u.Host, u.Path)
+		if len(u.Host) == 0 {
+			return merry.New("url Host field required for gRPC check")
+		}
+		if err := validateKeysExist(q, "interval"); err != nil {
+			return err
+		}
+		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
+		// acr.AgentServiceCheck.GRPC = u.Host
+		// acr.AgentServiceCheck.GRPCUseTLS = popQueryBool(q, "grpcusetls")
+	case "docker":
+		if err := validateKeysExist(q, "dockercontainerid", "args", "interval"); err != nil {
+			return err
+		}
+		acr.AgentServiceCheck.DockerContainerID = popQueryString(q, "dockercontainerid")
+		acr.AgentServiceCheck.Args = popQuerySlice(q, "args")
+		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
+		acr.AgentServiceCheck.Shell = popQueryString(q, "shell")
+	case "script":
+		if err := validateKeysExist(q, "args", "interval"); err != nil {
+			return err
+		}
+		acr.AgentServiceCheck.Args = popQuerySlice(q, "args")
+		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
+	case "ttl":
+		acr.AgentServiceCheck.TTL = popQueryString(q, "ttl")
 	case "tcp":
+		if len(u.Host) == 0 {
+			return merry.New("url Host field required for TCP check")
+		}
+		if err := validateKeysExist(q, "interval"); err != nil {
+			return err
+		}
 		acr.AgentServiceCheck.TCP = u.Host
+		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
 	case "http", "https":
+		urlstr := u.String()
+		if len(urlstr) == 0 {
+			return merry.New("non-empty url.String required for HTTP(S) check")
+		}
+		if err := validateKeysExist(q, "interval"); err != nil {
+			return err
+		}
 		u.RawQuery = ""
-		acr.AgentServiceCheck.HTTP = u.String()
+		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
+		acr.AgentServiceCheck.Method = popQueryString(q, "method")
+		acr.AgentServiceCheck.Header = q
+		acr.AgentServiceCheck.HTTP = urlstr
 	}
-
-	acr.Header = q
 
 	err := r.client.Agent().CheckRegister(acr)
 	if err != nil {
@@ -151,6 +184,16 @@ func popQuerySlice(v url.Values, key string) (re []string) {
 	if ok {
 		delete(v, key)
 		re = val
+	}
+	return
+}
+
+func validateKeysExist(v url.Values, keys ...string) (err merry.Error) {
+	err = nil
+	for _, k := range keys {
+		if _, ok := v[k]; !ok {
+			return merry.New("key/value pair not found in params").WithValue("key", k)
+		}
 	}
 	return
 }
