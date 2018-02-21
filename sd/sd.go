@@ -23,5 +23,5 @@ type AsyncResolver interface {
 
 type Healthchecker interface {
 	AddCheck(service string, url url.URL)
-	ClearChecks(service string)
+	RemoveChecks(service string)
 }

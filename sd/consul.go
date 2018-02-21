@@ -96,8 +96,6 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		},
 	}
 
-	enc := q.Encode()
-
 	switch u.Scheme {
 	// TODO: wait for https://github.com/hashicorp/consul/commit/c3e94970a09db21b1a3de947ae28577980a18161
 	// to get released before handling GRPC
@@ -106,13 +104,8 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 	case "tcp":
 		acr.AgentServiceCheck.TCP = u.Host
 	case "http", "https":
-		var s string
-		if len(enc) > 0 {
-			s = fmt.Sprintf("%s://%s%s?%s", u.Scheme, u.Host, u.Path, enc)
-		} else {
-			s = fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
-		}
-		acr.AgentServiceCheck.HTTP = s
+		u.RawQuery = ""
+		acr.AgentServiceCheck.HTTP = u.String()
 	}
 
 	acr.Header = q
@@ -125,7 +118,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 	return nil
 }
 
-func (r *consulSD) ClearChecks(serviceID string) merry.Error {
+func (r *consulSD) RemoveChecks(serviceID string) merry.Error {
 	err := r.client.Agent().CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
 	if err != nil {
 		return merry.Wrap(err)

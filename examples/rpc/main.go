@@ -84,7 +84,7 @@ func main() {
 	}
 	defer reg.Deregister(name)
 
-	surl, err := url.Parse(fmt.Sprintf("tcp://%s/%s?name=%s&interval=5s", listener.Addr().String(), rpc.DefaultRPCPath, name))
+	surl, err := url.Parse(fmt.Sprintf("tcp://%s/%s?interval=5s", listener.Addr().String(), rpc.DefaultRPCPath))
 	if err != nil {
 		logger.Fatal("healthcheck url failed to parse", zap.Error(err))
 	}
@@ -92,7 +92,7 @@ func main() {
 	if err := reg.AddCheck(name, surl); err != nil {
 		logger.Fatal("healthcheck failed to register", zap.Error(err))
 	}
-	defer reg.ClearChecks(name)
+	defer reg.RemoveChecks(name)
 
 	select {
 	case err := <-errCh:

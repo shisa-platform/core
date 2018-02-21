@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"time"
 
@@ -18,6 +20,8 @@ import (
 	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
+
+const name = "gateway"
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	conf := consul.DefaultConfig()
@@ -70,6 +74,21 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 
 	services := []service.Service{hello, goodbye}
+
+	if err := res.Register(name, addr); err != nil {
+		logger.Fatal("service failed to register", zap.Error(err))
+	}
+	defer res.Deregister(name)
+
+	surl, e := url.Parse(fmt.Sprintf("http://Admin:password@%s/healthcheck?interval=5s", healthcheckAddr))
+	if e != nil {
+		logger.Fatal("healthcheck url failed to parse", zap.Error(e))
+	}
+
+	if err := res.AddCheck(name, surl); err != nil {
+		logger.Fatal("healthcheck failed to register", zap.Error(err))
+	}
+	defer res.RemoveChecks(name)
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {
 		for _, e := range multierr.Errors(err) {
