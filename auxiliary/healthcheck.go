@@ -125,7 +125,7 @@ func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ri := httpx.NewInterceptor(w, s.requestLog)
+	ri := httpx.NewInterceptor(w)
 
 	healthcheckStats.Add("hits", 1)
 
@@ -178,8 +178,12 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response.Headers().Set(contenttype.ContentTypeHeaderKey, jsonContentType)
 
 finish:
-	writeErr := httpx.WriteResponse(ri, response)
-	ri.Flush(ctx, request)
+	writeErr := ri.WriteResponse(response)
+	snapshot := ri.Flush()
+
+	if s.CompletionHandler != nil {
+		s.CompletionHandler(ctx, request, snapshot)
+	}
 
 	if idErr != nil && s.ErrorHandler != nil {
 		s.ErrorHandler(ctx, request, idErr)

@@ -93,7 +93,7 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ri := httpx.NewInterceptor(w, s.requestLog)
+	ri := httpx.NewInterceptor(w)
 
 	debugStats.Add("hits", 1)
 
@@ -115,7 +115,7 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var writeErr error
 	if response := s.Authenticate(ctx, request); response != nil {
-		writeErr = httpx.WriteResponse(ri, response)
+		writeErr = ri.WriteResponse(response)
 		goto finish
 	}
 
@@ -127,7 +127,11 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 finish:
-	ri.Flush(ctx, request)
+	snapshot := ri.Flush()
+
+	if s.CompletionHandler != nil {
+		s.CompletionHandler(ctx, request, snapshot)
+	}
 
 	if idErr != nil && s.ErrorHandler != nil {
 		s.ErrorHandler(ctx, request, idErr)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/service"
@@ -449,6 +450,33 @@ func TestDebugServerServeHTTP(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertNotCalled(t)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPCustomCompletionHandler(t *testing.T) {
+	errHandler := new(mockErrorHandler)
+	var handlerCalled bool
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			ErrorHandler: errHandler.Handle,
+			CompletionHandler: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
+				handlerCalled = true
+			},
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	errHandler.assertNotCalled(t)
+	assert.True(t, handlerCalled)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
