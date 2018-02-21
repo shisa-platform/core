@@ -14,6 +14,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/service"
@@ -230,7 +231,7 @@ func TestRouterHandlersPanic(t *testing.T) {
 	cut := &Gateway{
 		Handlers:     []service.Handler{handler},
 		ErrorHandler: errHandler.Handle,
-		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+		CompletionHandler: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -266,7 +267,7 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	cut := &Gateway{
 		Handlers:     []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHandler: errHandler.Handle,
-		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+		CompletionHandler: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusUnauthorized, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -303,7 +304,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	cut := &Gateway{
 		Handlers:     []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHandler: errHandler.Handle,
-		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+		CompletionHandler: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -2095,7 +2096,7 @@ func TestRouter(t *testing.T) {
 	errHandler := new(mockErrorHandler)
 	cut := &Gateway{
 		ErrorHandler: errHandler.Handle,
-		CompletionHandler: func(_ context.Context, _ *service.Request, s ResponseSnapshot) {
+		CompletionHandler: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
