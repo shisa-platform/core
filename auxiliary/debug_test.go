@@ -159,7 +159,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 				return requestID, nil
 			},
 			RequestIDHeaderName: "x-zalgo",
-			ErrorHandler: errHandler.Handle,
+			ErrorHandler:        errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -342,7 +342,7 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			Authorizer: authz,
+			Authorizer:   authz,
 			ErrorHandler: errHandler.Handle,
 		},
 	}
@@ -379,7 +379,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			Authorizer: authz,
+			Authorizer:   authz,
 			ErrorHandler: errHandler.Handle,
 		},
 	}
@@ -416,7 +416,7 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			Authorizer: authz,
+			Authorizer:   authz,
 			ErrorHandler: errHandler.Handle,
 		},
 	}
