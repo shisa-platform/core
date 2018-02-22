@@ -41,25 +41,25 @@ func (a stubAuthorizer) Authorize(context.Context, *service.Request) (bool, merr
 	return a.ok, a.err
 }
 
-type mockErrorHandler struct {
+type mockErrorHook struct {
 	calls int
 }
 
-func (m *mockErrorHandler) Handle(context.Context, *service.Request, merry.Error) {
+func (m *mockErrorHook) Handle(context.Context, *service.Request, merry.Error) {
 	m.calls++
 }
 
-func (m *mockErrorHandler) assertNotCalled(t *testing.T) {
+func (m *mockErrorHook) assertNotCalled(t *testing.T) {
 	t.Helper()
 	assert.Equal(t, 0, m.calls, "unexpected error handler calls")
 }
 
-func (m *mockErrorHandler) assertCalled(t *testing.T) {
+func (m *mockErrorHook) assertCalled(t *testing.T) {
 	t.Helper()
 	assert.NotEqual(t, 0, m.calls, "error handler not called")
 }
 
-func (m *mockErrorHandler) assertCalledN(t *testing.T, expected int) {
+func (m *mockErrorHook) assertCalledN(t *testing.T, expected int) {
 	t.Helper()
 	assert.Equalf(t, expected, m.calls, "error handler called %d times, expected %d", m.calls, expected)
 }

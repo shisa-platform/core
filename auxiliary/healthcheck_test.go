@@ -92,10 +92,10 @@ func TestHealthcheckServerServeHTTPBadPath(t *testing.T) {
 }
 
 func TestHealthcheckServerServeHTTPCustomPath(t *testing.T) {
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 		Path: "/foo/bar",
 	}
@@ -114,13 +114,13 @@ func TestHealthcheckServerServeHTTPCustomPath(t *testing.T) {
 }
 
 func TestHealthcheckServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return "", merry.New("i blewed up!")
 			},
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -139,13 +139,13 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 }
 
 func TestHealthcheckServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return "", nil
 			},
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -165,14 +165,14 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 
 func TestHealthcheckServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 	requestID := "abc123"
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return requestID, nil
 			},
 			RequestIDHeaderName: "x-zalgo",
-			ErrorHandler:        errHandler.Handle,
+			ErrorHook:        errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -200,13 +200,13 @@ func TestHealthcheckServerServeHTTPAuthenticationFail(t *testing.T) {
 			return challenge
 		},
 	}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -234,7 +234,7 @@ func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			return challenge
 		},
 	}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
@@ -243,7 +243,7 @@ func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 					return unserializableResponse()
 				},
 			},
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -271,7 +271,7 @@ func TestHealthcheckServerServeHTTPAuthenticationCustomResponseTrailers(t *testi
 			return challenge
 		},
 	}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
@@ -283,7 +283,7 @@ func TestHealthcheckServerServeHTTPAuthenticationCustomResponseTrailers(t *testi
 					return response
 				},
 			},
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -313,13 +313,13 @@ func TestHealthcheckServerServeHTTPAuthentication(t *testing.T) {
 			return challenge
 		},
 	}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -349,14 +349,14 @@ func TestHealthcheckServerServeHTTPAuthorizationError(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{err: merry.New("i blewed up!")}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
 			Authorizer:   authz,
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -386,14 +386,14 @@ func TestHealthcheckServerServeHTTPAuthorizationFail(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{ok: false}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
 			Authorizer:   authz,
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -423,14 +423,14 @@ func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{ok: true}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
 			Authorizer:   authz,
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -449,10 +449,10 @@ func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 }
 
 func TestHealthcheckServerServeHTTP(t *testing.T) {
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}},
 	}
@@ -477,11 +477,11 @@ func TestHealthcheckServerServeHTTP(t *testing.T) {
 }
 
 func TestHealthcheckServerServeHTTPCustomCompletionHook(t *testing.T) {
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	var handlerCalled bool
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 			CompletionHook: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
 				handlerCalled = true
 			},
@@ -514,10 +514,10 @@ func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
 	msg := "i blewed up!"
 	err := merry.New(msg).WithUserMessage(userMessage)
 	ng := stubHealthchecker{name: "fail", err: err}
-	errHandler := new(mockErrorHandler)
+	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			ErrorHandler: errHandler.Handle,
+			ErrorHook: errHandler.Handle,
 		},
 		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
 	}

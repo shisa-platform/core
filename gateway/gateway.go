@@ -112,11 +112,11 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler service.Handler `json:"-"`
 
-	// ErrorHandler optionally customizes how errors encountered
+	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
 	// `Logger` field with the request id as a field.
-	ErrorHandler func(context.Context, *service.Request, merry.Error) `json:"-"`
+	ErrorHook func(context.Context, *service.Request, merry.Error) `json:"-"`
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
@@ -191,8 +191,8 @@ func (g *Gateway) init() {
 		g.Logger = zap.NewNop()
 	}
 
-	if g.ErrorHandler == nil {
-		g.ErrorHandler = g.defaultErrorHandler
+	if g.ErrorHook == nil {
+		g.ErrorHook = g.defaultErrorHook
 	}
 
 	g.tree = new(node)

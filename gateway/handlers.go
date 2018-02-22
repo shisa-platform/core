@@ -47,6 +47,6 @@ func defaultRequestIDGenerator(c context.Context, r *service.Request) (string, m
 	return r.ID(), nil
 }
 
-func (g *Gateway) defaultErrorHandler(ctx context.Context, _ *service.Request, err merry.Error) {
+func (g *Gateway) defaultErrorHook(ctx context.Context, _ *service.Request, err merry.Error) {
 	g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 }

@@ -185,20 +185,20 @@ finish:
 		s.CompletionHook(ctx, request, snapshot)
 	}
 
-	if idErr != nil && s.ErrorHandler != nil {
-		s.ErrorHandler(ctx, request, idErr)
+	if idErr != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, idErr)
 	}
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
-	if writeErr1 != nil && s.ErrorHandler != nil {
-		s.ErrorHandler(ctx, request, writeErr1)
+	if writeErr1 != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, writeErr1)
 	}
-	if errs != nil && s.ErrorHandler != nil {
+	if errs != nil && s.ErrorHook != nil {
 		for _, e := range multierr.Errors(errs) {
-			s.ErrorHandler(ctx, request, merry.WithMessage(e, "check failed"))
+			s.ErrorHook(ctx, request, merry.WithMessage(e, "check failed"))
 		}
 	}
 	respErr := response.Err()
-	if respErr != nil && s.ErrorHandler != nil {
-		s.ErrorHandler(ctx, request, merry.WithMessage(respErr, "handler failed"))
+	if respErr != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }

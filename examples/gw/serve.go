@@ -37,7 +37,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Handlers:          []service.Handler{authN.Service},
 		Logger:            logger,
 		CompletionHook: lh.completion,
-		ErrorHandler:      lh.error,
+		ErrorHook:      lh.error,
 	}
 
 	authZ := SimpleAuthorization{[]string{"user:1"}}
@@ -47,7 +47,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Authentication:    authN,
 			Authorizer:        authZ,
 			CompletionHook: lh.completion,
-			ErrorHandler:      lh.error,
+			ErrorHook:      lh.error,
 		},
 		Logger: logger,
 	}
@@ -61,7 +61,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Authentication:    authN,
 			Authorizer:        authZ,
 			CompletionHook: lh.completion,
-			ErrorHandler:      lh.error,
+			ErrorHook:      lh.error,
 		},
 		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
 		Logger:   logger,

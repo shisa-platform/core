@@ -283,18 +283,18 @@ finish:
 	}
 
 	if idErr != nil {
-		g.ErrorHandler(ctx, request, idErr)
+		g.ErrorHook(ctx, request, idErr)
 	}
 	if err != nil {
-		g.ErrorHandler(ctx, request, err)
+		g.ErrorHook(ctx, request, err)
 	}
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
 	if writeErr1 != nil {
-		g.ErrorHandler(ctx, request, writeErr1)
+		g.ErrorHook(ctx, request, writeErr1)
 	}
 	respErr := response.Err()
 	if respErr != nil && respErr != err {
-		g.ErrorHandler(ctx, request, merry.WithMessage(respErr, "handler failed"))
+		g.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }
 

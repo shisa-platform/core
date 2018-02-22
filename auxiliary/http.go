@@ -100,10 +100,10 @@ type HTTPServer struct {
 	// principal.
 	Authorizer Authorizer
 
-	// ErrorHandler optionally customizes how errors encountered
+	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil no action will be taken.
-	ErrorHandler func(context.Context, *service.Request, merry.Error)
+	ErrorHook func(context.Context, *service.Request, merry.Error)
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.

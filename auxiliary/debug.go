@@ -133,11 +133,11 @@ finish:
 		s.CompletionHook(ctx, request, snapshot)
 	}
 
-	if idErr != nil && s.ErrorHandler != nil {
-		s.ErrorHandler(ctx, request, idErr)
+	if idErr != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, idErr)
 	}
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
-	if writeErr1 != nil && s.ErrorHandler != nil {
-		s.ErrorHandler(ctx, request, writeErr1)
+	if writeErr1 != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, writeErr1)
 	}
 }
