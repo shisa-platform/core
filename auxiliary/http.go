@@ -100,6 +100,12 @@ type HTTPServer struct {
 	// principal.
 	Authorizer Authorizer
 
+	// Router is called by the `ServeHTTP` method to find the
+	// correct handler to invoke for the current request.
+	// If nil is returned a 404 status code with an empty body is
+	// returned to the user agent.
+	Router func(context.Context, *service.Request) service.Handler
+
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil no action will be taken.
@@ -127,6 +133,8 @@ func (s *HTTPServer) init() {
 	s.base.MaxHeaderBytes = s.MaxHeaderBytes
 	s.base.TLSNextProto = s.TLSNextProto
 
+	s.base.Handler = s
+
 	if s.DisableKeepAlive {
 		s.base.SetKeepAlivesEnabled(false)
 	}
@@ -138,10 +146,10 @@ func (s *HTTPServer) init() {
 	if s.RequestIDGenerator == nil {
 		s.RequestIDGenerator = s.generateRequestID
 	}
-}
 
-func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (string, merry.Error) {
-	return r.ID(), nil
+	if s.Router == nil {
+		s.Router = s.route
+	}
 }
 
 func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response service.Response) {
@@ -162,4 +170,64 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request)
 	}
 
 	return
+}
+
+func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ri := httpx.NewInterceptor(w)
+
+	ctx := context.New(r.Context())
+	request := &service.Request{Request: r}
+
+	requestID, idErr := s.RequestIDGenerator(ctx, request)
+	if idErr != nil {
+		idErr = merry.WithMessage(idErr, "generating request id")
+		requestID = request.ID()
+	}
+	if requestID == "" {
+		idErr = merry.New("generator returned empty request id")
+		requestID = request.ID()
+	}
+
+	ctx = context.WithRequestID(ctx, requestID)
+	ri.Header().Set(s.RequestIDHeaderName, requestID)
+
+	var response service.Response
+	if response = s.Authenticate(ctx, request); response != nil {
+		goto finish
+	}
+
+	if handler := s.Router(ctx, request); handler != nil {
+		response = handler(ctx, request)
+	} else {
+		response = service.NewEmpty(http.StatusNotFound)
+		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
+	}
+
+finish:
+	writeErr := ri.WriteResponse(response)
+	snapshot := ri.Flush()
+
+	if s.CompletionHook != nil {
+		s.CompletionHook(ctx, request, snapshot)
+	}
+
+	if idErr != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, idErr)
+	}
+	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	if writeErr1 != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, writeErr1)
+	}
+	respErr := response.Err()
+	if respErr != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
+	}
+}
+
+func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (string, merry.Error) {
+	return r.ID(), nil
+}
+
+func (s *HTTPServer) route(context.Context, *service.Request) service.Handler {
+	return nil
 }
