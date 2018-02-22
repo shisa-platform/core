@@ -1,18 +1,13 @@
 package auxiliary
 
 import (
-	stdctx "context"
 	"expvar"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"github.com/ansel1/merry"
-	"go.uber.org/zap"
-
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -22,7 +17,7 @@ const (
 
 var (
 	debugStats   = new(expvar.Map)
-	debuResponse = expvarResponse{
+	debugResponse = expvarResponse{
 		headers: map[string][]string{
 			"Content-Type": []string{"application/json"},
 		},
@@ -76,13 +71,20 @@ type DebugServer struct {
 
 func (s *DebugServer) init() {
 	now := time.Now().UTC().Format(startTimeFormat)
-	s.HTTPServer.init()
+
 	debugStats = debugStats.Init()
+
 	AuxiliaryStats.Set("debug", debugStats)
+
 	debugStats.Set("hits", new(expvar.Int))
+
 	startTime := new(expvar.String)
 	startTime.Set(now)
 	debugStats.Set("starttime", startTime)
+
+	debugStats.Set("addr", expvar.Func(func() interface{} {
+		return s.Address()
+	}))
 
 	if s.Path == "" {
 		s.Path = defaultDebugServerPath
@@ -98,28 +100,7 @@ func (s *DebugServer) Name() string {
 func (s *DebugServer) Serve() error {
 	s.init()
 
-	listener, err := httpx.HTTPListenerForAddress(s.Addr)
-	if err != nil {
-		return err
-	}
-
-	addr := listener.Addr().String()
-	addrVar := new(expvar.String)
-	addrVar.Set(addr)
-	debugStats.Set("addr", addrVar)
-	s.Logger.Info("debug service started", zap.String("addr", addr))
-
-	if s.UseTLS {
-		return s.base.ServeTLS(listener, "", "")
-	}
-
-	return s.base.Serve(listener)
-}
-
-func (s *DebugServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
-	defer cancel()
-	return merry.Wrap(s.base.Shutdown(ctx))
+	return s.HTTPServer.Serve()
 }
 
 func (s *DebugServer) Route(ctx context.Context, request *service.Request) service.Handler {
@@ -133,5 +114,5 @@ func (s *DebugServer) Route(ctx context.Context, request *service.Request) servi
 func (s *DebugServer) Service(ctx context.Context, request *service.Request) service.Response {
 	debugStats.Add("hits", 1)
 
-	return debuResponse
+	return debugResponse
 }

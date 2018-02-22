@@ -81,6 +81,7 @@ func TestHealthcheckServerServeHTTPBadPath(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	cut := HealthcheckServer{}
+	cut.HTTPServer.init()
 	cut.init()
 
 	cut.ServeHTTP(w, r)
@@ -99,6 +100,7 @@ func TestHealthcheckServerServeHTTPCustomPath(t *testing.T) {
 		},
 		Path: "/foo/bar",
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -123,6 +125,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 			ErrorHook: errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -148,6 +151,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 			ErrorHook: errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -175,6 +179,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 			ErrorHook:           errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -209,6 +214,7 @@ func TestHealthcheckServerServeHTTPAuthenticationFail(t *testing.T) {
 			ErrorHook: errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -246,6 +252,7 @@ func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			ErrorHook: errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -286,6 +293,7 @@ func TestHealthcheckServerServeHTTPAuthenticationCustomResponseTrailers(t *testi
 			ErrorHook: errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -322,6 +330,7 @@ func TestHealthcheckServerServeHTTPAuthentication(t *testing.T) {
 			ErrorHook: errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -359,6 +368,7 @@ func TestHealthcheckServerServeHTTPAuthorizationError(t *testing.T) {
 			ErrorHook:  errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -396,6 +406,7 @@ func TestHealthcheckServerServeHTTPAuthorizationFail(t *testing.T) {
 			ErrorHook:  errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -433,6 +444,7 @@ func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 			ErrorHook:  errHandler.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -456,6 +468,7 @@ func TestHealthcheckServerServeHTTP(t *testing.T) {
 		},
 		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -488,6 +501,7 @@ func TestHealthcheckServerServeHTTPCustomCompletionHook(t *testing.T) {
 		},
 		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -521,6 +535,7 @@ func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
 		},
 		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)

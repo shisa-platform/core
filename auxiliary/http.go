@@ -1,8 +1,10 @@
 package auxiliary
 
 import (
+	stdctx "context"
 	"crypto/tls"
 	"expvar"
+	"net"
 	"net/http"
 	"time"
 
@@ -122,11 +124,8 @@ type HTTPServer struct {
 	// If nil all logging is disabled.
 	Logger *zap.Logger
 
-	base http.Server
-}
-
-func (s *HTTPServer) Address() string {
-	return s.Addr
+	base     http.Server
+	listener net.Listener
 }
 
 func (s *HTTPServer) init() {
@@ -162,6 +161,14 @@ func (s *HTTPServer) init() {
 	}
 }
 
+func (s *HTTPServer) Address() string {
+	if s.listener != nil {
+		return s.listener.Addr().String()
+	}
+
+	return s.Addr
+}
+
 func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response service.Response) {
 	if s.Authentication == nil {
 		return
@@ -180,6 +187,31 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request)
 	}
 
 	return
+}
+
+func (s *HTTPServer) Serve() error {
+	s.init()
+	defer s.Logger.Sync()
+
+	listener, err := httpx.HTTPListenerForAddress(s.Addr)
+	if err != nil {
+		return err
+	}
+	s.listener = listener
+
+	if s.UseTLS {
+		return s.base.ServeTLS(listener, "", "")
+	}
+
+	return s.base.Serve(listener)
+}
+
+func (s *HTTPServer) Shutdown(timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
+	defer cancel()
+	s.listener = nil
+
+	return merry.Wrap(s.base.Shutdown(ctx))
 }
 
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

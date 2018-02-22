@@ -68,6 +68,7 @@ func TestDebugServerServeHTTPBadPath(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	cut := DebugServer{}
+	cut.HTTPServer.init()
 	cut.init()
 
 	cut.ServeHTTP(w, r)
@@ -86,6 +87,7 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 		},
 		Path: "/foo/bar",
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -110,6 +112,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -135,6 +138,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -162,6 +166,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 			ErrorHook:           errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -196,6 +201,7 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -233,6 +239,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -273,6 +280,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -309,6 +317,7 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -346,6 +355,7 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 			ErrorHook:  errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -383,6 +393,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 			ErrorHook:  errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -420,6 +431,7 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 			ErrorHook:  errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -442,6 +454,7 @@ func TestDebugServerServeHTTP(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -468,6 +481,7 @@ func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
 			},
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)

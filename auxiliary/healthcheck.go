@@ -1,18 +1,15 @@
 package auxiliary
 
 import (
-	stdctx "context"
 	"encoding/json"
 	"expvar"
 	"net/http"
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -63,14 +60,19 @@ type HealthcheckServer struct {
 func (s *HealthcheckServer) init() {
 	now := time.Now().UTC().Format(startTimeFormat)
 
-	s.HTTPServer.init()
-
 	healthcheckStats = healthcheckStats.Init()
+
 	AuxiliaryStats.Set("healthcheck", healthcheckStats)
+
 	healthcheckStats.Set("hits", new(expvar.Int))
+
 	startTime := new(expvar.String)
 	startTime.Set(now)
 	healthcheckStats.Set("starttime", startTime)
+
+	healthcheckStats.Set("addr", expvar.Func(func() interface{} {
+		return s.Address()
+	}))
 
 	if s.Path == "" {
 		s.Path = defaultHealthcheckServerPath
@@ -86,28 +88,7 @@ func (s *HealthcheckServer) Name() string {
 func (s *HealthcheckServer) Serve() error {
 	s.init()
 
-	listener, err := httpx.HTTPListenerForAddress(s.Addr)
-	if err != nil {
-		return err
-	}
-
-	addr := listener.Addr().String()
-	addrVar := new(expvar.String)
-	addrVar.Set(addr)
-	healthcheckStats.Set("addr", addrVar)
-	s.Logger.Info("healthcheck service started", zap.String("addr", addr))
-
-	if s.UseTLS {
-		return s.base.ServeTLS(listener, "", "")
-	}
-
-	return s.base.Serve(listener)
-}
-
-func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
-	defer cancel()
-	return merry.Wrap(s.base.Shutdown(ctx))
+	return s.HTTPServer.Serve()
 }
 
 func (s *HealthcheckServer) Route(ctx context.Context, request *service.Request) service.Handler {
