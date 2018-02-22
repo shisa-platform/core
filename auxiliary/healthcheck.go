@@ -58,11 +58,6 @@ type HealthcheckServer struct {
 
 	// Checkers are the resources to include in the status report.
 	Checkers []Healthchecker
-
-	// Logger optionally specifies the logger to use by the
-	// Healthcheck server.
-	// If nil all logging is disabled.
-	Logger *zap.Logger
 }
 
 func (s *HealthcheckServer) init() {
@@ -82,10 +77,6 @@ func (s *HealthcheckServer) init() {
 	}
 
 	s.Router = s.Route
-
-	if s.Logger == nil {
-		s.Logger = zap.NewNop()
-	}
 }
 
 func (s *HealthcheckServer) Name() string {
@@ -94,7 +85,6 @@ func (s *HealthcheckServer) Name() string {
 
 func (s *HealthcheckServer) Serve() error {
 	s.init()
-	defer s.Logger.Sync()
 
 	listener, err := httpx.HTTPListenerForAddress(s.Addr)
 	if err != nil {

@@ -72,11 +72,6 @@ func (r expvarResponse) Serialize(w io.Writer) (size int, err error) {
 type DebugServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/debug/vars" if empty
-
-	// Logger optionally specifies the logger to use by the Debug
-	// server.
-	// If nil all logging is disabled.
-	Logger *zap.Logger
 }
 
 func (s *DebugServer) init() {
@@ -94,11 +89,6 @@ func (s *DebugServer) init() {
 	}
 
 	s.Router = s.Route
-
-	if s.Logger == nil {
-		s.Logger = zap.NewNop()
-	}
-	defer s.Logger.Sync()
 }
 
 func (s *DebugServer) Name() string {

@@ -47,8 +47,8 @@ func TestDebugServer(t *testing.T) {
 		HTTPServer: HTTPServer{
 			Addr:             "127.0.0.1:0",
 			DisableKeepAlive: true,
+			Logger:           logger,
 		},
-		Logger: logger,
 	}
 	assert.Equal(t, "debug", cut.Name())
 	assert.Equal(t, "127.0.0.1:0", cut.Address())

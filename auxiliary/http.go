@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
@@ -116,6 +117,11 @@ type HTTPServer struct {
 	// If nil no action will be taken.
 	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot)
 
+	// Logger optionally specifies the logger to use by the Debug
+	// server.
+	// If nil all logging is disabled.
+	Logger *zap.Logger
+
 	base http.Server
 }
 
@@ -149,6 +155,10 @@ func (s *HTTPServer) init() {
 
 	if s.Router == nil {
 		s.Router = s.route
+	}
+
+	if s.Logger == nil {
+		s.Logger = zap.NewNop()
 	}
 }
 
