@@ -64,8 +64,6 @@ type HealthcheckServer struct {
 	// Healthcheck server.
 	// If nil all logging is disabled.
 	Logger *zap.Logger
-
-	requestLog *zap.Logger
 }
 
 func (s *HealthcheckServer) init() {
@@ -88,7 +86,6 @@ func (s *HealthcheckServer) init() {
 		s.Logger = zap.NewNop()
 	}
 	defer s.Logger.Sync()
-	s.requestLog = s.Logger.Named("request")
 
 	s.base.Handler = s
 }

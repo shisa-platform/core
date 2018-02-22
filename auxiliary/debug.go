@@ -33,7 +33,6 @@ type DebugServer struct {
 	// If nil all logging is disabled.
 	Logger *zap.Logger
 
-	requestLog *zap.Logger
 	delegate   http.Handler
 }
 
@@ -55,7 +54,6 @@ func (s *DebugServer) init() {
 		s.Logger = zap.NewNop()
 	}
 	defer s.Logger.Sync()
-	s.requestLog = s.Logger.Named("request")
 
 	s.delegate = expvar.Handler()
 	s.base.Handler = s
