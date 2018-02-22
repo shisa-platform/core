@@ -16,6 +16,7 @@ import (
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
@@ -30,7 +31,8 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		logger.Fatal("consul failed to initialize", zap.Error(e))
 	}
 
-	res := sd.NewConsul(c)
+	b := lb.NewRoundRobin()
+	res := sd.NewConsul(c, b)
 
 	idp := &ExampleIdentityProvider{Env: env.DefaultProvider, Resolver: res}
 
@@ -47,9 +49,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		GracePeriod:     2 * time.Second,
 		Handlers:        []service.Handler{authN.Service},
 		Logger:          logger,
-		Register: func(name, addr string) merry.Error {
-			return res.Register(name, addr)
-		},
+		Registrar:       res,
 	}
 
 	authZ := SimpleAuthorization{[]string{"user:1"}}
@@ -72,15 +72,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Authentication: authN,
 			Authorizer:     authZ,
 		},
-		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
-		Logger:   logger,
-		Register: func(name, addr string) merry.Error {
-			surl, e := url.Parse(fmt.Sprintf("http://Admin:password@%s/healthcheck?interval=5s", addr))
-			if e != nil {
-				return merry.Wrap(e)
-			}
-			return res.AddCheck(gw.Name, surl)
-		},
+		Checkers:  []auxiliary.Healthchecker{idp, hello, goodbye},
+		Logger:    logger,
+		Registrar: res,
 	}
 
 	services := []service.Service{hello, goodbye}

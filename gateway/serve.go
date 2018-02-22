@@ -86,9 +86,11 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 		addr := listener.Addr().String()
 
-		if err = g.Register(g.Name, addr); err != nil {
-			gch <- err
-			return
+		if g.Registrar != nil {
+			if err = g.Registrar.Register(g.Name, addr); err != nil {
+				gch <- err
+				return
+			}
 		}
 
 		g.Logger.Info("gateway started", zap.String("addr", addr))

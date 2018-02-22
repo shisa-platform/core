@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -111,9 +111,9 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler service.Handler `json:"-"`
 
-	// Register is a function hook that optionally registers
+	// Registrar implements sd.Registrar and registers
 	// the gateway service with a service registry
-	Register func(name, addr string) merry.Error
+	Registrar sd.Registrar
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
@@ -179,12 +179,6 @@ func (g *Gateway) init() {
 
 	if g.InternalServerErrorHandler == nil {
 		g.InternalServerErrorHandler = defaultInternalServerErrorHandler
-	}
-
-	if g.Register == nil {
-		g.Register = func(name, addr string) merry.Error {
-			return nil
-		}
 	}
 
 	if g.Logger == nil {

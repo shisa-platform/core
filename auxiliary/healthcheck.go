@@ -13,6 +13,7 @@ import (
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -59,9 +60,9 @@ type HealthcheckServer struct {
 	// Checkers are the resources to include in the status report.
 	Checkers []Healthchecker
 
-	// Register is a function hook that optionally registers
+	// Registrar implements sd.Healthchecker and registers
 	// the healthcheck endpoint with a service registry
-	Register func(name, addr string) merry.Error
+	Registrar sd.Healthchecker
 
 	// Logger optionally specifies the logger to use by the
 	// Healthcheck server.
@@ -92,12 +93,6 @@ func (s *HealthcheckServer) init() {
 	}
 	defer s.Logger.Sync()
 
-	if s.Register == nil {
-		s.Register = func(name, addr string) merry.Error {
-			return nil
-		}
-	}
-
 	s.requestLog = s.Logger.Named("request")
 
 	s.base.Handler = s
@@ -120,10 +115,6 @@ func (s *HealthcheckServer) Serve() error {
 	addrVar.Set(addr)
 	healthcheckStats.Set("addr", addrVar)
 	s.Logger.Info("healthcheck service started", zap.String("addr", addr))
-
-	if err := s.Register(s.Name(), addr); err != nil {
-		return err
-	}
 
 	if s.UseTLS {
 		return s.base.ServeTLS(listener, "", "")

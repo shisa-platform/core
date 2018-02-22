@@ -8,18 +8,23 @@ import (
 
 	"github.com/ansel1/merry"
 	consul "github.com/hashicorp/consul/api"
+
+	"github.com/percolate/shisa/lb"
 )
 
 type consulSD struct {
-	client *consul.Client
+	client   *consul.Client
+	balancer lb.Balancer
 }
 
 var _ Registrar = &consulSD{}
 var _ Resolver = &consulSD{}
+var _ Healthchecker = &consulSD{}
 
-func NewConsul(client *consul.Client) *consulSD {
+func NewConsul(client *consul.Client, b lb.Balancer) *consulSD {
 	return &consulSD{
-		client: client,
+		client:   client,
+		balancer: b,
 	}
 }
 
@@ -157,6 +162,18 @@ func (r *consulSD) RemoveChecks(serviceID string) merry.Error {
 		return merry.Wrap(err)
 	}
 	return nil
+}
+
+func (r *consulSD) Balance(name string) (string, merry.Error) {
+	addrs, err := r.Resolve(name)
+	if err != nil {
+		return "", err
+	}
+	addr, err := r.balancer.Balance(addrs)
+	if err != nil {
+		return "", err
+	}
+	return addr, nil
 }
 
 func popQueryString(v url.Values, key string) (re string) {

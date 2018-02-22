@@ -22,6 +22,6 @@ type AsyncResolver interface {
 }
 
 type Healthchecker interface {
-	AddCheck(service string, url url.URL)
-	RemoveChecks(service string)
+	AddCheck(service string, url *url.URL) merry.Error
+	RemoveChecks(service string) merry.Error
 }
