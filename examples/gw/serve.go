@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"net/url"
 	"os"
 	"time"
 
@@ -32,7 +30,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 
 	b := lb.NewRoundRobin()
-	res := sd.NewConsul(c, b)
+	res := sd.NewConsulLB(c, b)
 
 	idp := &ExampleIdentityProvider{Env: env.DefaultProvider, Resolver: res}
 

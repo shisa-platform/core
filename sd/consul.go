@@ -21,10 +21,16 @@ var _ Registrar = &consulSD{}
 var _ Resolver = &consulSD{}
 var _ Healthchecker = &consulSD{}
 
-func NewConsul(client *consul.Client, b lb.Balancer) *consulSD {
+func NewConsulLB(client *consul.Client, b lb.Balancer) *consulSD {
 	return &consulSD{
 		client:   client,
 		balancer: b,
+	}
+}
+
+func NewConsul(client *consul.Client) *consulSD {
+	return &consulSD{
+		client: client,
 	}
 }
 
