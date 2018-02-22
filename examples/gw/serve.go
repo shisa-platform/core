@@ -48,7 +48,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Authorizer:     authZ,
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
-			Logger:         logger,
 		},
 	}
 
@@ -62,7 +61,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Authorizer:     authZ,
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
-			Logger:         logger,
 		},
 		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
 	}

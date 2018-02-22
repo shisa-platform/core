@@ -8,7 +8,6 @@ import (
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -25,7 +24,6 @@ func TestDebugServerEmpty(t *testing.T) {
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 	assert.NotEmpty(t, cut.Path)
-	assert.NotNil(t, cut.Logger)
 }
 
 func TestDebugServerMisconfiguredTLS(t *testing.T) {
@@ -42,12 +40,10 @@ func TestDebugServerMisconfiguredTLS(t *testing.T) {
 }
 
 func TestDebugServer(t *testing.T) {
-	logger := zap.NewExample()
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Addr:             "127.0.0.1:0",
 			DisableKeepAlive: true,
-			Logger:           logger,
 		},
 	}
 	assert.Equal(t, "debug", cut.Name())
@@ -60,7 +56,6 @@ func TestDebugServer(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, merry.Is(err, http.ErrServerClosed))
 	assert.NotEmpty(t, cut.Path)
-	assert.Equal(t, logger, cut.Logger)
 }
 
 func TestDebugServerServeHTTPBadPath(t *testing.T) {

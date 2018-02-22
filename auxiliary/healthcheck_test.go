@@ -8,7 +8,6 @@ import (
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -38,7 +37,6 @@ func TestHealthcheckServerEmpty(t *testing.T) {
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 	assert.NotEmpty(t, cut.Path)
-	assert.NotNil(t, cut.Logger)
 }
 
 func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
@@ -55,12 +53,10 @@ func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
 }
 
 func TestHealthcheckServer(t *testing.T) {
-	logger := zap.NewExample()
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Addr:             "127.0.0.1:0",
 			DisableKeepAlive: true,
-			Logger:           logger,
 		},
 	}
 	assert.Equal(t, "healthcheck", cut.Name())
@@ -73,7 +69,6 @@ func TestHealthcheckServer(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, merry.Is(err, http.ErrServerClosed))
 	assert.NotEmpty(t, cut.Path)
-	assert.Equal(t, logger, cut.Logger)
 }
 
 func TestHealthcheckServerServeHTTPBadPath(t *testing.T) {
