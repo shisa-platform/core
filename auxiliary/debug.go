@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	debugStats   = new(expvar.Map)
+	debugStats    = new(expvar.Map)
 	debugResponse = expvarResponse{
 		headers: map[string][]string{
 			"Content-Type": []string{"application/json"},
