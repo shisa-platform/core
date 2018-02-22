@@ -129,8 +129,8 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 finish:
 	snapshot := ri.Flush()
 
-	if s.CompletionHandler != nil {
-		s.CompletionHandler(ctx, request, snapshot)
+	if s.CompletionHook != nil {
+		s.CompletionHook(ctx, request, snapshot)
 	}
 
 	if idErr != nil && s.ErrorHandler != nil {

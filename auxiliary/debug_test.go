@@ -457,13 +457,13 @@ func TestDebugServerServeHTTP(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-func TestDebugServerServeHTTPCustomCompletionHandler(t *testing.T) {
+func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
 	errHandler := new(mockErrorHandler)
 	var handlerCalled bool
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			ErrorHandler: errHandler.Handle,
-			CompletionHandler: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
+			CompletionHook: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
 				handlerCalled = true
 			},
 		},

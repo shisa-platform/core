@@ -181,8 +181,8 @@ finish:
 	writeErr := ri.WriteResponse(response)
 	snapshot := ri.Flush()
 
-	if s.CompletionHandler != nil {
-		s.CompletionHandler(ctx, request, snapshot)
+	if s.CompletionHook != nil {
+		s.CompletionHook(ctx, request, snapshot)
 	}
 
 	if idErr != nil && s.ErrorHandler != nil {

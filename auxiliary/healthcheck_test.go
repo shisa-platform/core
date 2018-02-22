@@ -476,13 +476,13 @@ func TestHealthcheckServerServeHTTP(t *testing.T) {
 	assert.JSONEq(t, expectedJson, w.Body.String())
 }
 
-func TestHealthcheckServerServeHTTPCustomCompletionHandler(t *testing.T) {
+func TestHealthcheckServerServeHTTPCustomCompletionHook(t *testing.T) {
 	errHandler := new(mockErrorHandler)
 	var handlerCalled bool
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			ErrorHandler: errHandler.Handle,
-			CompletionHandler: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
+			CompletionHook: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
 				handlerCalled = true
 			},
 		},

@@ -36,7 +36,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		GracePeriod:       2 * time.Second,
 		Handlers:          []service.Handler{authN.Service},
 		Logger:            logger,
-		CompletionHandler: lh.completion,
+		CompletionHook: lh.completion,
 		ErrorHandler:      lh.error,
 	}
 
@@ -46,7 +46,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Addr:              debugAddr,
 			Authentication:    authN,
 			Authorizer:        authZ,
-			CompletionHandler: lh.completion,
+			CompletionHook: lh.completion,
 			ErrorHandler:      lh.error,
 		},
 		Logger: logger,
@@ -60,7 +60,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Addr:              healthcheckAddr,
 			Authentication:    authN,
 			Authorizer:        authZ,
-			CompletionHandler: lh.completion,
+			CompletionHook: lh.completion,
 			ErrorHandler:      lh.error,
 		},
 		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},

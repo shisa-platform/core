@@ -258,7 +258,7 @@ finish:
 
 	end := time.Now().UTC()
 
-	if g.CompletionHandler != nil {
+	if g.CompletionHook != nil {
 		snapshot := httpx.ResponseSnapshot{
 			StatusCode: response.StatusCode(),
 			Size:       size,
@@ -279,7 +279,7 @@ finish:
 		}
 		snapshot.Metrics[SerializeResponseMetricKey] = end.Sub(serializationStart)
 
-		g.CompletionHandler(ctx, request, snapshot)
+		g.CompletionHook(ctx, request, snapshot)
 	}
 
 	if idErr != nil {

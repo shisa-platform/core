@@ -105,10 +105,10 @@ type HTTPServer struct {
 	// If nil no action will be taken.
 	ErrorHandler func(context.Context, *service.Request, merry.Error)
 
-	// CompletionHandler optionally customizes the behavior after
+	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHandler func(context.Context, *service.Request, httpx.ResponseSnapshot)
+	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot)
 
 	base http.Server
 }
