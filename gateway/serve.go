@@ -83,7 +83,15 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 			gch <- err
 			return
 		}
-		g.Logger.Info("gateway started", zap.String("addr", listener.Addr().String()))
+
+		addr := listener.Addr().String()
+
+		if err = g.Register(g.Name(), addr); err != nil {
+			gch <- err
+			return
+		}
+
+		g.Logger.Info("gateway started", zap.String("addr", addr))
 		if tls {
 			gch <- g.base.ServeTLS(listener, "", "")
 		} else {

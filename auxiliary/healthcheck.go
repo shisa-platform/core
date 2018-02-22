@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"expvar"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -59,6 +60,10 @@ type HealthcheckServer struct {
 	// Checkers are the resources to include in the status report.
 	Checkers []Healthchecker
 
+	// Register is a function hook that optionally registers
+	// the healthcheck endpoint with a service registry
+	Register func(name, addr string) merry.Error
+
 	// Logger optionally specifies the logger to use by the
 	// Healthcheck server.
 	// If nil all logging is disabled.
@@ -87,6 +92,13 @@ func (s *HealthcheckServer) init() {
 		s.Logger = zap.NewNop()
 	}
 	defer s.Logger.Sync()
+
+	if s.Register == nil {
+		s.Register = func(name, addr string) merry.Error {
+			return nil
+		}
+	}
+
 	s.requestLog = s.Logger.Named("request")
 
 	s.base.Handler = s
@@ -109,6 +121,10 @@ func (s *HealthcheckServer) Serve() error {
 	addrVar.Set(addr)
 	healthcheckStats.Set("addr", addrVar)
 	s.Logger.Info("healthcheck service started", zap.String("addr", addr))
+
+	if err := s.Register(s.Name(), addr); err != nil {
+		return err
+	}
 
 	if s.UseTLS {
 		return s.base.ServeTLS(listener, "", "")
