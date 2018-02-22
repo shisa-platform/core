@@ -93,7 +93,7 @@ func (s *DebugServer) Shutdown(timeout time.Duration) error {
 }
 
 func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ri := httpx.NewInterceptor(w, s.requestLog)
+	ri := httpx.NewInterceptor(w)
 
 	debugStats.Add("hits", 1)
 
@@ -102,10 +102,11 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)
 	if idErr != nil {
+		idErr = merry.WithMessage(idErr, "generating request id")
 		requestID = request.ID()
 	}
 	if requestID == "" {
-		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		idErr = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
 
@@ -114,7 +115,7 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var writeErr error
 	if response := s.Authenticate(ctx, request); response != nil {
-		writeErr = httpx.WriteResponse(ri, response)
+		writeErr = ri.WriteResponse(response)
 		goto finish
 	}
 
@@ -126,12 +127,17 @@ func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 finish:
-	ri.Flush(ctx, request)
+	snapshot := ri.Flush()
 
-	if idErr != nil {
-		s.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+	if s.CompletionHook != nil {
+		s.CompletionHook(ctx, request, snapshot)
 	}
-	if writeErr != nil {
-		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+
+	if idErr != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, idErr)
+	}
+	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	if writeErr1 != nil && s.ErrorHook != nil {
+		s.ErrorHook(ctx, request, writeErr1)
 	}
 }

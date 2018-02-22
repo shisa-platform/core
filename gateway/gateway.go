@@ -12,9 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -28,12 +31,11 @@ var (
 )
 
 type Gateway struct {
-	Name             string        // The name of the Gateway for in logging
 	Address          string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
 	GracePeriod      time.Duration // Timeout for graceful shutdown of open connections
-	TLSConfig        *tls.Config   `json:"-"` // optional TLS config, used by ServeTLS and ListenAndServeTLS
+	TLSConfig        *tls.Config   `json:"-"` // optional TLS config, used by ServeTLS
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// request, including the body.
@@ -110,6 +112,17 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler service.Handler `json:"-"`
 
+	// ErrorHook optionally customizes how errors encountered
+	// servicing a request are disposed.
+	// If nil the error is sent to the `Error` level of the
+	// `Logger` field with the request id as a field.
+	ErrorHook func(context.Context, *service.Request, merry.Error) `json:"-"`
+
+	// CompletionHook optionally customizes the behavior after
+	// a request has been serviced.
+	// If nil no action will be taken.
+	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot) `json:"-"`
+
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
 	// If nil all logging is disabled.
@@ -119,9 +132,7 @@ type Gateway struct {
 	auxiliaries []auxiliary.Server
 	tree        *node
 
-	requestLog *zap.Logger
-	panicLog   *zap.Logger
-	started    bool
+	started bool
 }
 
 func (g *Gateway) init() {
@@ -179,8 +190,10 @@ func (g *Gateway) init() {
 	if g.Logger == nil {
 		g.Logger = zap.NewNop()
 	}
-	g.requestLog = g.Logger.Named("request")
-	g.panicLog = g.Logger.Named("panic")
+
+	if g.ErrorHook == nil {
+		g.ErrorHook = g.defaultErrorHook
+	}
 
 	g.tree = new(node)
 	g.started = true

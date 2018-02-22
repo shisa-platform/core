@@ -32,7 +32,7 @@ func main() {
 		return now.Sub(start).String()
 	}))
 
-	addr := flag.String("addr", "", "service address")
+	addr := flag.String("addr", ":0", "service address")
 	flag.Parse()
 
 	logger, err := zap.NewProduction()
@@ -52,7 +52,7 @@ func main() {
 
 	listener, err := httpx.HTTPListenerForAddress(*addr)
 	if err != nil {
-		logger.Error("opening listener", zap.Error(err))
+		logger.Fatal("opening listener", zap.Error(err))
 	}
 	logger.Info("starting goodbye service", zap.String("addr", listener.Addr().String()))
 

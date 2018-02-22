@@ -9,6 +9,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
@@ -98,6 +99,16 @@ type HTTPServer struct {
 	// `Authentication` field to be configured and return a
 	// principal.
 	Authorizer Authorizer
+
+	// ErrorHook optionally customizes how errors encountered
+	// servicing a request are disposed.
+	// If nil no action will be taken.
+	ErrorHook func(context.Context, *service.Request, merry.Error)
+
+	// CompletionHook optionally customizes the behavior after
+	// a request has been serviced.
+	// If nil no action will be taken.
+	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot)
 
 	base http.Server
 }

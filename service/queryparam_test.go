@@ -15,8 +15,6 @@ type queryParamConversionTestFixture struct {
 
 var (
 	tokyo    = time.FixedZone("", 9*60*60)
-	op       = time.Date(2020, 7, 24, 20, 0, 0, 0, tokyo)
-	cl       = time.Date(2020, 8, 9, 20, 0, 0, 0, tokyo)
 	fixtures = []queryParamConversionTestFixture{
 		{[]string{"one,\"foo\",bar", "\"two\",baz,quux"}, []string{"one", "foo", "bar", "two", "baz", "quux"}},
 		{[]string{"true"}, true},
@@ -25,8 +23,6 @@ var (
 		{[]string{"0"}, false},
 		{[]string{"true", "false"}, []bool{true, false}},
 		{[]string{"1", "0"}, []bool{true, false}},
-		{[]string{"2020-07-24T20:00:00+09:00"}, op},
-		{[]string{"2020-07-24T20:00:00+09:00", "2020-08-09T20:00:00+09:00"}, []time.Time{op, cl}},
 		{[]string{"-127"}, int8(-127)},
 		{[]string{"127", "-42"}, []int8{127, -42}},
 		{[]string{"-127"}, int16(-127)},
@@ -53,8 +49,6 @@ var (
 		{[]string{"foo,bar", "bar,\",baz"}, []string(nil)},
 		{[]string{"bliggle"}, false},
 		{[]string{"bliggle"}, []bool(nil)},
-		{[]string{"xxx"}, time.Time{}},
-		{[]string{"xxx", "yyy"}, []time.Time(nil)},
 		{[]string{"xxx"}, int(0)},
 		{[]string{"xxx"}, []int(nil)},
 		{[]string{"xxx"}, int8(0)},
@@ -101,14 +95,6 @@ func assertParameterConversion(t *testing.T, fixture queryParamConversionTestFix
 	case []bool:
 		var result []bool
 		err = cut.BoolSlice(&result)
-		actual = result
-	case time.Time:
-		var result time.Time
-		err = cut.Time(&result, time.RFC3339)
-		actual = result
-	case []time.Time:
-		var result []time.Time
-		err = cut.TimeSlice(&result, time.RFC3339)
 		actual = result
 	case uint8:
 		var result uint8
@@ -210,4 +196,47 @@ func TestQueryParameterConversionFailure(t *testing.T) {
 	for _, fixture := range failures {
 		assertParameterConversion(t, fixture, true)
 	}
+}
+
+func TestQueryParameterConversionForTime(t *testing.T) {
+	open := time.Date(2020, 7, 24, 20, 0, 0, 0, tokyo)
+	close := time.Date(2020, 8, 9, 20, 0, 0, 0, tokyo)
+	format := "2006-01-02T15:04:05-07:00"
+
+	values := []string{"2020-07-24T20:00:00+09:00", "2020-08-09T20:00:00+09:00"}
+
+	cut := QueryParameter{
+		Name:   "test",
+		Values: values[0:1],
+	}
+
+	var actual time.Time
+	err := cut.Time(&actual, format)
+
+	assert.NoError(t, err)
+	assert.Equal(t, open.Unix(), actual.Unix())
+	_, expectedOffset := open.Zone()
+	_, actualOffset := actual.Zone()
+	assert.Equal(t, expectedOffset, actualOffset)
+
+	cut.Values = values
+
+	var actuals []time.Time
+	err = cut.TimeSlice(&actuals, format)
+
+	assert.NoError(t, err)
+	assert.Equal(t, open.Unix(), actuals[0].Unix())
+	_, expectedOffset = open.Zone()
+	_, actualOffset = actuals[0].Zone()
+	assert.Equal(t, expectedOffset, actualOffset)
+	assert.Equal(t, close.Unix(), actuals[1].Unix())
+	_, expectedOffset = close.Zone()
+	_, actualOffset = actuals[1].Zone()
+	assert.Equal(t, expectedOffset, actualOffset)
+
+	cut.Values = []string{"xxx"}
+	assert.Error(t, cut.Time(&actual, format))
+
+	cut.Values = []string{"xxx", "yyy"}
+	assert.Error(t, cut.TimeSlice(&actuals, format))
 }

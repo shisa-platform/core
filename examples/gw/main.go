@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	addr := flag.String("addr", "", "gateway service address")
+	addr := flag.String("addr", ":0", "gateway service address")
 	debugAddr := flag.String("debugaddr", ":0", "debug service address")
 	healthcheckAddr := flag.String("healthcheckaddr", ":0", "healthcheck service address")
 

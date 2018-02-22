@@ -1,0 +1,22 @@
+digraph {
+
+    public [label="Public"];
+    lb [shape=box label="Load Balancer"];
+
+    subgraph cluster_gw {
+        label = "API Gateway";
+        gw [shape=box label="Gateway"];
+        subgraph cluster_aux {
+            label = "Auxiliary Servers";
+            health [shape=box label="Healthcheck"];
+            status [shape=box label="Status"];
+        }
+    }
+
+    private [label="Private" rank=max];
+
+    public -> lb [label="https:443"];
+    lb -> gw [label="http:8000"];
+    lb -> health [label="http:8001"];
+    private -> status [label="http:8002"];
+}

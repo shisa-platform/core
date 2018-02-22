@@ -12,6 +12,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/service"
@@ -78,7 +79,11 @@ func TestDebugServerServeHTTPBadPath(t *testing.T) {
 }
 
 func TestDebugServerServeHTTPCustomPath(t *testing.T) {
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			ErrorHook: errHook.Handle,
+		},
 		Path: "/foo/bar",
 	}
 	cut.init()
@@ -88,6 +93,7 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
@@ -95,13 +101,14 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 }
 
 func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return "", merry.New("i blewed up!")
 			},
+			ErrorHook: errHook.Handle,
 		},
-		Logger: zap.NewExample(),
 	}
 	cut.init()
 
@@ -110,6 +117,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
@@ -118,13 +126,14 @@ func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 }
 
 func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return "", nil
 			},
+			ErrorHook: errHook.Handle,
 		},
-		Logger: zap.NewExample(),
 	}
 	cut.init()
 
@@ -133,6 +142,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
@@ -142,12 +152,14 @@ func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 
 func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 	requestID := "abc123"
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
 				return requestID, nil
 			},
 			RequestIDHeaderName: "x-zalgo",
+			ErrorHook:           errHook.Handle,
 		},
 	}
 	cut.init()
@@ -157,6 +169,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
@@ -174,11 +187,13 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 			return challenge
 		},
 	}
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
+			ErrorHook: errHook.Handle,
 		},
 	}
 	cut.init()
@@ -188,6 +203,7 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -205,6 +221,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			return challenge
 		},
 	}
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
@@ -213,8 +230,8 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 					return unserializableResponse()
 				},
 			},
+			ErrorHook: errHook.Handle,
 		},
-		Logger: zap.NewExample(),
 	}
 	cut.init()
 
@@ -223,6 +240,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -240,6 +258,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 			return challenge
 		},
 	}
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
@@ -251,6 +270,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 					return response
 				},
 			},
+			ErrorHook: errHook.Handle,
 		},
 	}
 	cut.init()
@@ -260,6 +280,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -279,13 +300,14 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 			return challenge
 		},
 	}
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
+			ErrorHook: errHook.Handle,
 		},
-		Logger: zap.NewExample(),
 	}
 	cut.init()
 
@@ -294,6 +316,7 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -313,12 +336,14 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{err: merry.New("i blewed up!")}
+	errHook := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
 			Authorizer: authz,
+			ErrorHook:  errHook.Handle,
 		},
 	}
 	cut.init()
@@ -328,6 +353,7 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -347,12 +373,14 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{ok: false}
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
 			Authorizer: authz,
+			ErrorHook:  errHook.Handle,
 		},
 	}
 	cut.init()
@@ -362,6 +390,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -381,14 +410,15 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 		},
 	}
 	authz := stubAuthorizer{ok: true}
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
 			Authorizer: authz,
+			ErrorHook:  errHook.Handle,
 		},
-		Logger: zap.NewExample(),
 	}
 	cut.init()
 
@@ -397,6 +427,7 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
@@ -405,8 +436,11 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 }
 
 func TestDebugServerServeHTTP(t *testing.T) {
+	errHook := new(mockErrorHook)
 	cut := DebugServer{
-		Logger: zap.NewExample(),
+		HTTPServer: HTTPServer{
+			ErrorHook: errHook.Handle,
+		},
 	}
 	cut.init()
 
@@ -415,6 +449,34 @@ func TestDebugServerServeHTTP(t *testing.T) {
 
 	cut.ServeHTTP(w, r)
 
+	errHook.assertNotCalled(t)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+}
+
+func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
+	errHook := new(mockErrorHook)
+	var handlerCalled bool
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			ErrorHook: errHook.Handle,
+			CompletionHook: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
+				handlerCalled = true
+			},
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	errHook.assertNotCalled(t)
+	assert.True(t, handlerCalled)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
