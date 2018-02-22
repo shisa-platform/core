@@ -179,20 +179,27 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request)
 	return
 }
 
-func (s *HTTPServer) Serve() error {
+func (s *HTTPServer) Listen() (err error) {
 	s.init()
 
-	listener, err := httpx.HTTPListenerForAddress(s.Addr)
-	if err != nil {
-		return err
+	if s.listener, err = httpx.HTTPListenerForAddress(s.Addr); err != nil {
+		err = merry.WithMessage(err, "opening listener")
+		return
 	}
-	s.listener = listener
+
+	return
+}
+
+func (s *HTTPServer) Serve() error {
+	if s.listener == nil {
+		return merry.New("call Listen first")
+	}
 
 	if s.UseTLS {
-		return s.base.ServeTLS(listener, "", "")
+		return s.base.ServeTLS(s.listener, "", "")
 	}
 
-	return s.base.Serve(listener)
+	return s.base.Serve(s.listener)
 }
 
 func (s *HTTPServer) Shutdown(timeout time.Duration) error {

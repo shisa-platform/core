@@ -5,6 +5,7 @@ import (
 	"expvar"
 	"net/http"
 	"sort"
+	"sync"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
@@ -69,11 +70,23 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	g.auxiliaries = auxiliaries
 
 	ach := make(chan error, len(g.auxiliaries))
+	var wg sync.WaitGroup
 	for _, aux := range g.auxiliaries {
-		g.Logger.Info("starting auxiliary server", zap.String("name", aux.Name()))
+		wg.Add(1)
 		go func(server auxiliary.Server) {
+			err := server.Listen()
+			wg.Done()
+			if err != nil {
+				ach <- err
+				return
+			}
 			ach <- server.Serve()
 		}(aux)
+	}
+
+	wg.Wait()
+	for _, aux := range g.auxiliaries {
+		g.Logger.Info("started auxiliary server", zap.String("name", aux.Name()), zap.String("addr", aux.Address()))
 	}
 
 	gch := make(chan error, 1)

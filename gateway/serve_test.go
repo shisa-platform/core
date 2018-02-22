@@ -152,6 +152,9 @@ func TestGatewayFailingAuxiliary(t *testing.T) {
 		NameHook: func() string {
 			return "aux"
 		},
+		ListenHook: func() error {
+			return nil
+		},
 		ServeHook: func() error {
 			return merry.New("i blewed up!")
 		},
@@ -226,6 +229,9 @@ func TestGatewayAuxiliaryServer(t *testing.T) {
 		},
 		NameHook: func() string {
 			return "fake"
+		},
+		ListenHook: func() error {
+			return nil
 		},
 		ServeHook: func() error {
 			return http.ErrServerClosed

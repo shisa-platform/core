@@ -20,10 +20,9 @@ import (
 func TestDebugServerEmpty(t *testing.T) {
 	cut := DebugServer{}
 
-	err := cut.Serve()
+	err := cut.Listen()
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
-	assert.NotEmpty(t, cut.Path)
 }
 
 func TestDebugServerMisconfiguredTLS(t *testing.T) {
@@ -34,7 +33,9 @@ func TestDebugServerMisconfiguredTLS(t *testing.T) {
 		},
 	}
 
-	err := cut.Serve()
+	err := cut.Listen()
+	assert.NoError(t, err)
+	err = cut.Serve()
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 }
@@ -52,7 +53,9 @@ func TestDebugServer(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown(0) })
 	defer timer.Stop()
 
-	err := cut.Serve()
+	err := cut.Listen()
+	assert.NoError(t, err)
+	err = cut.Serve()
 	assert.Error(t, err)
 	assert.True(t, merry.Is(err, http.ErrServerClosed))
 	assert.NotEmpty(t, cut.Path)
