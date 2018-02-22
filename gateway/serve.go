@@ -86,7 +86,7 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 		addr := listener.Addr().String()
 
-		if err = g.Register(g.Name(), addr); err != nil {
+		if err = g.Register(g.Name, addr); err != nil {
 			gch <- err
 			return
 		}

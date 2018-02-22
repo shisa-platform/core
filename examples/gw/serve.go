@@ -47,6 +47,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		GracePeriod:     2 * time.Second,
 		Handlers:        []service.Handler{authN.Service},
 		Logger:          logger,
+		Register: func(name, addr string) merry.Error {
+			return res.Register(name, addr)
+		},
 	}
 
 	authZ := SimpleAuthorization{[]string{"user:1"}}
@@ -71,23 +74,18 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		},
 		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
 		Logger:   logger,
+		Register: func(name, addr string) merry.Error {
+			surl, e := url.Parse(fmt.Sprintf("http://Admin:password@%s/healthcheck?interval=5s", addr))
+			if e != nil {
+				return merry.Wrap(e)
+			}
+			return res.AddCheck(gw.Name, surl)
+		},
 	}
 
 	services := []service.Service{hello, goodbye}
 
-	if err := res.Register(name, addr); err != nil {
-		logger.Fatal("service failed to register", zap.Error(err))
-	}
 	defer res.Deregister(name)
-
-	surl, e := url.Parse(fmt.Sprintf("http://Admin:password@%s/healthcheck?interval=5s", healthcheckAddr))
-	if e != nil {
-		logger.Fatal("healthcheck url failed to parse", zap.Error(e))
-	}
-
-	if err := res.AddCheck(name, surl); err != nil {
-		logger.Fatal("healthcheck failed to register", zap.Error(err))
-	}
 	defer res.RemoveChecks(name)
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {
