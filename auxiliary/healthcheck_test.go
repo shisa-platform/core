@@ -172,7 +172,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 				return requestID, nil
 			},
 			RequestIDHeaderName: "x-zalgo",
-			ErrorHook:        errHandler.Handle,
+			ErrorHook:           errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -355,8 +355,8 @@ func TestHealthcheckServerServeHTTPAuthorizationError(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			Authorizer:   authz,
-			ErrorHook: errHandler.Handle,
+			Authorizer: authz,
+			ErrorHook:  errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -392,8 +392,8 @@ func TestHealthcheckServerServeHTTPAuthorizationFail(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			Authorizer:   authz,
-			ErrorHook: errHandler.Handle,
+			Authorizer: authz,
+			ErrorHook:  errHandler.Handle,
 		},
 	}
 	cut.init()
@@ -429,8 +429,8 @@ func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 			},
-			Authorizer:   authz,
-			ErrorHook: errHandler.Handle,
+			Authorizer: authz,
+			ErrorHook:  errHandler.Handle,
 		},
 	}
 	cut.init()

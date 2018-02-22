@@ -31,21 +31,21 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	lh := logHandler{logger}
 
 	gw := &gateway.Gateway{
-		Address:           addr,
-		HandleInterrupt:   true,
-		GracePeriod:       2 * time.Second,
-		Handlers:          []service.Handler{authN.Service},
-		Logger:            logger,
-		CompletionHook: lh.completion,
-		ErrorHook:      lh.error,
+		Address:         addr,
+		HandleInterrupt: true,
+		GracePeriod:     2 * time.Second,
+		Handlers:        []service.Handler{authN.Service},
+		Logger:          logger,
+		CompletionHook:  lh.completion,
+		ErrorHook:       lh.error,
 	}
 
 	authZ := SimpleAuthorization{[]string{"user:1"}}
 	debug := &auxiliary.DebugServer{
 		HTTPServer: auxiliary.HTTPServer{
-			Addr:              debugAddr,
-			Authentication:    authN,
-			Authorizer:        authZ,
+			Addr:           debugAddr,
+			Authentication: authN,
+			Authorizer:     authZ,
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
@@ -57,9 +57,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
-			Addr:              healthcheckAddr,
-			Authentication:    authN,
-			Authorizer:        authZ,
+			Addr:           healthcheckAddr,
+			Authentication: authN,
+			Authorizer:     authZ,
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
