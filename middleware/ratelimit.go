@@ -16,7 +16,7 @@ const (
 	RetryAfterHeaderKey = "Retry-After"
 )
 
-type RateLimitHandler func(context.Context, *service.Request, time.Duration) service.Response
+type RateLimitHandler func(context.Context, *service.Request, time.Duration) httpx.Response
 
 // ClientThrottler is a a rate-limiting middleware that
 // throttles requests from a given ClientIP using its Limiter
@@ -40,7 +40,7 @@ type ClientThrottler struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -70,11 +70,11 @@ func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) servi
 	return nil
 }
 
-func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
+func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) httpx.Response {
 	response := service.NewEmpty(http.StatusTooManyRequests)
 	response.Headers().Set(RetryAfterHeaderKey, strconv.Itoa(int(cd/time.Second)))
 
@@ -105,7 +105,7 @@ type UserThrottler struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *UserThrottler) Service(ctx context.Context, r *service.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -135,11 +135,11 @@ func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service
 	return nil
 }
 
-func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
+func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) httpx.Response {
 	response := service.NewEmpty(http.StatusTooManyRequests)
 	response.Headers().Set(RetryAfterHeaderKey, strconv.Itoa(int(cd/time.Second)))
 

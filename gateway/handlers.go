@@ -10,19 +10,19 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func defaultNotFoundHandler(ctx context.Context, request *service.Request) service.Response {
+func defaultNotFoundHandler(ctx context.Context, request *service.Request) httpx.Response {
 	return service.NewEmpty(http.StatusNotFound)
 }
 
-func defaultMethodNotAlowedHandler(ctx context.Context, request *service.Request) service.Response {
+func defaultMethodNotAlowedHandler(ctx context.Context, request *service.Request) httpx.Response {
 	return service.NewEmpty(http.StatusMethodNotAllowed)
 }
 
-func defaultMalformedRequestHandler(ctx context.Context, request *service.Request) service.Response {
+func defaultMalformedRequestHandler(ctx context.Context, request *service.Request) httpx.Response {
 	return service.NewEmpty(http.StatusBadRequest)
 }
 
-func defaultRedirectHandler(c context.Context, r *service.Request) (resp service.Response) {
+func defaultRedirectHandler(c context.Context, r *service.Request) (resp httpx.Response) {
 	location := *r.URL
 	if location.Path[len(location.Path)-1] == '/' {
 		location.Path = location.Path[:len(location.Path)-1]
@@ -39,7 +39,7 @@ func defaultRedirectHandler(c context.Context, r *service.Request) (resp service
 	return
 }
 
-func defaultInternalServerErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func defaultInternalServerErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(http.StatusInternalServerError, err)
 }
 

@@ -231,7 +231,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	p = CSRFProtector{
 		SiteURL: *s,
-		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
+		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) httpx.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}

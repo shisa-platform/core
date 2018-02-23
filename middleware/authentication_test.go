@@ -125,7 +125,7 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 	var handlerInvoked bool
 	cut := &Authentication{
 		Authenticator: authn,
-		UnauthorizedHandler: func(c context.Context, r *service.Request) service.Response {
+		UnauthorizedHandler: func(c context.Context, r *service.Request) httpx.Response {
 			handlerInvoked = true
 			assert.Equal(t, ctx, c)
 			assert.Equal(t, request, r)
@@ -165,7 +165,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 	var errorHandlerInvoked bool
 	cut := &Authentication{
 		Authenticator: authn,
-		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
+		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			assert.Equal(t, ctx, c)
 			assert.Equal(t, request, r)

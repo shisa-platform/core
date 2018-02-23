@@ -2,8 +2,6 @@ package httpx
 
 import (
 	"net/http"
-
-	"github.com/percolate/shisa/service"
 )
 
 // WriteResponse serializes a response instance to the
@@ -12,7 +10,7 @@ import (
 // value of `Response.StatusCode()` so it is not safe to use the
 // `ResponseWriter` after calling this function.
 // Any error returned from `Response.Serialize` will be returned.
-func WriteResponse(w http.ResponseWriter, response service.Response) (err error) {
+func WriteResponse(w http.ResponseWriter, response Response) (err error) {
 	for k, vs := range response.Headers() {
 		w.Header()[k] = vs
 	}

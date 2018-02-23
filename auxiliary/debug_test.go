@@ -256,7 +256,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
-				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
+				UnauthorizedHandler: func(context.Context, *service.Request) httpx.Response {
 					return unserializableResponse()
 				},
 			},
@@ -294,7 +294,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
-				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
+				UnauthorizedHandler: func(context.Context, *service.Request) httpx.Response {
 					response := service.NewEmpty(http.StatusUnauthorized)
 					response.Headers().Set(middleware.WWWAuthenticateHeaderKey, challenge)
 					response.Trailers().Add("x-zalgo", "he comes")

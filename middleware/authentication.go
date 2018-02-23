@@ -33,7 +33,7 @@ type Authentication struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *Authentication) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) Service(ctx context.Context, r *service.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -61,14 +61,14 @@ func (m *Authentication) Service(ctx context.Context, r *service.Request) servic
 	return nil
 }
 
-func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) httpx.Response {
 	response := service.NewEmpty(http.StatusUnauthorized)
 	response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
 
-func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	response := service.NewEmptyError(merry.HTTPCode(err), err)
 	if m.Authenticator != nil {
 		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
@@ -88,7 +88,7 @@ type PassiveAuthentication struct {
 	Authenticator authn.Authenticator
 }
 
-func (m *PassiveAuthentication) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *PassiveAuthentication) Service(ctx context.Context, r *service.Request) httpx.Response {
 	if m.Authenticator == nil {
 		return service.NewEmptyError(http.StatusInternalServerError, merry.New("PassiveAuthentication.Authenticator is nil"))
 	}

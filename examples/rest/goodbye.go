@@ -124,7 +124,7 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	ctx = context.WithRequestID(ctx, requestID)
 
-	var response service.Response
+	var response httpx.Response
 
 	if req.Method != http.MethodGet {
 		response = service.NewEmpty(http.StatusMethodNotAllowed)
@@ -185,7 +185,7 @@ finish:
 	}
 }
 
-func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service.Response {
+func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) httpx.Response {
 	var userID string
 	if values, exists := request.Header["X-User-Id"]; exists {
 		userID = values[0]
@@ -216,7 +216,7 @@ func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) service
 	return SimpleResponse(fmt.Sprintf("{\"goodbye\": %q}", who))
 }
 
-func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) service.Response {
+func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) httpx.Response {
 	response := Healthcheck{
 		Ready:   true,
 		Details: map[string]string{"idp": "OK"},

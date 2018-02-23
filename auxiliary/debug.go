@@ -112,7 +112,7 @@ func (s *DebugServer) Route(ctx context.Context, request *service.Request) httpx
 	return nil
 }
 
-func (s *DebugServer) Service(ctx context.Context, request *service.Request) service.Response {
+func (s *DebugServer) Service(ctx context.Context, request *service.Request) httpx.Response {
 	debugStats.Add("hits", 1)
 
 	return debugResponse

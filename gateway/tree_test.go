@@ -34,7 +34,7 @@ func fakeEndpoint(s string) *endpoint {
 			Route: s,
 			Get: &service.Pipeline{
 				Handlers: []httpx.Handler{
-					func(context.Context, *service.Request) service.Response {
+					func(context.Context, *service.Request) httpx.Response {
 						fakeHandlerValue = s
 						return nil
 					},

@@ -65,7 +65,7 @@ type CSRFProtector struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.Response {
+func (m *CSRFProtector) Service(c context.Context, r *service.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -176,7 +176,7 @@ func (m *CSRFProtector) defaultCheckOrigin(expected, actual url.URL) bool {
 	return expected.Scheme == actual.Scheme && expected.Host == actual.Host
 }
 
-func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 

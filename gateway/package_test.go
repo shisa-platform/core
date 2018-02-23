@@ -14,7 +14,7 @@ var (
 	fakeRequest   = httptest.NewRequest(http.MethodGet, expectedRoute, nil)
 )
 
-func dummyHandler(context.Context, *service.Request) service.Response {
+func dummyHandler(context.Context, *service.Request) httpx.Response {
 	return service.NewEmpty(http.StatusOK)
 }
 

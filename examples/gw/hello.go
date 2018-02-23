@@ -66,7 +66,7 @@ func (s *HelloService) Endpoints() []service.Endpoint {
 	return s.endpoints
 }
 
-func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service.Response {
+func (s *HelloService) Greeting(ctx context.Context, r *service.Request) httpx.Response {
 	client, err := s.connect()
 	if err != nil {
 		return service.NewEmptyError(http.StatusInternalServerError, err)

@@ -33,7 +33,7 @@ func TestReverseProxyMissingRouter(t *testing.T) {
 func TestReverseProxyMissingRouterCustomErrorHandler(t *testing.T) {
 	var errorHandlerInvoked bool
 	cut := ReverseProxy{
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *service.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			return service.NewEmpty(http.StatusPaymentRequired)
 		},
@@ -74,7 +74,7 @@ func TestReverseProxyNilRouterResponseCustomErrorHandler(t *testing.T) {
 			routerInvoked = true
 			return nil, nil
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *service.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			return service.NewEmpty(http.StatusPaymentRequired)
 		},
@@ -116,7 +116,7 @@ func TestReverseProxyErrorRouterResponseCustomErrorHandler(t *testing.T) {
 			routerInvoked = true
 			return nil, merry.New("i blewed up!")
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *service.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			return service.NewEmpty(http.StatusPaymentRequired)
 		},
@@ -140,7 +140,7 @@ func TestReverseProxyInvokerError(t *testing.T) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *service.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -167,13 +167,13 @@ func TestReverseProxyInvokerErrorCustomErrorHandler(t *testing.T) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *service.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
 			return nil, merry.New("i blewed up!")
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *service.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			return service.NewEmpty(http.StatusPaymentRequired)
 		},
@@ -198,7 +198,7 @@ func TestReverseProxyNilInvokerResponse(t *testing.T) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *service.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -225,13 +225,13 @@ func TestReverseProxyNilInvokerResponseCustomErrorHandler(t *testing.T) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *service.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
 			return nil, nil
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *service.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			return service.NewEmpty(http.StatusPaymentRequired)
 		},
@@ -259,7 +259,7 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 			assert.NotEmpty(t, r.Header.Get("Transfer-Encoding"))
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *service.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -299,7 +299,7 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *service.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -311,7 +311,7 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 			response.Headers().Set("Transfer-Encoding", "bitrot")
 			return response, nil
 		},
-		Responder: func(c context.Context, req *service.Request, res service.Response) service.Response {
+		Responder: func(c context.Context, req *service.Request, res httpx.Response) httpx.Response {
 			responderInvoked = true
 			assert.Empty(t, res.Headers().Get("Keep-Alive"))
 			assert.Empty(t, res.Headers().Get("Upgrade"))
@@ -394,7 +394,7 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 			r.URL.Path = "/"
 			return r, nil
 		},
-		Responder: func(c context.Context, req *service.Request, res service.Response) service.Response {
+		Responder: func(c context.Context, req *service.Request, res httpx.Response) httpx.Response {
 			responderInvoked = true
 			return nil
 		},

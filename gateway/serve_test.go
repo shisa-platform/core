@@ -288,7 +288,7 @@ func TestGatewayAuxiliaryServer(t *testing.T) {
 	aux.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
 }
 
-func teapotHandler(context.Context, *service.Request) service.Response {
+func teapotHandler(context.Context, *service.Request) httpx.Response {
 	return service.NewEmpty(http.StatusTeapot)
 }
 

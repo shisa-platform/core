@@ -1,4 +1,4 @@
-package service
+package httpx
 
 import (
 	"encoding/json"
@@ -150,7 +150,7 @@ func NewTemporaryRedirect(location string) Response {
 }
 
 // ResponseAdapter is an adapter for `http.Response` to the
-// `service.Response` interface.
+// `Response` interface.
 type ResponseAdapter struct {
 	*http.Response
 }

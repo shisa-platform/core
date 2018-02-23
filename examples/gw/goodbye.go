@@ -103,7 +103,7 @@ func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (
 	return request, nil
 }
 
-func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, response service.Response) service.Response {
+func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, response httpx.Response) httpx.Response {
 	var buf bytes.Buffer
 	if _, err := response.Serialize(&buf); err != nil {
 		return service.NewEmptyError(http.StatusBadGateway, err)

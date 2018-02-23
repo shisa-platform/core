@@ -29,10 +29,10 @@ var (
 type Route func(context.Context, *service.Request) (*service.Request, merry.Error)
 
 // Invoke sends the proxied request and returns the response.
-type Invoke func(context.Context, *service.Request) (service.Response, merry.Error)
+type Invoke func(context.Context, *service.Request) (httpx.Response, merry.Error)
 
 // Respond modifies the response from the proxied server.
-type Respond func(context.Context, *service.Request, service.Response) service.Response
+type Respond func(context.Context, *service.Request, httpx.Response) httpx.Response
 
 // ReverseProxy is a Handler that takes an incoming request and
 // sends it to another server, proxying the response back to the
@@ -59,7 +59,7 @@ type ReverseProxy struct {
 	tripper http.RoundTripper
 }
 
-func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -169,7 +169,7 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) service.
 	return response
 }
 
-func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request) (service.Response, merry.Error) {
+func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request) (httpx.Response, merry.Error) {
 	if m.tripper == nil {
 		m.tripper = http.DefaultTransport
 	}
@@ -179,10 +179,10 @@ func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request)
 		return nil, merry.Wrap(err).WithHTTPCode(http.StatusBadGateway)
 	}
 
-	return service.ResponseAdapter{Response: response}, nil
+	return httpx.ResponseAdapter{Response: response}, nil
 }
 
-func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 

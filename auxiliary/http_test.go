@@ -12,7 +12,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func unserializableResponse() service.Response {
+func unserializableResponse() httpx.Response {
 	return &service.FakeResponse{
 		StatusCodeHook: func() int {
 			return http.StatusInternalServerError

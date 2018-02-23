@@ -100,7 +100,7 @@ func (s *HealthcheckServer) Route(ctx context.Context, request *service.Request)
 	return nil
 }
 
-func (s *HealthcheckServer) Service(ctx context.Context, request *service.Request) service.Response {
+func (s *HealthcheckServer) Service(ctx context.Context, request *service.Request) httpx.Response {
 	healthcheckStats.Add("hits", 1)
 
 	code := http.StatusOK

@@ -28,7 +28,7 @@ type RestrictContentTypes struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) service.Response {
+func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) httpx.Response {
 	var err merry.Error
 
 	if m.ErrorHandler == nil {
@@ -99,7 +99,7 @@ func (m *RestrictContentTypes) checkQuery(r *service.Request) (err merry.Error) 
 	return
 }
 
-func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }
 
@@ -115,7 +115,7 @@ type AllowContentTypes struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *AllowContentTypes) Service(c context.Context, r *service.Request) service.Response {
+func (m *AllowContentTypes) Service(c context.Context, r *service.Request) httpx.Response {
 	var err merry.Error
 
 	if m.ErrorHandler == nil {
@@ -186,6 +186,6 @@ func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
 	return
 }
 
-func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
+func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
 	return service.NewEmptyError(merry.HTTPCode(err), err)
 }

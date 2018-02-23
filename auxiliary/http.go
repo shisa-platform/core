@@ -159,7 +159,7 @@ func (s *HTTPServer) Address() string {
 	return s.Addr
 }
 
-func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response service.Response) {
+func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response httpx.Response) {
 	if s.Authentication == nil {
 		return
 	}
@@ -229,7 +229,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithRequestID(ctx, requestID)
 	ri.Header().Set(s.RequestIDHeaderName, requestID)
 
-	var response service.Response
+	var response httpx.Response
 	if response = s.Authenticate(ctx, request); response != nil {
 		goto finish
 	}

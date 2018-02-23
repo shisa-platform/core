@@ -1,4 +1,4 @@
-package service
+package httpx
 
 import (
 	"bytes"
