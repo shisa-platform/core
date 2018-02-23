@@ -39,7 +39,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Get(r.Context())
 	defer context.Put(ctx)
 
-	request := &service.Request{Request: r}
+	request := service.GetRequest(r)
+	defer service.PutRequest(request)
 
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
