@@ -41,7 +41,7 @@ func TestHealthcheckServerEmpty(t *testing.T) {
 func TestHealthcheckServerAddress(t *testing.T) {
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":0",
+			Addr: ":0",
 		},
 	}
 
@@ -70,7 +70,7 @@ func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
 func TestHealthcheckServerServeBeforeListen(t *testing.T) {
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":0",
+			Addr: ":0",
 		},
 	}
 

@@ -28,7 +28,7 @@ func TestDebugServerEmpty(t *testing.T) {
 func TestDebugServerAddress(t *testing.T) {
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":0",
+			Addr: ":0",
 		},
 	}
 
@@ -57,7 +57,7 @@ func TestDebugServerMisconfiguredTLS(t *testing.T) {
 func TestDebugServerServeBeforeListen(t *testing.T) {
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":0",
+			Addr: ":0",
 		},
 	}
 
