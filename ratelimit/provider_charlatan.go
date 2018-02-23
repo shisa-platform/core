@@ -2,9 +2,9 @@
 
 package ratelimit
 
+import "reflect"
 import "github.com/ansel1/merry"
 import "time"
-import "reflect"
 
 // ProviderLimitInvocation represents a single call of FakeProvider.Limit
 type ProviderLimitInvocation struct {

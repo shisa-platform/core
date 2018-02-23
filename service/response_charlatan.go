@@ -2,9 +2,10 @@
 
 package service
 
+import "reflect"
+
 import "io"
 import "net/http"
-import "reflect"
 
 // ResponseStatusCodeInvocation represents a single call of FakeResponse.StatusCode
 type ResponseStatusCodeInvocation struct {
