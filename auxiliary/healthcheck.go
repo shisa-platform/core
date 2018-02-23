@@ -1,18 +1,15 @@
 package auxiliary
 
 import (
-	stdctx "context"
 	"encoding/json"
 	"expvar"
 	"net/http"
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
@@ -63,39 +60,30 @@ type HealthcheckServer struct {
 	// Registrar implements sd.Healthchecker and registers
 	// the healthcheck endpoint with a service registry
 	Registrar sd.Healthchecker
-
-	// Logger optionally specifies the logger to use by the
-	// Healthcheck server.
-	// If nil all logging is disabled.
-	Logger *zap.Logger
-
-	requestLog *zap.Logger
 }
 
 func (s *HealthcheckServer) init() {
 	now := time.Now().UTC().Format(startTimeFormat)
 
-	s.HTTPServer.init()
-
 	healthcheckStats = healthcheckStats.Init()
+
 	AuxiliaryStats.Set("healthcheck", healthcheckStats)
+
 	healthcheckStats.Set("hits", new(expvar.Int))
+
 	startTime := new(expvar.String)
 	startTime.Set(now)
 	healthcheckStats.Set("starttime", startTime)
+
+	healthcheckStats.Set("addr", expvar.Func(func() interface{} {
+		return s.Address()
+	}))
 
 	if s.Path == "" {
 		s.Path = defaultHealthcheckServerPath
 	}
 
-	if s.Logger == nil {
-		s.Logger = zap.NewNop()
-	}
-	defer s.Logger.Sync()
-
-	s.requestLog = s.Logger.Named("request")
-
-	s.base.Handler = s
+	s.Router = s.Route
 }
 
 func (s *HealthcheckServer) Name() string {
@@ -105,74 +93,36 @@ func (s *HealthcheckServer) Name() string {
 func (s *HealthcheckServer) Serve() error {
 	s.init()
 
-	listener, err := httpx.HTTPListenerForAddress(s.Addr)
-	if err != nil {
-		return err
-	}
-
-	addr := listener.Addr().String()
-	addrVar := new(expvar.String)
-	addrVar.Set(addr)
-	healthcheckStats.Set("addr", addrVar)
-	s.Logger.Info("healthcheck service started", zap.String("addr", addr))
-
-	if s.UseTLS {
-		return s.base.ServeTLS(listener, "", "")
-	}
-
-	return s.base.Serve(listener)
+	return s.HTTPServer.Serve()
 }
 
-func (s *HealthcheckServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
-	defer cancel()
-	return merry.Wrap(s.base.Shutdown(ctx))
+func (s *HealthcheckServer) Route(ctx context.Context, request *service.Request) service.Handler {
+	if request.URL.Path == s.Path {
+		return s.Service
+	}
+
+	return nil
 }
 
-func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ri := httpx.NewInterceptor(w, s.requestLog)
-
+func (s *HealthcheckServer) Service(ctx context.Context, request *service.Request) service.Response {
 	healthcheckStats.Add("hits", 1)
-
-	ctx := context.New(r.Context())
-	request := &service.Request{Request: r}
-
-	requestID, idErr := s.RequestIDGenerator(ctx, request)
-	if idErr != nil {
-		requestID = request.ID()
-	}
-	if requestID == "" {
-		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
-		requestID = request.ID()
-	}
-
-	ctx = context.WithRequestID(ctx, requestID)
-	ri.Header().Set(s.RequestIDHeaderName, requestID)
 
 	code := http.StatusOK
 	status := make(map[string]string, len(s.Checkers))
 
-	var response service.Response
-	if response = s.Authenticate(ctx, request); response != nil {
-		goto finish
-	}
-
-	if s.Path != r.URL.Path {
-		response = service.NewEmpty(http.StatusNotFound)
-		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
-		goto finish
-	}
-
 	for _, check := range s.Checkers {
 		if err := check.Healthcheck(ctx); err != nil {
-			status[check.Name()] = merry.UserMessage(err)
+			status[check.Name()] = err.Error()
 			code = http.StatusServiceUnavailable
-			s.Logger.Info("healthcheck failed", zap.String("name", check.Name()), zap.String("reason", err.Error()), zap.Error(err))
+			if s.ErrorHook != nil {
+				err1 := merry.WithMessage(err, "check failed").WithValue("name", check.Name())
+				s.ErrorHook(ctx, request, err1)
+			}
 			continue
 		}
 		status[check.Name()] = "OK"
 	}
-	response = &service.JsonResponse{
+	response := &service.JsonResponse{
 		BasicResponse: service.BasicResponse{
 			Code: code,
 		},
@@ -180,14 +130,5 @@ func (s *HealthcheckServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	response.Headers().Set(contenttype.ContentTypeHeaderKey, jsonContentType)
 
-finish:
-	writeErr := httpx.WriteResponse(ri, response)
-	ri.Flush(ctx, request)
-
-	if idErr != nil {
-		s.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
-	}
-	if writeErr != nil {
-		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
-	}
+	return response
 }

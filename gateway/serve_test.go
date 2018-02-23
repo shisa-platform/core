@@ -15,7 +15,6 @@ import (
 
 func TestGatewayNoServices(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -25,7 +24,6 @@ func TestGatewayNoServices(t *testing.T) {
 
 func TestGatewayServiceWithNoName(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -38,7 +36,6 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 
 func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -53,7 +50,6 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 
 func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -66,7 +62,6 @@ func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 
 func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -79,7 +74,6 @@ func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 
 func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -92,7 +86,6 @@ func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 
 func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -106,7 +99,6 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 
 func TestGatewayFieldDefaultMissingName(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9003",
 	}
 
@@ -135,7 +127,6 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 
 func TestGatewayMisconfiguredTLS(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -146,9 +137,8 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGatewayFailingAuxiliary(t *testing.T) {
+func TestGatewayFailingAuxiliaryListen(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -161,6 +151,41 @@ func TestGatewayFailingAuxiliary(t *testing.T) {
 		},
 		NameHook: func() string {
 			return "aux"
+		},
+		ListenHook: func() error {
+			return merry.New("i blewed up!")
+		},
+		ServeHook: func() error {
+			return nil
+		},
+		ShutdownHook: func(gracePeriod time.Duration) error {
+			return nil
+		},
+	}
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+	err := cut.Serve([]service.Service{svc}, aux)
+	assert.Error(t, err)
+}
+
+func TestGatewayFailingAuxiliaryServe(t *testing.T) {
+	cut := &Gateway{
+		Address: ":9001",
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	aux := &auxiliary.FakeServer{
+		AddressHook: func() string {
+			return "127.0.0.1:0"
+		},
+		NameHook: func() string {
+			return "aux"
+		},
+		ListenHook: func() error {
+			return nil
 		},
 		ServeHook: func() error {
 			return merry.New("i blewed up!")
@@ -178,7 +203,6 @@ func TestGatewayFailingAuxiliary(t *testing.T) {
 
 func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
 		Address: "127.0.0.1:0",
 	}
 
@@ -225,7 +249,6 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 func TestGatewayAuxiliaryServer(t *testing.T) {
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
-		Name:        "test",
 		Address:     "127.0.0.1:0",
 		GracePeriod: expectedGracePeriod,
 	}
@@ -238,6 +261,9 @@ func TestGatewayAuxiliaryServer(t *testing.T) {
 		},
 		NameHook: func() string {
 			return "fake"
+		},
+		ListenHook: func() error {
+			return nil
 		},
 		ServeHook: func() error {
 			return http.ErrServerClosed

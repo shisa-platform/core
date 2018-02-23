@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/service"
@@ -44,4 +45,8 @@ func defaultInternalServerErrorHandler(ctx context.Context, r *service.Request, 
 
 func defaultRequestIDGenerator(c context.Context, r *service.Request) (string, merry.Error) {
 	return r.ID(), nil
+}
+
+func (g *Gateway) defaultErrorHook(ctx context.Context, _ *service.Request, err merry.Error) {
+	g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 }

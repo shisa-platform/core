@@ -1,5 +1,4 @@
 digraph {
-    randir = LR;
 
     gw [label="API Gateway"];
     idp [label="IdP Service"];

@@ -9,6 +9,7 @@ import (
 type Server interface {
 	Name() string
 	Address() string
+	Listen() error
 	Serve() error
 	Shutdown(time.Duration) error
 }

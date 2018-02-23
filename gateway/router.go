@@ -8,11 +8,23 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
+)
+
+const (
+	// RequestIdGenerationMetricKey is the `ResponseSnapshot` metric for generating the request id
+	RequestIdGenerationMetricKey = "request-id-generation"
+	// FindEndpointMetricKey is the `ResponseSnapshot` metric for resolving the request's endpoint
+	FindEndpointMetricKey = "find-endpoint"
+	// RunGatewayHandlersMetricKey is the `ResponseSnapshot` metric for running the Gateway level handlers
+	RunGatewayHandlersMetricKey = "handlers"
+	// RunEndpointPipelineMetricKey is the `ResponseSnapshot` metric for running the endpoint's pipeline
+	RunEndpointPipelineMetricKey = "pipeline"
+	// SerializeResponseMetricKey is the `ResponseSnapshot` metric for serializing the response
+	SerializeResponseMetricKey = "serialization"
 )
 
 type byName []service.QueryParameter
@@ -30,13 +42,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
 	if idErr != nil {
+		idErr = merry.WithMessage(idErr, "generating request id")
 		requestID = request.ID()
 	}
 	if requestID == "" {
-		idErr = merry.New("empty request id").WithUserMessage("Request ID Generator returned empty string")
+		idErr = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
-	requestIDGenerationTime := time.Now().UTC().Sub(requestIDGenerationStart)
+	requestIDGenerationStop := time.Now().UTC()
 
 	ctx = context.WithRequestID(ctx, requestID)
 
@@ -47,10 +60,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response      service.Response
 		pipeline      *service.Pipeline
 		findPathStart time.Time
+		findPathStop  time.Time
 		pipelineStart time.Time
-		pipelineTime  time.Duration
-		handlersTime  time.Duration
-		findPathTime  time.Duration
+		pipelineStop  time.Time
+		handlersStop  time.Time
 		endpoint      *endpoint
 		path          string
 		params        []service.QueryParameter
@@ -61,24 +74,28 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 
 	handlersStart := time.Now().UTC()
-	for _, handler := range g.Handlers {
+	for i, handler := range g.Handlers {
 		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
+			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
 			response = g.InternalServerErrorHandler(ctx, request, err)
+			handlersStop = time.Now().UTC()
 			goto finish
 		}
 		if response != nil {
+			handlersStop = time.Now().UTC()
 			goto finish
 		}
 	}
-	handlersTime = time.Now().UTC().Sub(handlersStart)
+	handlersStop = time.Now().UTC()
 
 	findPathStart = time.Now().UTC()
 	path = request.URL.EscapedPath()
 	endpoint, pathParams, tsr, err = g.tree.getValue(path)
-	findPathTime = time.Now().UTC().Sub(findPathStart)
+	findPathStop = time.Now().UTC()
 
 	if err != nil {
+		err = merry.WithMessage(err, "routing request")
 		response = g.InternalServerErrorHandler(ctx, request, err)
 		goto finish
 	}
@@ -198,20 +215,22 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineStart = time.Now().UTC()
-	for _, handler := range pipeline.Handlers {
+	for i, handler := range pipeline.Handlers {
 		response = runHandler(handler, ctx, request, &err)
 		if err != nil {
+			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
 			response = endpoint.iseHandler(ctx, request, err)
+			pipelineStop = time.Now().UTC()
 			goto finish
 		}
 		if response != nil {
 			break
 		}
 	}
-	pipelineTime = time.Now().UTC().Sub(pipelineStart)
+	pipelineStop = time.Now().UTC()
 
 	if response == nil {
-		err = merry.New("internal error").WithUserMessage("no response from pipeline")
+		err = merry.New("no response from pipeline")
 		response = endpoint.iseHandler(ctx, request, err)
 	}
 
@@ -238,46 +257,44 @@ finish:
 	}
 
 	end := time.Now().UTC()
-	serializationTime := end.Sub(serializationStart)
-	elapsed := end.Sub(start)
 
-	if ce := g.requestLog.Check(zap.InfoLevel, "request"); ce != nil {
-		fs := make([]zapcore.Field, 14, 16)
-		fs[0] = zap.String("request-id", requestID)
-		fs[1] = zap.String("client-ip-address", request.ClientIP())
-		fs[2] = zap.String("method", request.Method)
-		fs[3] = zap.String("uri", request.URL.RequestURI())
-		fs[4] = zap.Int("status-code", response.StatusCode())
-		fs[5] = zap.Int("response-size", size)
-		fs[6] = zap.String("user-agent", request.UserAgent())
-		fs[7] = zap.Time("start", start)
-		fs[8] = zap.Duration("elapsed", elapsed)
-		fs[9] = zap.Duration("request-id-generation", requestIDGenerationTime)
-		fs[10] = zap.Duration("find-endpoint", findPathTime)
-		fs[11] = zap.Duration("pipline", pipelineTime)
-		fs[12] = zap.Duration("serialization", serializationTime)
-		fs[13] = zap.Duration("handlers", handlersTime)
-		if endpoint != nil {
-			fs = append(fs, zap.String("service", endpoint.serviceName))
+	if g.CompletionHook != nil {
+		snapshot := httpx.ResponseSnapshot{
+			StatusCode: response.StatusCode(),
+			Size:       size,
+			Start:      start,
+			Elapsed:    end.Sub(start),
+			Metrics:    make(map[string]time.Duration),
 		}
-		if u := ctx.Actor(); u != nil {
-			fs = append(fs, zap.String("user-id", u.ID()))
+		idGeneration := requestIDGenerationStop.Sub(requestIDGenerationStart)
+		snapshot.Metrics[RequestIdGenerationMetricKey] = idGeneration
+		if len(g.Handlers) != 0 {
+			snapshot.Metrics[RunGatewayHandlersMetricKey] = handlersStop.Sub(handlersStart)
 		}
-		ce.Write(fs...)
+		if !findPathStart.IsZero() {
+			snapshot.Metrics[FindEndpointMetricKey] = findPathStop.Sub(findPathStart)
+		}
+		if !pipelineStart.IsZero() {
+			snapshot.Metrics[RunEndpointPipelineMetricKey] = pipelineStop.Sub(pipelineStart)
+		}
+		snapshot.Metrics[SerializeResponseMetricKey] = end.Sub(serializationStart)
+
+		g.CompletionHook(ctx, request, snapshot)
 	}
 
 	if idErr != nil {
-		g.Logger.Warn("request id generator failed, fell back to default", zap.String("request-id", requestID), zap.Error(idErr))
+		g.ErrorHook(ctx, request, idErr)
 	}
 	if err != nil {
-		g.Logger.Error(merry.UserMessage(err), zap.String("request-id", requestID), zap.Error(err))
+		g.ErrorHook(ctx, request, err)
 	}
-	if writeErr != nil {
-		g.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(writeErr))
+	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	if writeErr1 != nil {
+		g.ErrorHook(ctx, request, writeErr1)
 	}
 	respErr := response.Err()
-	if respErr != nil {
-		g.Logger.Error(respErr.Error(), zap.String("request-id", requestID), zap.Error(respErr))
+	if respErr != nil && respErr != err {
+		g.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }
 
@@ -288,7 +305,7 @@ func recovery(fatalError *merry.Error) {
 	}
 
 	if err, ok := arg.(error); ok {
-		*fatalError = merry.Wrap(err)
+		*fatalError = merry.WithMessage(err, "panic in handler")
 		return
 	}
 

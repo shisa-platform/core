@@ -12,8 +12,10 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxiliary"
+	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
@@ -40,14 +42,17 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	authN := &middleware.Authentication{Authenticator: authenticator}
 
+	lh := logHandler{logger}
+
 	gw := &gateway.Gateway{
-		Name:            "example",
 		Address:         addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
 		Handlers:        []service.Handler{authN.Service},
 		Logger:          logger,
 		Registrar:       res,
+		CompletionHook:  lh.completion,
+		ErrorHook:       lh.error,
 	}
 
 	authZ := SimpleAuthorization{[]string{"user:1"}}
@@ -56,8 +61,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Addr:           debugAddr,
 			Authentication: authN,
 			Authorizer:     authZ,
+			CompletionHook: lh.completion,
+			ErrorHook:      lh.error,
 		},
-		Logger: logger,
 	}
 
 	hello := NewHelloService(env.DefaultProvider, res)
@@ -69,9 +75,10 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Addr:           healthcheckAddr,
 			Authentication: authN,
 			Authorizer:     authZ,
+			CompletionHook: lh.completion,
+			ErrorHook:      lh.error,
 		},
 		Checkers:  []auxiliary.Healthchecker{idp, hello, goodbye},
-		Logger:    logger,
 		Registrar: res,
 	}
 
@@ -93,4 +100,32 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		}
 		os.Exit(1)
 	}
+}
+
+type logHandler struct {
+	logger *zap.Logger
+}
+
+func (l logHandler) completion(c context.Context, r *service.Request, s httpx.ResponseSnapshot) {
+	fs := make([]zapcore.Field, 9, 10+len(s.Metrics))
+	fs[0] = zap.String("request-id", c.RequestID())
+	fs[1] = zap.String("client-ip-address", r.ClientIP())
+	fs[2] = zap.String("method", r.Method)
+	fs[3] = zap.String("uri", r.URL.RequestURI())
+	fs[4] = zap.Int("status-code", s.StatusCode)
+	fs[5] = zap.Int("response-size", s.Size)
+	fs[6] = zap.String("user-agent", r.UserAgent())
+	fs[7] = zap.Time("start", s.Start)
+	fs[8] = zap.Duration("elapsed", s.Elapsed)
+	if u := c.Actor(); u != nil {
+		fs = append(fs, zap.String("user-id", u.ID()))
+	}
+	for k, v := range s.Metrics {
+		fs = append(fs, zap.Duration(k, v))
+	}
+	l.logger.Info("request", fs...)
+}
+
+func (l logHandler) error(ctx context.Context, _ *service.Request, err merry.Error) {
+	l.logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 }

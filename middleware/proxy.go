@@ -179,7 +179,7 @@ func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request)
 		return nil, merry.Wrap(err).WithHTTPCode(http.StatusBadGateway)
 	}
 
-	return service.ResponseAdapter{response}, nil
+	return service.ResponseAdapter{Response: response}, nil
 }
 
 func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {

@@ -202,20 +202,20 @@ func TestTreeWildcard(t *testing.T) {
 
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
-		{"/cmd/test/", false, "/cmd/:tool/", []service.PathParameter{{"tool", "test"}}},
-		{"/cmd/test", false, "/cmd/:tool/", []service.PathParameter{{"tool", "test"}}},
-		{"/cmd/test/3", false, "/cmd/:tool/:sub", []service.PathParameter{{"tool", "test"}, {"sub", "3"}}},
-		{"/src/", false, "/src/*filepath", []service.PathParameter{{"filepath", "/"}}},
-		{"/src/some/file.png", false, "/src/*filepath", []service.PathParameter{{"filepath", "/some/file.png"}}},
+		{"/cmd/test/", false, "/cmd/:tool/", []service.PathParameter{{Name: "tool", Value: "test"}}},
+		{"/cmd/test", false, "/cmd/:tool/", []service.PathParameter{{Name: "tool", Value: "test"}}},
+		{"/cmd/test/3", false, "/cmd/:tool/:sub", []service.PathParameter{{Name: "tool", Value: "test"}, {Name: "sub", Value: "3"}}},
+		{"/src/", false, "/src/*filepath", []service.PathParameter{{Name: "filepath", Value: "/"}}},
+		{"/src/some/file.png", false, "/src/*filepath", []service.PathParameter{{Name: "filepath", Value: "/some/file.png"}}},
 		{"/search/", false, "/search/", nil},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", []service.PathParameter{{"query", "someth!ng+in+ünìcodé"}}},
-		{"/search/someth!ng+in+ünìcodé/", false, "/search/:query", []service.PathParameter{{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", []service.PathParameter{{"name", "gopher"}}},
-		{"/user_gopher/about", false, "/user_:name/about", []service.PathParameter{{"name", "gopher"}}},
-		{"/files/thingr/", false, "/files/:dir", []service.PathParameter{{"dir", "thingr"}}},
-		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", []service.PathParameter{{"dir", "js"}, {"filepath", "/inc/framework.js"}}},
-		{"/info/gordon/public", false, "/info/:user/public", []service.PathParameter{{"user", "gordon"}}},
-		{"/info/gordon/project/go", false, "/info/:user/project/:project", []service.PathParameter{{"user", "gordon"}, {"project", "go"}}},
+		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", []service.PathParameter{{Name: "query", Value: "someth!ng+in+ünìcodé"}}},
+		{"/search/someth!ng+in+ünìcodé/", false, "/search/:query", []service.PathParameter{{Name: "query", Value: "someth!ng+in+ünìcodé"}}},
+		{"/user_gopher", false, "/user_:name", []service.PathParameter{{Name: "name", Value: "gopher"}}},
+		{"/user_gopher/about", false, "/user_:name/about", []service.PathParameter{{Name: "name", Value: "gopher"}}},
+		{"/files/thingr/", false, "/files/:dir", []service.PathParameter{{Name: "dir", Value: "thingr"}}},
+		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", []service.PathParameter{{Name: "dir", Value: "js"}, {Name: "filepath", Value: "/inc/framework.js"}}},
+		{"/info/gordon/public", false, "/info/:user/public", []service.PathParameter{{Name: "user", Value: "gordon"}}},
+		{"/info/gordon/project/go", false, "/info/:user/project/:project", []service.PathParameter{{Name: "user", Value: "gordon"}, {Name: "project", Value: "go"}}},
 	})
 
 	checkPriorities(t, tree)
@@ -308,9 +308,9 @@ func TestTreeDupliatePath(t *testing.T) {
 	checkRequests(t, tree, testRequests{
 		{"/", false, "/", nil},
 		{"/doc/", false, "/doc/", nil},
-		{"/src/some/file.png", false, "/src/*filepath", []service.PathParameter{{"filepath", "/some/file.png"}}},
-		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", []service.PathParameter{{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", []service.PathParameter{{"name", "gopher"}}},
+		{"/src/some/file.png", false, "/src/*filepath", []service.PathParameter{{Name: "filepath", Value: "/some/file.png"}}},
+		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", []service.PathParameter{{Name: "query", Value: "someth!ng+in+ünìcodé"}}},
+		{"/user_gopher", false, "/user_:name", []service.PathParameter{{Name: "name", Value: "gopher"}}},
 	})
 }
 

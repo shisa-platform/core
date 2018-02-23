@@ -19,7 +19,7 @@ var (
 	language = service.Field{
 		Name:         "language",
 		Default:      hello.AmericanEnglish,
-		Validator:    service.StringSliceValidator{hello.SupportedLanguages}.Validate,
+		Validator:    service.StringSliceValidator{Target: hello.SupportedLanguages}.Validate,
 		Multiplicity: 1,
 	}
 )

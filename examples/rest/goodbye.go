@@ -108,7 +108,7 @@ type Goodbye struct {
 }
 
 func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ri := httpx.NewInterceptor(w, s.Logger)
+	ri := httpx.NewInterceptor(w)
 
 	ctx := context.New(req.Context())
 	request := &service.Request{Request: req}
@@ -147,12 +147,27 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 respond:
-	if err := httpx.WriteResponse(ri, response); err != nil {
+	if err := ri.WriteResponse(response); err != nil {
 		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(err))
 	}
 
 finish:
-	ri.Flush(ctx, request)
+	snapshot := ri.Flush()
+
+	fs := make([]zapcore.Field, 9, 10)
+	fs[0] = zap.String("request-id", ctx.RequestID())
+	fs[1] = zap.String("client-ip-address", request.ClientIP())
+	fs[2] = zap.String("method", request.Method)
+	fs[3] = zap.String("uri", request.URL.RequestURI())
+	fs[4] = zap.Int("status-code", snapshot.StatusCode)
+	fs[5] = zap.Int("response-size", snapshot.Size)
+	fs[6] = zap.String("user-agent", request.UserAgent())
+	fs[7] = zap.Time("start", snapshot.Start)
+	fs[8] = zap.Duration("elapsed", snapshot.Elapsed)
+	if values, exists := request.Header["X-User-Id"]; exists {
+		fs = append(fs, zap.String("user-id", values[0]))
+	}
+	s.Logger.Info("request", fs...)
 
 	if response != nil && response.Err() != nil {
 		values := merry.Values(response.Err())
