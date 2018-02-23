@@ -78,7 +78,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
-			response = g.InternalServerErrorHandler(ctx, request, err)
+			response = g.handleErrorSafely(g.InternalServerErrorHandler, ctx, request, err)
 			handlersStop = time.Now().UTC()
 			goto finish
 		}
@@ -96,12 +96,16 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err = merry.WithMessage(err, "routing request")
-		response = g.InternalServerErrorHandler(ctx, request, err)
+		response = g.handleErrorSafely(g.InternalServerErrorHandler, ctx, request, err)
 		goto finish
 	}
 
 	if endpoint == nil {
-		response = g.NotFoundHandler(ctx, request)
+		response = g.NotFoundHandler.InvokeSafely(ctx, request, &err)
+		if err != nil {
+			response = defaultNotFoundHandler(ctx, request)
+			err = merry.WithMessage(err, "running NotFoundHandler")
+		}
 		goto finish
 	}
 
@@ -128,18 +132,34 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if pipeline == nil {
 		if tsr {
-			response = g.NotFoundHandler(ctx, request)
+			response = g.NotFoundHandler.InvokeSafely(ctx, request, &err)
+			if err != nil {
+				err = merry.WithMessage(err, "running NotFoundHandler")
+				response = defaultNotFoundHandler(ctx, request)
+			}
 		} else {
-			response = endpoint.notAllowedHandler(ctx, request)
+			response = endpoint.notAllowedHandler.InvokeSafely(ctx, request, &err)
+			if err != nil {
+				err = merry.WithMessage(err, "running MethodNotAllowedHandler")
+				response = defaultMethodNotAlowedHandler(ctx, request)
+			}
 		}
 		goto finish
 	}
 
 	if tsr {
 		if path != "/" && pipeline.Policy.AllowTrailingSlashRedirects {
-			response = endpoint.redirectHandler(ctx, request)
+			response = endpoint.redirectHandler.InvokeSafely(ctx, request, &err)
+			if err != nil {
+				err = merry.WithMessage(err, "running RedirectHandler")
+				response = defaultRedirectHandler(ctx, request)
+			}
 		} else {
-			response = g.NotFoundHandler(ctx, request)
+			response = g.NotFoundHandler.InvokeSafely(ctx, request, &err)
+			if err != nil {
+				err = merry.WithMessage(err, "running NotFoundHandler")
+				response = defaultNotFoundHandler(ctx, request)
+			}
 		}
 		goto finish
 	}
@@ -189,12 +209,20 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if (invalidParams || missingParams) && !pipeline.Policy.AllowMalformedQueryParameters {
-		response = endpoint.badQueryHandler(ctx, request)
+		response = endpoint.badQueryHandler.InvokeSafely(ctx, request, &err)
+		if err != nil {
+			err = merry.WithMessage(err, "running MalformedRequestHandler")
+			response = defaultMalformedRequestHandler(ctx, request)
+		}
 		goto finish
 	}
 
 	if len(params) != 0 && !pipeline.Policy.AllowUnknownQueryParameters {
-		response = endpoint.badQueryHandler(ctx, request)
+		response = endpoint.badQueryHandler.InvokeSafely(ctx, request, &err)
+		if err != nil {
+			err = merry.WithMessage(err, "running MalformedRequestHandler")
+			response = defaultMalformedRequestHandler(ctx, request)
+		}
 		goto finish
 	}
 
@@ -219,7 +247,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
-			response = endpoint.iseHandler(ctx, request, err)
+			response = g.handleErrorSafely(endpoint.iseHandler, ctx, request, err)
 			pipelineStop = time.Now().UTC()
 			goto finish
 		}
@@ -231,7 +259,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if response == nil {
 		err = merry.New("no response from pipeline")
-		response = endpoint.iseHandler(ctx, request, err)
+		response = g.handleErrorSafely(endpoint.iseHandler, ctx, request, err)
 	}
 
 finish:
@@ -279,21 +307,57 @@ finish:
 		}
 		snapshot.Metrics[SerializeResponseMetricKey] = end.Sub(serializationStart)
 
-		g.CompletionHook(ctx, request, snapshot)
+		g.invokeCompletionHookSafely(ctx, request, snapshot)
 	}
 
 	if idErr != nil {
-		g.ErrorHook(ctx, request, idErr)
+		g.invokeErrorHookSafely(ctx, request, idErr)
 	}
 	if err != nil {
-		g.ErrorHook(ctx, request, err)
+		g.invokeErrorHookSafely(ctx, request, err)
 	}
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
 	if writeErr1 != nil {
-		g.ErrorHook(ctx, request, writeErr1)
+		g.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
 	respErr := response.Err()
 	if respErr != nil && respErr != err {
-		g.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
+		g.invokeErrorHookSafely(ctx, request, merry.WithMessage(respErr, "handler failed"))
+	}
+}
+
+func (g *Gateway) handleErrorSafely(h httpx.ErrorHandler, ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	var exception merry.Error
+	response := h.InvokeSafely(ctx, request, err, &exception)
+	if exception != nil {
+		response = defaultInternalServerErrorHandler(ctx, request, err)
+		exception = merry.WithMessage(exception, "while invoking InternalServerErrorHandler")
+		g.invokeErrorHookSafely(ctx, request, exception)
+	}
+
+	return response
+}
+
+func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
+	var exception merry.Error
+
+	g.ErrorHook.invokeSafely(ctx, request, err, &exception)
+	if exception != nil {
+		g.defaultErrorHook(ctx, request, err)
+		exception = merry.WithMessage(exception, "while invoking ErrorHook")
+		g.defaultErrorHook(ctx, request, exception)
+	}
+}
+
+func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
+	if g.CompletionHook == nil {
+		return
+	}
+
+	var exception merry.Error
+	g.CompletionHook.invokeSafely(ctx, request, snapshot, &exception)
+	if exception != nil {
+		exception = merry.WithMessage(exception, "while invoking CompletionHook")
+		g.invokeErrorHookSafely(ctx, request, exception)
 	}
 }

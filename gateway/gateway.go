@@ -12,11 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
-	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -115,12 +113,12 @@ type Gateway struct {
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
 	// `Logger` field with the request id as a field.
-	ErrorHook func(context.Context, *httpx.Request, merry.Error) `json:"-"`
+	ErrorHook ErrorHook `json:"-"`
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook func(context.Context, *httpx.Request, httpx.ResponseSnapshot) `json:"-"`
+	CompletionHook CompletionHook `json:"-"`
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.

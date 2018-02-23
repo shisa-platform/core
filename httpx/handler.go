@@ -11,24 +11,29 @@ import (
 // processing should be stopped.
 type Handler func(context.Context, *Request) Response
 
-// ErrorHandler creates a response for the given error condition.
-type ErrorHandler func(context.Context, *Request, merry.Error) Response
-
-func (h Handler) InvokeSafely(ctx context.Context, request *Request, err *merry.Error) Response {
-	defer recovery(err)
+func (h Handler) InvokeSafely(ctx context.Context, request *Request, exception *merry.Error) Response {
+	defer recovery(exception)
 	return h(ctx, request)
 }
 
-func recovery(fatalError *merry.Error) {
+// ErrorHandler creates a response for the given error condition.
+type ErrorHandler func(context.Context, *Request, merry.Error) Response
+
+func (h ErrorHandler) InvokeSafely(ctx context.Context, request *Request, err merry.Error, exception *merry.Error) Response {
+	defer recovery(exception)
+	return h(ctx, request, err)
+}
+
+func recovery(exception *merry.Error) {
 	arg := recover()
 	if arg == nil {
 		return
 	}
 
 	if err, ok := arg.(error); ok {
-		*fatalError = merry.WithMessage(err, "panic in handler")
+		*exception = merry.WithMessage(err, "panic in handler")
 		return
 	}
 
-	*fatalError = merry.New("panic in handler").WithValue("context", arg)
+	*exception = merry.New("panic in handler").WithValue("context", arg)
 }
