@@ -75,7 +75,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	handlersStart := time.Now().UTC()
 	for i, handler := range g.Handlers {
-		response = runHandler(handler, ctx, request, &err)
+		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
 			response = g.InternalServerErrorHandler(ctx, request, err)
@@ -216,7 +216,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	pipelineStart = time.Now().UTC()
 	for i, handler := range pipeline.Handlers {
-		response = runHandler(handler, ctx, request, &err)
+		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
 			response = endpoint.iseHandler(ctx, request, err)
@@ -296,23 +296,4 @@ finish:
 	if respErr != nil && respErr != err {
 		g.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
-}
-
-func recovery(fatalError *merry.Error) {
-	arg := recover()
-	if arg == nil {
-		return
-	}
-
-	if err, ok := arg.(error); ok {
-		*fatalError = merry.WithMessage(err, "panic in handler")
-		return
-	}
-
-	*fatalError = merry.New("panic in handler").WithValue("context", arg)
-}
-
-func runHandler(handler httpx.Handler, ctx context.Context, request *httpx.Request, err *merry.Error) httpx.Response {
-	defer recovery(err)
-	return handler(ctx, request)
 }
