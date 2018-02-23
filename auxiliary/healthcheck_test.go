@@ -38,6 +38,20 @@ func TestHealthcheckServerEmpty(t *testing.T) {
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 }
 
+func TestHealthcheckServerAddress(t *testing.T) {
+	cut := HealthcheckServer{
+		HTTPServer: HTTPServer{
+			Addr:   ":0",
+		},
+	}
+
+	err := cut.Listen()
+	assert.NoError(t, err)
+	assert.NotEqual(t, ":0", cut.Address())
+
+	cut.listener.Close()
+}
+
 func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
@@ -49,6 +63,18 @@ func TestHealthcheckServerMisconfiguredTLS(t *testing.T) {
 	err := cut.Listen()
 	assert.NoError(t, err)
 	err = cut.Serve()
+	assert.Error(t, err)
+	assert.False(t, merry.Is(err, http.ErrServerClosed))
+}
+
+func TestHealthcheckServerServeBeforeListen(t *testing.T) {
+	cut := HealthcheckServer{
+		HTTPServer: HTTPServer{
+			Addr:   ":0",
+		},
+	}
+
+	err := cut.Serve()
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 }

@@ -25,10 +25,24 @@ func TestDebugServerEmpty(t *testing.T) {
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 }
 
+func TestDebugServerAddress(t *testing.T) {
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Addr:   ":0",
+		},
+	}
+
+	err := cut.Listen()
+	assert.NoError(t, err)
+	assert.NotEqual(t, ":0", cut.Address())
+
+	cut.listener.Close()
+}
+
 func TestDebugServerMisconfiguredTLS(t *testing.T) {
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":9900",
+			Addr:   ":0",
 			UseTLS: true,
 		},
 	}
@@ -36,6 +50,18 @@ func TestDebugServerMisconfiguredTLS(t *testing.T) {
 	err := cut.Listen()
 	assert.NoError(t, err)
 	err = cut.Serve()
+	assert.Error(t, err)
+	assert.False(t, merry.Is(err, http.ErrServerClosed))
+}
+
+func TestDebugServerServeBeforeListen(t *testing.T) {
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Addr:   ":0",
+		},
+	}
+
+	err := cut.Serve()
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
 }
