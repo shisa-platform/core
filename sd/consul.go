@@ -12,8 +12,22 @@ import (
 	"github.com/percolate/shisa/lb"
 )
 
+//go:generate charlatan -output=./consulregistry_charlatan.go consulRegistry
+type consulRegistry interface {
+	ServiceRegister(*consul.AgentServiceRegistration) error
+	ServiceDeregister(string) error
+	CheckRegister(*consul.AgentCheckRegistration) error
+	CheckDeregister(string) error
+}
+
+//go:generate charlatan -output=./consulresolver_charlatan.go consulResolver
+type consulResolver interface {
+	Service(service, tag string, passingOnly bool, q *consul.QueryOptions) ([]*consul.ServiceEntry, *consul.QueryMeta, error)
+}
+
 type consulSD struct {
-	client   *consul.Client
+	agent    consulRegistry
+	health   consulResolver
 	balancer lb.Balancer
 }
 
@@ -23,14 +37,16 @@ var _ Healthchecker = &consulSD{}
 
 func NewConsulLB(client *consul.Client, b lb.Balancer) *consulSD {
 	return &consulSD{
-		client:   client,
+		agent:    client.Agent(),
+		health:   client.Health(),
 		balancer: b,
 	}
 }
 
 func NewConsul(client *consul.Client) *consulSD {
 	return &consulSD{
-		client: client,
+		agent:  client.Agent(),
+		health: client.Health(),
 	}
 }
 
@@ -52,7 +68,7 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 		Address: address,
 	}
 
-	e := r.client.Agent().ServiceRegister(servreg)
+	e := r.agent.ServiceRegister(servreg)
 	if e != nil {
 		return merry.Wrap(e)
 	}
@@ -60,7 +76,7 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 }
 
 func (r *consulSD) Deregister(serviceID string) merry.Error {
-	e := r.client.Agent().ServiceDeregister(serviceID)
+	e := r.agent.ServiceDeregister(serviceID)
 	if e != nil {
 		return merry.Wrap(e)
 	}
@@ -68,7 +84,7 @@ func (r *consulSD) Deregister(serviceID string) merry.Error {
 }
 
 func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
-	ses, _, err := r.client.Health().Service(name, "", true, nil)
+	ses, _, err := r.health.Service(name, "", true, nil)
 	if err != nil {
 		merr = merry.Wrap(err)
 		return
@@ -154,7 +170,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		acr.AgentServiceCheck.HTTP = urlstr
 	}
 
-	err := r.client.Agent().CheckRegister(acr)
+	err := r.agent.CheckRegister(acr)
 	if err != nil {
 		return merry.Wrap(err)
 	}
@@ -163,7 +179,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 }
 
 func (r *consulSD) RemoveChecks(serviceID string) merry.Error {
-	err := r.client.Agent().CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
+	err := r.agent.CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
 	if err != nil {
 		return merry.Wrap(err)
 	}
