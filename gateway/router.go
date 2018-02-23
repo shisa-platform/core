@@ -312,7 +312,7 @@ func recovery(fatalError *merry.Error) {
 	*fatalError = merry.New("panic in handler").WithValue("context", arg)
 }
 
-func runHandler(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
+func runHandler(handler httpx.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
 	defer recovery(err)
 	return handler(ctx, request)
 }

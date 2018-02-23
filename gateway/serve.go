@@ -25,10 +25,10 @@ func (p fields) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 type endpoint struct {
 	service.Endpoint
 	serviceName       string
-	badQueryHandler   service.Handler
-	notAllowedHandler service.Handler
-	redirectHandler   service.Handler
-	iseHandler        service.ErrorHandler
+	badQueryHandler   httpx.Handler
+	notAllowedHandler httpx.Handler
+	redirectHandler   httpx.Handler
+	iseHandler        httpx.ErrorHandler
 }
 
 func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxiliary.Server) error {
@@ -255,7 +255,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 	return nil
 }
 
-func installPipeline(handlers []service.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
+func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
 	for _, field := range pipeline.QueryFields {
 		if field.Default != "" && field.Name == "" {
 			return nil, merry.New("Field default requires name")

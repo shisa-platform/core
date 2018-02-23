@@ -54,7 +54,7 @@ type ReverseProxy struct {
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code
 	// and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 
 	tripper http.RoundTripper
 }

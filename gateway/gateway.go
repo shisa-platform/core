@@ -95,7 +95,7 @@ type Gateway struct {
 	// Handlers define handlers to run on all request before
 	// any other dispatch or validation.
 	// Example uses would be rate limiting or authentication.
-	Handlers []service.Handler `json:"-"`
+	Handlers []httpx.Handler `json:"-"`
 
 	// InternalServerErrorHandler optionally customizes the
 	// response returned to the user agent when the gateway
@@ -103,14 +103,14 @@ type Gateway struct {
 	// the corresponding endpoint has been determined.
 	// If nil the default handler will return a 500 status code
 	// with an empty body.
-	InternalServerErrorHandler service.ErrorHandler `json:"-"`
+	InternalServerErrorHandler httpx.ErrorHandler `json:"-"`
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
 	// service a request path.
 	// If nil the default handler will return a 404 status code
 	// with an empty body.
-	NotFoundHandler service.Handler `json:"-"`
+	NotFoundHandler httpx.Handler `json:"-"`
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.

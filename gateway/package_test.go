@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -21,10 +22,10 @@ func newFakeService(es []service.Endpoint) *service.FakeService {
 	return &service.FakeService{
 		NameHook:                       func() string { return "test" },
 		EndpointsHook:                  func() []service.Endpoint { return es },
-		HandlersHook:                   func() []service.Handler { return nil },
-		MalformedRequestHandlerHook:    func() service.Handler { return nil },
-		MethodNotAllowedHandlerHook:    func() service.Handler { return nil },
-		RedirectHandlerHook:            func() service.Handler { return nil },
-		InternalServerErrorHandlerHook: func() service.ErrorHandler { return nil },
+		HandlersHook:                   func() []httpx.Handler { return nil },
+		MalformedRequestHandlerHook:    func() httpx.Handler { return nil },
+		MethodNotAllowedHandlerHook:    func() httpx.Handler { return nil },
+		RedirectHandlerHook:            func() httpx.Handler { return nil },
+		InternalServerErrorHandlerHook: func() httpx.ErrorHandler { return nil },
 	}
 }

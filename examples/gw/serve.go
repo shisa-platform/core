@@ -34,7 +34,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Address:         addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
-		Handlers:        []service.Handler{authN.Service},
+		Handlers:        []httpx.Handler{authN.Service},
 		Logger:          logger,
 		CompletionHook:  lh.completion,
 		ErrorHook:       lh.error,

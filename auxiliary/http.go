@@ -106,7 +106,7 @@ type HTTPServer struct {
 	// correct handler to invoke for the current request.
 	// If nil is returned a 404 status code with an empty body is
 	// returned to the user agent.
-	Router func(context.Context, *service.Request) service.Handler
+	Router func(context.Context, *service.Request) httpx.Handler
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
@@ -266,6 +266,6 @@ func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (s
 	return r.ID(), nil
 }
 
-func (s *HTTPServer) route(context.Context, *service.Request) service.Handler {
+func (s *HTTPServer) route(context.Context, *service.Request) httpx.Handler {
 	return nil
 }

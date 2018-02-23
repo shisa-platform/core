@@ -37,7 +37,7 @@ type ClientThrottler struct {
 	// have a recommended HTTP status code.
 	// The default handler will return the recommended status
 	// code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
 func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) service.Response {
@@ -102,7 +102,7 @@ type UserThrottler struct {
 	// have a recommended HTTP status code.
 	// The default handler will return the recommended status
 	// code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
 func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service.Response {

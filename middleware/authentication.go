@@ -7,6 +7,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -23,13 +24,13 @@ type Authentication struct {
 	// response for an unknown user.  The default handler will
 	// return a 401 status code, the "WWW-Authenticate" header
 	// and an empty body.
-	UnauthorizedHandler service.Handler
+	UnauthorizedHandler httpx.Handler
 	// `ErrorHandler` can be set to optionally customize the
 	// response for an error. The `err` parameter passed to the
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code,
 	// the "WWW-Authenticate" header and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
 func (m *Authentication) Service(ctx context.Context, r *service.Request) service.Response {

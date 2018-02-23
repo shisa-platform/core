@@ -10,7 +10,6 @@ import (
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
 
-	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/uuid"
 )
 

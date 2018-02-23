@@ -25,7 +25,7 @@ type RestrictContentTypes struct {
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code
 	// and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
 func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) service.Response {
@@ -112,7 +112,7 @@ type AllowContentTypes struct {
 	// for an error. The `err` parameter passed to the handler will
 	// have a recommended HTTP status code. The default handler will
 	// return the recommended status code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
 func (m *AllowContentTypes) Service(c context.Context, r *service.Request) service.Response {

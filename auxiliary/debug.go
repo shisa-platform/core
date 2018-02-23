@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -103,7 +104,7 @@ func (s *DebugServer) Serve() error {
 	return s.HTTPServer.Serve()
 }
 
-func (s *DebugServer) Route(ctx context.Context, request *service.Request) service.Handler {
+func (s *DebugServer) Route(ctx context.Context, request *service.Request) httpx.Handler {
 	if request.URL.Path == s.Path {
 		return s.Service
 	}

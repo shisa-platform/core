@@ -50,19 +50,19 @@ func installEndpoints(t *testing.T, g *Gateway, es []service.Endpoint) {
 	installService(t, g, newFakeService(es))
 }
 
-func newEndpoints(h ...service.Handler) []service.Endpoint {
+func newEndpoints(h ...httpx.Handler) []service.Endpoint {
 	return []service.Endpoint{service.GetEndpoint(expectedRoute, h...)}
 }
 
-func installHandler(t *testing.T, g *Gateway, h service.Handler) {
+func installHandler(t *testing.T, g *Gateway, h httpx.Handler) {
 	installEndpoints(t, g, newEndpoints(h))
 }
 
-func newEndpointsWithPolicy(h service.Handler, p service.Policy) []service.Endpoint {
+func newEndpointsWithPolicy(h httpx.Handler, p service.Policy) []service.Endpoint {
 	return []service.Endpoint{service.GetEndpointWithPolicy(expectedRoute, p, h)}
 }
 
-func installHandlerWithPolicy(t *testing.T, g *Gateway, h service.Handler, p service.Policy) {
+func installHandlerWithPolicy(t *testing.T, g *Gateway, h httpx.Handler, p service.Policy) {
 	installEndpoints(t, g, newEndpointsWithPolicy(h, p))
 }
 
@@ -229,7 +229,7 @@ func TestRouterHandlersPanic(t *testing.T) {
 	}
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		Handlers:  []service.Handler{handler},
+		Handlers:  []httpx.Handler{handler},
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
@@ -265,7 +265,7 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	}
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		Handlers:  []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
+		Handlers:  []httpx.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusUnauthorized, s.StatusCode)
@@ -302,7 +302,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	}
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		Handlers:  []service.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
+		Handlers:  []httpx.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusOK, s.StatusCode)
@@ -419,7 +419,7 @@ func TestRouterHeadMethod(t *testing.T) {
 
 	endpoint := service.Endpoint{
 		Route: expectedRoute,
-		Head:  &service.Pipeline{Handlers: []service.Handler{handler}},
+		Head:  &service.Pipeline{Handlers: []httpx.Handler{handler}},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -576,7 +576,7 @@ func TestRouterConnectMethod(t *testing.T) {
 
 	endpoint := service.Endpoint{
 		Route:   expectedRoute,
-		Connect: &service.Pipeline{Handlers: []service.Handler{handler}},
+		Connect: &service.Pipeline{Handlers: []httpx.Handler{handler}},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -604,7 +604,7 @@ func TestRouterOptionsMethod(t *testing.T) {
 
 	endpoint := service.Endpoint{
 		Route:   expectedRoute,
-		Options: &service.Pipeline{Handlers: []service.Handler{handler}},
+		Options: &service.Pipeline{Handlers: []httpx.Handler{handler}},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -633,7 +633,7 @@ func TestRouterTraceMethod(t *testing.T) {
 
 	endpoint := service.Endpoint{
 		Route: expectedRoute,
-		Trace: &service.Pipeline{Handlers: []service.Handler{handler}},
+		Trace: &service.Pipeline{Handlers: []httpx.Handler{handler}},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -674,7 +674,7 @@ func TestRouterBadMethodCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
-	svc.MethodNotAllowedHandlerHook = func() service.Handler {
+	svc.MethodNotAllowedHandlerHook = func() httpx.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
@@ -810,7 +810,7 @@ func TestRouterExtraSlashRedirectForbiddenCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
-	svc.RedirectHandlerHook = func() service.Handler {
+	svc.RedirectHandlerHook = func() httpx.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
@@ -839,7 +839,7 @@ func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
-	svc.RedirectHandlerHook = func() service.Handler {
+	svc.RedirectHandlerHook = func() httpx.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
@@ -935,7 +935,7 @@ func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.RedirectHandlerHook = func() service.Handler {
+	svc.RedirectHandlerHook = func() httpx.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
@@ -964,7 +964,7 @@ func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute+"/", policy, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.RedirectHandlerHook = func() service.Handler {
+	svc.RedirectHandlerHook = func() httpx.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
@@ -1090,7 +1090,7 @@ func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.MalformedRequestHandlerHook = func() service.Handler {
+	svc.MalformedRequestHandlerHook = func() httpx.Handler {
 		return func(ctx context.Context, r *service.Request) service.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
@@ -1325,7 +1325,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 
 	var queryHandlerCalled bool
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.MalformedRequestHandlerHook = func() service.Handler {
+	svc.MalformedRequestHandlerHook = func() httpx.Handler {
 		return func(context.Context, *service.Request) service.Response {
 			queryHandlerCalled = true
 			return service.NewEmpty(http.StatusPaymentRequired)
@@ -1897,7 +1897,7 @@ func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.InternalServerErrorHandlerHook = func() service.ErrorHandler {
+	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
 		return func(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 			iseHandlerCalled = true
 			assert.True(t, merry.Is(err, explosion))
@@ -1957,7 +1957,7 @@ func TestRouterHandlersNoResultCustomISEHandler(t *testing.T) {
 
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.InternalServerErrorHandlerHook = func() service.ErrorHandler {
+	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
 		return func(ctx context.Context, r *service.Request, err merry.Error) service.Response {
 			iseHandlerCalled = true
 			return service.NewEmpty(http.StatusServiceUnavailable)
@@ -2180,7 +2180,7 @@ func TestGatewayHandlerResponseWithError(t *testing.T) {
 	}
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		Handlers:  []service.Handler{gwHandler},
+		Handlers:  []httpx.Handler{gwHandler},
 		ErrorHook: errHook.Handle,
 	}
 	cut.init()

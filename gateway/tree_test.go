@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -32,7 +33,7 @@ func fakeEndpoint(s string) *endpoint {
 		Endpoint: service.Endpoint{
 			Route: s,
 			Get: &service.Pipeline{
-				Handlers: []service.Handler{
+				Handlers: []httpx.Handler{
 					func(context.Context, *service.Request) service.Response {
 						fakeHandlerValue = s
 						return nil

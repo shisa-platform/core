@@ -62,7 +62,7 @@ type CSRFProtector struct {
 	// have a recommended HTTP status code.
 	// The default handler will return the recommended status
 	// code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
 func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.Response {
