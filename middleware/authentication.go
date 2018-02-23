@@ -8,7 +8,6 @@ import (
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -33,7 +32,7 @@ type Authentication struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *Authentication) Service(ctx context.Context, r *service.Request) httpx.Response {
+func (m *Authentication) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -61,15 +60,15 @@ func (m *Authentication) Service(ctx context.Context, r *service.Request) httpx.
 	return nil
 }
 
-func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) httpx.Response {
-	response := service.NewEmpty(http.StatusUnauthorized)
+func (m *Authentication) defaultHandler(ctx context.Context, r *httpx.Request) httpx.Response {
+	response := httpx.NewEmpty(http.StatusUnauthorized)
 	response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
 
-func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
-	response := service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *Authentication) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	response := httpx.NewEmptyError(merry.HTTPCode(err), err)
 	if m.Authenticator != nil {
 		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
@@ -88,9 +87,9 @@ type PassiveAuthentication struct {
 	Authenticator authn.Authenticator
 }
 
-func (m *PassiveAuthentication) Service(ctx context.Context, r *service.Request) httpx.Response {
+func (m *PassiveAuthentication) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.Authenticator == nil {
-		return service.NewEmptyError(http.StatusInternalServerError, merry.New("PassiveAuthentication.Authenticator is nil"))
+		return httpx.NewEmptyError(http.StatusInternalServerError, merry.New("PassiveAuthentication.Authenticator is nil"))
 	}
 
 	if user, _ := m.Authenticator.Authenticate(ctx, r); user != nil {

@@ -23,11 +23,11 @@ func mustMakeGenericAuthenticator(extractor service.StringExtractor, idp Identit
 }
 
 func TestGenericAuthenticatorTokenExtractorError(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Bearer he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	extractor := func(context.Context, *service.Request) (string, merry.Error) {
+	extractor := func(context.Context, *httpx.Request) (string, merry.Error) {
 		return "", merry.New("he waits behind the wall")
 	}
 	authn := mustMakeGenericAuthenticator(extractor, NewFakeIdentityProviderDefaultFatal(t))
@@ -38,11 +38,11 @@ func TestGenericAuthenticatorTokenExtractorError(t *testing.T) {
 }
 
 func TestGenericAuthenticatorIdPError(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Zalgo slithy")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	extractor := func(context.Context, *service.Request) (string, merry.Error) {
+	extractor := func(context.Context, *httpx.Request) (string, merry.Error) {
 		return "slithy", nil
 	}
 	idp := &FakeIdentityProvider{
@@ -60,11 +60,11 @@ func TestGenericAuthenticatorIdPError(t *testing.T) {
 }
 
 func TestGenericAuthenticator(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Zalgo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	extractor := func(context.Context, *service.Request) (string, merry.Error) {
+	extractor := func(context.Context, *httpx.Request) (string, merry.Error) {
 		return "he:comes", nil
 	}
 	expectedUser := &models.FakeUser{
@@ -85,7 +85,7 @@ func TestGenericAuthenticator(t *testing.T) {
 }
 
 func TestGenericAuthenticatorChallenge(t *testing.T) {
-	extractor := func(context.Context, *service.Request) (string, merry.Error) {
+	extractor := func(context.Context, *httpx.Request) (string, merry.Error) {
 		t.Fatal("unexpected call to extractor")
 		return "", nil
 	}
@@ -102,7 +102,7 @@ func TestGenericAuthenticatorConstructorNilExtractor(t *testing.T) {
 }
 
 func TestGenericAuthenticatorConstructorNilIdp(t *testing.T) {
-	extractor := func(context.Context, *service.Request) (string, merry.Error) {
+	extractor := func(context.Context, *httpx.Request) (string, merry.Error) {
 		t.Fatal("unexpected call to extractor")
 		return "", nil
 	}

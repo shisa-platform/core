@@ -13,7 +13,7 @@ import (
 )
 
 func TestAuthenticationHeaderTokenExtractorMissingHeader(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := AuthenticationHeaderTokenExtractor(ctx, request, "Zalgo")
@@ -22,7 +22,7 @@ func TestAuthenticationHeaderTokenExtractorMissingHeader(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -32,7 +32,7 @@ func TestAuthenticationHeaderTokenExtractorEmptyHeader(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Zalgo")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -42,7 +42,7 @@ func TestAuthenticationHeaderTokenExtractorMissingScheme(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Foo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -52,7 +52,7 @@ func TestAuthenticationHeaderTokenExtractorBadScheme(t *testing.T) {
 }
 
 func TestAuthenticationHeaderTokenExtractor(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Zalgo he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -62,7 +62,7 @@ func TestAuthenticationHeaderTokenExtractor(t *testing.T) {
 }
 
 func TestURLTokenExtractorMissingUserInfo(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	token, err := URLTokenExtractor(ctx, request)
@@ -71,7 +71,7 @@ func TestURLTokenExtractorMissingUserInfo(t *testing.T) {
 }
 
 func TestURLTokenExtractor(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest("GET", "/foo", nil)}
 	request.URL.User = url.UserPassword("he", "comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 

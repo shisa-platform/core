@@ -87,7 +87,7 @@ type HTTPServer struct {
 
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
-	// If nil then `service.Request.GenerateID` will be used.
+	// If nil then `httpx.Request.GenerateID` will be used.
 	RequestIDGenerator service.StringExtractor
 
 	// Authentication optionally enforces authentication before
@@ -106,17 +106,17 @@ type HTTPServer struct {
 	// correct handler to invoke for the current request.
 	// If nil is returned a 404 status code with an empty body is
 	// returned to the user agent.
-	Router func(context.Context, *service.Request) httpx.Handler
+	Router func(context.Context, *httpx.Request) httpx.Handler
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil no action will be taken.
-	ErrorHook func(context.Context, *service.Request, merry.Error)
+	ErrorHook func(context.Context, *httpx.Request, merry.Error)
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot)
+	CompletionHook func(context.Context, *httpx.Request, httpx.ResponseSnapshot)
 
 	base     http.Server
 	listener net.Listener
@@ -159,7 +159,7 @@ func (s *HTTPServer) Address() string {
 	return s.Addr
 }
 
-func (s *HTTPServer) Authenticate(ctx context.Context, request *service.Request) (response httpx.Response) {
+func (s *HTTPServer) Authenticate(ctx context.Context, request *httpx.Request) (response httpx.Response) {
 	if s.Authentication == nil {
 		return
 	}
@@ -214,7 +214,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri := httpx.NewInterceptor(w)
 
 	ctx := context.New(r.Context())
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)
 	if idErr != nil {
@@ -237,7 +237,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if handler := s.Router(ctx, request); handler != nil {
 		response = handler(ctx, request)
 	} else {
-		response = service.NewEmpty(http.StatusNotFound)
+		response = httpx.NewEmpty(http.StatusNotFound)
 		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
 	}
 
@@ -262,10 +262,10 @@ finish:
 	}
 }
 
-func (s *HTTPServer) generateRequestID(c context.Context, r *service.Request) (string, merry.Error) {
+func (s *HTTPServer) generateRequestID(c context.Context, r *httpx.Request) (string, merry.Error) {
 	return r.ID(), nil
 }
 
-func (s *HTTPServer) route(context.Context, *service.Request) httpx.Handler {
+func (s *HTTPServer) route(context.Context, *httpx.Request) httpx.Handler {
 	return nil
 }

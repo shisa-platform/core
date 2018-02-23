@@ -8,15 +8,15 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 // BasicAuthTokenExtractor returns the decoded credentials from
 // a Basic Authentication challenge. The token returned is the
 // colon-concatentated userid-password as specified in RFC 7617.
 // An error is returned if the credentials cannot be extracted.
-func BasicAuthTokenExtractor(ctx context.Context, r *service.Request) (token string, err merry.Error) {
+func BasicAuthTokenExtractor(ctx context.Context, r *httpx.Request) (token string, err merry.Error) {
 	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
 	if challenge == "" {
 		err = merry.New("no challenge provided")
@@ -47,7 +47,7 @@ type basicAuthenticator struct {
 	challenge string
 }
 
-func (m *basicAuthenticator) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *basicAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := BasicAuthTokenExtractor(ctx, r)
 	if err != nil {
 		return nil, err

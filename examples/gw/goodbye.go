@@ -11,6 +11,7 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/service"
 )
@@ -87,7 +88,7 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 	return nil
 }
 
-func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (*service.Request, merry.Error) {
+func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
 	addr, envErr := s.env.Get(goodbyeServiceAddrEnv)
 	if envErr != nil {
 		return nil, envErr
@@ -103,22 +104,22 @@ func (s *GoodbyeService) router(ctx context.Context, request *service.Request) (
 	return request, nil
 }
 
-func (s *GoodbyeService) responder(_ context.Context, _ *service.Request, response httpx.Response) httpx.Response {
+func (s *GoodbyeService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) httpx.Response {
 	var buf bytes.Buffer
 	if _, err := response.Serialize(&buf); err != nil {
-		return service.NewEmptyError(http.StatusBadGateway, err)
+		return httpx.NewEmptyError(http.StatusBadGateway, err)
 	}
 	body := make(map[string]string)
 	if err := json.Unmarshal(buf.Bytes(), &body); err != nil {
-		return service.NewEmptyError(http.StatusBadGateway, err)
+		return httpx.NewEmptyError(http.StatusBadGateway, err)
 	}
 	who, ok := body["goodbye"]
 	if !ok {
 		err := merry.New("goodbye key missing from response")
-		return service.NewEmptyError(http.StatusBadGateway, err)
+		return httpx.NewEmptyError(http.StatusBadGateway, err)
 	}
 
-	farewell := service.NewOK(Farewell{"Goodbye " + who})
+	farewell := httpx.NewOK(Farewell{"Goodbye " + who})
 	addCommonHeaders(farewell)
 
 	return farewell

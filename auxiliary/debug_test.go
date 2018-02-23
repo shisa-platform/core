@@ -130,7 +130,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+			RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 				return "", merry.New("i blewed up!")
 			},
 			ErrorHook: errHook.Handle,
@@ -156,7 +156,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+			RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 				return "", nil
 			},
 			ErrorHook: errHook.Handle,
@@ -183,7 +183,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+			RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 				return requestID, nil
 			},
 			RequestIDHeaderName: "x-zalgo",
@@ -209,7 +209,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -244,7 +244,7 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -256,7 +256,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
-				UnauthorizedHandler: func(context.Context, *service.Request) httpx.Response {
+				UnauthorizedHandler: func(context.Context, *httpx.Request) httpx.Response {
 					return unserializableResponse()
 				},
 			},
@@ -282,7 +282,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -294,7 +294,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
-				UnauthorizedHandler: func(context.Context, *service.Request) httpx.Response {
+				UnauthorizedHandler: func(context.Context, *httpx.Request) httpx.Response {
 					response := service.NewEmpty(http.StatusUnauthorized)
 					response.Headers().Set(middleware.WWWAuthenticateHeaderKey, challenge)
 					response.Trailers().Add("x-zalgo", "he comes")
@@ -325,7 +325,7 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -361,7 +361,7 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -399,7 +399,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -437,7 +437,7 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -500,7 +500,7 @@ func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			ErrorHook: errHook.Handle,
-			CompletionHook: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
+			CompletionHook: func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {
 				handlerCalled = true
 			},
 		},

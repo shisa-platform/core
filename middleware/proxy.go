@@ -8,7 +8,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 var (
@@ -26,13 +26,13 @@ var (
 )
 
 // Route returns the request to contact the proxied server.
-type Route func(context.Context, *service.Request) (*service.Request, merry.Error)
+type Route func(context.Context, *httpx.Request) (*httpx.Request, merry.Error)
 
 // Invoke sends the proxied request and returns the response.
-type Invoke func(context.Context, *service.Request) (httpx.Response, merry.Error)
+type Invoke func(context.Context, *httpx.Request) (httpx.Response, merry.Error)
 
 // Respond modifies the response from the proxied server.
-type Respond func(context.Context, *service.Request, httpx.Response) httpx.Response
+type Respond func(context.Context, *httpx.Request, httpx.Response) httpx.Response
 
 // ReverseProxy is a Handler that takes an incoming request and
 // sends it to another server, proxying the response back to the
@@ -59,7 +59,7 @@ type ReverseProxy struct {
 	tripper http.RoundTripper
 }
 
-func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) httpx.Response {
+func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -75,7 +75,7 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) httpx.Re
 		return m.ErrorHandler(ctx, r, err)
 	}
 
-	request := &service.Request{Request: r.WithContext(ctx)}
+	request := &httpx.Request{Request: r.WithContext(ctx)}
 
 	request.Header = cloneHeaders(r.Header)
 	request.QueryParams = cloneQueryParams(r.QueryParams)
@@ -169,7 +169,7 @@ func (m *ReverseProxy) Service(ctx context.Context, r *service.Request) httpx.Re
 	return response
 }
 
-func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request) (httpx.Response, merry.Error) {
+func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *httpx.Request) (httpx.Response, merry.Error) {
 	if m.tripper == nil {
 		m.tripper = http.DefaultTransport
 	}
@@ -182,19 +182,19 @@ func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *service.Request)
 	return httpx.ResponseAdapter{Response: response}, nil
 }
 
-func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
-	return service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func cloneQueryParams(p []service.QueryParameter) []service.QueryParameter {
-	p2 := make([]service.QueryParameter, len(p))
+func cloneQueryParams(p []httpx.QueryParameter) []httpx.QueryParameter {
+	p2 := make([]httpx.QueryParameter, len(p))
 	copy(p2, p)
 
 	return p2
 }
 
-func clonePathParams(p []service.PathParameter) []service.PathParameter {
-	p2 := make([]service.PathParameter, len(p))
+func clonePathParams(p []httpx.PathParameter) []httpx.PathParameter {
+	p2 := make([]httpx.PathParameter, len(p))
 	copy(p2, p)
 
 	return p2

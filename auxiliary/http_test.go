@@ -37,7 +37,7 @@ type stubAuthorizer struct {
 	err merry.Error
 }
 
-func (a stubAuthorizer) Authorize(context.Context, *service.Request) (bool, merry.Error) {
+func (a stubAuthorizer) Authorize(context.Context, *httpx.Request) (bool, merry.Error) {
 	return a.ok, a.err
 }
 
@@ -45,7 +45,7 @@ type mockErrorHook struct {
 	calls int
 }
 
-func (m *mockErrorHook) Handle(context.Context, *service.Request, merry.Error) {
+func (m *mockErrorHook) Handle(context.Context, *httpx.Request, merry.Error) {
 	m.calls++
 }
 

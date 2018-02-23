@@ -89,7 +89,7 @@ type Gateway struct {
 
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
-	// If nil then `service.Request.GenerateID` will be used.
+	// If nil then `httpx.Request.GenerateID` will be used.
 	RequestIDGenerator service.StringExtractor `json:"-"`
 
 	// Handlers define handlers to run on all request before
@@ -116,12 +116,12 @@ type Gateway struct {
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
 	// `Logger` field with the request id as a field.
-	ErrorHook func(context.Context, *service.Request, merry.Error) `json:"-"`
+	ErrorHook func(context.Context, *httpx.Request, merry.Error) `json:"-"`
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot) `json:"-"`
+	CompletionHook func(context.Context, *httpx.Request, httpx.ResponseSnapshot) `json:"-"`
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.

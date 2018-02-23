@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 // AuthenticationHeaderTokenExtractor returns the token from the
@@ -13,7 +13,7 @@ import (
 // An error is returned if the "Authentication" header is missing,
 // its value is empty or presented scheme doesn't match the value
 // of `scheme`.
-func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request, scheme string) (token string, err merry.Error) {
+func AuthenticationHeaderTokenExtractor(ctx context.Context, r *httpx.Request, scheme string) (token string, err merry.Error) {
 	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
 	if challenge == "" {
 		err = merry.New("no challenge provided")
@@ -34,7 +34,7 @@ func AuthenticationHeaderTokenExtractor(ctx context.Context, r *service.Request,
 // URLTokenExtractor returns the credentials from the request URL
 // concatenated together with a colon as specified in RFC 7617.
 // An error is returned if the credentials cannot be extracted.
-func URLTokenExtractor(ctx context.Context, r *service.Request) (token string, err merry.Error) {
+func URLTokenExtractor(ctx context.Context, r *httpx.Request) (token string, err merry.Error) {
 	if r.URL.User != nil {
 		token = r.URL.User.String()
 		return

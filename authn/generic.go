@@ -6,6 +6,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/service"
 )
@@ -18,7 +19,7 @@ type genericAuthenticator struct {
 	challenge string
 }
 
-func (m *genericAuthenticator) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *genericAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := m.extractor(ctx, r)
 	if err != nil {
 		return nil, err

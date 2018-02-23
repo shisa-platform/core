@@ -9,7 +9,6 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -104,7 +103,7 @@ func (s *DebugServer) Serve() error {
 	return s.HTTPServer.Serve()
 }
 
-func (s *DebugServer) Route(ctx context.Context, request *service.Request) httpx.Handler {
+func (s *DebugServer) Route(ctx context.Context, request *httpx.Request) httpx.Handler {
 	if request.URL.Path == s.Path {
 		return s.Service
 	}
@@ -112,7 +111,7 @@ func (s *DebugServer) Route(ctx context.Context, request *service.Request) httpx
 	return nil
 }
 
-func (s *DebugServer) Service(ctx context.Context, request *service.Request) httpx.Response {
+func (s *DebugServer) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	debugStats.Add("hits", 1)
 
 	return debugResponse

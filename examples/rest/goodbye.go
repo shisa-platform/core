@@ -17,7 +17,6 @@ import (
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/service"
 )
 
 const idpServiceAddrEnv = "IDP_SERVICE_ADDR"
@@ -111,7 +110,7 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ri := httpx.NewInterceptor(w)
 
 	ctx := context.New(req.Context())
-	request := &service.Request{Request: req}
+	request := &httpx.Request{Request: req}
 	request.ParseQueryParameters()
 
 	var requestID string
@@ -127,7 +126,7 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var response httpx.Response
 
 	if req.Method != http.MethodGet {
-		response = service.NewEmpty(http.StatusMethodNotAllowed)
+		response = httpx.NewEmpty(http.StatusMethodNotAllowed)
 		goto respond
 	}
 
@@ -143,7 +142,7 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		hits.Add(req.URL.Path, 1)
 		goto finish
 	default:
-		response = service.NewEmpty(http.StatusNotFound)
+		response = httpx.NewEmpty(http.StatusNotFound)
 	}
 
 respond:
@@ -185,27 +184,27 @@ finish:
 	}
 }
 
-func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) httpx.Response {
+func (s *Goodbye) goodbye(ctx context.Context, request *httpx.Request) httpx.Response {
 	var userID string
 	if values, exists := request.Header["X-User-Id"]; exists {
 		userID = values[0]
 	} else {
-		return service.NewEmptyError(http.StatusBadRequest, merry.New("missing user id"))
+		return httpx.NewEmptyError(http.StatusBadRequest, merry.New("missing user id"))
 	}
 
 	client, err := connect()
 	if err != nil {
-		return service.NewEmptyError(http.StatusInternalServerError, err)
+		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
 	message := idp.Message{RequestID: ctx.RequestID(), Value: userID}
 	var user idp.User
 	rpcErr := client.Call("Idp.FindUser", &message, &user)
 	if rpcErr != nil {
-		return service.NewEmptyError(http.StatusInternalServerError, rpcErr)
+		return httpx.NewEmptyError(http.StatusInternalServerError, rpcErr)
 	}
 	if user.Ident == "" {
-		return service.NewEmpty(http.StatusUnauthorized)
+		return httpx.NewEmpty(http.StatusUnauthorized)
 	}
 
 	who := user.Name
@@ -216,7 +215,7 @@ func (s *Goodbye) goodbye(ctx context.Context, request *service.Request) httpx.R
 	return SimpleResponse(fmt.Sprintf("{\"goodbye\": %q}", who))
 }
 
-func (s *Goodbye) healthcheck(ctx context.Context, r *service.Request) httpx.Response {
+func (s *Goodbye) healthcheck(ctx context.Context, r *httpx.Request) httpx.Response {
 	response := Healthcheck{
 		Ready:   true,
 		Details: map[string]string{"idp": "OK"},

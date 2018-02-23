@@ -6,8 +6,8 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 type bearerAuthenticator struct {
@@ -16,7 +16,7 @@ type bearerAuthenticator struct {
 	challenge string
 }
 
-func (m *bearerAuthenticator) Authenticate(ctx context.Context, r *service.Request) (models.User, merry.Error) {
+func (m *bearerAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := AuthenticationHeaderTokenExtractor(ctx, r, "Bearer")
 	if err != nil {
 		return nil, err

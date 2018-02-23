@@ -70,7 +70,7 @@ type mockErrorHook struct {
 	calls int
 }
 
-func (m *mockErrorHook) Handle(context.Context, *service.Request, merry.Error) {
+func (m *mockErrorHook) Handle(context.Context, *httpx.Request, merry.Error) {
 	m.calls++
 }
 
@@ -94,7 +94,7 @@ func TestRouterCustomRequestIDGenerator(t *testing.T) {
 	var generatorCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
+		RequestIDGenerator: func(context.Context, *httpx.Request) (string, merry.Error) {
 			generatorCalled = true
 			return expectedRequestID, nil
 		},
@@ -118,7 +118,7 @@ func TestRouterCustomRequestIDGeneratorError(t *testing.T) {
 	var generatorCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
+		RequestIDGenerator: func(context.Context, *httpx.Request) (string, merry.Error) {
 			generatorCalled = true
 			return "", merry.New("i blewed up!")
 		},
@@ -127,7 +127,7 @@ func TestRouterCustomRequestIDGeneratorError(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.NotEmpty(t, ctx.RequestID())
 		return service.NewEmpty(http.StatusOK)
@@ -149,7 +149,7 @@ func TestRouterCustomRequestIDGeneratorEmptyResult(t *testing.T) {
 	var generatorCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		RequestIDGenerator: func(context.Context, *service.Request) (string, merry.Error) {
+		RequestIDGenerator: func(context.Context, *httpx.Request) (string, merry.Error) {
 			generatorCalled = true
 			return "", nil
 		},
@@ -158,7 +158,7 @@ func TestRouterCustomRequestIDGeneratorEmptyResult(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.NotEmpty(t, ctx.RequestID())
 		return service.NewEmpty(http.StatusOK)
@@ -184,7 +184,7 @@ func TestRouterDefaultRequestIDGenerator(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.NotEmpty(t, ctx.RequestID())
 		return service.NewEmpty(http.StatusOK)
@@ -223,7 +223,7 @@ func TestRouterCustomRequestIDHeaderKey(t *testing.T) {
 
 func TestRouterHandlersPanic(t *testing.T) {
 	var handlerCalled bool
-	handler := func(context.Context, *service.Request) httpx.Response {
+	handler := func(context.Context, *httpx.Request) httpx.Response {
 		handlerCalled = true
 		panic(merry.New("i blewed up!"))
 	}
@@ -231,7 +231,7 @@ func TestRouterHandlersPanic(t *testing.T) {
 	cut := &Gateway{
 		Handlers:  []httpx.Handler{handler},
 		ErrorHook: errHook.Handle,
-		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -256,7 +256,7 @@ func TestRouterHandlersPanic(t *testing.T) {
 func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -267,7 +267,7 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	cut := &Gateway{
 		Handlers:  []httpx.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHook: errHook.Handle,
-		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusUnauthorized, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -293,7 +293,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -304,7 +304,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	cut := &Gateway{
 		Handlers:  []httpx.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHook: errHook.Handle,
-		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -320,7 +320,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		assert.Equal(t, user, ctx.Actor())
@@ -384,7 +384,7 @@ func TestRouterBadRouteCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *service.Request) httpx.Response {
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		},
@@ -412,7 +412,7 @@ func TestRouterHeadMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -441,7 +441,7 @@ func TestRouterGetMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -467,7 +467,7 @@ func TestRouterPutMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -493,7 +493,7 @@ func TestRouterPostMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -519,7 +519,7 @@ func TestRouterPatchMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -544,7 +544,7 @@ func TestRouterDeleteMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -569,7 +569,7 @@ func TestRouterConnectMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -597,7 +597,7 @@ func TestRouterOptionsMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -626,7 +626,7 @@ func TestRouterTraceMethod(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -675,7 +675,7 @@ func TestRouterBadMethodCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
 	svc.MethodNotAllowedHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *service.Request) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		}
@@ -715,7 +715,7 @@ func TestRouterBadMethodRedirectCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *service.Request) httpx.Response {
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		},
@@ -759,7 +759,7 @@ func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *service.Request) httpx.Response {
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		},
@@ -811,7 +811,7 @@ func TestRouterExtraSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
 	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *service.Request) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		}
@@ -840,7 +840,7 @@ func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
 	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *service.Request) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		}
@@ -881,7 +881,7 @@ func TestRouterMissingSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) 
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *service.Request) httpx.Response {
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		},
@@ -936,7 +936,7 @@ func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *service.Request) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		}
@@ -965,7 +965,7 @@ func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
 	endpoint := service.GetEndpointWithPolicy(expectedRoute+"/", policy, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *service.Request) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		}
@@ -990,7 +990,7 @@ func TestRouterPathParamters(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.PathParams, 2)
 		assert.Equal(t, "outer", r.PathParams[0].Name)
@@ -1022,7 +1022,7 @@ func TestRouterPathParamtersPreserveEscaping(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.PathParams, 2)
 		assert.Equal(t, "outer", r.PathParams[0].Name)
@@ -1055,7 +1055,7 @@ func TestRouterQueryParametersForbidMalformed(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		return service.NewEmpty(http.StatusOK)
@@ -1082,7 +1082,7 @@ func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 	cut.init()
 
 	var routeHandlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		routeHandlerCalled = true
 
 		return service.NewEmpty(http.StatusOK)
@@ -1091,7 +1091,7 @@ func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
 	svc.MalformedRequestHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *service.Request) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return service.NewEmpty(http.StatusForbidden)
 		}
@@ -1118,7 +1118,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1164,7 +1164,7 @@ func TestRouterQueryParametersWithoutFields(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1211,7 +1211,7 @@ func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -1242,7 +1242,7 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 1)
 		assert.Len(t, r.QueryParams[0].Values, 1)
@@ -1281,7 +1281,7 @@ func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -1312,7 +1312,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -1326,7 +1326,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 	var queryHandlerCalled bool
 	svc := newFakeService([]service.Endpoint{endpoint})
 	svc.MalformedRequestHandlerHook = func() httpx.Handler {
-		return func(context.Context, *service.Request) httpx.Response {
+		return func(context.Context, *httpx.Request) httpx.Response {
 			queryHandlerCalled = true
 			return service.NewEmpty(http.StatusPaymentRequired)
 		}
@@ -1353,7 +1353,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1406,7 +1406,7 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1458,7 +1458,7 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1510,7 +1510,7 @@ func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -1548,7 +1548,7 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1608,7 +1608,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return service.NewEmpty(http.StatusOK)
 	}
@@ -1639,7 +1639,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 3)
 		for i, p := range r.QueryParams {
@@ -1698,7 +1698,7 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 3)
 		for i, p := range r.QueryParams {
@@ -1760,7 +1760,7 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
@@ -1813,7 +1813,7 @@ func TestRouterContextDeadlineSet(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		_, ok := ctx.Deadline()
 		assert.True(t, ok, "no deadline set")
@@ -1841,7 +1841,7 @@ func TestRouterHandlerPanic(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		panic(errors.New("i blewed up!"))
 	}
@@ -1865,7 +1865,7 @@ func TestRouterHandlerPanicNonError(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		panic("i blewed up!")
 	}
@@ -1890,7 +1890,7 @@ func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 
 	explosion := errors.New("i blewed up!")
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 		panic(explosion)
 	}
@@ -1898,7 +1898,7 @@ func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
 	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
 			iseHandlerCalled = true
 			assert.True(t, merry.Is(err, explosion))
 			return service.NewEmpty(http.StatusServiceUnavailable)
@@ -1924,7 +1924,7 @@ func TestRouterHandlersNoResult(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		return nil
@@ -1949,7 +1949,7 @@ func TestRouterHandlersNoResultCustomISEHandler(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		return nil
@@ -1958,7 +1958,7 @@ func TestRouterHandlersNoResultCustomISEHandler(t *testing.T) {
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
 	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(ctx context.Context, r *service.Request, err merry.Error) httpx.Response {
+		return func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
 			iseHandlerCalled = true
 			return service.NewEmpty(http.StatusServiceUnavailable)
 		}
@@ -1983,19 +1983,19 @@ func TestRouterMultipleHandlersEarlyExit(t *testing.T) {
 	cut.init()
 
 	var handler1Called bool
-	handler1 := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler1 := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handler1Called = true
 
 		return service.NewEmpty(http.StatusPaymentRequired)
 	}
 	var handler2Called bool
-	handler2 := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler2 := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handler2Called = true
 
 		return nil
 	}
 	var handler3Called bool
-	handler3 := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler3 := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handler3Called = true
 
 		return service.NewEmpty(http.StatusOK)
@@ -2021,7 +2021,7 @@ func TestRouterResponseHeaders(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		response := service.NewEmpty(http.StatusOK)
@@ -2048,7 +2048,7 @@ func TestRouterResponseTrailers(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		response := service.NewEmpty(http.StatusOK)
@@ -2075,7 +2075,7 @@ func TestRouterSerializationError(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		response := failingResponse(http.StatusOK)
@@ -2096,7 +2096,7 @@ func TestRouter(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
 		ErrorHook: errHook.Handle,
-		CompletionHook: func(_ context.Context, _ *service.Request, s httpx.ResponseSnapshot) {
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -2130,7 +2130,7 @@ func TestRouterPipelineHandlerResponseWithError(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		err := merry.New("lol wut")
@@ -2154,7 +2154,7 @@ func TestRouterPipelineHandlerResponseWithErrorDefaultHandler(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		err := merry.New("lol wut")
@@ -2172,7 +2172,7 @@ func TestRouterPipelineHandlerResponseWithErrorDefaultHandler(t *testing.T) {
 
 func TestGatewayHandlerResponseWithError(t *testing.T) {
 	var gwHandlerCalled bool
-	gwHandler := func(ctx context.Context, r *service.Request) httpx.Response {
+	gwHandler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		gwHandlerCalled = true
 
 		err := merry.New("lol wut")
@@ -2186,7 +2186,7 @@ func TestGatewayHandlerResponseWithError(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *service.Request) httpx.Response {
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		return service.NewEmpty(http.StatusOK)

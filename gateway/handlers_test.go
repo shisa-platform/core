@@ -14,7 +14,7 @@ import (
 )
 
 func TestDefaultNotFoundHandler(t *testing.T) {
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultNotFoundHandler(ctx, request)
@@ -31,7 +31,7 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 }
 
 func TestDefaultMethodNotAllowedHandler(t *testing.T) {
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultMethodNotAlowedHandler(ctx, request)
@@ -48,7 +48,7 @@ func TestDefaultMethodNotAllowedHandler(t *testing.T) {
 }
 
 func TestDefaultMalformedRequestHandler(t *testing.T) {
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultMalformedRequestHandler(ctx, request)
@@ -65,7 +65,7 @@ func TestDefaultMalformedRequestHandler(t *testing.T) {
 }
 
 func TestDefaultInternalServerErrorHandler(t *testing.T) {
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	iseErr := merry.New("i blewed up")
@@ -83,7 +83,7 @@ func TestDefaultInternalServerErrorHandler(t *testing.T) {
 }
 
 func TestDefaultRedirectHandlerTrailingSlashGet(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", expectedRoute+"/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest("GET", expectedRoute+"/", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultRedirectHandler(ctx, request)
@@ -101,7 +101,7 @@ func TestDefaultRedirectHandlerTrailingSlashGet(t *testing.T) {
 }
 
 func TestDefaultRedirectHandlerTrailingSlashNonGet(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("PUT", expectedRoute+"/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest("PUT", expectedRoute+"/", nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultRedirectHandler(ctx, request)
@@ -119,7 +119,7 @@ func TestDefaultRedirectHandlerTrailingSlashNonGet(t *testing.T) {
 }
 
 func TestDefaultRedirectHandlerNoSlashGet(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("GET", expectedRoute, nil)}
+	request := &httpx.Request{Request: httptest.NewRequest("GET", expectedRoute, nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultRedirectHandler(ctx, request)
@@ -137,7 +137,7 @@ func TestDefaultRedirectHandlerNoSlashGet(t *testing.T) {
 }
 
 func TestDefaultRedirectHandlerNoSlashNonGet(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest("PUT", expectedRoute, nil)}
+	request := &httpx.Request{Request: httptest.NewRequest("PUT", expectedRoute, nil)}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := defaultRedirectHandler(ctx, request)
@@ -155,7 +155,7 @@ func TestDefaultRedirectHandlerNoSlashNonGet(t *testing.T) {
 }
 
 func TestDefaultRequestIDGenerator(t *testing.T) {
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	rid, err := defaultRequestIDGenerator(ctx, request)

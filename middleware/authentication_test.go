@@ -23,7 +23,7 @@ var (
 func TestAuthenticationNilAuthenticator(t *testing.T) {
 	cut := &Authentication{}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -34,7 +34,7 @@ func TestAuthenticationNilAuthenticator(t *testing.T) {
 
 func TestAuthenticationAuthenticatorError(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
 		ChallengeHook: func() string {
@@ -46,7 +46,7 @@ func TestAuthenticationAuthenticatorError(t *testing.T) {
 		Authenticator: authn,
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := cut.Service(ctx, request)
@@ -59,7 +59,7 @@ func TestAuthenticationAuthenticatorError(t *testing.T) {
 
 func TestAuthenticationOK(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return expectedUser, nil
 		},
 		ChallengeHook: func() string {
@@ -71,7 +71,7 @@ func TestAuthenticationOK(t *testing.T) {
 		Authenticator: authn,
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	ctx.WithActorHook = func(value models.User) context.Context { return ctx }
 
@@ -85,7 +85,7 @@ func TestAuthenticationOK(t *testing.T) {
 
 func TestAuthenticationUnauthorized(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -97,7 +97,7 @@ func TestAuthenticationUnauthorized(t *testing.T) {
 		Authenticator: authn,
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := cut.Service(ctx, request)
@@ -110,7 +110,7 @@ func TestAuthenticationUnauthorized(t *testing.T) {
 
 func TestAuthenticationCustomHandler(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -118,14 +118,14 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	challenge := "Custom realm=\"secrets, inc\""
 	var handlerInvoked bool
 	cut := &Authentication{
 		Authenticator: authn,
-		UnauthorizedHandler: func(c context.Context, r *service.Request) httpx.Response {
+		UnauthorizedHandler: func(c context.Context, r *httpx.Request) httpx.Response {
 			handlerInvoked = true
 			assert.Equal(t, ctx, c)
 			assert.Equal(t, request, r)
@@ -150,7 +150,7 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 
 func TestAuthenticationCustomErrorHandler(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
 		ChallengeHook: func() string {
@@ -159,13 +159,13 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 	}
 
 	challenge := "Custom realm=\"secrets, inc\""
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	var errorHandlerInvoked bool
 	cut := &Authentication{
 		Authenticator: authn,
-		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) httpx.Response {
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
 			errorHandlerInvoked = true
 			assert.Equal(t, ctx, c)
 			assert.Equal(t, request, r)
@@ -193,7 +193,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 func TestPassiveAuthenticationNilAuthenticator(t *testing.T) {
 	cut := &PassiveAuthentication{}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -204,7 +204,7 @@ func TestPassiveAuthenticationNilAuthenticator(t *testing.T) {
 
 func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, merry.New("I blewed up!")
 		},
 	}
@@ -213,7 +213,7 @@ func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
 		Authenticator: authn,
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := cut.Service(ctx, request)
@@ -224,7 +224,7 @@ func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
 
 func TestPassiveAuthenticationUnknownPrincipal(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -237,7 +237,7 @@ func TestPassiveAuthenticationUnknownPrincipal(t *testing.T) {
 		Authenticator: authn,
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := cut.Service(ctx, request)
@@ -248,7 +248,7 @@ func TestPassiveAuthenticationUnknownPrincipal(t *testing.T) {
 
 func TestPassiveAuthenticationOK(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return expectedUser, nil
 		},
 		ChallengeHook: func() string {
@@ -261,7 +261,7 @@ func TestPassiveAuthenticationOK(t *testing.T) {
 		Authenticator: authn,
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	ctx.WithActorHook = func(value models.User) context.Context { return ctx }
 

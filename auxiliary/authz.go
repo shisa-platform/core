@@ -4,7 +4,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 //go:generate charlatan -output=./authorizer_charlatan.go Authorizer
@@ -17,5 +17,5 @@ type Authorizer interface {
 	// principal is not allowed `false` must be returned, not an
 	// error.  If there is a problem completing authorization an
 	// error should be returned.
-	Authorize(context.Context, *service.Request) (bool, merry.Error)
+	Authorize(context.Context, *httpx.Request) (bool, merry.Error)
 }

@@ -27,7 +27,7 @@ const (
 	SerializeResponseMetricKey = "serialization"
 )
 
-type byName []service.QueryParameter
+type byName []httpx.QueryParameter
 
 func (p byName) Len() int           { return len(p) }
 func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
@@ -37,7 +37,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
 	ctx := context.New(r.Context())
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
@@ -66,8 +66,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handlersStop  time.Time
 		endpoint      *endpoint
 		path          string
-		params        []service.QueryParameter
-		pathParams    []service.PathParameter
+		params        []httpx.QueryParameter
+		pathParams    []httpx.PathParameter
 		tsr           bool
 		invalidParams bool
 		missingParams bool
@@ -176,7 +176,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if !found {
 			if field.Default != "" {
-				dp := service.QueryParameter{
+				dp := httpx.QueryParameter{
 					Name:    field.Name,
 					Values:  []string{field.Default},
 					Ordinal: -1,
@@ -312,7 +312,7 @@ func recovery(fatalError *merry.Error) {
 	*fatalError = merry.New("panic in handler").WithValue("context", arg)
 }
 
-func runHandler(handler httpx.Handler, ctx context.Context, request *service.Request, err *merry.Error) httpx.Response {
+func runHandler(handler httpx.Handler, ctx context.Context, request *httpx.Request, err *merry.Error) httpx.Response {
 	defer recovery(err)
 	return handler(ctx, request)
 }

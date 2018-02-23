@@ -28,7 +28,7 @@ func checkClientThrottlerCase(t *testing.T, c clientThrottlerCase) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &service.Request{
+	req := &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -56,7 +56,7 @@ func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
 
 	ct := &ClientThrottler{
 		Limiter: fl,
-		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) httpx.Response {
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}
@@ -80,7 +80,7 @@ func TestClientThrottlerServiceRateLimitHandlerHook(t *testing.T) {
 
 	ut := &ClientThrottler{
 		Limiter: fl,
-		RateLimitHandler: func(c context.Context, r *service.Request, cd time.Duration) httpx.Response {
+		RateLimitHandler: func(c context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}
@@ -142,7 +142,7 @@ func TestClientThrottlerServiceNilLimiter(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &service.Request{Request: httpReq}
+	req := &httpx.Request{Request: httpReq}
 
 	ut := &ClientThrottler{}
 	res := ut.Service(ctx, req)
@@ -187,7 +187,7 @@ func checkUserThrottlerCase(t *testing.T, u userThrottlerCase) {
 	})
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &service.Request{
+	req := &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -215,7 +215,7 @@ func TestUserThrottlerServiceErrorHandlerHook(t *testing.T) {
 
 	ut := &UserThrottler{
 		Limiter: fl,
-		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) httpx.Response {
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}
@@ -239,7 +239,7 @@ func TestUserThrottlerServiceRateLimitHandlerHook(t *testing.T) {
 
 	ut := &UserThrottler{
 		Limiter: fl,
-		RateLimitHandler: func(c context.Context, r *service.Request, cd time.Duration) httpx.Response {
+		RateLimitHandler: func(c context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
 			return service.NewEmpty(http.StatusTeapot)
 		},
 	}
@@ -301,7 +301,7 @@ func TestUserThrottlerServiceNilLimiter(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &service.Request{Request: httpReq}
+	req := &httpx.Request{Request: httpReq}
 
 	ut := &UserThrottler{}
 	res := ut.Service(ctx, req)
