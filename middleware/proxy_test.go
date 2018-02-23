@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 func TestReverseProxyMissingRouter(t *testing.T) {
@@ -35,7 +35,7 @@ func TestReverseProxyMissingRouterCustomErrorHandler(t *testing.T) {
 	cut := ReverseProxy{
 		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
@@ -76,7 +76,7 @@ func TestReverseProxyNilRouterResponseCustomErrorHandler(t *testing.T) {
 		},
 		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
@@ -118,7 +118,7 @@ func TestReverseProxyErrorRouterResponseCustomErrorHandler(t *testing.T) {
 		},
 		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
@@ -175,7 +175,7 @@ func TestReverseProxyInvokerErrorCustomErrorHandler(t *testing.T) {
 		},
 		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
@@ -233,7 +233,7 @@ func TestReverseProxyNilInvokerResponseCustomErrorHandler(t *testing.T) {
 		},
 		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
@@ -269,7 +269,7 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 			assert.Empty(t, r.Header.Get("Connection"))
 			assert.Empty(t, r.Header.Get("Zalgo"))
 			assert.True(t, strings.HasPrefix(r.Header.Get("X-Forwarded-For"), "10.10.10.10, "))
-			return service.NewEmpty(http.StatusOK), nil
+			return httpx.NewEmpty(http.StatusOK), nil
 		},
 	}
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -303,7 +303,7 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
-			response := service.NewEmpty(http.StatusOK)
+			response := httpx.NewEmpty(http.StatusOK)
 			response.Headers().Set("Connection", "keep-alive,zalgo")
 			response.Headers().Set("Keep-Alive", "true")
 			response.Headers().Set("Zalgo", "he comes")

@@ -10,8 +10,8 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 var (
@@ -130,7 +130,7 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 			assert.Equal(t, ctx, c)
 			assert.Equal(t, request, r)
 
-			response := service.NewEmpty(http.StatusForbidden)
+			response := httpx.NewEmpty(http.StatusForbidden)
 			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
 			return response
 		},
@@ -172,7 +172,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 			assert.Error(t, err)
 			assert.Equal(t, http.StatusUnauthorized, merry.HTTPCode(err))
 
-			response := service.NewEmpty(http.StatusForbidden)
+			response := httpx.NewEmpty(http.StatusForbidden)
 			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
 			return response
 		},

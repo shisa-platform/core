@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 func unserializableResponse() httpx.Response {
-	return &service.FakeResponse{
+	return &httpx.FakeResponse{
 		StatusCodeHook: func() int {
 			return http.StatusInternalServerError
 		},

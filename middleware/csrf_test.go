@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -232,7 +232,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 	p = CSRFProtector{
 		SiteURL: *s,
 		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			return service.NewEmpty(http.StatusTeapot)
+			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 

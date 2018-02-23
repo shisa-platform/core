@@ -9,7 +9,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 func requestWithContentType(method string, c []contenttype.ContentType) *httpx.Request {

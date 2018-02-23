@@ -5,15 +5,15 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/ratelimit"
-	"github.com/percolate/shisa/service"
-	"time"
 )
 
 type clientThrottlerCase struct {
@@ -57,7 +57,7 @@ func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
 	ct := &ClientThrottler{
 		Limiter: fl,
 		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			return service.NewEmpty(http.StatusTeapot)
+			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 
@@ -81,7 +81,7 @@ func TestClientThrottlerServiceRateLimitHandlerHook(t *testing.T) {
 	ut := &ClientThrottler{
 		Limiter: fl,
 		RateLimitHandler: func(c context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
-			return service.NewEmpty(http.StatusTeapot)
+			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 
@@ -216,7 +216,7 @@ func TestUserThrottlerServiceErrorHandlerHook(t *testing.T) {
 	ut := &UserThrottler{
 		Limiter: fl,
 		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			return service.NewEmpty(http.StatusTeapot)
+			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 
@@ -240,7 +240,7 @@ func TestUserThrottlerServiceRateLimitHandlerHook(t *testing.T) {
 	ut := &UserThrottler{
 		Limiter: fl,
 		RateLimitHandler: func(c context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
-			return service.NewEmpty(http.StatusTeapot)
+			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 

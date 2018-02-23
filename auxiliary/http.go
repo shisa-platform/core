@@ -13,7 +13,6 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
-	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -88,7 +87,7 @@ type HTTPServer struct {
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `httpx.Request.GenerateID` will be used.
-	RequestIDGenerator service.StringExtractor
+	RequestIDGenerator httpx.StringExtractor
 
 	// Authentication optionally enforces authentication before
 	// other request handling.  This is recommended to prevent

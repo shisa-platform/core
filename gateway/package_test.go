@@ -15,7 +15,7 @@ var (
 )
 
 func dummyHandler(context.Context, *httpx.Request) httpx.Response {
-	return service.NewEmpty(http.StatusOK)
+	return httpx.NewEmpty(http.StatusOK)
 }
 
 func newFakeService(es []service.Endpoint) *service.FakeService {

@@ -289,7 +289,7 @@ func TestGatewayAuxiliaryServer(t *testing.T) {
 }
 
 func teapotHandler(context.Context, *httpx.Request) httpx.Response {
-	return service.NewEmpty(http.StatusTeapot)
+	return httpx.NewEmpty(http.StatusTeapot)
 }
 
 func TestInstallPipelineAppliesServiceHandlers(t *testing.T) {

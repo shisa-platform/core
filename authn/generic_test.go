@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
-func mustMakeGenericAuthenticator(extractor service.StringExtractor, idp IdentityProvider) Authenticator {
+func mustMakeGenericAuthenticator(extractor httpx.StringExtractor, idp IdentityProvider) Authenticator {
 	authenticator, err := NewAuthenticator(extractor, idp, "Zalgo", "chaos")
 	if err != nil {
 		panic(err)

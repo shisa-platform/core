@@ -18,7 +18,6 @@ import (
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -90,7 +89,7 @@ type Gateway struct {
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `httpx.Request.GenerateID` will be used.
-	RequestIDGenerator service.StringExtractor `json:"-"`
+	RequestIDGenerator httpx.StringExtractor `json:"-"`
 
 	// Handlers define handlers to run on all request before
 	// any other dispatch or validation.

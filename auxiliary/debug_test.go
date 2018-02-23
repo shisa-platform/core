@@ -14,7 +14,6 @@ import (
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 func TestDebugServerEmpty(t *testing.T) {
@@ -295,7 +294,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
 				UnauthorizedHandler: func(context.Context, *httpx.Request) httpx.Response {
-					response := service.NewEmpty(http.StatusUnauthorized)
+					response := httpx.NewEmpty(http.StatusUnauthorized)
 					response.Headers().Set(middleware.WWWAuthenticateHeaderKey, challenge)
 					response.Trailers().Add("x-zalgo", "he comes")
 					return response

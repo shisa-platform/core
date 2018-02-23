@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 func TestDefaultNotFoundHandler(t *testing.T) {
@@ -90,7 +90,7 @@ func TestDefaultRedirectHandlerTrailingSlashGet(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusSeeOther, response.StatusCode())
 	assert.NotEmpty(t, response.Headers())
-	assert.Equal(t, expectedRoute, response.Headers().Get(service.LocationHeaderKey))
+	assert.Equal(t, expectedRoute, response.Headers().Get(httpx.LocationHeaderKey))
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
@@ -108,7 +108,7 @@ func TestDefaultRedirectHandlerTrailingSlashNonGet(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusTemporaryRedirect, response.StatusCode())
 	assert.NotEmpty(t, response.Headers())
-	assert.Equal(t, expectedRoute, response.Headers().Get(service.LocationHeaderKey))
+	assert.Equal(t, expectedRoute, response.Headers().Get(httpx.LocationHeaderKey))
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
@@ -126,7 +126,7 @@ func TestDefaultRedirectHandlerNoSlashGet(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusSeeOther, response.StatusCode())
 	assert.NotEmpty(t, response.Headers())
-	assert.Equal(t, expectedRoute+"/", response.Headers().Get(service.LocationHeaderKey))
+	assert.Equal(t, expectedRoute+"/", response.Headers().Get(httpx.LocationHeaderKey))
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
@@ -144,7 +144,7 @@ func TestDefaultRedirectHandlerNoSlashNonGet(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusTemporaryRedirect, response.StatusCode())
 	assert.NotEmpty(t, response.Headers())
-	assert.Equal(t, expectedRoute+"/", response.Headers().Get(service.LocationHeaderKey))
+	assert.Equal(t, expectedRoute+"/", response.Headers().Get(httpx.LocationHeaderKey))
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer

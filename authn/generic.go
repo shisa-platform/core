@@ -8,11 +8,10 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 type genericAuthenticator struct {
-	extractor service.StringExtractor
+	extractor httpx.StringExtractor
 	idp       IdentityProvider
 	scheme    string
 	realm     string
@@ -40,7 +39,7 @@ func (m *genericAuthenticator) Challenge() string {
 // extractor and identity provider.
 // An error will be returned if the `idp` or `extractor`
 // parameters are nil.
-func NewAuthenticator(extractor service.StringExtractor, idp IdentityProvider, scheme, realm string) (Authenticator, merry.Error) {
+func NewAuthenticator(extractor httpx.StringExtractor, idp IdentityProvider, scheme, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
 		return nil, merry.New("Identity provider must be non-nil")
 	}
