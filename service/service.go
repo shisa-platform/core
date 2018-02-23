@@ -6,9 +6,6 @@ import (
 	"github.com/percolate/shisa/context"
 )
 
-// ErrorHandler creates a response for the given error condition.
-type ErrorHandler func(context.Context, *Request, merry.Error) Response
-
 //go:generate charlatan -output=./service_charlatan.go Service
 
 // Service is a logical grouping of related endpoints.
