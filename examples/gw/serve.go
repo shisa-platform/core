@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"time"
 
@@ -21,8 +23,6 @@ import (
 	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
-
-const name = "gateway"
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	conf := consul.DefaultConfig()
@@ -78,14 +78,28 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
-		Checkers:  []auxiliary.Healthchecker{idp, hello, goodbye},
-		Registrar: res,
+		Checkers:    []auxiliary.Healthchecker{idp, hello, goodbye},
+		Registrar:   res,
+		ServiceName: gateway.DefaultName,
+	}
+
+	healthcheck.RegistryURLHook = func() (*url.URL, error) {
+		var scheme string
+
+		if healthcheck.UseTLS {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+
+		surl := fmt.Sprintf("%s://Admin:password@%s%s?interval=10s", scheme, healthcheck.Address(), healthcheck.Path)
+		return url.Parse(surl)
 	}
 
 	services := []service.Service{hello, goodbye}
 
-	defer res.Deregister(name)
-	defer res.RemoveChecks(name)
+	defer res.Deregister(gateway.DefaultName)
+	defer res.RemoveChecks(gateway.DefaultName)
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {
 		for _, e := range multierr.Errors(err) {

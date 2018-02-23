@@ -3,6 +3,7 @@ package gateway
 import (
 	stdctx "context"
 	"expvar"
+	"net"
 	"net/http"
 	"sort"
 	"sync"
@@ -67,6 +68,19 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		return err
 	}
 
+	listener, err := httpx.HTTPListenerForAddress(g.Address)
+	if err != nil {
+		return err
+	}
+
+	addr := listener.Addr().String()
+
+	if g.Registrar != nil {
+		if err = g.Registrar.Register(DefaultName, addr); err != nil {
+			return err
+		}
+	}
+
 	g.auxiliaries = auxiliaries
 
 	ach := make(chan error, len(g.auxiliaries))
@@ -88,29 +102,14 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	wg.Wait()
 
 	gch := make(chan error, 1)
-	go func() {
-		listener, err := httpx.HTTPListenerForAddress(g.Address)
-		if err != nil {
-			gch <- err
-			return
-		}
-
-		addr := listener.Addr().String()
-
-		if g.Registrar != nil {
-			if err = g.Registrar.Register("gateway", addr); err != nil {
-				gch <- err
-				return
-			}
-		}
-
-		g.Logger.Info("gateway started", zap.String("addr", addr))
+	go func(l net.Listener) {
+		g.Logger.Info("gateway started", zap.String("addr", l.Addr().String()))
 		if tls {
-			gch <- g.base.ServeTLS(listener, "", "")
+			gch <- g.base.ServeTLS(l, "", "")
 		} else {
-			gch <- g.base.Serve(listener)
+			gch <- g.base.Serve(l)
 		}
-	}()
+	}(listener)
 
 	for i := len(g.auxiliaries) + 1; i != 0; i-- {
 		select {

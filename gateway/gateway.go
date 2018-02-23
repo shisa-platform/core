@@ -23,12 +23,13 @@ import (
 )
 
 const (
+	DefaultName                    = "gateway"
 	defaultRequestIDResponseHeader = "X-Request-ID"
 	timeFormat                     = "2006-01-02T15:04:05+00:00"
 )
 
 var (
-	gatewayExpvar = expvar.NewMap("gateway")
+	gatewayExpvar = expvar.NewMap(DefaultName)
 )
 
 type Gateway struct {
