@@ -80,14 +80,12 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 				ach <- err
 				return
 			}
+			g.Logger.Info("starting auxiliary server", zap.String("name", server.Name()), zap.String("addr", server.Address()))
 			ach <- server.Serve()
 		}(aux)
 	}
 
 	wg.Wait()
-	for _, aux := range g.auxiliaries {
-		g.Logger.Info("started auxiliary server", zap.String("name", aux.Name()), zap.String("addr", aux.Address()))
-	}
 
 	gch := make(chan error, 1)
 	go func() {
