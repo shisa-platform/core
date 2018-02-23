@@ -8,7 +8,6 @@ import (
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -21,18 +20,44 @@ import (
 func TestDebugServerEmpty(t *testing.T) {
 	cut := DebugServer{}
 
-	err := cut.Serve()
+	err := cut.Listen()
 	assert.Error(t, err)
 	assert.False(t, merry.Is(err, http.ErrServerClosed))
-	assert.NotEmpty(t, cut.Path)
-	assert.NotNil(t, cut.Logger)
+}
+
+func TestDebugServerAddress(t *testing.T) {
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Addr: ":0",
+		},
+	}
+
+	err := cut.Listen()
+	assert.NoError(t, err)
+	assert.NotEqual(t, ":0", cut.Address())
+
+	cut.listener.Close()
 }
 
 func TestDebugServerMisconfiguredTLS(t *testing.T) {
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
-			Addr:   ":9900",
+			Addr:   ":0",
 			UseTLS: true,
+		},
+	}
+
+	err := cut.Listen()
+	assert.NoError(t, err)
+	err = cut.Serve()
+	assert.Error(t, err)
+	assert.False(t, merry.Is(err, http.ErrServerClosed))
+}
+
+func TestDebugServerServeBeforeListen(t *testing.T) {
+	cut := DebugServer{
+		HTTPServer: HTTPServer{
+			Addr: ":0",
 		},
 	}
 
@@ -42,13 +67,11 @@ func TestDebugServerMisconfiguredTLS(t *testing.T) {
 }
 
 func TestDebugServer(t *testing.T) {
-	logger := zap.NewExample()
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
 			Addr:             "127.0.0.1:0",
 			DisableKeepAlive: true,
 		},
-		Logger: logger,
 	}
 	assert.Equal(t, "debug", cut.Name())
 	assert.Equal(t, "127.0.0.1:0", cut.Address())
@@ -56,11 +79,12 @@ func TestDebugServer(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown(0) })
 	defer timer.Stop()
 
-	err := cut.Serve()
+	err := cut.Listen()
+	assert.NoError(t, err)
+	err = cut.Serve()
 	assert.Error(t, err)
 	assert.True(t, merry.Is(err, http.ErrServerClosed))
 	assert.NotEmpty(t, cut.Path)
-	assert.Equal(t, logger, cut.Logger)
 }
 
 func TestDebugServerServeHTTPBadPath(t *testing.T) {
@@ -68,6 +92,7 @@ func TestDebugServerServeHTTPBadPath(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	cut := DebugServer{}
+	cut.HTTPServer.init()
 	cut.init()
 
 	cut.ServeHTTP(w, r)
@@ -86,6 +111,7 @@ func TestDebugServerServeHTTPCustomPath(t *testing.T) {
 		},
 		Path: "/foo/bar",
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -110,6 +136,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -135,6 +162,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -162,6 +190,7 @@ func TestDebugServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 			ErrorHook:           errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -196,6 +225,7 @@ func TestDebugServerServeHTTPAuthenticationFail(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -233,6 +263,7 @@ func TestDebugServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -273,6 +304,7 @@ func TestDebugServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) 
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -309,6 +341,7 @@ func TestDebugServerServeHTTPAuthentication(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -346,6 +379,7 @@ func TestDebugServerServeHTTPAuthorizationError(t *testing.T) {
 			ErrorHook:  errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -383,6 +417,7 @@ func TestDebugServerServeHTTPAuthorizationFail(t *testing.T) {
 			ErrorHook:  errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -420,6 +455,7 @@ func TestDebugServerServeHTTPAuthorization(t *testing.T) {
 			ErrorHook:  errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -442,6 +478,7 @@ func TestDebugServerServeHTTP(t *testing.T) {
 			ErrorHook: errHook.Handle,
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
@@ -468,6 +505,7 @@ func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
 			},
 		},
 	}
+	cut.HTTPServer.init()
 	cut.init()
 
 	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)

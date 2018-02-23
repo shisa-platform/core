@@ -1,16 +1,13 @@
 package auxiliary
 
 import (
-	stdctx "context"
 	"expvar"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/ansel1/merry"
-	"go.uber.org/zap"
-
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -19,46 +16,81 @@ const (
 )
 
 var (
-	debugStats = new(expvar.Map)
+	debugStats    = new(expvar.Map)
+	debugResponse = expvarResponse{
+		headers: map[string][]string{
+			"Content-Type": []string{"application/json"},
+		},
+	}
 )
+
+type expvarResponse struct {
+	headers http.Header
+}
+
+func (r expvarResponse) StatusCode() int {
+	return http.StatusOK
+}
+
+func (r expvarResponse) Headers() http.Header {
+	return r.headers
+}
+
+func (r expvarResponse) Trailers() http.Header {
+	return nil
+}
+
+func (r expvarResponse) Err() error {
+	return nil
+}
+
+func (r expvarResponse) Serialize(w io.Writer) (size int, err error) {
+	fmt.Fprintf(w, "{\n")
+	first := true
+	expvar.Do(func(kv expvar.KeyValue) {
+		if !first {
+			n, _ := fmt.Fprintf(w, ",\n")
+			size += n
+		}
+		first = false
+		n, _ := fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
+		size += n
+	})
+	n, _ := fmt.Fprintf(w, "\n}\n")
+	size += n
+
+	return
+}
 
 // DebugServer serves values from the `expvar` package to the
 // configured address and path.
 type DebugServer struct {
 	HTTPServer
 	Path string // URL path to listen on, "/debug/vars" if empty
-
-	// Logger optionally specifies the logger to use by the Debug
-	// server.
-	// If nil all logging is disabled.
-	Logger *zap.Logger
-
-	requestLog *zap.Logger
-	delegate   http.Handler
 }
 
 func (s *DebugServer) init() {
 	now := time.Now().UTC().Format(startTimeFormat)
-	s.HTTPServer.init()
+
 	debugStats = debugStats.Init()
+
 	AuxiliaryStats.Set("debug", debugStats)
+
 	debugStats.Set("hits", new(expvar.Int))
+
 	startTime := new(expvar.String)
 	startTime.Set(now)
 	debugStats.Set("starttime", startTime)
+
+	debugStats.Set("addr", expvar.Func(func() interface{} {
+		return s.Address()
+	}))
 
 	if s.Path == "" {
 		s.Path = defaultDebugServerPath
 	}
 
-	if s.Logger == nil {
-		s.Logger = zap.NewNop()
-	}
-	defer s.Logger.Sync()
-	s.requestLog = s.Logger.Named("request")
-
-	s.delegate = expvar.Handler()
-	s.base.Handler = s
+	s.Router = s.Route
 }
 
 func (s *DebugServer) Name() string {
@@ -68,76 +100,19 @@ func (s *DebugServer) Name() string {
 func (s *DebugServer) Serve() error {
 	s.init()
 
-	listener, err := httpx.HTTPListenerForAddress(s.Addr)
-	if err != nil {
-		return err
-	}
-
-	addr := listener.Addr().String()
-	addrVar := new(expvar.String)
-	addrVar.Set(addr)
-	debugStats.Set("addr", addrVar)
-	s.Logger.Info("debug service started", zap.String("addr", addr))
-
-	if s.UseTLS {
-		return s.base.ServeTLS(listener, "", "")
-	}
-
-	return s.base.Serve(listener)
+	return s.HTTPServer.Serve()
 }
 
-func (s *DebugServer) Shutdown(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(stdctx.Background(), timeout)
-	defer cancel()
-	return merry.Wrap(s.base.Shutdown(ctx))
+func (s *DebugServer) Route(ctx context.Context, request *service.Request) service.Handler {
+	if request.URL.Path == s.Path {
+		return s.Service
+	}
+
+	return nil
 }
 
-func (s *DebugServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ri := httpx.NewInterceptor(w)
-
+func (s *DebugServer) Service(ctx context.Context, request *service.Request) service.Response {
 	debugStats.Add("hits", 1)
 
-	ctx := context.New(r.Context())
-	request := &service.Request{Request: r}
-
-	requestID, idErr := s.RequestIDGenerator(ctx, request)
-	if idErr != nil {
-		idErr = merry.WithMessage(idErr, "generating request id")
-		requestID = request.ID()
-	}
-	if requestID == "" {
-		idErr = merry.New("generator returned empty request id")
-		requestID = request.ID()
-	}
-
-	ctx = context.WithRequestID(ctx, requestID)
-	ri.Header().Set(s.RequestIDHeaderName, requestID)
-
-	var writeErr error
-	if response := s.Authenticate(ctx, request); response != nil {
-		writeErr = ri.WriteResponse(response)
-		goto finish
-	}
-
-	if s.Path == r.URL.Path {
-		s.delegate.ServeHTTP(ri, r)
-	} else {
-		ri.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		ri.WriteHeader(http.StatusNotFound)
-	}
-
-finish:
-	snapshot := ri.Flush()
-
-	if s.CompletionHook != nil {
-		s.CompletionHook(ctx, request, snapshot)
-	}
-
-	if idErr != nil && s.ErrorHook != nil {
-		s.ErrorHook(ctx, request, idErr)
-	}
-	writeErr1 := merry.WithMessage(writeErr, "serializing response")
-	if writeErr1 != nil && s.ErrorHook != nil {
-		s.ErrorHook(ctx, request, writeErr1)
-	}
+	return debugResponse
 }

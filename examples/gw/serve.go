@@ -49,7 +49,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
-		Logger: logger,
 	}
 
 	hello := NewHelloService(env.DefaultProvider)
@@ -64,7 +63,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			ErrorHook:      lh.error,
 		},
 		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
-		Logger:   logger,
 	}
 
 	services := []service.Service{hello, goodbye}
