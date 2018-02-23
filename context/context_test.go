@@ -124,7 +124,7 @@ func TestValue(t *testing.T) {
 func TestWithParent(t *testing.T) {
 	parent := context.WithValue(context.Background(), "foo", "bar")
 	c := New(context.Background())
-	
+
 	new := c.WithParent(parent)
 
 	assert.Equal(t, "bar", new.Value("foo"))
