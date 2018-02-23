@@ -14,11 +14,6 @@ import (
 	"github.com/percolate/shisa/uuid"
 )
 
-// StringExtractor is a function type that extracts a string from
-// the given `context.Context` and `*service.Request`.
-// An error is returned if the string could not be extracted.
-type StringExtractor func(context.Context, *Request) (string, merry.Error)
-
 type Request struct {
 	*http.Request
 	PathParams  []PathParameter
