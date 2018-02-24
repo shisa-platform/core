@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/ansel1/merry"
+
 	"github.com/percolate/shisa/contenttype"
 )
 
@@ -29,7 +31,7 @@ type Response interface {
 	Headers() http.Header
 	Trailers() http.Header
 	Err() error
-	Serialize(io.Writer) error
+	Serialize(io.Writer) merry.Error
 }
 
 type BasicResponse struct {
@@ -60,7 +62,7 @@ func (r *BasicResponse) Err() error {
 	return nil
 }
 
-func (r *BasicResponse) Serialize(io.Writer) error {
+func (r *BasicResponse) Serialize(io.Writer) merry.Error {
 	return nil
 }
 
@@ -69,12 +71,12 @@ type JsonResponse struct {
 	Payload json.Marshaler
 }
 
-func (r *JsonResponse) Serialize(w io.Writer) error {
+func (r *JsonResponse) Serialize(w io.Writer) merry.Error {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	return encoder.Encode(r.Payload)
+	return merry.WithMessage(encoder.Encode(r.Payload), "serializing json")
 }
 
 func NewEmpty(code int) Response {
@@ -157,14 +159,14 @@ func (r ResponseAdapter) Err() error {
 	return nil
 }
 
-func (r ResponseAdapter) Serialize(w io.Writer) error {
+func (r ResponseAdapter) Serialize(w io.Writer) merry.Error {
 	buf := getBuffer()
 	defer putBuffer(buf)
 
 	_, err := io.CopyBuffer(w, r.Body, buf)
 	r.Body.Close()
 
-	return err
+	return merry.WithMessage(err, "copying response buffer")
 }
 
 func getBuffer() []byte {

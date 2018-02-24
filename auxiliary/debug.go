@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ansel1/merry"
+
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 )
@@ -44,17 +46,23 @@ func (r expvarResponse) Err() error {
 	return nil
 }
 
-func (r expvarResponse) Serialize(w io.Writer) (err error) {
-	_, err = fmt.Fprintf(w, "{\n")
+func (r expvarResponse) Serialize(w io.Writer) (err merry.Error) {
+	var e error
+	defer func() {
+		if e != nil {
+			err = merry.WithMessage(e, "serializing expavars")
+		}
+	}()
+	_, e = fmt.Fprintf(w, "{\n")
 	first := true
 	expvar.Do(func(kv expvar.KeyValue) {
 		if !first {
-			_, err = fmt.Fprintf(w, ",\n")
+			_, e = fmt.Fprintf(w, ",\n")
 		}
 		first = false
-		_, err = fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
+		_, e = fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
 	})
-	_, err = fmt.Fprintf(w, "\n}\n")
+	_, e = fmt.Fprintf(w, "\n}\n")
 
 	return
 }
