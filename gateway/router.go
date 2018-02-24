@@ -36,8 +36,11 @@ func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().UTC()
 
-	ctx := context.New(r.Context())
-	request := &service.Request{Request: r}
+	ctx := context.Get(r.Context())
+	defer context.Put(ctx)
+
+	request := service.GetRequest(r)
+	defer service.PutRequest(request)
 
 	requestIDGenerationStart := time.Now().UTC()
 	requestID, idErr := g.RequestIDGenerator(ctx, request)
@@ -51,7 +54,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	requestIDGenerationStop := time.Now().UTC()
 
-	ctx = context.WithRequestID(ctx, requestID)
+	ctx = ctx.WithRequestID(requestID)
 
 	request.ParseQueryParameters()
 
