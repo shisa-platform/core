@@ -43,7 +43,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer httpx.PutRequest(request)
 
 	requestIDGenerationStart := time.Now().UTC()
-	requestID, idErr := g.RequestIDGenerator(ctx, request)
+	requestID, idErr := g.RequestIDGenerator.InvokeSafely(ctx, request)
 	if idErr != nil {
 		idErr = merry.WithMessage(idErr, "generating request id")
 		requestID = request.ID()
