@@ -123,11 +123,11 @@ func TestValue(t *testing.T) {
 
 func TestWithParent(t *testing.T) {
 	parent := context.WithValue(context.Background(), "foo", "bar")
-	c := New(context.Background())
+	cut := New(context.Background())
 
-	new := c.WithParent(parent)
+	cut1 := c.WithParent(parent)
 
-	assert.Equal(t, "bar", new.Value("foo"))
+	assert.Equal(t, "bar", cut1.Value("foo"))
 }
 
 func TestWithActor(t *testing.T) {
