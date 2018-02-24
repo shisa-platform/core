@@ -212,8 +212,11 @@ func (s *HTTPServer) Shutdown(timeout time.Duration) error {
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri := httpx.NewInterceptor(w)
 
-	ctx := context.New(r.Context())
-	request := &httpx.Request{Request: r}
+	ctx := context.Get(r.Context())
+	defer context.Put(ctx)
+
+	request := httpx.GetRequest(r)
+	defer httpx.PutRequest(request)
 
 	requestID, idErr := s.RequestIDGenerator(ctx, request)
 	if idErr != nil {
