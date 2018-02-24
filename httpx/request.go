@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -12,6 +13,32 @@ import (
 
 	"github.com/percolate/shisa/uuid"
 )
+
+var (
+	requestPool = sync.Pool{
+		New: func() interface{} {
+			return new(Request)
+		},
+	}
+)
+
+// GetRequest returns a Request instance from the shared pool,
+// ready for (re)use.
+func GetRequest(parent *http.Request) *Request {
+	request := requestPool.Get().(*Request)
+	request.Request = parent
+	request.PathParams = nil
+	request.QueryParams = nil
+	request.id = ""
+	request.clientIP = ""
+
+	return request
+}
+
+// PutRequest returns the given Request back to the shared pool.
+func PutRequest(request *Request) {
+	requestPool.Put(request)
+}
 
 type Request struct {
 	*http.Request

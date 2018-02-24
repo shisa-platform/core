@@ -18,6 +18,7 @@ type Context interface {
 	context.Context
 	RequestID() string
 	Actor() models.User
+	WithParent(value context.Context) Context
 	WithActor(value models.User) Context
 	WithRequestID(value string) Context
 	WithValue(key, value interface{}) Context
@@ -60,6 +61,11 @@ func (c *ctx) Value(key interface{}) interface{} {
 	}
 
 	return c.Context.Value(key)
+}
+
+func (c *ctx) WithParent(value context.Context) Context {
+	c.Context = value
+	return c
 }
 
 func (c *ctx) WithActor(value models.User) Context {
