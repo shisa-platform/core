@@ -44,20 +44,17 @@ func (r expvarResponse) Err() error {
 	return nil
 }
 
-func (r expvarResponse) Serialize(w io.Writer) (size int, err error) {
-	fmt.Fprintf(w, "{\n")
+func (r expvarResponse) Serialize(w io.Writer) (err error) {
+	_, err = fmt.Fprintf(w, "{\n")
 	first := true
 	expvar.Do(func(kv expvar.KeyValue) {
 		if !first {
-			n, _ := fmt.Fprintf(w, ",\n")
-			size += n
+			_, err = fmt.Fprintf(w, ",\n")
 		}
 		first = false
-		n, _ := fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
-		size += n
+		_, err = fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
 	})
-	n, _ := fmt.Fprintf(w, "\n}\n")
-	size += n
+	_, err = fmt.Fprintf(w, "\n}\n")
 
 	return
 }

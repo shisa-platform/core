@@ -26,8 +26,8 @@ func unserializableResponse() httpx.Response {
 		ErrHook: func() error {
 			return nil
 		},
-		SerializeHook: func(io.Writer) (int, error) {
-			return 0, merry.New("i blewed up!")
+		SerializeHook: func(io.Writer) error {
+			return merry.New("i blewed up!")
 		},
 	}
 }

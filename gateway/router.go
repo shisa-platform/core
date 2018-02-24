@@ -34,7 +34,7 @@ func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	start := time.Now().UTC()
+	ri := httpx.NewInterceptor(w)
 
 	ctx := context.Get(r.Context())
 	defer context.Put(ctx)
@@ -55,6 +55,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestIDGenerationStop := time.Now().UTC()
 
 	ctx = ctx.WithRequestID(requestID)
+	ri.Header().Set(g.RequestIDHeaderName, requestID)
 
 	request.ParseQueryParameters()
 
@@ -267,36 +268,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 finish:
 	serializationStart := time.Now().UTC()
-	for k, vs := range response.Headers() {
-		w.Header()[k] = vs
-	}
-	for k := range response.Trailers() {
-		w.Header().Add("Trailer", k)
-	}
-
-	w.Header().Set(g.RequestIDHeaderName, requestID)
-
-	w.WriteHeader(response.StatusCode())
-	size, writeErr := response.Serialize(w)
-
-	for k, vs := range response.Trailers() {
-		w.Header()[k] = vs
-	}
-
-	if f, impl := w.(http.Flusher); impl {
-		f.Flush()
-	}
+	writeErr := ri.WriteResponse(response)
+	snapshot := ri.Flush()
 
 	end := time.Now().UTC()
 
 	if g.CompletionHook != nil {
-		snapshot := httpx.ResponseSnapshot{
-			StatusCode: response.StatusCode(),
-			Size:       size,
-			Start:      start,
-			Elapsed:    end.Sub(start),
-			Metrics:    make(map[string]time.Duration),
-		}
 		idGeneration := requestIDGenerationStop.Sub(requestIDGenerationStart)
 		snapshot.Metrics[RequestIdGenerationMetricKey] = idGeneration
 		if len(g.Handlers) != 0 {

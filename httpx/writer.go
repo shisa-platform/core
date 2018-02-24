@@ -36,7 +36,7 @@ func WriteResponse(w http.ResponseWriter, response Response) (err error) {
 
 	w.WriteHeader(response.StatusCode())
 
-	_, err = response.Serialize(w)
+	err = response.Serialize(w)
 
 	for k, vs := range response.Trailers() {
 		w.Header()[k] = vs

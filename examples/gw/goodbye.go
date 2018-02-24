@@ -106,7 +106,7 @@ func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*h
 
 func (s *GoodbyeService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) httpx.Response {
 	var buf bytes.Buffer
-	if _, err := response.Serialize(&buf); err != nil {
+	if err := response.Serialize(&buf); err != nil {
 		return httpx.NewEmptyError(http.StatusBadGateway, err)
 	}
 	body := make(map[string]string)

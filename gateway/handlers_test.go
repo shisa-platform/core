@@ -24,9 +24,8 @@ func TestDefaultNotFoundHandler(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -41,9 +40,8 @@ func TestDefaultMethodNotAllowedHandler(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -58,9 +56,8 @@ func TestDefaultMalformedRequestHandler(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -76,9 +73,8 @@ func TestDefaultInternalServerErrorHandler(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -94,9 +90,8 @@ func TestDefaultRedirectHandlerTrailingSlashGet(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -112,9 +107,8 @@ func TestDefaultRedirectHandlerTrailingSlashNonGet(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -130,9 +124,8 @@ func TestDefaultRedirectHandlerNoSlashGet(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -148,9 +141,8 @@ func TestDefaultRedirectHandlerNoSlashNonGet(t *testing.T) {
 	assert.Empty(t, response.Trailers())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 

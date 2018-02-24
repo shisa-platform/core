@@ -66,12 +66,13 @@ func (r Healthcheck) Err() error {
 	return r.Error
 }
 
-func (r Healthcheck) Serialize(w io.Writer) (int, error) {
+func (r Healthcheck) Serialize(w io.Writer) error {
 	p, err := json.Marshal(r)
 	if err != nil {
-		return 0, nil
+		return err
 	}
-	return w.Write(p)
+	_, err = w.Write(p)
+	return err
 }
 
 type SimpleResponse string
@@ -98,8 +99,9 @@ func (r SimpleResponse) Err() error {
 	return nil
 }
 
-func (r SimpleResponse) Serialize(w io.Writer) (int, error) {
-	return fmt.Fprint(w, string(r))
+func (r SimpleResponse) Serialize(w io.Writer) error {
+	_, err := fmt.Fprint(w, string(r))
+	return err
 }
 
 type Goodbye struct {

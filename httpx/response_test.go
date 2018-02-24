@@ -21,8 +21,7 @@ func TestErrorResponse(t *testing.T) {
 	assert.Equal(t, err, cut.Err())
 
 	var buf bytes.Buffer
-	size, serr := cut.Serialize(&buf)
+	serr := cut.Serialize(&buf)
 	assert.NoError(t, serr)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }

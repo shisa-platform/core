@@ -29,7 +29,7 @@ type Response interface {
 	Headers() http.Header
 	Trailers() http.Header
 	Err() error
-	Serialize(io.Writer) (int, error)
+	Serialize(io.Writer) error
 }
 
 type BasicResponse struct {
@@ -60,8 +60,8 @@ func (r *BasicResponse) Err() error {
 	return nil
 }
 
-func (r *BasicResponse) Serialize(io.Writer) (int, error) {
-	return 0, nil
+func (r *BasicResponse) Serialize(io.Writer) error {
+	return nil
 }
 
 type JsonResponse struct {
@@ -69,14 +69,12 @@ type JsonResponse struct {
 	Payload json.Marshaler
 }
 
-func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
-	writer := countingWriter{delegate: w}
-	encoder := json.NewEncoder(&writer)
+func (r *JsonResponse) Serialize(w io.Writer) error {
+	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	err := encoder.Encode(r.Payload)
-	return writer.count, err
+	return encoder.Encode(r.Payload)
 }
 
 func NewEmpty(code int) Response {
@@ -115,18 +113,6 @@ func NewOK(body json.Marshaler) Response {
 		},
 		Payload: body,
 	}
-}
-
-type countingWriter struct {
-	delegate io.Writer
-	count    int
-}
-
-func (c *countingWriter) Write(p []byte) (n int, err error) {
-	n, err = c.delegate.Write(p)
-	c.count += n
-
-	return
 }
 
 func NewSeeOther(location string) Response {
@@ -171,16 +157,14 @@ func (r ResponseAdapter) Err() error {
 	return nil
 }
 
-func (r ResponseAdapter) Serialize(w io.Writer) (n int, err error) {
+func (r ResponseAdapter) Serialize(w io.Writer) error {
 	buf := getBuffer()
 	defer putBuffer(buf)
 
-	var nw int64
-	nw, err = io.CopyBuffer(w, r.Body, buf)
-	n = int(nw)
+	_, err := io.CopyBuffer(w, r.Body, buf)
 	r.Body.Close()
 
-	return
+	return err
 }
 
 func getBuffer() []byte {

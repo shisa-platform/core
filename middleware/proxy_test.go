@@ -369,9 +369,8 @@ func TestReverseProxyUncontactableProxy(t *testing.T) {
 	assert.True(t, routerInvoked)
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -412,9 +411,8 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 	assert.True(t, responderInvoked)
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err = response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -451,9 +449,8 @@ func TestReverseProxy(t *testing.T) {
 	assert.NoError(t, response.Err())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err = response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.NotEqual(t, 0, size)
 	assert.NotEqual(t, 0, buf.Len())
 	expectedJson := `{
   "message": "hello"

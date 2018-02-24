@@ -34,8 +34,8 @@ func failingResponse(status int) httpx.Response {
 		ErrHook: func() error {
 			return nil
 		},
-		SerializeHook: func(io.Writer) (int, error) {
-			return 0, errors.New("i blewed up!")
+		SerializeHook: func(io.Writer) error {
+			return errors.New("i blewed up!")
 		},
 	}
 }
