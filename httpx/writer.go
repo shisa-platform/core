@@ -2,6 +2,8 @@ package httpx
 
 import (
 	"net/http"
+
+	"github.com/ansel1/merry"
 )
 
 // WriteResponse serializes a response instance to the
@@ -11,6 +13,20 @@ import (
 // `ResponseWriter` after calling this function.
 // Any error returned from `Response.Serialize` will be returned.
 func WriteResponse(w http.ResponseWriter, response Response) (err error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if e1, ok := arg.(error); ok {
+			err = merry.WithMessage(e1, "panic in response")
+			return
+		}
+
+		err = merry.New("panic in response").WithValue("context", arg)
+	}()
+
 	for k, vs := range response.Headers() {
 		w.Header()[k] = vs
 	}
