@@ -522,7 +522,7 @@ func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
 	assert.True(t, w.Flushed)
 }
 
-type failingWriter struct {}
+type failingWriter struct{}
 
 func (w failingWriter) Write(p []byte) (n int, err error) {
 	return 0, io.EOF
