@@ -1,4 +1,4 @@
-package service
+package httpx
 
 import (
 	"crypto/rand"
@@ -11,7 +11,6 @@ import (
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
 
-	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/uuid"
 )
 
@@ -40,11 +39,6 @@ func GetRequest(parent *http.Request) *Request {
 func PutRequest(request *Request) {
 	requestPool.Put(request)
 }
-
-// StringExtractor is a function type that extracts a string from
-// the given `context.Context` and `*service.Request`.
-// An error is returned if the string could not be extracted.
-type StringExtractor func(context.Context, *Request) (string, merry.Error)
 
 type Request struct {
 	*http.Request

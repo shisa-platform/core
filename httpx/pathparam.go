@@ -1,4 +1,4 @@
-package service
+package httpx
 
 // PathParameter is a single URL path parameter.
 type PathParameter struct {

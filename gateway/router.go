@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
@@ -27,40 +28,33 @@ const (
 	SerializeResponseMetricKey = "serialization"
 )
 
-type byName []service.QueryParameter
+type byName []httpx.QueryParameter
 
 func (p byName) Len() int           { return len(p) }
 func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	start := time.Now().UTC()
+	ri := httpx.NewInterceptor(w)
 
 	ctx := context.Get(r.Context())
 	defer context.Put(ctx)
 
-	request := service.GetRequest(r)
-	defer service.PutRequest(request)
+	request := httpx.GetRequest(r)
+	defer httpx.PutRequest(request)
 
 	requestIDGenerationStart := time.Now().UTC()
-	requestID, idErr := g.RequestIDGenerator(ctx, request)
-	if idErr != nil {
-		idErr = merry.WithMessage(idErr, "generating request id")
-		requestID = request.ID()
-	}
-	if requestID == "" {
-		idErr = merry.New("generator returned empty request id")
-		requestID = request.ID()
-	}
+	requestID, idErr := g.generateRequestID(ctx, request)
 	requestIDGenerationStop := time.Now().UTC()
 
 	ctx = ctx.WithRequestID(requestID)
+	ri.Header().Set(g.RequestIDHeaderName, requestID)
 
 	request.ParseQueryParameters()
 
 	var (
 		err           merry.Error
-		response      service.Response
+		response      httpx.Response
 		pipeline      *service.Pipeline
 		findPathStart time.Time
 		findPathStop  time.Time
@@ -69,8 +63,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handlersStop  time.Time
 		endpoint      *endpoint
 		path          string
-		params        []service.QueryParameter
-		pathParams    []service.PathParameter
+		params        []httpx.QueryParameter
+		pathParams    []httpx.PathParameter
 		tsr           bool
 		invalidParams bool
 		missingParams bool
@@ -78,10 +72,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	handlersStart := time.Now().UTC()
 	for i, handler := range g.Handlers {
-		response = runHandler(handler, ctx, request, &err)
+		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
-			response = g.InternalServerErrorHandler(ctx, request, err)
+			response = g.handleError(ctx, request, err)
 			handlersStop = time.Now().UTC()
 			goto finish
 		}
@@ -99,12 +93,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err = merry.WithMessage(err, "routing request")
-		response = g.InternalServerErrorHandler(ctx, request, err)
+		response = g.handleError(ctx, request, err)
 		goto finish
 	}
 
 	if endpoint == nil {
-		response = g.NotFoundHandler(ctx, request)
+		response, err = g.handleNotFound(ctx, request)
 		goto finish
 	}
 
@@ -131,18 +125,18 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if pipeline == nil {
 		if tsr {
-			response = g.NotFoundHandler(ctx, request)
+			response, err = g.handleNotFound(ctx, request)
 		} else {
-			response = endpoint.notAllowedHandler(ctx, request)
+			response, err = endpoint.handleNotAllowed(ctx, request)
 		}
 		goto finish
 	}
 
 	if tsr {
 		if path != "/" && pipeline.Policy.AllowTrailingSlashRedirects {
-			response = endpoint.redirectHandler(ctx, request)
+			response, err = endpoint.handleRedirect(ctx, request)
 		} else {
-			response = g.NotFoundHandler(ctx, request)
+			response, err = g.handleNotFound(ctx, request)
 		}
 		goto finish
 	}
@@ -179,7 +173,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if !found {
 			if field.Default != "" {
-				dp := service.QueryParameter{
+				dp := httpx.QueryParameter{
 					Name:    field.Name,
 					Values:  []string{field.Default},
 					Ordinal: -1,
@@ -192,12 +186,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if (invalidParams || missingParams) && !pipeline.Policy.AllowMalformedQueryParameters {
-		response = endpoint.badQueryHandler(ctx, request)
+		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
 
 	if len(params) != 0 && !pipeline.Policy.AllowUnknownQueryParameters {
-		response = endpoint.badQueryHandler(ctx, request)
+		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
 
@@ -219,10 +213,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	pipelineStart = time.Now().UTC()
 	for i, handler := range pipeline.Handlers {
-		response = runHandler(handler, ctx, request, &err)
+		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
-			response = endpoint.iseHandler(ctx, request, err)
+			var exception merry.Error
+			response, exception = endpoint.handleError(ctx, request, err)
+			if exception != nil {
+				g.invokeErrorHookSafely(ctx, request, exception)
+			}
 			pipelineStop = time.Now().UTC()
 			goto finish
 		}
@@ -234,41 +232,21 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if response == nil {
 		err = merry.New("no response from pipeline")
-		response = endpoint.iseHandler(ctx, request, err)
+		var exception merry.Error
+		response, exception = endpoint.handleError(ctx, request, err)
+		if exception != nil {
+			g.invokeErrorHookSafely(ctx, request, exception)
+		}
 	}
 
 finish:
 	serializationStart := time.Now().UTC()
-	for k, vs := range response.Headers() {
-		w.Header()[k] = vs
-	}
-	for k := range response.Trailers() {
-		w.Header().Add("Trailer", k)
-	}
-
-	w.Header().Set(g.RequestIDHeaderName, requestID)
-
-	w.WriteHeader(response.StatusCode())
-	size, writeErr := response.Serialize(w)
-
-	for k, vs := range response.Trailers() {
-		w.Header()[k] = vs
-	}
-
-	if f, impl := w.(http.Flusher); impl {
-		f.Flush()
-	}
+	writeErr := ri.WriteResponse(response)
+	snapshot := ri.Flush()
 
 	end := time.Now().UTC()
 
 	if g.CompletionHook != nil {
-		snapshot := httpx.ResponseSnapshot{
-			StatusCode: response.StatusCode(),
-			Size:       size,
-			Start:      start,
-			Elapsed:    end.Sub(start),
-			Metrics:    make(map[string]time.Duration),
-		}
 		idGeneration := requestIDGenerationStop.Sub(requestIDGenerationStart)
 		snapshot.Metrics[RequestIdGenerationMetricKey] = idGeneration
 		if len(g.Handlers) != 0 {
@@ -282,40 +260,91 @@ finish:
 		}
 		snapshot.Metrics[SerializeResponseMetricKey] = end.Sub(serializationStart)
 
-		g.CompletionHook(ctx, request, snapshot)
+		g.invokeCompletionHookSafely(ctx, request, snapshot)
 	}
 
 	if idErr != nil {
-		g.ErrorHook(ctx, request, idErr)
+		g.invokeErrorHookSafely(ctx, request, idErr)
 	}
 	if err != nil {
-		g.ErrorHook(ctx, request, err)
+		g.invokeErrorHookSafely(ctx, request, err)
 	}
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
 	if writeErr1 != nil {
-		g.ErrorHook(ctx, request, writeErr1)
+		g.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
 	respErr := response.Err()
 	if respErr != nil && respErr != err {
-		g.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
+		g.invokeErrorHookSafely(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }
 
-func recovery(fatalError *merry.Error) {
-	arg := recover()
-	if arg == nil {
-		return
+func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request) (string, merry.Error) {
+	if g.RequestIDGenerator == nil {
+		return request.ID(), nil
 	}
 
-	if err, ok := arg.(error); ok {
-		*fatalError = merry.WithMessage(err, "panic in handler")
-		return
+	requestID, err := g.RequestIDGenerator.InvokeSafely(ctx, request)
+	if err != nil {
+		err = merry.WithMessage(err, "generating request id")
+		requestID = request.ID()
+	}
+	if requestID == "" {
+		err = merry.New("generator returned empty request id")
+		requestID = request.ID()
 	}
 
-	*fatalError = merry.New("panic in handler").WithValue("context", arg)
+	return requestID, err
 }
 
-func runHandler(handler service.Handler, ctx context.Context, request *service.Request, err *merry.Error) service.Response {
-	defer recovery(err)
-	return handler(ctx, request)
+func (g *Gateway) handleNotFound(ctx context.Context, request *httpx.Request) (httpx.Response, merry.Error) {
+	if g.NotFoundHandler == nil {
+		return httpx.NewEmpty(http.StatusNotFound), nil
+	}
+
+	var exception merry.Error
+	response := g.NotFoundHandler.InvokeSafely(ctx, request, &exception)
+	if exception != nil {
+		err := merry.WithMessage(exception, "running NotFoundHandler")
+		return httpx.NewEmpty(http.StatusNotFound), err
+	}
+
+	return response, nil
+}
+
+func (g *Gateway) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	if g.InternalServerErrorHandler == nil {
+		return httpx.NewEmptyError(http.StatusInternalServerError, err)
+	}
+
+	var exception merry.Error
+	response := g.InternalServerErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	if exception != nil {
+		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
+		exception = merry.WithMessage(exception, "while invoking InternalServerErrorHandler")
+		g.invokeErrorHookSafely(ctx, request, exception)
+	}
+
+	return response
+}
+
+func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
+	var exception merry.Error
+
+	g.ErrorHook.InvokeSafely(ctx, request, err, &exception)
+	if exception != nil {
+		g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
+		exception = merry.WithMessage(exception, "while invoking ErrorHook")
+		g.Logger.Error(exception.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(exception))
+	}
+}
+
+func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
+	var exception merry.Error
+
+	g.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
+	if exception != nil {
+		exception = merry.WithMessage(exception, "while invoking CompletionHook")
+		g.invokeErrorHookSafely(ctx, request, exception)
+	}
 }

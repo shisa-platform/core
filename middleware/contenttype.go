@@ -8,7 +8,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -25,10 +25,10 @@ type RestrictContentTypes struct {
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code
 	// and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) service.Response {
+func (m *RestrictContentTypes) Service(c context.Context, r *httpx.Request) httpx.Response {
 	var err merry.Error
 
 	if m.ErrorHandler == nil {
@@ -49,7 +49,7 @@ func (m *RestrictContentTypes) Service(c context.Context, r *service.Request) se
 	return nil
 }
 
-func (m *RestrictContentTypes) checkPayload(r *service.Request) (err merry.Error) {
+func (m *RestrictContentTypes) checkPayload(r *httpx.Request) (err merry.Error) {
 	if values, ok := r.Header[contenttype.ContentTypeHeaderKey]; ok {
 		if len(values) != 1 {
 			err = merry.New("too many content types declared")
@@ -73,7 +73,7 @@ func (m *RestrictContentTypes) checkPayload(r *service.Request) (err merry.Error
 	return
 }
 
-func (m *RestrictContentTypes) checkQuery(r *service.Request) (err merry.Error) {
+func (m *RestrictContentTypes) checkQuery(r *httpx.Request) (err merry.Error) {
 	if values, ok := r.Header[AcceptHeaderKey]; ok {
 		for _, value := range values {
 			for _, mediaRange := range strings.Split(value, ",") {
@@ -99,8 +99,8 @@ func (m *RestrictContentTypes) checkQuery(r *service.Request) (err merry.Error) 
 	return
 }
 
-func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 // AllowContentTypes is middleware to whitelist incoming
@@ -112,10 +112,10 @@ type AllowContentTypes struct {
 	// for an error. The `err` parameter passed to the handler will
 	// have a recommended HTTP status code. The default handler will
 	// return the recommended status code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *AllowContentTypes) Service(c context.Context, r *service.Request) service.Response {
+func (m *AllowContentTypes) Service(c context.Context, r *httpx.Request) httpx.Response {
 	var err merry.Error
 
 	if m.ErrorHandler == nil {
@@ -136,7 +136,7 @@ func (m *AllowContentTypes) Service(c context.Context, r *service.Request) servi
 	return nil
 }
 
-func (m *AllowContentTypes) checkPayload(r *service.Request) (err merry.Error) {
+func (m *AllowContentTypes) checkPayload(r *httpx.Request) (err merry.Error) {
 	if values, ok := r.Header[contenttype.ContentTypeHeaderKey]; ok {
 		if len(values) != 1 {
 			err = merry.New("too many content types declared")
@@ -161,7 +161,7 @@ func (m *AllowContentTypes) checkPayload(r *service.Request) (err merry.Error) {
 	return
 }
 
-func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
+func (m *AllowContentTypes) checkQuery(r *httpx.Request) (err merry.Error) {
 	if values, ok := r.Header[AcceptHeaderKey]; ok {
 		for _, value := range values {
 			for _, mediaRange := range strings.Split(value, ",") {
@@ -186,6 +186,6 @@ func (m *AllowContentTypes) checkQuery(r *service.Request) (err merry.Error) {
 	return
 }
 
-func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }

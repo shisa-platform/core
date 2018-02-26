@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 )
 
 var (
@@ -14,7 +15,7 @@ var (
 	emptyPolicy    = Policy{}
 )
 
-func testHandler(context.Context, *Request) Response {
+func testHandler(context.Context, *httpx.Request) httpx.Response {
 	return nil
 }
 
@@ -194,7 +195,7 @@ func TestEndpointExpvarStringExerciseComma(t *testing.T) {
 		{Name: "thing", Required: true},
 	}
 	cut.Put = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 
 	val := cut.String()
@@ -224,28 +225,28 @@ func TestEndpointExpvarString(t *testing.T) {
 		{Name: "thing", Required: true},
 	}
 	cut.Head = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Put = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Post = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Patch = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Delete = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Connect = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Options = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 	cut.Trace = &Pipeline{
-		Handlers: []Handler{testHandler},
+		Handlers: []httpx.Handler{testHandler},
 	}
 
 	val := cut.String()

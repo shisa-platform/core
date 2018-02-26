@@ -2,26 +2,9 @@ package service
 
 import (
 	"bytes"
-	"encoding/json"
-	"strconv"
 
-	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 )
-
-// Handler is a block of logic to apply to a request.
-// Returning a non-nil response indicates further request
-// processing should be stopped.
-type Handler func(context.Context, *Request) Response
-
-// Pipeline is a chain of handlers to be invoked in order on a
-// request.  The first non-nil response will be returned to the
-// user agent.  If no response is produced an Internal Service
-// Error handler will be invoked.
-type Pipeline struct {
-	Policy      Policy    // customizes automated behavior
-	Handlers    []Handler // the pipline steps, minimum one
-	QueryFields []Field   // optional query parameter validation
-}
 
 // Endpoint is collection of pipelines for a route (URL path),
 // one for each HTTP method.  Only supported methods should have
@@ -41,7 +24,7 @@ type Endpoint struct {
 
 // GetEndpoint returns an Endpoint configured for the given route
 // with the GET pipeline using the given handlers.
-func GetEndpoint(route string, handlers ...Handler) Endpoint {
+func GetEndpoint(route string, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Get: &Pipeline{
@@ -53,7 +36,7 @@ func GetEndpoint(route string, handlers ...Handler) Endpoint {
 // GetEndpointWithPolicy returns an Endpoint configured for the
 // given route, with the given policy and the GET pipeline using
 // the given handlers.
-func GetEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
+func GetEndpointWithPolicy(route string, policy Policy, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Get: &Pipeline{
@@ -65,7 +48,7 @@ func GetEndpointWithPolicy(route string, policy Policy, handlers ...Handler) End
 
 // PutEndpoint returns an Endpoint configured for the given route
 // with the PUT pipeline using the given handlers.
-func PutEndpoint(route string, handlers ...Handler) Endpoint {
+func PutEndpoint(route string, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Put: &Pipeline{
@@ -77,7 +60,7 @@ func PutEndpoint(route string, handlers ...Handler) Endpoint {
 // PutEndpointWithPolicy returns an Endpoint configured for the
 // given route, with the given policy and the PUT pipeline using
 // the given handlers.
-func PutEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
+func PutEndpointWithPolicy(route string, policy Policy, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Put: &Pipeline{
@@ -89,7 +72,7 @@ func PutEndpointWithPolicy(route string, policy Policy, handlers ...Handler) End
 
 // PostEndpoint returns an Endpoint configured for the given route
 // with the POST pipeline using the given handlers.
-func PostEndpoint(route string, handlers ...Handler) Endpoint {
+func PostEndpoint(route string, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Post: &Pipeline{
@@ -101,7 +84,7 @@ func PostEndpoint(route string, handlers ...Handler) Endpoint {
 // PostEndpointWithPolicy returns an Endpoint configured for the
 // given route, with the given policy and the POST pipeline
 // using the given handlers.
-func PostEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
+func PostEndpointWithPolicy(route string, policy Policy, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Post: &Pipeline{
@@ -113,7 +96,7 @@ func PostEndpointWithPolicy(route string, policy Policy, handlers ...Handler) En
 
 // PatchEndpoint returns an Endpoint configured for the given
 // route with the PATCH pipeline using the given handlers.
-func PatchEndpoint(route string, handlers ...Handler) Endpoint {
+func PatchEndpoint(route string, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Patch: &Pipeline{
@@ -125,7 +108,7 @@ func PatchEndpoint(route string, handlers ...Handler) Endpoint {
 // PatchEndpointWithPolicy returns an Endpoint configured for the
 // given route, with the given policy and the PATCH pipeline
 // using the given handlers.
-func PatchEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
+func PatchEndpointWithPolicy(route string, policy Policy, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Patch: &Pipeline{
@@ -137,7 +120,7 @@ func PatchEndpointWithPolicy(route string, policy Policy, handlers ...Handler) E
 
 // DeleteEndpoint returns an Endpoint configured for the given
 // route with the DELETE pipeline using the given handlers.
-func DeleteEndpoint(route string, handlers ...Handler) Endpoint {
+func DeleteEndpoint(route string, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Delete: &Pipeline{
@@ -149,7 +132,7 @@ func DeleteEndpoint(route string, handlers ...Handler) Endpoint {
 // DeleteEndpointWithPolicy returns an Endpoint configured for
 // the given route, with the given policy and the DELETE
 // pipeline using the given handlers.
-func DeleteEndpointWithPolicy(route string, policy Policy, handlers ...Handler) Endpoint {
+func DeleteEndpointWithPolicy(route string, policy Policy, handlers ...httpx.Handler) Endpoint {
 	return Endpoint{
 		Route: route,
 		Delete: &Pipeline{
@@ -222,17 +205,4 @@ func comma(rest *bool, buf *bytes.Buffer) {
 	} else {
 		*rest = true
 	}
-}
-
-func (p Pipeline) jsonify(buf *bytes.Buffer) {
-	enc := json.NewEncoder(buf)
-	buf.WriteString("{\"Policy\":")
-	enc.Encode(p.Policy)
-	buf.WriteString(",\"Handlers\":")
-	buf.WriteString(strconv.Itoa(len(p.Handlers)))
-	if len(p.QueryFields) != 0 {
-		buf.WriteString(",\"QueryFields\":")
-		enc.Encode(p.QueryFields)
-	}
-	buf.WriteByte('}')
 }

@@ -8,15 +8,15 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/ratelimit"
-	"github.com/percolate/shisa/service"
 )
 
 const (
 	RetryAfterHeaderKey = "Retry-After"
 )
 
-type RateLimitHandler func(context.Context, *service.Request, time.Duration) service.Response
+type RateLimitHandler func(context.Context, *httpx.Request, time.Duration) httpx.Response
 
 // ClientThrottler is a a rate-limiting middleware that
 // throttles requests from a given ClientIP using its Limiter
@@ -37,10 +37,10 @@ type ClientThrottler struct {
 	// have a recommended HTTP status code.
 	// The default handler will return the recommended status
 	// code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *ClientThrottler) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -70,12 +70,12 @@ func (m *ClientThrottler) Service(ctx context.Context, r *service.Request) servi
 	return nil
 }
 
-func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *ClientThrottler) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
-	response := service.NewEmpty(http.StatusTooManyRequests)
+func (m *ClientThrottler) defaultRateLimitHandler(ctx context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
+	response := httpx.NewEmpty(http.StatusTooManyRequests)
 	response.Headers().Set(RetryAfterHeaderKey, strconv.Itoa(int(cd/time.Second)))
 
 	return response
@@ -102,10 +102,10 @@ type UserThrottler struct {
 	// have a recommended HTTP status code.
 	// The default handler will return the recommended status
 	// code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *UserThrottler) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -135,18 +135,18 @@ func (m *UserThrottler) Service(ctx context.Context, r *service.Request) service
 	return nil
 }
 
-func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *UserThrottler) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *service.Request, cd time.Duration) service.Response {
-	response := service.NewEmpty(http.StatusTooManyRequests)
+func (m *UserThrottler) defaultRateLimitHandler(ctx context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
+	response := httpx.NewEmpty(http.StatusTooManyRequests)
 	response.Headers().Set(RetryAfterHeaderKey, strconv.Itoa(int(cd/time.Second)))
 
 	return response
 }
 
-func throttle(limiter ratelimit.Provider, actor string, r *service.Request) (bool, time.Duration, merry.Error) {
+func throttle(limiter ratelimit.Provider, actor string, r *httpx.Request) (bool, time.Duration, merry.Error) {
 	action, path := r.Method, r.URL.Path
 	return limiter.Allow(actor, action, path)
 }

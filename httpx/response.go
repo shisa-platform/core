@@ -1,10 +1,12 @@
-package service
+package httpx
 
 import (
 	"encoding/json"
 	"io"
 	"net/http"
 	"sync"
+
+	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/contenttype"
 )
@@ -29,7 +31,7 @@ type Response interface {
 	Headers() http.Header
 	Trailers() http.Header
 	Err() error
-	Serialize(io.Writer) (int, error)
+	Serialize(io.Writer) merry.Error
 }
 
 type BasicResponse struct {
@@ -60,8 +62,8 @@ func (r *BasicResponse) Err() error {
 	return nil
 }
 
-func (r *BasicResponse) Serialize(io.Writer) (int, error) {
-	return 0, nil
+func (r *BasicResponse) Serialize(io.Writer) merry.Error {
+	return nil
 }
 
 type JsonResponse struct {
@@ -69,14 +71,12 @@ type JsonResponse struct {
 	Payload json.Marshaler
 }
 
-func (r *JsonResponse) Serialize(w io.Writer) (int, error) {
-	writer := countingWriter{delegate: w}
-	encoder := json.NewEncoder(&writer)
+func (r *JsonResponse) Serialize(w io.Writer) merry.Error {
+	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	err := encoder.Encode(r.Payload)
-	return writer.count, err
+	return merry.WithMessage(encoder.Encode(r.Payload), "serializing json")
 }
 
 func NewEmpty(code int) Response {
@@ -117,18 +117,6 @@ func NewOK(body json.Marshaler) Response {
 	}
 }
 
-type countingWriter struct {
-	delegate io.Writer
-	count    int
-}
-
-func (c *countingWriter) Write(p []byte) (n int, err error) {
-	n, err = c.delegate.Write(p)
-	c.count += n
-
-	return
-}
-
 func NewSeeOther(location string) Response {
 	headers := make(http.Header)
 	headers.Set(LocationHeaderKey, location)
@@ -150,7 +138,7 @@ func NewTemporaryRedirect(location string) Response {
 }
 
 // ResponseAdapter is an adapter for `http.Response` to the
-// `service.Response` interface.
+// `Response` interface.
 type ResponseAdapter struct {
 	*http.Response
 }
@@ -171,16 +159,14 @@ func (r ResponseAdapter) Err() error {
 	return nil
 }
 
-func (r ResponseAdapter) Serialize(w io.Writer) (n int, err error) {
+func (r ResponseAdapter) Serialize(w io.Writer) merry.Error {
 	buf := getBuffer()
 	defer putBuffer(buf)
 
-	var nw int64
-	nw, err = io.CopyBuffer(w, r.Body, buf)
-	n = int(nw)
+	_, err := io.CopyBuffer(w, r.Body, buf)
 	r.Body.Close()
 
-	return
+	return merry.WithMessage(err, "copying response buffer")
 }
 
 func getBuffer() []byte {

@@ -11,6 +11,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/rpc/service"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -66,10 +67,10 @@ func (s *HelloService) Endpoints() []service.Endpoint {
 	return s.endpoints
 }
 
-func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service.Response {
+func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Response {
 	client, err := s.connect()
 	if err != nil {
-		return service.NewEmptyError(http.StatusInternalServerError, err)
+		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
 	message := hello.Message{
@@ -89,10 +90,10 @@ func (s *HelloService) Greeting(ctx context.Context, r *service.Request) service
 	var reply string
 	rpcErr := client.Call("Hello.Greeting", &message, &reply)
 	if rpcErr != nil {
-		return service.NewEmptyError(http.StatusInternalServerError, rpcErr)
+		return httpx.NewEmptyError(http.StatusInternalServerError, rpcErr)
 	}
 
-	response := service.NewOK(Greeting{reply})
+	response := httpx.NewOK(Greeting{reply})
 	addCommonHeaders(response)
 
 	return response

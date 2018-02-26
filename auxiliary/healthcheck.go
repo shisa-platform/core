@@ -10,7 +10,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -91,7 +91,7 @@ func (s *HealthcheckServer) Serve() error {
 	return s.HTTPServer.Serve()
 }
 
-func (s *HealthcheckServer) Route(ctx context.Context, request *service.Request) service.Handler {
+func (s *HealthcheckServer) Route(ctx context.Context, request *httpx.Request) httpx.Handler {
 	if request.URL.Path == s.Path {
 		return s.Service
 	}
@@ -99,7 +99,7 @@ func (s *HealthcheckServer) Route(ctx context.Context, request *service.Request)
 	return nil
 }
 
-func (s *HealthcheckServer) Service(ctx context.Context, request *service.Request) service.Response {
+func (s *HealthcheckServer) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	healthcheckStats.Add("hits", 1)
 
 	code := http.StatusOK
@@ -117,8 +117,8 @@ func (s *HealthcheckServer) Service(ctx context.Context, request *service.Reques
 		}
 		status[check.Name()] = "OK"
 	}
-	response := &service.JsonResponse{
-		BasicResponse: service.BasicResponse{
+	response := &httpx.JsonResponse{
+		BasicResponse: httpx.BasicResponse{
 			Code: code,
 		},
 		Payload: statusMarshaler{status},

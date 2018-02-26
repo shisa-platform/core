@@ -36,7 +36,5 @@ func TestGatewayInit(t *testing.T) {
 	assert.NotNil(t, cut.base.ConnState)
 	assert.Equal(t, cut, cut.base.Handler)
 	assert.Equal(t, defaultRequestIDResponseHeader, cut.RequestIDHeaderName)
-	assert.NotNil(t, cut.RequestIDGenerator)
-	assert.NotNil(t, cut.NotFoundHandler)
 	assert.NotNil(t, cut.Logger)
 }

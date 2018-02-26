@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	tokyo = time.FixedZone("", 9*60*60)
+)
+
 func TestFieldMatchName(t *testing.T) {
 	cut := Field{
 		Name: "zalgo",

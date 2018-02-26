@@ -7,7 +7,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -23,16 +23,16 @@ type Authentication struct {
 	// response for an unknown user.  The default handler will
 	// return a 401 status code, the "WWW-Authenticate" header
 	// and an empty body.
-	UnauthorizedHandler service.Handler
+	UnauthorizedHandler httpx.Handler
 	// `ErrorHandler` can be set to optionally customize the
 	// response for an error. The `err` parameter passed to the
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code,
 	// the "WWW-Authenticate" header and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *Authentication) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *Authentication) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -60,15 +60,15 @@ func (m *Authentication) Service(ctx context.Context, r *service.Request) servic
 	return nil
 }
 
-func (m *Authentication) defaultHandler(ctx context.Context, r *service.Request) service.Response {
-	response := service.NewEmpty(http.StatusUnauthorized)
+func (m *Authentication) defaultHandler(ctx context.Context, r *httpx.Request) httpx.Response {
+	response := httpx.NewEmpty(http.StatusUnauthorized)
 	response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 
 	return response
 }
 
-func (m *Authentication) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	response := service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *Authentication) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	response := httpx.NewEmptyError(merry.HTTPCode(err), err)
 	if m.Authenticator != nil {
 		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
@@ -87,9 +87,9 @@ type PassiveAuthentication struct {
 	Authenticator authn.Authenticator
 }
 
-func (m *PassiveAuthentication) Service(ctx context.Context, r *service.Request) service.Response {
+func (m *PassiveAuthentication) Service(ctx context.Context, r *httpx.Request) httpx.Response {
 	if m.Authenticator == nil {
-		return service.NewEmptyError(http.StatusInternalServerError, merry.New("PassiveAuthentication.Authenticator is nil"))
+		return httpx.NewEmptyError(http.StatusInternalServerError, merry.New("PassiveAuthentication.Authenticator is nil"))
 	}
 
 	if user, _ := m.Authenticator.Authenticate(ctx, r); user != nil {

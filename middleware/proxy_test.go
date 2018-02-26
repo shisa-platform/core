@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 func TestReverseProxyMissingRouter(t *testing.T) {
 	cut := ReverseProxy{}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -33,13 +33,13 @@ func TestReverseProxyMissingRouter(t *testing.T) {
 func TestReverseProxyMissingRouterCustomErrorHandler(t *testing.T) {
 	var errorHandlerInvoked bool
 	cut := ReverseProxy{
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -51,13 +51,13 @@ func TestReverseProxyMissingRouterCustomErrorHandler(t *testing.T) {
 func TestReverseProxyNilRouterResponse(t *testing.T) {
 	var routerInvoked bool
 	cut := ReverseProxy{
-		Router: func(context.Context, *service.Request) (*service.Request, merry.Error) {
+		Router: func(context.Context, *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return nil, nil
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -70,17 +70,17 @@ func TestReverseProxyNilRouterResponseCustomErrorHandler(t *testing.T) {
 	var errorHandlerInvoked bool
 	var routerInvoked bool
 	cut := ReverseProxy{
-		Router: func(context.Context, *service.Request) (*service.Request, merry.Error) {
+		Router: func(context.Context, *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return nil, nil
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -93,13 +93,13 @@ func TestReverseProxyNilRouterResponseCustomErrorHandler(t *testing.T) {
 func TestReverseProxyErrorRouterResponse(t *testing.T) {
 	var routerInvoked bool
 	cut := ReverseProxy{
-		Router: func(context.Context, *service.Request) (*service.Request, merry.Error) {
+		Router: func(context.Context, *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return nil, merry.New("i blewed up!")
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -112,17 +112,17 @@ func TestReverseProxyErrorRouterResponseCustomErrorHandler(t *testing.T) {
 	var errorHandlerInvoked bool
 	var routerInvoked bool
 	cut := ReverseProxy{
-		Router: func(context.Context, *service.Request) (*service.Request, merry.Error) {
+		Router: func(context.Context, *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return nil, merry.New("i blewed up!")
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -136,11 +136,11 @@ func TestReverseProxyInvokerError(t *testing.T) {
 	var routerInvoked bool
 	var invokerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -148,7 +148,7 @@ func TestReverseProxyInvokerError(t *testing.T) {
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -163,23 +163,23 @@ func TestReverseProxyInvokerErrorCustomErrorHandler(t *testing.T) {
 	var routerInvoked bool
 	var invokerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
 			return nil, merry.New("i blewed up!")
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -194,11 +194,11 @@ func TestReverseProxyNilInvokerResponse(t *testing.T) {
 	var routerInvoked bool
 	var invokerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -206,7 +206,7 @@ func TestReverseProxyNilInvokerResponse(t *testing.T) {
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -221,23 +221,23 @@ func TestReverseProxyNilInvokerResponseCustomErrorHandler(t *testing.T) {
 	var routerInvoked bool
 	var invokerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
 			return nil, nil
 		},
-		ErrorHandler: func(context.Context, *service.Request, merry.Error) service.Response {
+		ErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
 			errorHandlerInvoked = true
-			return service.NewEmpty(http.StatusPaymentRequired)
+			return httpx.NewEmpty(http.StatusPaymentRequired)
 		},
 	}
 
-	request := &service.Request{Request: fakeRequest}
+	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 	response := cut.Service(ctx, request)
 
@@ -252,14 +252,14 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 	var routerInvoked bool
 	var invokerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			assert.NotEmpty(t, r.Header.Get("Keep-Alive"))
 			assert.NotEmpty(t, r.Header.Get("Upgrade"))
 			assert.NotEmpty(t, r.Header.Get("Transfer-Encoding"))
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
@@ -269,11 +269,11 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 			assert.Empty(t, r.Header.Get("Connection"))
 			assert.Empty(t, r.Header.Get("Zalgo"))
 			assert.True(t, strings.HasPrefix(r.Header.Get("X-Forwarded-For"), "10.10.10.10, "))
-			return service.NewEmpty(http.StatusOK), nil
+			return httpx.NewEmpty(http.StatusOK), nil
 		},
 	}
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 	request.Header.Set("Connection", "keep-alive,zalgo")
 	request.Header.Set("Keep-Alive", "true")
 	request.Header.Set("Zalgo", "he comes")
@@ -295,15 +295,15 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 	var invokerInvoked bool
 	var responderInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			return r, nil
 		},
-		Invoker: func(c context.Context, r *service.Request) (service.Response, merry.Error) {
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
 			invokerInvoked = true
 			assert.Nil(t, r.Body)
 			assert.False(t, r.Close)
-			response := service.NewEmpty(http.StatusOK)
+			response := httpx.NewEmpty(http.StatusOK)
 			response.Headers().Set("Connection", "keep-alive,zalgo")
 			response.Headers().Set("Keep-Alive", "true")
 			response.Headers().Set("Zalgo", "he comes")
@@ -311,7 +311,7 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 			response.Headers().Set("Transfer-Encoding", "bitrot")
 			return response, nil
 		},
-		Responder: func(c context.Context, req *service.Request, res service.Response) service.Response {
+		Responder: func(c context.Context, req *httpx.Request, res httpx.Response) httpx.Response {
 			responderInvoked = true
 			assert.Empty(t, res.Headers().Get("Keep-Alive"))
 			assert.Empty(t, res.Headers().Get("Upgrade"))
@@ -324,7 +324,7 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
 	response := cut.Service(ctx, request)
@@ -349,7 +349,7 @@ func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
 func TestReverseProxyUncontactableProxy(t *testing.T) {
 	var routerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			r.URL.Scheme = "http"
 			r.URL.Host = "zalgo:666"
@@ -359,7 +359,7 @@ func TestReverseProxyUncontactableProxy(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 	ctx := context.New(r.Context())
 
 	response := cut.Service(ctx, request)
@@ -369,9 +369,8 @@ func TestReverseProxyUncontactableProxy(t *testing.T) {
 	assert.True(t, routerInvoked)
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err := response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -387,21 +386,21 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 	var routerInvoked bool
 	var responderInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			r.URL.Scheme = url.Scheme
 			r.URL.Host = url.Host
 			r.URL.Path = "/"
 			return r, nil
 		},
-		Responder: func(c context.Context, req *service.Request, res service.Response) service.Response {
+		Responder: func(c context.Context, req *httpx.Request, res httpx.Response) httpx.Response {
 			responderInvoked = true
 			return nil
 		},
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 	ctx := context.New(r.Context())
 
 	response := cut.Service(ctx, request)
@@ -412,9 +411,8 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 	assert.True(t, responderInvoked)
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err = response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, size)
 	assert.Equal(t, 0, buf.Len())
 }
 
@@ -429,7 +427,7 @@ func TestReverseProxy(t *testing.T) {
 
 	var routerInvoked bool
 	cut := ReverseProxy{
-		Router: func(c context.Context, r *service.Request) (*service.Request, merry.Error) {
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
 			routerInvoked = true
 			r.URL.Scheme = url.Scheme
 			r.URL.Host = url.Host
@@ -439,7 +437,7 @@ func TestReverseProxy(t *testing.T) {
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	request := &service.Request{Request: r}
+	request := &httpx.Request{Request: r}
 	ctx := context.New(r.Context())
 
 	response := cut.Service(ctx, request)
@@ -451,9 +449,8 @@ func TestReverseProxy(t *testing.T) {
 	assert.NoError(t, response.Err())
 
 	var buf bytes.Buffer
-	size, err := response.Serialize(&buf)
+	err = response.Serialize(&buf)
 	assert.NoError(t, err)
-	assert.NotEqual(t, 0, size)
 	assert.NotEqual(t, 0, buf.Len())
 	expectedJson := `{
   "message": "hello"

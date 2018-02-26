@@ -3,10 +3,10 @@ package main
 import (
 	"time"
 
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
-func addCommonHeaders(response service.Response) {
+func addCommonHeaders(response httpx.Response) {
 	now := time.Now().UTC().Format(time.RFC1123)
 
 	response.Headers().Set("Cache-Control", "private, max-age=0")

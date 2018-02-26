@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ansel1/merry"
+
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -44,20 +46,23 @@ func (r expvarResponse) Err() error {
 	return nil
 }
 
-func (r expvarResponse) Serialize(w io.Writer) (size int, err error) {
-	fmt.Fprintf(w, "{\n")
+func (r expvarResponse) Serialize(w io.Writer) (err merry.Error) {
+	var e error
+	defer func() {
+		if e != nil {
+			err = merry.WithMessage(e, "serializing expavars")
+		}
+	}()
+	_, e = fmt.Fprintf(w, "{\n")
 	first := true
 	expvar.Do(func(kv expvar.KeyValue) {
 		if !first {
-			n, _ := fmt.Fprintf(w, ",\n")
-			size += n
+			_, e = fmt.Fprintf(w, ",\n")
 		}
 		first = false
-		n, _ := fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
-		size += n
+		_, e = fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
 	})
-	n, _ := fmt.Fprintf(w, "\n}\n")
-	size += n
+	_, e = fmt.Fprintf(w, "\n}\n")
 
 	return
 }
@@ -103,7 +108,7 @@ func (s *DebugServer) Serve() error {
 	return s.HTTPServer.Serve()
 }
 
-func (s *DebugServer) Route(ctx context.Context, request *service.Request) service.Handler {
+func (s *DebugServer) Route(ctx context.Context, request *httpx.Request) httpx.Handler {
 	if request.URL.Path == s.Path {
 		return s.Service
 	}
@@ -111,7 +116,7 @@ func (s *DebugServer) Route(ctx context.Context, request *service.Request) servi
 	return nil
 }
 
-func (s *DebugServer) Service(ctx context.Context, request *service.Request) service.Response {
+func (s *DebugServer) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	debugStats.Add("hits", 1)
 
 	return debugResponse

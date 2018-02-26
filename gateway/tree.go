@@ -10,7 +10,7 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 func min(a, b int) int {
@@ -324,7 +324,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 // If no endpoint can be found, a TSR (trailing slash redirect) recommendation is
 // made if a endpoint exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string) (endpoint *endpoint, p []service.PathParameter, tsr bool, err merry.Error) {
+func (n *node) getValue(path string) (endpoint *endpoint, p []httpx.PathParameter, tsr bool, err merry.Error) {
 walk: // Outer loop for walking the tree
 	for {
 		if len(path) > len(n.path) {
@@ -370,7 +370,7 @@ walk: // Outer loop for walking the tree
 
 					// save param value
 					if cap(p) < int(n.maxParams) {
-						p = make([]service.PathParameter, 0, n.maxParams)
+						p = make([]httpx.PathParameter, 0, n.maxParams)
 					}
 					i := len(p)
 					p = p[:i+1] // expand slice within preallocated capacity
@@ -412,7 +412,7 @@ walk: // Outer loop for walking the tree
 				case catchAll:
 					// save param value
 					if cap(p) < int(n.maxParams) {
-						p = make([]service.PathParameter, 0, n.maxParams)
+						p = make([]httpx.PathParameter, 0, n.maxParams)
 					}
 					i := len(p)
 					p = p[:i+1] // expand slice within preallocated capacity

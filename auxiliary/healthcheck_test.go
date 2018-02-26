@@ -14,7 +14,6 @@ import (
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 type stubHealthchecker struct {
@@ -143,7 +142,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorFail(t *testing.T) {
 	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+			RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 				return "", merry.New("i blewed up!")
 			},
 			ErrorHook: errHandler.Handle,
@@ -169,7 +168,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorEmptyValue(t *testing.T) {
 	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+			RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 				return "", nil
 			},
 			ErrorHook: errHandler.Handle,
@@ -196,7 +195,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
-			RequestIDGenerator: func(c context.Context, r *service.Request) (string, merry.Error) {
+			RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 				return requestID, nil
 			},
 			RequestIDHeaderName: "x-zalgo",
@@ -222,7 +221,7 @@ func TestHealthcheckServerServeHTTPCustomIDGeneratorCustomHeader(t *testing.T) {
 func TestHealthcheckServerServeHTTPAuthenticationFail(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -257,7 +256,7 @@ func TestHealthcheckServerServeHTTPAuthenticationFail(t *testing.T) {
 func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -269,7 +268,7 @@ func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
-				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
+				UnauthorizedHandler: func(context.Context, *httpx.Request) httpx.Response {
 					return unserializableResponse()
 				},
 			},
@@ -295,7 +294,7 @@ func TestHealthcheckServerServeHTTPAuthenticationWriteFail(t *testing.T) {
 func TestHealthcheckServerServeHTTPAuthenticationCustomResponseTrailers(t *testing.T) {
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return nil, nil
 		},
 		ChallengeHook: func() string {
@@ -307,8 +306,8 @@ func TestHealthcheckServerServeHTTPAuthenticationCustomResponseTrailers(t *testi
 		HTTPServer: HTTPServer{
 			Authentication: &middleware.Authentication{
 				Authenticator: authn,
-				UnauthorizedHandler: func(context.Context, *service.Request) service.Response {
-					response := service.NewEmpty(http.StatusUnauthorized)
+				UnauthorizedHandler: func(context.Context, *httpx.Request) httpx.Response {
+					response := httpx.NewEmpty(http.StatusUnauthorized)
 					response.Headers().Set(middleware.WWWAuthenticateHeaderKey, challenge)
 					response.Trailers().Add("x-zalgo", "he comes")
 					return response
@@ -338,7 +337,7 @@ func TestHealthcheckServerServeHTTPAuthentication(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -374,7 +373,7 @@ func TestHealthcheckServerServeHTTPAuthorizationError(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -412,7 +411,7 @@ func TestHealthcheckServerServeHTTPAuthorizationFail(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -450,7 +449,7 @@ func TestHealthcheckServerServeHTTPAuthorization(t *testing.T) {
 	user := &models.FakeUser{IDHook: func() string { return "123" }}
 	challenge := "Test realm=\"test\""
 	authn := &authn.FakeAuthenticator{
-		AuthenticateHook: func(context.Context, *service.Request) (models.User, merry.Error) {
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
 			return user, nil
 		},
 		ChallengeHook: func() string {
@@ -519,7 +518,7 @@ func TestHealthcheckServerServeHTTPCustomCompletionHook(t *testing.T) {
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{
 			ErrorHook: errHandler.Handle,
-			CompletionHook: func(context.Context, *service.Request, httpx.ResponseSnapshot) {
+			CompletionHook: func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {
 				handlerCalled = true
 			},
 		},
