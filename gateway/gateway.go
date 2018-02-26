@@ -12,14 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
-	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/sd"
-	"github.com/percolate/shisa/service"
 )
 
 const (
@@ -92,13 +89,13 @@ type Gateway struct {
 
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
-	// If nil then `service.Request.GenerateID` will be used.
-	RequestIDGenerator service.StringExtractor `json:"-"`
+	// If nil then `httpx.Request.GenerateID` will be used.
+	RequestIDGenerator httpx.StringExtractor `json:"-"`
 
 	// Handlers define handlers to run on all request before
 	// any other dispatch or validation.
 	// Example uses would be rate limiting or authentication.
-	Handlers []service.Handler `json:"-"`
+	Handlers []httpx.Handler `json:"-"`
 
 	// InternalServerErrorHandler optionally customizes the
 	// response returned to the user agent when the gateway
@@ -106,14 +103,14 @@ type Gateway struct {
 	// the corresponding endpoint has been determined.
 	// If nil the default handler will return a 500 status code
 	// with an empty body.
-	InternalServerErrorHandler service.ErrorHandler `json:"-"`
+	InternalServerErrorHandler httpx.ErrorHandler `json:"-"`
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
 	// service a request path.
 	// If nil the default handler will return a 404 status code
 	// with an empty body.
-	NotFoundHandler service.Handler `json:"-"`
+	NotFoundHandler httpx.Handler `json:"-"`
 
 	// Registrar implements sd.Registrar and registers
 	// the gateway service with a service registry
@@ -129,12 +126,12 @@ type Gateway struct {
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
 	// `Logger` field with the request id as a field.
-	ErrorHook func(context.Context, *service.Request, merry.Error) `json:"-"`
+	ErrorHook ErrorHook `json:"-"`
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook func(context.Context, *service.Request, httpx.ResponseSnapshot) `json:"-"`
+	CompletionHook CompletionHook `json:"-"`
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
@@ -188,24 +185,8 @@ func (g *Gateway) init() {
 		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
 
-	if g.RequestIDGenerator == nil {
-		g.RequestIDGenerator = defaultRequestIDGenerator
-	}
-
-	if g.NotFoundHandler == nil {
-		g.NotFoundHandler = defaultNotFoundHandler
-	}
-
-	if g.InternalServerErrorHandler == nil {
-		g.InternalServerErrorHandler = defaultInternalServerErrorHandler
-	}
-
 	if g.Logger == nil {
 		g.Logger = zap.NewNop()
-	}
-
-	if g.ErrorHook == nil {
-		g.ErrorHook = g.defaultErrorHook
 	}
 
 	if g.Name == "" {

@@ -9,12 +9,12 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
-func requestWithContentType(method string, c []contenttype.ContentType) *service.Request {
+func requestWithContentType(method string, c []contenttype.ContentType) *httpx.Request {
 	httpReq := httptest.NewRequest(method, "http://10.0.0.1/", nil)
-	req := &service.Request{
+	req := &httpx.Request{
 		Request: httpReq,
 	}
 

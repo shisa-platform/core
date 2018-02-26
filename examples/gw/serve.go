@@ -49,7 +49,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Address:         addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
-		Handlers:        []service.Handler{authN.Service},
+		Handlers:        []httpx.Handler{authN.Service},
 		Logger:          logger,
 		Registrar:       res,
 		CompletionHook:  lh.completion,
@@ -134,7 +134,7 @@ type logHandler struct {
 	logger *zap.Logger
 }
 
-func (l logHandler) completion(c context.Context, r *service.Request, s httpx.ResponseSnapshot) {
+func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.ResponseSnapshot) {
 	fs := make([]zapcore.Field, 9, 10+len(s.Metrics))
 	fs[0] = zap.String("request-id", c.RequestID())
 	fs[1] = zap.String("client-ip-address", r.ClientIP())
@@ -154,6 +154,6 @@ func (l logHandler) completion(c context.Context, r *service.Request, s httpx.Re
 	l.logger.Info("request", fs...)
 }
 
-func (l logHandler) error(ctx context.Context, _ *service.Request, err merry.Error) {
+func (l logHandler) error(ctx context.Context, _ *httpx.Request, err merry.Error) {
 	l.logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 }

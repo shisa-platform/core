@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -40,7 +40,7 @@ func checkServiceTest(t *testing.T, c context.Context, st serviceTest) {
 	}
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &service.Request{
+	req := &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -113,13 +113,13 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	// N.B. Check `IsExempt` Hook
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &service.Request{
+	req := &httpx.Request{
 		Request: httpReq,
 	}
 
 	p := CSRFProtector{
 		SiteURL: *s,
-		IsExempt: func(c context.Context, r *service.Request) bool {
+		IsExempt: func(c context.Context, r *httpx.Request) bool {
 			return true
 		},
 	}
@@ -128,7 +128,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	// N.B. Check `TokenExtractor` Hook
 	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &service.Request{
+	req = &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -141,7 +141,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	p = CSRFProtector{
 		SiteURL: *s,
-		ExtractToken: func(c context.Context, r *service.Request) (string, merry.Error) {
+		ExtractToken: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 			return "", merry.New("token not found")
 		},
 	}
@@ -154,7 +154,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	// N.B. Check `CookieName` Hook
 	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &service.Request{
+	req = &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -175,7 +175,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	// N.B. Check `TokenLength` Hook
 	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &service.Request{
+	req = &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -196,7 +196,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	// N.B. Check `CheckOrigin` Hook
 	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &service.Request{
+	req = &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -222,7 +222,7 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	// N.B. Check `ErrorHandler` Hook
 	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &service.Request{
+	req = &httpx.Request{
 		Request: httpReq,
 	}
 
@@ -231,8 +231,8 @@ func TestCSRFProtector_Service(t *testing.T) {
 
 	p = CSRFProtector{
 		SiteURL: *s,
-		ErrorHandler: func(c context.Context, r *service.Request, err merry.Error) service.Response {
-			return service.NewEmpty(http.StatusTeapot)
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 

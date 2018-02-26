@@ -8,7 +8,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 
 // RequestPredicate examines the given context and request and
 // returns a determination based on that analysis.
-type RequestPredicate func(context.Context, *service.Request) bool
+type RequestPredicate func(context.Context, *httpx.Request) bool
 
 // CheckOrigin compares two URLs and determines if they should be
 // considered the "same" for the purposes of CSRF protection.
@@ -34,7 +34,7 @@ type CSRFProtector struct {
 	// ExtractToken optionally customizes how the CSRF token is
 	// extracted from the request.
 	// The default extractor uses the header "X-Csrf-Token".
-	ExtractToken service.StringExtractor
+	ExtractToken httpx.StringExtractor
 
 	// CookieName optionally customizes the name of the CSRF
 	// cookie sent by the user agent.
@@ -62,10 +62,10 @@ type CSRFProtector struct {
 	// have a recommended HTTP status code.
 	// The default handler will return the recommended status
 	// code and an empty body.
-	ErrorHandler service.ErrorHandler
+	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *CSRFProtector) Service(c context.Context, r *service.Request) service.Response {
+func (m *CSRFProtector) Service(c context.Context, r *httpx.Request) httpx.Response {
 	if m.ErrorHandler == nil {
 		m.ErrorHandler = m.defaultErrorHandler
 	}
@@ -176,15 +176,15 @@ func (m *CSRFProtector) defaultCheckOrigin(expected, actual url.URL) bool {
 	return expected.Scheme == actual.Scheme && expected.Host == actual.Host
 }
 
-func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *service.Request, err merry.Error) service.Response {
-	return service.NewEmptyError(merry.HTTPCode(err), err)
+func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func (m *CSRFProtector) defaultIsExempt(c context.Context, r *service.Request) bool {
+func (m *CSRFProtector) defaultIsExempt(c context.Context, r *httpx.Request) bool {
 	return false
 }
 
-func (m *CSRFProtector) defaultTokenExtractor(c context.Context, r *service.Request) (token string, err merry.Error) {
+func (m *CSRFProtector) defaultTokenExtractor(c context.Context, r *httpx.Request) (token string, err merry.Error) {
 	token = r.Header.Get("X-Csrf-Token")
 	if token == "" {
 		err = merry.New("missing X-Csrf-Token header")

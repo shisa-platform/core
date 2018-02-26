@@ -10,6 +10,7 @@ import (
 
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
 
@@ -111,7 +112,7 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 	}
 
 	pipeline := &service.Pipeline{
-		Handlers:    []service.Handler{dummyHandler},
+		Handlers:    []httpx.Handler{dummyHandler},
 		QueryFields: []service.Field{service.Field{Default: "zalgo"}},
 	}
 	endpoints := []service.Endpoint{
@@ -217,7 +218,7 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 		Address: "127.0.0.1:0",
 	}
 
-	pipline := &service.Pipeline{Handlers: []service.Handler{dummyHandler}}
+	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
 	endpoint := service.Endpoint{
 		Route:   expectedRoute,
 		Head:    pipline,
@@ -251,10 +252,6 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	assert.NotNil(t, e.Options)
 	assert.NotNil(t, e.Trace)
 	assert.Equal(t, svc.Name(), e.serviceName)
-	assert.NotNil(t, e.badQueryHandler)
-	assert.NotNil(t, e.notAllowedHandler)
-	assert.NotNil(t, e.redirectHandler)
-	assert.NotNil(t, e.iseHandler)
 }
 
 func TestGatewayAuxiliaryServer(t *testing.T) {
@@ -299,14 +296,14 @@ func TestGatewayAuxiliaryServer(t *testing.T) {
 	aux.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
 }
 
-func teapotHandler(context.Context, *service.Request) service.Response {
-	return service.NewEmpty(http.StatusTeapot)
+func teapotHandler(context.Context, *httpx.Request) httpx.Response {
+	return httpx.NewEmpty(http.StatusTeapot)
 }
 
 func TestInstallPipelineAppliesServiceHandlers(t *testing.T) {
-	pipeline := &service.Pipeline{Handlers: []service.Handler{dummyHandler}}
+	pipeline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
 
-	augpipe, err := installPipeline([]service.Handler{teapotHandler}, pipeline)
+	augpipe, err := installPipeline([]httpx.Handler{teapotHandler}, pipeline)
 
 	assert.NoError(t, err)
 	assert.Len(t, augpipe.Handlers, 2)

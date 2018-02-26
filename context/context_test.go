@@ -121,6 +121,15 @@ func TestValue(t *testing.T) {
 	assert.Equal(t, calledVal, parentVal)
 }
 
+func TestWithParent(t *testing.T) {
+	parent := context.WithValue(context.Background(), "foo", "bar")
+	cut := New(context.Background())
+
+	cut1 := cut.WithParent(parent)
+
+	assert.Equal(t, "bar", cut1.Value("foo"))
+}
+
 func TestWithActor(t *testing.T) {
 	c := New(context.Background())
 	new := c.WithActor(expectedUser)

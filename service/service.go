@@ -1,13 +1,8 @@
 package service
 
 import (
-	"github.com/ansel1/merry"
-
-	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 )
-
-// ErrorHandler creates a response for the given error condition.
-type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
 //go:generate charlatan -output=./service_charlatan.go Service
 
@@ -23,21 +18,21 @@ type Service interface {
 	// Handlers are optional handlers that should be invoked for
 	// all endpoints.  These will be prepended to all endpoint
 	// handlers when a service is registered.
-	Handlers() []Handler
+	Handlers() []httpx.Handler
 
 	// MalformedRequestHandler optionally customizes the
 	// response to the user agent when a malformed request is
 	// presented.
 	// If nil the default handler wil return a 400 status code
 	// with an empty body.
-	MalformedRequestHandler() Handler
+	MalformedRequestHandler() httpx.Handler
 
 	// MethodNotAllowedHandler optionally customizes the response
 	// returned to the user agent when an endpoint isn't
 	// configured to service the method of a request.
 	// If nil the default handler will return a 405 status code
 	// with an empty body.
-	MethodNotAllowedHandler() Handler
+	MethodNotAllowedHandler() httpx.Handler
 
 	// RedirectHandler optionally customizes the response
 	// returned to the user agent when an endpoint is configured
@@ -46,7 +41,7 @@ type Service interface {
 	// If nil the default handler will return a 303 status code
 	// for GET and a 307 for other methods, both with an empty
 	// body.
-	RedirectHandler() Handler
+	RedirectHandler() httpx.Handler
 
 	// InternalServerErrorHandler optionally customizes the
 	// response returned to the user agent when the gateway
@@ -54,7 +49,7 @@ type Service interface {
 	// endoint of this service.
 	// If nil the default handler will return a 500 status code
 	// with an empty body.
-	InternalServerErrorHandler() ErrorHandler
+	InternalServerErrorHandler() httpx.ErrorHandler
 }
 
 // ServiceAdapter implements several of the methods of the
@@ -64,22 +59,22 @@ type Service interface {
 // struct to inherit these default method implementations.
 type ServiceAdapter struct{}
 
-func (s *ServiceAdapter) Handlers() []Handler {
+func (s *ServiceAdapter) Handlers() []httpx.Handler {
 	return nil
 }
 
-func (s *ServiceAdapter) MalformedRequestHandler() Handler {
+func (s *ServiceAdapter) MalformedRequestHandler() httpx.Handler {
 	return nil
 }
 
-func (s *ServiceAdapter) MethodNotAllowedHandler() Handler {
+func (s *ServiceAdapter) MethodNotAllowedHandler() httpx.Handler {
 	return nil
 }
 
-func (s *ServiceAdapter) RedirectHandler() Handler {
+func (s *ServiceAdapter) RedirectHandler() httpx.Handler {
 	return nil
 }
 
-func (s *ServiceAdapter) InternalServerErrorHandler() ErrorHandler {
+func (s *ServiceAdapter) InternalServerErrorHandler() httpx.ErrorHandler {
 	return nil
 }

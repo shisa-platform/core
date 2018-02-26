@@ -5,13 +5,13 @@ package auxiliary
 import "reflect"
 import "github.com/ansel1/merry"
 import "github.com/percolate/shisa/context"
-import "github.com/percolate/shisa/service"
+import "github.com/percolate/shisa/httpx"
 
 // AuthorizerAuthorizeInvocation represents a single call of FakeAuthorizer.Authorize
 type AuthorizerAuthorizeInvocation struct {
 	Parameters struct {
 		Ident1 context.Context
-		Ident2 *service.Request
+		Ident2 *httpx.Request
 	}
 	Results struct {
 		Ident3 bool
@@ -35,7 +35,7 @@ Use it in your tests as in this example:
 
 	func TestWithAuthorizer(t *testing.T) {
 		f := &auxiliary.FakeAuthorizer{
-			AuthorizeHook: func(ident1 context.Context, ident2 *service.Request) (ident3 bool, ident4 merry.Error) {
+			AuthorizeHook: func(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -52,7 +52,7 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeAuthorize.
 */
 type FakeAuthorizer struct {
-	AuthorizeHook func(context.Context, *service.Request) (bool, merry.Error)
+	AuthorizeHook func(context.Context, *httpx.Request) (bool, merry.Error)
 
 	AuthorizeCalls []*AuthorizerAuthorizeInvocation
 }
@@ -60,7 +60,7 @@ type FakeAuthorizer struct {
 // NewFakeAuthorizerDefaultPanic returns an instance of FakeAuthorizer with all hooks configured to panic
 func NewFakeAuthorizerDefaultPanic() *FakeAuthorizer {
 	return &FakeAuthorizer{
-		AuthorizeHook: func(context.Context, *service.Request) (ident3 bool, ident4 merry.Error) {
+		AuthorizeHook: func(context.Context, *httpx.Request) (ident3 bool, ident4 merry.Error) {
 			panic("Unexpected call to Authorizer.Authorize")
 		},
 	}
@@ -69,7 +69,7 @@ func NewFakeAuthorizerDefaultPanic() *FakeAuthorizer {
 // NewFakeAuthorizerDefaultFatal returns an instance of FakeAuthorizer with all hooks configured to call t.Fatal
 func NewFakeAuthorizerDefaultFatal(t AuthorizerTestingT) *FakeAuthorizer {
 	return &FakeAuthorizer{
-		AuthorizeHook: func(context.Context, *service.Request) (ident3 bool, ident4 merry.Error) {
+		AuthorizeHook: func(context.Context, *httpx.Request) (ident3 bool, ident4 merry.Error) {
 			t.Fatal("Unexpected call to Authorizer.Authorize")
 			return
 		},
@@ -79,7 +79,7 @@ func NewFakeAuthorizerDefaultFatal(t AuthorizerTestingT) *FakeAuthorizer {
 // NewFakeAuthorizerDefaultError returns an instance of FakeAuthorizer with all hooks configured to call t.Error
 func NewFakeAuthorizerDefaultError(t AuthorizerTestingT) *FakeAuthorizer {
 	return &FakeAuthorizer{
-		AuthorizeHook: func(context.Context, *service.Request) (ident3 bool, ident4 merry.Error) {
+		AuthorizeHook: func(context.Context, *httpx.Request) (ident3 bool, ident4 merry.Error) {
 			t.Error("Unexpected call to Authorizer.Authorize")
 			return
 		},
@@ -90,7 +90,7 @@ func (f *FakeAuthorizer) Reset() {
 	f.AuthorizeCalls = []*AuthorizerAuthorizeInvocation{}
 }
 
-func (_f1 *FakeAuthorizer) Authorize(ident1 context.Context, ident2 *service.Request) (ident3 bool, ident4 merry.Error) {
+func (_f1 *FakeAuthorizer) Authorize(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error) {
 	invocation := new(AuthorizerAuthorizeInvocation)
 
 	invocation.Parameters.Ident1 = ident1
@@ -159,7 +159,7 @@ func (f *FakeAuthorizer) AssertAuthorizeCalledN(t AuthorizerTestingT, n int) {
 }
 
 // AuthorizeCalledWith returns true if FakeAuthorizer.Authorize was called with the given values
-func (_f2 *FakeAuthorizer) AuthorizeCalledWith(ident1 context.Context, ident2 *service.Request) (found bool) {
+func (_f2 *FakeAuthorizer) AuthorizeCalledWith(ident1 context.Context, ident2 *httpx.Request) (found bool) {
 	for _, call := range _f2.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
@@ -171,7 +171,7 @@ func (_f2 *FakeAuthorizer) AuthorizeCalledWith(ident1 context.Context, ident2 *s
 }
 
 // AssertAuthorizeCalledWith calls t.Error if FakeAuthorizer.Authorize was not called with the given values
-func (_f3 *FakeAuthorizer) AssertAuthorizeCalledWith(t AuthorizerTestingT, ident1 context.Context, ident2 *service.Request) {
+func (_f3 *FakeAuthorizer) AssertAuthorizeCalledWith(t AuthorizerTestingT, ident1 context.Context, ident2 *httpx.Request) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.AuthorizeCalls {
@@ -187,7 +187,7 @@ func (_f3 *FakeAuthorizer) AssertAuthorizeCalledWith(t AuthorizerTestingT, ident
 }
 
 // AuthorizeCalledOnceWith returns true if FakeAuthorizer.Authorize was called exactly once with the given values
-func (_f4 *FakeAuthorizer) AuthorizeCalledOnceWith(ident1 context.Context, ident2 *service.Request) bool {
+func (_f4 *FakeAuthorizer) AuthorizeCalledOnceWith(ident1 context.Context, ident2 *httpx.Request) bool {
 	var count int
 	for _, call := range _f4.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
@@ -199,7 +199,7 @@ func (_f4 *FakeAuthorizer) AuthorizeCalledOnceWith(ident1 context.Context, ident
 }
 
 // AssertAuthorizeCalledOnceWith calls t.Error if FakeAuthorizer.Authorize was not called exactly once with the given values
-func (_f5 *FakeAuthorizer) AssertAuthorizeCalledOnceWith(t AuthorizerTestingT, ident1 context.Context, ident2 *service.Request) {
+func (_f5 *FakeAuthorizer) AssertAuthorizeCalledOnceWith(t AuthorizerTestingT, ident1 context.Context, ident2 *httpx.Request) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.AuthorizeCalls {
@@ -214,7 +214,7 @@ func (_f5 *FakeAuthorizer) AssertAuthorizeCalledOnceWith(t AuthorizerTestingT, i
 }
 
 // AuthorizeResultsForCall returns the result values for the first call to FakeAuthorizer.Authorize with the given values
-func (_f6 *FakeAuthorizer) AuthorizeResultsForCall(ident1 context.Context, ident2 *service.Request) (ident3 bool, ident4 merry.Error, found bool) {
+func (_f6 *FakeAuthorizer) AuthorizeResultsForCall(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error, found bool) {
 	for _, call := range _f6.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3

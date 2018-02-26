@@ -2,6 +2,8 @@
 
 package service
 
+import "github.com/percolate/shisa/httpx"
+
 // ServiceNameInvocation represents a single call of FakeService.Name
 type ServiceNameInvocation struct {
 	Results struct {
@@ -19,35 +21,35 @@ type ServiceEndpointsInvocation struct {
 // ServiceHandlersInvocation represents a single call of FakeService.Handlers
 type ServiceHandlersInvocation struct {
 	Results struct {
-		Ident1 []Handler
+		Ident1 []httpx.Handler
 	}
 }
 
 // ServiceMalformedRequestHandlerInvocation represents a single call of FakeService.MalformedRequestHandler
 type ServiceMalformedRequestHandlerInvocation struct {
 	Results struct {
-		Ident1 Handler
+		Ident1 httpx.Handler
 	}
 }
 
 // ServiceMethodNotAllowedHandlerInvocation represents a single call of FakeService.MethodNotAllowedHandler
 type ServiceMethodNotAllowedHandlerInvocation struct {
 	Results struct {
-		Ident1 Handler
+		Ident1 httpx.Handler
 	}
 }
 
 // ServiceRedirectHandlerInvocation represents a single call of FakeService.RedirectHandler
 type ServiceRedirectHandlerInvocation struct {
 	Results struct {
-		Ident1 Handler
+		Ident1 httpx.Handler
 	}
 }
 
 // ServiceInternalServerErrorHandlerInvocation represents a single call of FakeService.InternalServerErrorHandler
 type ServiceInternalServerErrorHandlerInvocation struct {
 	Results struct {
-		Ident1 ErrorHandler
+		Ident1 httpx.ErrorHandler
 	}
 }
 
@@ -86,11 +88,11 @@ unexpected calls are made to FakeName.
 type FakeService struct {
 	NameHook                       func() string
 	EndpointsHook                  func() []Endpoint
-	HandlersHook                   func() []Handler
-	MalformedRequestHandlerHook    func() Handler
-	MethodNotAllowedHandlerHook    func() Handler
-	RedirectHandlerHook            func() Handler
-	InternalServerErrorHandlerHook func() ErrorHandler
+	HandlersHook                   func() []httpx.Handler
+	MalformedRequestHandlerHook    func() httpx.Handler
+	MethodNotAllowedHandlerHook    func() httpx.Handler
+	RedirectHandlerHook            func() httpx.Handler
+	InternalServerErrorHandlerHook func() httpx.ErrorHandler
 
 	NameCalls                       []*ServiceNameInvocation
 	EndpointsCalls                  []*ServiceEndpointsInvocation
@@ -110,19 +112,19 @@ func NewFakeServiceDefaultPanic() *FakeService {
 		EndpointsHook: func() (ident1 []Endpoint) {
 			panic("Unexpected call to Service.Endpoints")
 		},
-		HandlersHook: func() (ident1 []Handler) {
+		HandlersHook: func() (ident1 []httpx.Handler) {
 			panic("Unexpected call to Service.Handlers")
 		},
-		MalformedRequestHandlerHook: func() (ident1 Handler) {
+		MalformedRequestHandlerHook: func() (ident1 httpx.Handler) {
 			panic("Unexpected call to Service.MalformedRequestHandler")
 		},
-		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
+		MethodNotAllowedHandlerHook: func() (ident1 httpx.Handler) {
 			panic("Unexpected call to Service.MethodNotAllowedHandler")
 		},
-		RedirectHandlerHook: func() (ident1 Handler) {
+		RedirectHandlerHook: func() (ident1 httpx.Handler) {
 			panic("Unexpected call to Service.RedirectHandler")
 		},
-		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
+		InternalServerErrorHandlerHook: func() (ident1 httpx.ErrorHandler) {
 			panic("Unexpected call to Service.InternalServerErrorHandler")
 		},
 	}
@@ -139,23 +141,23 @@ func NewFakeServiceDefaultFatal(t ServiceTestingT) *FakeService {
 			t.Fatal("Unexpected call to Service.Endpoints")
 			return
 		},
-		HandlersHook: func() (ident1 []Handler) {
+		HandlersHook: func() (ident1 []httpx.Handler) {
 			t.Fatal("Unexpected call to Service.Handlers")
 			return
 		},
-		MalformedRequestHandlerHook: func() (ident1 Handler) {
+		MalformedRequestHandlerHook: func() (ident1 httpx.Handler) {
 			t.Fatal("Unexpected call to Service.MalformedRequestHandler")
 			return
 		},
-		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
+		MethodNotAllowedHandlerHook: func() (ident1 httpx.Handler) {
 			t.Fatal("Unexpected call to Service.MethodNotAllowedHandler")
 			return
 		},
-		RedirectHandlerHook: func() (ident1 Handler) {
+		RedirectHandlerHook: func() (ident1 httpx.Handler) {
 			t.Fatal("Unexpected call to Service.RedirectHandler")
 			return
 		},
-		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
+		InternalServerErrorHandlerHook: func() (ident1 httpx.ErrorHandler) {
 			t.Fatal("Unexpected call to Service.InternalServerErrorHandler")
 			return
 		},
@@ -173,23 +175,23 @@ func NewFakeServiceDefaultError(t ServiceTestingT) *FakeService {
 			t.Error("Unexpected call to Service.Endpoints")
 			return
 		},
-		HandlersHook: func() (ident1 []Handler) {
+		HandlersHook: func() (ident1 []httpx.Handler) {
 			t.Error("Unexpected call to Service.Handlers")
 			return
 		},
-		MalformedRequestHandlerHook: func() (ident1 Handler) {
+		MalformedRequestHandlerHook: func() (ident1 httpx.Handler) {
 			t.Error("Unexpected call to Service.MalformedRequestHandler")
 			return
 		},
-		MethodNotAllowedHandlerHook: func() (ident1 Handler) {
+		MethodNotAllowedHandlerHook: func() (ident1 httpx.Handler) {
 			t.Error("Unexpected call to Service.MethodNotAllowedHandler")
 			return
 		},
-		RedirectHandlerHook: func() (ident1 Handler) {
+		RedirectHandlerHook: func() (ident1 httpx.Handler) {
 			t.Error("Unexpected call to Service.RedirectHandler")
 			return
 		},
-		InternalServerErrorHandlerHook: func() (ident1 ErrorHandler) {
+		InternalServerErrorHandlerHook: func() (ident1 httpx.ErrorHandler) {
 			t.Error("Unexpected call to Service.InternalServerErrorHandler")
 			return
 		},
@@ -334,7 +336,7 @@ func (f *FakeService) AssertEndpointsCalledN(t ServiceTestingT, n int) {
 	}
 }
 
-func (_f3 *FakeService) Handlers() (ident1 []Handler) {
+func (_f3 *FakeService) Handlers() (ident1 []httpx.Handler) {
 	invocation := new(ServiceHandlersInvocation)
 
 	ident1 = _f3.HandlersHook()
@@ -398,7 +400,7 @@ func (f *FakeService) AssertHandlersCalledN(t ServiceTestingT, n int) {
 	}
 }
 
-func (_f4 *FakeService) MalformedRequestHandler() (ident1 Handler) {
+func (_f4 *FakeService) MalformedRequestHandler() (ident1 httpx.Handler) {
 	invocation := new(ServiceMalformedRequestHandlerInvocation)
 
 	ident1 = _f4.MalformedRequestHandlerHook()
@@ -462,7 +464,7 @@ func (f *FakeService) AssertMalformedRequestHandlerCalledN(t ServiceTestingT, n 
 	}
 }
 
-func (_f5 *FakeService) MethodNotAllowedHandler() (ident1 Handler) {
+func (_f5 *FakeService) MethodNotAllowedHandler() (ident1 httpx.Handler) {
 	invocation := new(ServiceMethodNotAllowedHandlerInvocation)
 
 	ident1 = _f5.MethodNotAllowedHandlerHook()
@@ -526,7 +528,7 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t ServiceTestingT, n 
 	}
 }
 
-func (_f6 *FakeService) RedirectHandler() (ident1 Handler) {
+func (_f6 *FakeService) RedirectHandler() (ident1 httpx.Handler) {
 	invocation := new(ServiceRedirectHandlerInvocation)
 
 	ident1 = _f6.RedirectHandlerHook()
@@ -590,7 +592,7 @@ func (f *FakeService) AssertRedirectHandlerCalledN(t ServiceTestingT, n int) {
 	}
 }
 
-func (_f7 *FakeService) InternalServerErrorHandler() (ident1 ErrorHandler) {
+func (_f7 *FakeService) InternalServerErrorHandler() (ident1 httpx.ErrorHandler) {
 	invocation := new(ServiceInternalServerErrorHandlerInvocation)
 
 	ident1 = _f7.InternalServerErrorHandlerHook()

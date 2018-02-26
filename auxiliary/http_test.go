@@ -1,19 +1,21 @@
 package auxiliary
 
 import (
+	stdctx "context"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/httpx"
 )
 
-func unserializableResponse() service.Response {
-	return &service.FakeResponse{
+func unserializableResponse() httpx.Response {
+	return &httpx.FakeResponse{
 		StatusCodeHook: func() int {
 			return http.StatusInternalServerError
 		},
@@ -26,8 +28,8 @@ func unserializableResponse() service.Response {
 		ErrHook: func() error {
 			return nil
 		},
-		SerializeHook: func(io.Writer) (int, error) {
-			return 0, merry.New("i blewed up!")
+		SerializeHook: func(io.Writer) merry.Error {
+			return merry.New("i blewed up!")
 		},
 	}
 }
@@ -37,7 +39,7 @@ type stubAuthorizer struct {
 	err merry.Error
 }
 
-func (a stubAuthorizer) Authorize(context.Context, *service.Request) (bool, merry.Error) {
+func (a stubAuthorizer) Authorize(context.Context, *httpx.Request) (bool, merry.Error) {
 	return a.ok, a.err
 }
 
@@ -45,7 +47,7 @@ type mockErrorHook struct {
 	calls int
 }
 
-func (m *mockErrorHook) Handle(context.Context, *service.Request, merry.Error) {
+func (m *mockErrorHook) Handle(context.Context, *httpx.Request, merry.Error) {
 	m.calls++
 }
 
@@ -62,4 +64,14 @@ func (m *mockErrorHook) assertCalled(t *testing.T) {
 func (m *mockErrorHook) assertCalledN(t *testing.T, expected int) {
 	t.Helper()
 	assert.Equalf(t, expected, m.calls, "error handler called %d times, expected %d", m.calls, expected)
+}
+
+func TestDefaultRouter(t *testing.T) {
+	cut := &HTTPServer{}
+	ctx := context.New(stdctx.Background())
+	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request := &httpx.Request{Request: fakeRequest}
+
+	response := cut.route(ctx, request)
+	assert.Nil(t, response)
 }

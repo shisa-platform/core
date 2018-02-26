@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/service"
 )
 
 func mustMakeBearerAuthenticator(idp IdentityProvider) Authenticator {
@@ -23,7 +23,7 @@ func mustMakeBearerAuthenticator(idp IdentityProvider) Authenticator {
 }
 
 func TestBearerAuthenticatorBadScheme(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Foo zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -35,7 +35,7 @@ func TestBearerAuthenticatorBadScheme(t *testing.T) {
 }
 
 func TestBearerAuthenticatorUnknownToken(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -54,7 +54,7 @@ func TestBearerAuthenticatorUnknownToken(t *testing.T) {
 }
 
 func TestBearerAuthenticatorIdPError(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 
@@ -73,7 +73,7 @@ func TestBearerAuthenticatorIdPError(t *testing.T) {
 }
 
 func TestBearerAuthenticator(t *testing.T) {
-	request := &service.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
+	request := &httpx.Request{Request: httptest.NewRequest(http.MethodGet, "/", nil)}
 	request.Header.Set(AuthnHeaderKey, "Bearer zalgo.he:comes")
 	ctx := context.NewFakeContextDefaultFatal(t)
 

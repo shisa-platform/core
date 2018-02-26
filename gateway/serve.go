@@ -23,15 +23,6 @@ func (p fields) Len() int           { return len(p) }
 func (p fields) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p fields) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-type endpoint struct {
-	service.Endpoint
-	serviceName       string
-	badQueryHandler   service.Handler
-	notAllowedHandler service.Handler
-	redirectHandler   service.Handler
-	iseHandler        service.ErrorHandler
-}
-
 func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxiliary.Server) error {
 	return g.serve(false, services, auxiliaries)
 }
@@ -166,19 +157,6 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				iseHandler:        svc.InternalServerErrorHandler(),
 			}
 
-			if e.badQueryHandler == nil {
-				e.badQueryHandler = defaultMalformedRequestHandler
-			}
-			if e.notAllowedHandler == nil {
-				e.notAllowedHandler = defaultMethodNotAlowedHandler
-			}
-			if e.redirectHandler == nil {
-				e.redirectHandler = defaultRedirectHandler
-			}
-			if e.iseHandler == nil {
-				e.iseHandler = defaultInternalServerErrorHandler
-			}
-
 			foundMethod := false
 			if endp.Head != nil {
 				foundMethod = true
@@ -269,7 +247,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 	return nil
 }
 
-func installPipeline(handlers []service.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
+func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
 	for _, field := range pipeline.QueryFields {
 		if field.Default != "" && field.Name == "" {
 			return nil, merry.New("Field default requires name")

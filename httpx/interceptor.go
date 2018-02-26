@@ -3,8 +3,6 @@ package httpx
 import (
 	"net/http"
 	"time"
-
-	"github.com/percolate/shisa/service"
 )
 
 // ResponseInterceptor implements `http.ResponseWriter` to capture
@@ -38,7 +36,7 @@ func (i *ResponseInterceptor) WriteHeader(status int) {
 // `ResponseWriter` methods of this instance after calling this
 // method.
 // Any error returned from `Response.Serialize` will be returned.
-func (i *ResponseInterceptor) WriteResponse(response service.Response) error {
+func (i *ResponseInterceptor) WriteResponse(response Response) error {
 	return WriteResponse(i, response)
 }
 
