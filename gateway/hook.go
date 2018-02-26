@@ -9,14 +9,22 @@ import (
 
 type ErrorHook func(context.Context, *httpx.Request, merry.Error)
 
-func (h ErrorHook) invokeSafely(ctx context.Context, request *httpx.Request, err merry.Error, exception *merry.Error) {
+func (h ErrorHook) InvokeSafely(ctx context.Context, request *httpx.Request, err merry.Error, exception *merry.Error) {
+	if h == nil {
+		return
+	}
+
 	defer recovery(exception)
 	h(ctx, request, err)
 }
 
 type CompletionHook func(context.Context, *httpx.Request, httpx.ResponseSnapshot)
 
-func (h CompletionHook) invokeSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot, exception *merry.Error) {
+func (h CompletionHook) InvokeSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot, exception *merry.Error) {
+	if h == nil {
+		return
+	}
+
 	defer recovery(exception)
 	h(ctx, request, snapshot)
 }

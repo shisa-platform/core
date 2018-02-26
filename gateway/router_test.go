@@ -228,10 +228,12 @@ func TestRouterHandlersPanic(t *testing.T) {
 		panic(merry.New("i blewed up!"))
 	}
 	errHook := new(mockErrorHook)
+	var completionHookCalled bool
 	cut := &Gateway{
 		Handlers:  []httpx.Handler{handler},
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -248,7 +250,52 @@ func TestRouterHandlersPanic(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	assert.True(t, completionHookCalled, "completion hook not called")
 	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterHandlersPanicWithErrorHandlerPanic(t *testing.T) {
+	var handlerCalled bool
+	handler := func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		panic(merry.New("i blewed up!"))
+	}
+	var errorHandlerCalled bool
+	var errorHookCalled bool
+	var completionHookCalled bool
+	cut := &Gateway{
+		Handlers: []httpx.Handler{handler},
+		InternalServerErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
+			errorHandlerCalled = true
+			panic(merry.New("error handler blewed up!"))
+		},
+		ErrorHook: func(context.Context, *httpx.Request, merry.Error) {
+			errorHookCalled = true
+			panic(merry.New("error hook blewed up!"))
+		},
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
+			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
+	}
+	cut.init()
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.True(t, errorHandlerCalled, "error handler not called")
+	assert.True(t, errorHookCalled, "error hook not called")
+	assert.True(t, completionHookCalled, "completion hook not called")
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
@@ -264,10 +311,12 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 		},
 	}
 	errHook := new(mockErrorHook)
+	var completionHookCalled bool
 	cut := &Gateway{
 		Handlers:  []httpx.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
 			assert.Equal(t, http.StatusUnauthorized, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -283,6 +332,7 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
 
+	assert.True(t, completionHookCalled, "completion hook not called")
 	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
@@ -301,10 +351,12 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 		},
 	}
 	errHook := new(mockErrorHook)
+	var completionHookCalled bool
 	cut := &Gateway{
 		Handlers:  []httpx.Handler{(&middleware.Authentication{Authenticator: authn}).Service},
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -332,6 +384,7 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 
 	assert.True(t, handlerCalled, "handler not called")
+	assert.True(t, completionHookCalled, "completion hook not called")
 	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
@@ -401,6 +454,30 @@ func TestRouterBadRouteCustomHandler(t *testing.T) {
 	assert.True(t, handlerCalled, "not found handler not called")
 	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterBadRouteCustomHandlerWithPanic(t *testing.T) {
+	var handlerCalled bool
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic(merry.New("not found handler blewed up!"))
+		},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	installHandler(t, cut, dummyHandler)
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/zalgo", nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "not found handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -692,6 +769,33 @@ func TestRouterBadMethodCustomHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
+func TestRouterBadMethodCustomHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	svc := newFakeService(newEndpoints(dummyHandler))
+	svc.MethodNotAllowedHandlerHook = func() httpx.Handler {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic(merry.New("new allowed handler blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPut, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
 func TestRouterBadMethodRedirect(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
@@ -736,6 +840,31 @@ func TestRouterBadMethodRedirectCustomHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
+func TestRouterBadMethodRedirectCustomHandlerPanic(t *testing.T) {
+	var handlerCalled bool
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic(merry.New("not found handler blewed up!"))
+		},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	installHandler(t, cut, dummyHandler)
+
+	w := httptest.NewRecorder()
+	route := expectedRoute + "/"
+	request := httptest.NewRequest(http.MethodPut, route, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
 func TestRouterExtraSlashRedirectForbidden(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
@@ -777,6 +906,31 @@ func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
 	assert.True(t, handlerCalled, "handler not called")
 	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterExtraSlashRedirecCustomNotFoundHandlerPanic(t *testing.T) {
+	var handlerCalled bool
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic("not found handler blewed up!")
+		},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	installHandler(t, cut, dummyHandler)
+
+	w := httptest.NewRecorder()
+	route := expectedRoute + "/"
+	request := httptest.NewRequest(http.MethodGet, route, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -858,6 +1012,36 @@ func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
+func TestRouterExtraSlashRedirectAllowedCustomHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	policy := service.Policy{AllowTrailingSlashRedirects: true}
+	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
+	svc.RedirectHandlerHook = func() httpx.Handler {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic(merry.New("redirect handler blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	route := expectedRoute + "/"
+	request := httptest.NewRequest(http.MethodGet, route, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "not found handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.Equal(t, expectedRoute, w.HeaderMap.Get(httpx.LocationHeaderKey))
+}
+
 func TestRouterMissingSlashRedirectForbidden(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
@@ -925,6 +1109,29 @@ func TestRouterMissingSlashRedirectAllowed(t *testing.T) {
 	assert.Equal(t, route, w.HeaderMap.Get(httpx.LocationHeaderKey))
 }
 
+func TestRouterMissingSlashRedirectAllowedForPutMethod(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	route := expectedRoute + "/"
+
+	policy := service.Policy{AllowTrailingSlashRedirects: true}
+	endpoint := service.PutEndpointWithPolicy(route, policy, dummyHandler)
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPut, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	errHook.assertNotCalled(t)
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.Equal(t, route, w.HeaderMap.Get(httpx.LocationHeaderKey))
+}
+
 func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
@@ -979,6 +1186,35 @@ func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
 	assert.True(t, handlerCalled, "not found handler not called")
 	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterMissingSlashRedirectAllowedCustomHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	policy := service.Policy{AllowTrailingSlashRedirects: true}
+	endpoint := service.GetEndpointWithPolicy(expectedRoute+"/", policy, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+	svc.RedirectHandlerHook = func() httpx.Handler {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic(merry.New("redirect handler blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, expectedRoute, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.True(t, handlerCalled, "not found handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusSeeOther, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -1107,6 +1343,42 @@ func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 	assert.True(t, handlerCalled, "malformed query handler not called")
 	errHook.assertNotCalled(t)
 	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersForbidMalformedCustomHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var routeHandlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		routeHandlerCalled = true
+
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	var handlerCalled bool
+	svc := newFakeService(newEndpoints(handler))
+	svc.MalformedRequestHandlerHook = func() httpx.Handler {
+		return func(ctx context.Context, r *httpx.Request) httpx.Response {
+			handlerCalled = true
+			panic(merry.New("malformed request handler blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?name=foo%zzbar"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, routeHandlerCalled, "unexpected call to route handler")
+	assert.True(t, handlerCalled, "malformed query handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -1874,7 +2146,7 @@ func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
 	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+		return func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
 			iseHandlerCalled = true
 			assert.True(t, merry.Is(err, explosion))
 			return httpx.NewEmpty(http.StatusServiceUnavailable)
@@ -1889,6 +2161,59 @@ func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 	assert.True(t, iseHandlerCalled, "ISE handler not called")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterHandlerPanicCustomISEHandleWithPanic(t *testing.T) {
+	var errorHookCalled bool
+	var completionHookCalled bool
+	cut := &Gateway{
+		ErrorHook: func(context.Context, *httpx.Request, merry.Error) {
+			errorHookCalled = true
+			panic(merry.New("error hook blewed up!"))
+		},
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
+			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
+			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
+	}
+	cut.init()
+
+	explosion := errors.New("handler blewed up!")
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		panic(explosion)
+	}
+
+	var iseHandlerCalled bool
+	svc := newFakeService(newEndpoints(handler))
+	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
+		return func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
+			iseHandlerCalled = true
+			assert.True(t, merry.Is(err, explosion))
+
+			panic(merry.New("ise handler blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.True(t, iseHandlerCalled, "ISE handler not called")
+	assert.True(t, errorHookCalled, "error hook not called")
+	assert.True(t, completionHookCalled, "completion hook not called")
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -1948,6 +2273,57 @@ func TestRouterHandlersNoResultCustomISEHandler(t *testing.T) {
 	assert.True(t, iseHandlerCalled, "ISE handler not called")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterHandlersNoResultCustomISEHandlerWithPanic(t *testing.T) {
+	var errorHookCalled bool
+	var completionHookCalled bool
+	cut := &Gateway{
+		ErrorHook: func(context.Context, *httpx.Request, merry.Error) {
+			errorHookCalled = true
+			panic(merry.New("error hook blewed up!"))
+		},
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
+			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
+			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+		},
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+
+		return nil
+	}
+
+	var iseHandlerCalled bool
+	svc := newFakeService(newEndpoints(handler))
+	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
+		return func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+			iseHandlerCalled = true
+			panic(merry.New("ise handler blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.True(t, iseHandlerCalled, "ISE handler not called")
+	assert.True(t, errorHookCalled, "error hook not called")
+	assert.True(t, completionHookCalled, "completion hook not called")
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -2070,9 +2446,11 @@ func TestRouterSerializationError(t *testing.T) {
 
 func TestRouter(t *testing.T) {
 	errHook := new(mockErrorHook)
+	var completionHookCalled bool
 	cut := &Gateway{
 		ErrorHook: errHook.Handle,
 		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
 			assert.False(t, s.Start.IsZero())
@@ -2091,7 +2469,62 @@ func TestRouter(t *testing.T) {
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
 
+	assert.True(t, completionHookCalled, "completion hook not called")
 	errHook.assertNotCalled(t)
+	assert.True(t, w.Flushed)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+}
+
+func TestRouterNoCompletionHook(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+	assert.Nil(t, cut.CompletionHook)
+
+	installHandler(t, cut, dummyHandler)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	errHook.assertNotCalled(t)
+	assert.True(t, w.Flushed)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+}
+
+func TestRouterPanicCompletionHook(t *testing.T) {
+	errHook := new(mockErrorHook)
+	var completionHookCalled bool
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+		CompletionHook: func(_ context.Context, _ *httpx.Request, s httpx.ResponseSnapshot) {
+			completionHookCalled = true
+			assert.Equal(t, http.StatusOK, s.StatusCode)
+			assert.Equal(t, 0, s.Size)
+			assert.False(t, s.Start.IsZero())
+			assert.NotEqual(t, 0, s.Elapsed)
+			assert.NotEmpty(t, s.Metrics)
+			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
+			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
+			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
+			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
+			panic(merry.New("completion hook blewed up!"))
+		},
+	}
+	cut.init()
+
+	installHandler(t, cut, dummyHandler)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, completionHookCalled, "completion hook not called")
+	errHook.assertCalledN(t, 1)
 	assert.True(t, w.Flushed)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 0, w.Body.Len())

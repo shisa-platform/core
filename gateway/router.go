@@ -331,7 +331,7 @@ func (g *Gateway) handleError(ctx context.Context, request *httpx.Request, err m
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
 	var exception merry.Error
 
-	g.ErrorHook.invokeSafely(ctx, request, err, &exception)
+	g.ErrorHook.InvokeSafely(ctx, request, err, &exception)
 	if exception != nil {
 		g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 		exception = merry.WithMessage(exception, "while invoking ErrorHook")
@@ -340,12 +340,9 @@ func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Requ
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
-	if g.CompletionHook == nil {
-		return
-	}
-
 	var exception merry.Error
-	g.CompletionHook.invokeSafely(ctx, request, snapshot, &exception)
+
+	g.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
 	if exception != nil {
 		exception = merry.WithMessage(exception, "while invoking CompletionHook")
 		g.invokeErrorHookSafely(ctx, request, exception)
