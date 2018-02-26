@@ -9,6 +9,8 @@ import (
 type Registrar interface {
 	Register(serviceID, addr string) merry.Error
 	Deregister(serviceID string) merry.Error
+	AddCheck(service string, url *url.URL) merry.Error
+	RemoveChecks(service string) merry.Error
 }
 
 type Resolver interface {
@@ -19,9 +21,4 @@ type AsyncResolver interface {
 	Resolver
 	Shutdown()
 	IsResolving() bool
-}
-
-type Healthchecker interface {
-	AddCheck(service string, url *url.URL) merry.Error
-	RemoveChecks(service string) merry.Error
 }

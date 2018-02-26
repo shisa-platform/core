@@ -23,13 +23,13 @@ import (
 )
 
 const (
-	DefaultName                    = "gateway"
+	defaultName                    = "gateway"
 	defaultRequestIDResponseHeader = "X-Request-ID"
 	timeFormat                     = "2006-01-02T15:04:05+00:00"
 )
 
 var (
-	gatewayExpvar = expvar.NewMap(DefaultName)
+	gatewayExpvar = expvar.NewMap(defaultName)
 )
 
 type Gateway struct {
@@ -119,6 +119,12 @@ type Gateway struct {
 	// the gateway service with a service registry
 	Registrar sd.Registrar
 
+	// The Registration hook
+	RegistrationHook func(addr string) error
+
+	// The Deregistration hook
+	DeregistrationHook func() error
+
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
@@ -200,6 +206,10 @@ func (g *Gateway) init() {
 
 	if g.ErrorHook == nil {
 		g.ErrorHook = g.defaultErrorHook
+	}
+
+	if g.Name == "" {
+		g.Name = defaultName
 	}
 
 	g.tree = new(node)

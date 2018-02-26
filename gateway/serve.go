@@ -68,19 +68,6 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		return err
 	}
 
-	listener, err := httpx.HTTPListenerForAddress(g.Address)
-	if err != nil {
-		return err
-	}
-
-	addr := listener.Addr().String()
-
-	if g.Registrar != nil {
-		if err = g.Registrar.Register(DefaultName, addr); err != nil {
-			return err
-		}
-	}
-
 	g.auxiliaries = auxiliaries
 
 	ach := make(chan error, len(g.auxiliaries))
@@ -100,6 +87,24 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	}
 
 	wg.Wait()
+
+	listener, err := httpx.HTTPListenerForAddress(g.Address)
+	if err != nil {
+		return err
+	}
+
+	addr := listener.Addr().String()
+
+	if g.Registrar != nil && g.RegistrationHook != nil && g.DeregistrationHook != nil {
+		if err = g.RegistrationHook(addr); err != nil {
+			return err
+		}
+		defer func() {
+			if e := g.DeregistrationHook(); e != nil {
+				g.Logger.Error(e.Error())
+			}
+		}()
+	}
 
 	gch := make(chan error, 1)
 	go func(l net.Listener) {

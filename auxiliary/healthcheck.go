@@ -3,16 +3,13 @@ package auxiliary
 import (
 	"encoding/json"
 	"expvar"
-	"fmt"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -58,18 +55,6 @@ type HealthcheckServer struct {
 
 	// Checkers are the resources to include in the status report.
 	Checkers []Healthchecker
-
-	// Registrar implements sd.Healthchecker and registers
-	// the healthcheck endpoint with a service registry
-	Registrar sd.Healthchecker
-
-	// RegistryURL is a function that configures the URL that the
-	// Registrar will use for healthchecks. By default, uses the Address
-	// method and Path field, and http or https scheme based on the value
-	// of the UseTLS field
-	RegistryURLHook func() (*url.URL, error)
-
-	ServiceName string
 }
 
 func (s *HealthcheckServer) init() {
@@ -91,10 +76,6 @@ func (s *HealthcheckServer) init() {
 
 	if s.Path == "" {
 		s.Path = defaultHealthcheckServerPath
-	}
-
-	if s.ServiceName == "" {
-		s.ServiceName = "gateway"
 	}
 
 	s.Router = s.Route
@@ -119,40 +100,7 @@ func (s *HealthcheckServer) Listen() error {
 
 	s.init()
 
-	if s.Registrar != nil {
-		if s.RegistryURLHook == nil {
-			s.RegistryURLHook = s.defaultRegistryURLHook
-		}
-
-		if err := s.register(); err != nil {
-			return err
-		}
-	}
-
 	return nil
-}
-
-func (s *HealthcheckServer) register() error {
-	u, err := s.RegistryURLHook()
-	if err != nil {
-		return err
-	}
-
-	return s.Registrar.AddCheck(s.ServiceName, u)
-}
-
-func (s *HealthcheckServer) defaultRegistryURLHook() (*url.URL, error) {
-	var scheme string
-
-	if s.UseTLS {
-		scheme = "https"
-	} else {
-		scheme = "http"
-	}
-
-	surl := fmt.Sprintf("%s://%s%s", scheme, s.Address(), s.Path)
-
-	return url.Parse(surl)
 }
 
 func (s *HealthcheckServer) Service(ctx context.Context, request *service.Request) service.Response {

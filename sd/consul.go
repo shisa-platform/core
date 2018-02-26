@@ -33,7 +33,6 @@ type consulSD struct {
 
 var _ Registrar = &consulSD{}
 var _ Resolver = &consulSD{}
-var _ Healthchecker = &consulSD{}
 
 func NewConsulLB(client *consul.Client, b lb.Balancer) *consulSD {
 	return &consulSD{

@@ -79,14 +79,20 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
-		Checkers:    []auxiliary.Healthchecker{idp, hello, goodbye},
-		Registrar:   res,
-		ServiceName: gateway.DefaultName,
+		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
 	}
 
-	healthcheck.RegistryURLHook = func() (*url.URL, error) {
+	services := []service.Service{hello, goodbye}
+
+	gw.RegistrationHook = func(addr string) (err error) {
 		var scheme string
 
+		// Register the `example` service
+		if err = gw.Registrar.Register(gw.Name, addr); err != nil {
+			return
+		}
+
+		// Register the `healthcheck` check
 		if healthcheck.UseTLS {
 			scheme = "https"
 		} else {
@@ -94,13 +100,20 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		}
 
 		surl := fmt.Sprintf("%s://Admin:password@%s%s?interval=10s", scheme, healthcheck.Address(), healthcheck.Path)
-		return url.Parse(surl)
+		u, err := url.Parse(surl)
+		if err != nil {
+			return
+		}
+		err = gw.Registrar.AddCheck(gw.Name, u)
+		return
 	}
 
-	services := []service.Service{hello, goodbye}
-
-	defer res.Deregister(gateway.DefaultName)
-	defer res.RemoveChecks(gateway.DefaultName)
+	gw.DeregistrationHook = func() error {
+		if err := res.RemoveChecks(gw.Name); err != nil {
+			return err
+		}
+		return res.Deregister(gw.Name)
+	}
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {
 		for _, e := range multierr.Errors(err) {
