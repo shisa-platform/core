@@ -15,6 +15,7 @@ import (
 
 func TestGatewayNoServices(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -24,6 +25,7 @@ func TestGatewayNoServices(t *testing.T) {
 
 func TestGatewayServiceWithNoName(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -36,6 +38,7 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 
 func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -50,6 +53,7 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 
 func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -62,6 +66,7 @@ func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 
 func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -74,6 +79,7 @@ func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 
 func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -86,6 +92,7 @@ func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 
 func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -99,6 +106,7 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 
 func TestGatewayFieldDefaultMissingName(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9003",
 	}
 
@@ -127,6 +135,7 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 
 func TestGatewayMisconfiguredTLS(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -139,6 +148,7 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 
 func TestGatewayFailingAuxiliaryListen(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -203,6 +213,7 @@ func TestGatewayFailingAuxiliaryServe(t *testing.T) {
 
 func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: "127.0.0.1:0",
 	}
 
@@ -249,6 +260,7 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 func TestGatewayAuxiliaryServer(t *testing.T) {
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
+		Name:        "test",
 		Address:     "127.0.0.1:0",
 		GracePeriod: expectedGracePeriod,
 	}

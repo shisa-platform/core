@@ -45,6 +45,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	lh := logHandler{logger}
 
 	gw := &gateway.Gateway{
+		Name:            "example",
 		Address:         addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,

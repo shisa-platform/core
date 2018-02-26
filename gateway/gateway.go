@@ -33,6 +33,7 @@ var (
 )
 
 type Gateway struct {
+	Name             string        // The name of the Gateway for in logging
 	Address          string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
