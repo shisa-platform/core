@@ -1857,30 +1857,6 @@ func TestRouterHandlerPanic(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterHandlerPanicNonError(t *testing.T) {
-	errHook := new(mockErrorHook)
-	cut := &Gateway{
-		ErrorHook: errHook.Handle,
-	}
-	cut.init()
-
-	var handlerCalled bool
-	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
-		handlerCalled = true
-		panic("i blewed up!")
-	}
-
-	installHandler(t, cut, handler)
-
-	w := httptest.NewRecorder()
-	cut.ServeHTTP(w, fakeRequest)
-
-	assert.True(t, handlerCalled, "handler not called")
-	errHook.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
 func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
