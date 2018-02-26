@@ -1,6 +1,7 @@
 package auxiliary
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -519,4 +520,18 @@ func TestDebugServerServeHTTPCustomCompletionHook(t *testing.T) {
 	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
+}
+
+type failingWriter struct {}
+
+func (w failingWriter) Write(p []byte) (n int, err error) {
+	return 0, io.EOF
+}
+
+func TestDebugServerResponseWithBadWriter(t *testing.T) {
+	cut := expvarResponse{}
+
+	w := failingWriter{}
+	err := cut.Serialize(w)
+	assert.Error(t, err)
 }

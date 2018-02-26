@@ -1,8 +1,10 @@
 package auxiliary
 
 import (
+	stdctx "context"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/ansel1/merry"
@@ -62,4 +64,14 @@ func (m *mockErrorHook) assertCalled(t *testing.T) {
 func (m *mockErrorHook) assertCalledN(t *testing.T, expected int) {
 	t.Helper()
 	assert.Equalf(t, expected, m.calls, "error handler called %d times, expected %d", m.calls, expected)
+}
+
+func TestDefaultRouter(t *testing.T) {
+	cut := &HTTPServer{}
+	ctx := context.New(stdctx.Background())
+	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request := &httpx.Request{Request: fakeRequest}
+
+	response := cut.route(ctx, request)
+	assert.Nil(t, response)
 }
