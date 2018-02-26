@@ -241,10 +241,6 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	assert.NotNil(t, e.Options)
 	assert.NotNil(t, e.Trace)
 	assert.Equal(t, svc.Name(), e.serviceName)
-	assert.NotNil(t, e.badQueryHandler)
-	assert.NotNil(t, e.notAllowedHandler)
-	assert.NotNil(t, e.redirectHandler)
-	assert.NotNil(t, e.iseHandler)
 }
 
 func TestGatewayAuxiliaryServer(t *testing.T) {

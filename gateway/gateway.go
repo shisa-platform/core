@@ -172,24 +172,8 @@ func (g *Gateway) init() {
 		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
 
-	if g.RequestIDGenerator == nil {
-		g.RequestIDGenerator = defaultRequestIDGenerator
-	}
-
-	if g.NotFoundHandler == nil {
-		g.NotFoundHandler = defaultNotFoundHandler
-	}
-
-	if g.InternalServerErrorHandler == nil {
-		g.InternalServerErrorHandler = defaultInternalServerErrorHandler
-	}
-
 	if g.Logger == nil {
 		g.Logger = zap.NewNop()
-	}
-
-	if g.ErrorHook == nil {
-		g.ErrorHook = g.defaultErrorHook
 	}
 
 	g.tree = new(node)

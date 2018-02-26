@@ -22,15 +22,6 @@ func (p fields) Len() int           { return len(p) }
 func (p fields) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p fields) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-type endpoint struct {
-	service.Endpoint
-	serviceName       string
-	badQueryHandler   httpx.Handler
-	notAllowedHandler httpx.Handler
-	redirectHandler   httpx.Handler
-	iseHandler        httpx.ErrorHandler
-}
-
 func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxiliary.Server) error {
 	return g.serve(false, services, auxiliaries)
 }
@@ -150,19 +141,6 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				notAllowedHandler: svc.MethodNotAllowedHandler(),
 				redirectHandler:   svc.RedirectHandler(),
 				iseHandler:        svc.InternalServerErrorHandler(),
-			}
-
-			if e.badQueryHandler == nil {
-				e.badQueryHandler = defaultMalformedRequestHandler
-			}
-			if e.notAllowedHandler == nil {
-				e.notAllowedHandler = defaultMethodNotAlowedHandler
-			}
-			if e.redirectHandler == nil {
-				e.redirectHandler = defaultRedirectHandler
-			}
-			if e.iseHandler == nil {
-				e.iseHandler = defaultInternalServerErrorHandler
 			}
 
 			foundMethod := false

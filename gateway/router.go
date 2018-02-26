@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
@@ -43,15 +44,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer httpx.PutRequest(request)
 
 	requestIDGenerationStart := time.Now().UTC()
-	requestID, idErr := g.RequestIDGenerator.InvokeSafely(ctx, request)
-	if idErr != nil {
-		idErr = merry.WithMessage(idErr, "generating request id")
-		requestID = request.ID()
-	}
-	if requestID == "" {
-		idErr = merry.New("generator returned empty request id")
-		requestID = request.ID()
-	}
+	requestID, idErr := g.generateRequestID(ctx, request)
 	requestIDGenerationStop := time.Now().UTC()
 
 	ctx = ctx.WithRequestID(requestID)
@@ -82,7 +75,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running gateway handler").WithValue("index", i)
-			response = g.handleErrorSafely(g.InternalServerErrorHandler, ctx, request, err)
+			response = g.handleError(ctx, request, err)
 			handlersStop = time.Now().UTC()
 			goto finish
 		}
@@ -100,16 +93,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err = merry.WithMessage(err, "routing request")
-		response = g.handleErrorSafely(g.InternalServerErrorHandler, ctx, request, err)
+		response = g.handleError(ctx, request, err)
 		goto finish
 	}
 
 	if endpoint == nil {
-		response = g.NotFoundHandler.InvokeSafely(ctx, request, &err)
-		if err != nil {
-			response = defaultNotFoundHandler(ctx, request)
-			err = merry.WithMessage(err, "running NotFoundHandler")
-		}
+		response, err = g.handleNotFound(ctx, request)
 		goto finish
 	}
 
@@ -136,34 +125,18 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if pipeline == nil {
 		if tsr {
-			response = g.NotFoundHandler.InvokeSafely(ctx, request, &err)
-			if err != nil {
-				err = merry.WithMessage(err, "running NotFoundHandler")
-				response = defaultNotFoundHandler(ctx, request)
-			}
+			response, err = g.handleNotFound(ctx, request)
 		} else {
-			response = endpoint.notAllowedHandler.InvokeSafely(ctx, request, &err)
-			if err != nil {
-				err = merry.WithMessage(err, "running MethodNotAllowedHandler")
-				response = defaultMethodNotAlowedHandler(ctx, request)
-			}
+			response, err = endpoint.handleNotAllowed(ctx, request)
 		}
 		goto finish
 	}
 
 	if tsr {
 		if path != "/" && pipeline.Policy.AllowTrailingSlashRedirects {
-			response = endpoint.redirectHandler.InvokeSafely(ctx, request, &err)
-			if err != nil {
-				err = merry.WithMessage(err, "running RedirectHandler")
-				response = defaultRedirectHandler(ctx, request)
-			}
+			response, err = endpoint.handleRedirect(ctx, request)
 		} else {
-			response = g.NotFoundHandler.InvokeSafely(ctx, request, &err)
-			if err != nil {
-				err = merry.WithMessage(err, "running NotFoundHandler")
-				response = defaultNotFoundHandler(ctx, request)
-			}
+			response, err = g.handleNotFound(ctx, request)
 		}
 		goto finish
 	}
@@ -213,20 +186,12 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if (invalidParams || missingParams) && !pipeline.Policy.AllowMalformedQueryParameters {
-		response = endpoint.badQueryHandler.InvokeSafely(ctx, request, &err)
-		if err != nil {
-			err = merry.WithMessage(err, "running MalformedRequestHandler")
-			response = defaultMalformedRequestHandler(ctx, request)
-		}
+		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
 
 	if len(params) != 0 && !pipeline.Policy.AllowUnknownQueryParameters {
-		response = endpoint.badQueryHandler.InvokeSafely(ctx, request, &err)
-		if err != nil {
-			err = merry.WithMessage(err, "running MalformedRequestHandler")
-			response = defaultMalformedRequestHandler(ctx, request)
-		}
+		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
 
@@ -251,7 +216,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = handler.InvokeSafely(ctx, request, &err)
 		if err != nil {
 			err = merry.WithMessage(err, "running endpoint handler").WithValue("index", i)
-			response = g.handleErrorSafely(endpoint.iseHandler, ctx, request, err)
+			var exception merry.Error
+			response, exception = endpoint.handleError(ctx, request, err)
+			if exception != nil {
+				g.invokeErrorHookSafely(ctx, request, exception)
+			}
 			pipelineStop = time.Now().UTC()
 			goto finish
 		}
@@ -263,7 +232,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if response == nil {
 		err = merry.New("no response from pipeline")
-		response = g.handleErrorSafely(endpoint.iseHandler, ctx, request, err)
+		var exception merry.Error
+		response, exception = endpoint.handleError(ctx, request, err)
+		if exception != nil {
+			g.invokeErrorHookSafely(ctx, request, exception)
+		}
 	}
 
 finish:
@@ -306,11 +279,48 @@ finish:
 	}
 }
 
-func (g *Gateway) handleErrorSafely(h httpx.ErrorHandler, ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request) (string, merry.Error) {
+	if g.RequestIDGenerator == nil {
+		return request.ID(), nil
+	}
+
+	requestID, err := g.RequestIDGenerator.InvokeSafely(ctx, request)
+	if err != nil {
+		err = merry.WithMessage(err, "generating request id")
+		requestID = request.ID()
+	}
+	if requestID == "" {
+		err = merry.New("generator returned empty request id")
+		requestID = request.ID()
+	}
+
+	return requestID, err
+}
+
+func (g *Gateway) handleNotFound(ctx context.Context, request *httpx.Request) (httpx.Response, merry.Error) {
+	if g.NotFoundHandler == nil {
+		return httpx.NewEmpty(http.StatusNotFound), nil
+	}
+
 	var exception merry.Error
-	response := h.InvokeSafely(ctx, request, err, &exception)
+	response := g.NotFoundHandler.InvokeSafely(ctx, request, &exception)
 	if exception != nil {
-		response = defaultInternalServerErrorHandler(ctx, request, err)
+		err := merry.WithMessage(exception, "running NotFoundHandler")
+		return httpx.NewEmpty(http.StatusNotFound), err
+	}
+
+	return response, nil
+}
+
+func (g *Gateway) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	if g.InternalServerErrorHandler == nil {
+		return httpx.NewEmptyError(http.StatusInternalServerError, err)
+	}
+
+	var exception merry.Error
+	response := g.InternalServerErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	if exception != nil {
+		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
 		exception = merry.WithMessage(exception, "while invoking InternalServerErrorHandler")
 		g.invokeErrorHookSafely(ctx, request, exception)
 	}
@@ -323,9 +333,9 @@ func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Requ
 
 	g.ErrorHook.invokeSafely(ctx, request, err, &exception)
 	if exception != nil {
-		g.defaultErrorHook(ctx, request, err)
+		g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 		exception = merry.WithMessage(exception, "while invoking ErrorHook")
-		g.defaultErrorHook(ctx, request, exception)
+		g.Logger.Error(exception.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(exception))
 	}
 }
 
