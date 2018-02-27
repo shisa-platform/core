@@ -1,15 +1,14 @@
-package gateway
+package httpx
 
 import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
 )
 
-type ErrorHook func(context.Context, *httpx.Request, merry.Error)
+type ErrorHook func(context.Context, *Request, merry.Error)
 
-func (h ErrorHook) InvokeSafely(ctx context.Context, request *httpx.Request, err merry.Error, exception *merry.Error) {
+func (h ErrorHook) InvokeSafely(ctx context.Context, request *Request, err merry.Error, exception *merry.Error) {
 	if h == nil {
 		return
 	}
@@ -18,9 +17,9 @@ func (h ErrorHook) InvokeSafely(ctx context.Context, request *httpx.Request, err
 	h(ctx, request, err)
 }
 
-type CompletionHook func(context.Context, *httpx.Request, httpx.ResponseSnapshot)
+type CompletionHook func(context.Context, *Request, ResponseSnapshot)
 
-func (h CompletionHook) InvokeSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot, exception *merry.Error) {
+func (h CompletionHook) InvokeSafely(ctx context.Context, request *Request, snapshot ResponseSnapshot, exception *merry.Error) {
 	if h == nil {
 		return
 	}

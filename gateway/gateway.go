@@ -113,12 +113,12 @@ type Gateway struct {
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
 	// `Logger` field with the request id as a field.
-	ErrorHook ErrorHook `json:"-"`
+	ErrorHook httpx.ErrorHook `json:"-"`
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook CompletionHook `json:"-"`
+	CompletionHook httpx.CompletionHook `json:"-"`
 
 	// Logger optionally specifies the logger to use by the
 	// Gateway.
