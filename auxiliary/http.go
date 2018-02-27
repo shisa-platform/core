@@ -155,15 +155,34 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *httpx.Request) (
 		return
 	}
 
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		response = httpx.NewEmpty(http.StatusInternalServerError)
+		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
+
+		if err, ok := arg.(error); ok {
+			err1 := merry.WithMessage(err, "panic during authentication")
+			s.invokeErrorHookSafely(ctx, request, err1)
+			return
+		}
+
+		err := merry.New("panic during authentication").WithValue("context", arg)
+		s.invokeErrorHookSafely(ctx, request, err)
+	}()
+
 	if response = s.Authentication.Service(ctx, request); response != nil {
 		return
 	}
 	if s.Authorizer != nil {
 		if ok, err := s.Authorizer.Authorize(ctx, request); err != nil {
 			err = err.WithHTTPCode(http.StatusUnauthorized)
-			return s.Authentication.ErrorHandler(ctx, request, err)
+			response = s.Authentication.ErrorHandler(ctx, request, err)
 		} else if !ok {
-			return s.Authentication.UnauthorizedHandler(ctx, request)
+			response = s.Authentication.UnauthorizedHandler(ctx, request)
 		}
 	}
 

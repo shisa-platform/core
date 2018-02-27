@@ -2,12 +2,18 @@ package httpx
 
 import (
 	stdctx "context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
+)
+
+var (
+	fakeRequest = httptest.NewRequest(http.MethodGet, "/test", nil)
 )
 
 func TestErrorHookNil(t *testing.T) {
