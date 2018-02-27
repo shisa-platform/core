@@ -106,13 +106,11 @@ func (s *HealthcheckServer) Service(ctx context.Context, request *httpx.Request)
 	status := make(map[string]string, len(s.Checkers))
 
 	for _, check := range s.Checkers {
-		if err := check.Healthcheck(ctx); err != nil {
+		if err := invokeHealthcheckSafely(ctx, check); err != nil {
 			status[check.Name()] = err.Error()
 			code = http.StatusServiceUnavailable
-			if s.ErrorHook != nil {
-				err1 := merry.WithMessage(err, "check failed").WithValue("name", check.Name())
-				s.ErrorHook(ctx, request, err1)
-			}
+			err1 := merry.WithMessage(err, "check failed").WithValue("name", check.Name())
+			s.invokeErrorHookSafely(ctx, request, err1)
 			continue
 		}
 		status[check.Name()] = "OK"
@@ -126,4 +124,22 @@ func (s *HealthcheckServer) Service(ctx context.Context, request *httpx.Request)
 	response.Headers().Set(contenttype.ContentTypeHeaderKey, jsonContentType)
 
 	return response
+}
+
+func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if e1, ok := arg.(error); ok {
+			err = merry.WithMessage(e1, "panic in healthcheck")
+			return
+		}
+
+		err = merry.New("panic in healthcheck").WithValue("context", arg)
+	}()
+
+	return h.Healthcheck(ctx)
 }
