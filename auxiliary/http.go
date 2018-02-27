@@ -105,17 +105,17 @@ type HTTPServer struct {
 	// correct handler to invoke for the current request.
 	// If nil is returned a 404 status code with an empty body is
 	// returned to the user agent.
-	Router func(context.Context, *httpx.Request) httpx.Handler
+	Router Router
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil no action will be taken.
-	ErrorHook func(context.Context, *httpx.Request, merry.Error)
+	ErrorHook httpx.ErrorHook
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook func(context.Context, *httpx.Request, httpx.ResponseSnapshot)
+	CompletionHook httpx.CompletionHook
 
 	base     http.Server
 	listener net.Listener
@@ -139,14 +139,6 @@ func (s *HTTPServer) init() {
 
 	if s.RequestIDHeaderName == "" {
 		s.RequestIDHeaderName = defaultRequestIDResponseHeader
-	}
-
-	if s.RequestIDGenerator == nil {
-		s.RequestIDGenerator = s.generateRequestID
-	}
-
-	if s.Router == nil {
-		s.Router = s.route
 	}
 }
 
@@ -218,15 +210,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	request := httpx.GetRequest(r)
 	defer httpx.PutRequest(request)
 
-	requestID, idErr := s.RequestIDGenerator(ctx, request)
-	if idErr != nil {
-		idErr = merry.WithMessage(idErr, "generating request id")
-		requestID = request.ID()
-	}
-	if requestID == "" {
-		idErr = merry.New("generator returned empty request id")
-		requestID = request.ID()
-	}
+	requestID, idErr := s.generateRequestID(ctx, request)
 
 	ctx = context.WithRequestID(ctx, requestID)
 	ri.Header().Set(s.RequestIDHeaderName, requestID)
@@ -236,38 +220,91 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if handler := s.Router(ctx, request); handler != nil {
-		response = handler(ctx, request)
-	} else {
-		response = httpx.NewEmpty(http.StatusNotFound)
-		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
-	}
+	response = s.route(ctx, request)
 
 finish:
 	writeErr := ri.WriteResponse(response)
 	snapshot := ri.Flush()
 
-	if s.CompletionHook != nil {
-		s.CompletionHook(ctx, request, snapshot)
+	s.invokeCompletionHookSafely(ctx, request, snapshot)
+
+	if idErr != nil {
+		s.invokeErrorHookSafely(ctx, request, idErr)
 	}
 
-	if idErr != nil && s.ErrorHook != nil {
-		s.ErrorHook(ctx, request, idErr)
-	}
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
-	if writeErr1 != nil && s.ErrorHook != nil {
-		s.ErrorHook(ctx, request, writeErr1)
+	if writeErr1 != nil {
+		s.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
+
 	respErr := response.Err()
-	if respErr != nil && s.ErrorHook != nil {
-		s.ErrorHook(ctx, request, merry.WithMessage(respErr, "handler failed"))
+	if respErr != nil {
+		s.invokeErrorHookSafely(ctx, request, merry.WithMessage(respErr, "handler failed"))
 	}
 }
 
-func (s *HTTPServer) generateRequestID(c context.Context, r *httpx.Request) (string, merry.Error) {
-	return r.ID(), nil
+func (s *HTTPServer) generateRequestID(ctx context.Context, request *httpx.Request) (string, merry.Error) {
+	if s.RequestIDGenerator == nil {
+		return request.ID(), nil
+	}
+
+	requestID, err := s.RequestIDGenerator.InvokeSafely(ctx, request)
+	if err != nil {
+		err = merry.WithMessage(err, "generating request id")
+		requestID = request.ID()
+	}
+	if requestID == "" {
+		err = merry.New("generator returned empty request id")
+		requestID = request.ID()
+	}
+
+	return requestID, err
 }
 
-func (s *HTTPServer) route(context.Context, *httpx.Request) httpx.Handler {
-	return nil
+func (s *HTTPServer) route(ctx context.Context, request *httpx.Request) (response httpx.Response) {
+	if s.Router == nil {
+		s.invokeErrorHookSafely(ctx, request, merry.New("router is not configured"))
+		response = httpx.NewEmpty(http.StatusNotFound)
+		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
+		return
+	}
+
+	var exception merry.Error
+	handler := s.Router.InvokeSafely(ctx, request, &exception)
+	if exception != nil {
+		s.invokeErrorHookSafely(ctx, request, exception)
+		response = httpx.NewEmpty(http.StatusInternalServerError)
+		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
+		return
+	}
+
+	if handler == nil {
+		response = httpx.NewEmpty(http.StatusNotFound)
+		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
+		return
+	}
+
+	response = handler.InvokeSafely(ctx, request, &exception)
+	if exception != nil {
+		s.invokeErrorHookSafely(ctx, request, exception)
+		response = httpx.NewEmpty(http.StatusInternalServerError)
+		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
+	}
+
+	return
+}
+
+func (s *HTTPServer) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
+	var exception merry.Error
+	s.ErrorHook.InvokeSafely(ctx, request, err, &exception)
+}
+
+func (s *HTTPServer) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
+	var exception merry.Error
+
+	s.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
+	if exception != nil {
+		exception = merry.WithMessage(exception, "while invoking CompletionHook")
+		s.invokeErrorHookSafely(ctx, request, exception)
+	}
 }

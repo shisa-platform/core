@@ -66,12 +66,155 @@ func (m *mockErrorHook) assertCalledN(t *testing.T, expected int) {
 	assert.Equalf(t, expected, m.calls, "error handler called %d times, expected %d", m.calls, expected)
 }
 
-func TestDefaultRouter(t *testing.T) {
-	cut := &HTTPServer{}
+func TestHTTPServerRouterDefault(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &HTTPServer{
+		ErrorHook: errHook.Handle,
+	}
 	ctx := context.New(stdctx.Background())
 	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
 	request := &httpx.Request{Request: fakeRequest}
 
 	response := cut.route(ctx, request)
-	assert.Nil(t, response)
+
+	errHook.assertCalledN(t, 1)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusNotFound, response.StatusCode())
+}
+
+func TestHTTPServerRouterPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &HTTPServer{
+		Router: func(context.Context, *httpx.Request) httpx.Handler {
+			panic(merry.New("i blewed up!"))
+		},
+		ErrorHook: errHook.Handle,
+	}
+	ctx := context.New(stdctx.Background())
+	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request := &httpx.Request{Request: fakeRequest}
+
+	response := cut.route(ctx, request)
+
+	errHook.assertCalledN(t, 1)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestHTTPServerRouterPanicString(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &HTTPServer{
+		Router: func(context.Context, *httpx.Request) httpx.Handler {
+			panic("i blewed up!")
+		},
+		ErrorHook: errHook.Handle,
+	}
+	ctx := context.New(stdctx.Background())
+	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request := &httpx.Request{Request: fakeRequest}
+
+	response := cut.route(ctx, request)
+
+	errHook.assertCalledN(t, 1)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestHTTPServerRouterHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &HTTPServer{
+		Router: func(context.Context, *httpx.Request) httpx.Handler {
+			return func(context.Context, *httpx.Request) httpx.Response {
+				panic(merry.New("i blewed up!"))
+			}
+		},
+		ErrorHook: errHook.Handle,
+	}
+	ctx := context.New(stdctx.Background())
+	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request := &httpx.Request{Request: fakeRequest}
+
+	response := cut.route(ctx, request)
+
+	errHook.assertCalledN(t, 1)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestHTTPServerRouterHandlerPanicString(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &HTTPServer{
+		Router: func(context.Context, *httpx.Request) httpx.Handler {
+			return func(context.Context, *httpx.Request) httpx.Response {
+				panic("i blewed up!")
+			}
+		},
+		ErrorHook: errHook.Handle,
+	}
+	ctx := context.New(stdctx.Background())
+	fakeRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request := &httpx.Request{Request: fakeRequest}
+
+	response := cut.route(ctx, request)
+
+	errHook.assertCalledN(t, 1)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestHTTPServerRequestIDGeneratorPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := HTTPServer{
+		RequestIDGenerator: func(c context.Context, r *httpx.Request) (string, merry.Error) {
+			panic(merry.New("i blewed up!"))
+		},
+		Router: func(context.Context, *httpx.Request) httpx.Handler {
+			return func(context.Context, *httpx.Request) httpx.Response {
+				return httpx.NewEmpty(http.StatusOK)
+			}
+		},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+}
+
+func TestHTTPServerCompletionHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	var hookCalled bool
+	cut := HTTPServer{
+		Router: func(context.Context, *httpx.Request) httpx.Handler {
+			return func(context.Context, *httpx.Request) httpx.Response {
+				return httpx.NewEmpty(http.StatusOK)
+			}
+		},
+		ErrorHook: errHook.Handle,
+		CompletionHook: func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {
+			hookCalled = true
+			panic("i blewed up!")
+		},
+	}
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	errHook.assertCalledN(t, 1)
+	assert.True(t, hookCalled)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
 }

@@ -266,13 +266,16 @@ finish:
 	if idErr != nil {
 		g.invokeErrorHookSafely(ctx, request, idErr)
 	}
+
 	if err != nil {
 		g.invokeErrorHookSafely(ctx, request, err)
 	}
+
 	writeErr1 := merry.WithMessage(writeErr, "serializing response")
 	if writeErr1 != nil {
 		g.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
+
 	respErr := response.Err()
 	if respErr != nil && respErr != err {
 		g.invokeErrorHookSafely(ctx, request, merry.WithMessage(respErr, "handler failed"))

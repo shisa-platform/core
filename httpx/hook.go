@@ -13,7 +13,7 @@ func (h ErrorHook) InvokeSafely(ctx context.Context, request *Request, err merry
 		return
 	}
 
-	defer recovery(exception)
+	defer hookRecovery(exception)
 	h(ctx, request, err)
 }
 
@@ -24,11 +24,11 @@ func (h CompletionHook) InvokeSafely(ctx context.Context, request *Request, snap
 		return
 	}
 
-	defer recovery(exception)
+	defer hookRecovery(exception)
 	h(ctx, request, snapshot)
 }
 
-func recovery(exception *merry.Error) {
+func hookRecovery(exception *merry.Error) {
 	arg := recover()
 	if arg == nil {
 		return
