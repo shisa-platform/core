@@ -7,6 +7,7 @@ import (
 	"expvar"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -116,11 +117,9 @@ type Gateway struct {
 	// the gateway service with a service registry
 	Registrar sd.Registrar
 
-	// The Registration hook
-	RegistrationHook func(addr string) error
-
-	// The Deregistration hook
-	DeregistrationHook func() error
+	// CheckURLHook provides the *url.URL to be used in
+	// the Registrar's `AddCheck` method
+	CheckURLHook func() (*url.URL, error)
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.

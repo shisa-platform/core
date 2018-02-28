@@ -86,15 +86,33 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 	addr := listener.Addr().String()
 
-	if g.Registrar != nil && g.RegistrationHook != nil && g.DeregistrationHook != nil {
-		if err = g.RegistrationHook(addr); err != nil {
+	if g.Registrar != nil {
+		if err = g.Registrar.Register(g.Name, addr); err != nil {
 			return err
 		}
 		defer func() {
-			if e := g.DeregistrationHook(); e != nil {
+			if e := g.Registrar.Deregister(g.Name); e != nil {
 				g.Logger.Error(e.Error())
 			}
 		}()
+
+		if g.CheckURLHook != nil {
+			u, err := g.CheckURLHook()
+
+			if err != nil {
+				return err
+			}
+
+			if err = g.Registrar.AddCheck(g.Name, u); err != nil {
+				return err
+			}
+
+			defer func() {
+				if e := g.Registrar.RemoveChecks(g.Name); e != nil {
+					g.Logger.Error(e.Error())
+				}
+			}()
+		}
 	}
 
 	gch := make(chan error, 1)
