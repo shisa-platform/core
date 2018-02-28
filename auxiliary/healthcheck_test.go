@@ -29,6 +29,19 @@ func (h stubHealthchecker) Healthcheck(context.Context) merry.Error {
 	return h.err
 }
 
+type panicHealthchecker struct {
+	name string
+	arg  interface{}
+}
+
+func (h panicHealthchecker) Name() string {
+	return h.name
+}
+
+func (h panicHealthchecker) Healthcheck(context.Context) merry.Error {
+	panic(h.arg)
+}
+
 func TestHealthcheckServerEmpty(t *testing.T) {
 	cut := HealthcheckServer{}
 
@@ -576,6 +589,70 @@ func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
 	expectedJson := `{
   "pass": "OK",
   "fail": "i blewed up!"
+}`
+	assert.JSONEq(t, expectedJson, w.Body.String())
+}
+
+func TestHealthcheckServerServeHTTPHealthcheckerPanic(t *testing.T) {
+	ng := panicHealthchecker{name: "fail", arg: merry.New("i blewed up!")}
+
+	errHandler := new(mockErrorHook)
+	cut := HealthcheckServer{
+		HTTPServer: HTTPServer{
+			ErrorHook: errHandler.Handle,
+		},
+		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
+	}
+	cut.HTTPServer.init()
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	errHandler.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+
+	expectedJson := `{
+  "pass": "OK",
+  "fail": "panic in healthcheck"
+}`
+	assert.JSONEq(t, expectedJson, w.Body.String())
+}
+
+func TestHealthcheckServerServeHTTPHealthcheckerPanicString(t *testing.T) {
+	ng := panicHealthchecker{name: "fail", arg: "i blewed up!"}
+
+	errHandler := new(mockErrorHook)
+	cut := HealthcheckServer{
+		HTTPServer: HTTPServer{
+			ErrorHook: errHandler.Handle,
+		},
+		Checkers: []Healthchecker{stubHealthchecker{name: "pass"}, ng},
+	}
+	cut.HTTPServer.init()
+	cut.init()
+
+	r := httptest.NewRequest(http.MethodGet, cut.Path, nil)
+	w := httptest.NewRecorder()
+
+	cut.ServeHTTP(w, r)
+
+	errHandler.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.NotEqual(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get("Content-Type"))
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+	assert.True(t, w.Flushed)
+
+	expectedJson := `{
+  "pass": "OK",
+  "fail": "panic in healthcheck"
 }`
 	assert.JSONEq(t, expectedJson, w.Body.String())
 }

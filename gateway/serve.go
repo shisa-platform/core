@@ -64,16 +64,7 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	var wg sync.WaitGroup
 	for _, aux := range g.auxiliaries {
 		wg.Add(1)
-		go func(server auxiliary.Server) {
-			err := server.Listen()
-			wg.Done()
-			if err != nil {
-				ach <- err
-				return
-			}
-			g.Logger.Info("starting auxiliary server", zap.String("name", server.Name()), zap.String("addr", server.Address()))
-			ach <- server.Serve()
-		}(aux)
+		go g.safelyRunAuxiliary(aux, ach, &wg)
 	}
 
 	wg.Wait()
@@ -107,6 +98,34 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	}
 
 	return
+}
+
+func (g *Gateway) safelyRunAuxiliary(server auxiliary.Server, ch chan error, wg *sync.WaitGroup) {
+	var once sync.Once
+	done := func() { wg.Done() }
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		once.Do(done)
+		if err, ok := arg.(error); ok {
+			ch <- merry.WithMessage(err, "panic in auxiliary")
+			return
+		}
+
+		ch <- merry.New("panic in auxiliary").WithValue("context", arg)
+	}()
+
+	err := server.Listen()
+	once.Do(done)
+	if err != nil {
+		ch <- err
+		return
+	}
+	g.Logger.Info("starting auxiliary server", zap.String("name", server.Name()), zap.String("addr", server.Address()))
+	ch <- server.Serve()
 }
 
 func (g *Gateway) installServices(services []service.Service) merry.Error {

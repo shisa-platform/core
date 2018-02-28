@@ -12,7 +12,7 @@ import (
 type Handler func(context.Context, *Request) Response
 
 func (h Handler) InvokeSafely(ctx context.Context, request *Request, exception *merry.Error) Response {
-	defer recovery(exception)
+	defer handlerRecovery(exception)
 	return h(ctx, request)
 }
 
@@ -20,11 +20,11 @@ func (h Handler) InvokeSafely(ctx context.Context, request *Request, exception *
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
 func (h ErrorHandler) InvokeSafely(ctx context.Context, request *Request, err merry.Error, exception *merry.Error) Response {
-	defer recovery(exception)
+	defer handlerRecovery(exception)
 	return h(ctx, request, err)
 }
 
-func recovery(exception *merry.Error) {
+func handlerRecovery(exception *merry.Error) {
 	arg := recover()
 	if arg == nil {
 		return

@@ -1,19 +1,24 @@
-package gateway
+package httpx
 
 import (
 	stdctx "context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
+)
+
+var (
+	fakeRequest = httptest.NewRequest(http.MethodGet, "/test", nil)
 )
 
 func TestErrorHookNil(t *testing.T) {
 	ctx := context.New(stdctx.Background())
-	request := &httpx.Request{Request: fakeRequest}
+	request := &Request{Request: fakeRequest}
 	err := merry.New("something bad")
 	var exception merry.Error
 
@@ -24,12 +29,12 @@ func TestErrorHookNil(t *testing.T) {
 
 func TestErrorHookPanic(t *testing.T) {
 	ctx := context.New(stdctx.Background())
-	request := &httpx.Request{Request: fakeRequest}
+	request := &Request{Request: fakeRequest}
 	err := merry.New("something bad")
 	var exception merry.Error
 
 	var eh ErrorHook
-	eh = func(context.Context, *httpx.Request, merry.Error) {
+	eh = func(context.Context, *Request, merry.Error) {
 		panic(merry.New("i blewed up!"))
 	}
 
@@ -39,12 +44,12 @@ func TestErrorHookPanic(t *testing.T) {
 
 func TestErrorHookPanicString(t *testing.T) {
 	ctx := context.New(stdctx.Background())
-	request := &httpx.Request{Request: fakeRequest}
+	request := &Request{Request: fakeRequest}
 	err := merry.New("something bad")
 	var exception merry.Error
 
 	var eh ErrorHook
-	eh = func(context.Context, *httpx.Request, merry.Error) {
+	eh = func(context.Context, *Request, merry.Error) {
 		panic("i blewed up!")
 	}
 
@@ -54,23 +59,23 @@ func TestErrorHookPanicString(t *testing.T) {
 
 func TestCompletionHookNil(t *testing.T) {
 	ctx := context.New(stdctx.Background())
-	request := &httpx.Request{Request: fakeRequest}
+	request := &Request{Request: fakeRequest}
 	var exception merry.Error
 
 	var ch CompletionHook
-	snapshot := httpx.ResponseSnapshot{}
+	snapshot := ResponseSnapshot{}
 	ch.InvokeSafely(ctx, request, snapshot, &exception)
 	assert.Nil(t, exception)
 }
 
 func TestCompletionHookPanic(t *testing.T) {
 	ctx := context.New(stdctx.Background())
-	request := &httpx.Request{Request: fakeRequest}
+	request := &Request{Request: fakeRequest}
 	var exception merry.Error
 
 	var ch CompletionHook
-	snapshot := httpx.ResponseSnapshot{}
-	ch = func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {
+	snapshot := ResponseSnapshot{}
+	ch = func(context.Context, *Request, ResponseSnapshot) {
 		panic(merry.New("i blewed up!"))
 	}
 
@@ -80,12 +85,12 @@ func TestCompletionHookPanic(t *testing.T) {
 
 func TestCompletionHookPanicString(t *testing.T) {
 	ctx := context.New(stdctx.Background())
-	request := &httpx.Request{Request: fakeRequest}
+	request := &Request{Request: fakeRequest}
 	var exception merry.Error
 
 	var ch CompletionHook
-	snapshot := httpx.ResponseSnapshot{}
-	ch = func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {
+	snapshot := ResponseSnapshot{}
+	ch = func(context.Context, *Request, ResponseSnapshot) {
 		panic("i blewed up!")
 	}
 
