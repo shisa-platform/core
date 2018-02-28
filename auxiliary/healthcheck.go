@@ -133,8 +133,8 @@ func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Er
 			return
 		}
 
-		if e1, ok := arg.(error); ok {
-			err = merry.WithMessage(e1, "panic in healthcheck")
+		if err1, ok := arg.(error); ok {
+			err = merry.WithMessage(err1, "panic in healthcheck")
 			return
 		}
 
