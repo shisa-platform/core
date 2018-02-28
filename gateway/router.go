@@ -205,9 +205,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pipeline.Policy.TimeBudget != 0 {
-		// xxx - watch for timeout and kill pipeline, return
 		var cancel stdctx.CancelFunc
-		ctx, cancel = ctx.WithTimeout(pipeline.Policy.TimeBudget)
+		ctx, cancel = ctx.WithTimeout(pipeline.Policy.TimeBudget - ri.Elapsed())
 		defer cancel()
 	}
 
