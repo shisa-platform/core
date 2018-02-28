@@ -14,6 +14,12 @@ type ResponseInterceptor struct {
 	size   int
 }
 
+// Elapsed returns the amount of time since this instance was
+// created.
+func (i *ResponseInterceptor) Elapsed() time.Duration {
+	return time.Now().UTC().Sub(i.start)
+}
+
 func (i *ResponseInterceptor) Header() http.Header {
 	return i.ResponseWriter.Header()
 }
