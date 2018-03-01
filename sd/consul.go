@@ -8,8 +8,6 @@ import (
 
 	"github.com/ansel1/merry"
 	consul "github.com/hashicorp/consul/api"
-
-	"github.com/percolate/shisa/lb"
 )
 
 //go:generate charlatan -output=./consulregistry_charlatan.go consulRegistry
@@ -28,19 +26,10 @@ type consulResolver interface {
 type consulSD struct {
 	agent    consulRegistry
 	health   consulResolver
-	balancer lb.Balancer
 }
 
 var _ Registrar = &consulSD{}
 var _ Resolver = &consulSD{}
-
-func NewConsulLB(client *consul.Client, b lb.Balancer) *consulSD {
-	return &consulSD{
-		agent:    client.Agent(),
-		health:   client.Health(),
-		balancer: b,
-	}
-}
 
 func NewConsul(client *consul.Client) *consulSD {
 	return &consulSD{
@@ -183,18 +172,6 @@ func (r *consulSD) RemoveChecks(serviceID string) merry.Error {
 		return merry.Wrap(err)
 	}
 	return nil
-}
-
-func (r *consulSD) Balance(name string) (string, merry.Error) {
-	addrs, err := r.Resolve(name)
-	if err != nil {
-		return "", err
-	}
-	addr, err := r.balancer.Balance(addrs)
-	if err != nil {
-		return "", err
-	}
-	return addr, nil
 }
 
 func popQueryString(v url.Values, key string) (re string) {
