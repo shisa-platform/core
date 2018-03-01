@@ -41,12 +41,12 @@ func NewConsul(client *consul.Client) *consulSD {
 func (r *consulSD) Register(serviceID, addr string) merry.Error {
 	address, sport, err := net.SplitHostPort(addr)
 	if err != nil {
-		return merry.Errorf("splitting addr/port: %v", err)
+		return merry.WithMessage(err, "registration failed").WithValue("addr", addr)
 	}
 
 	port, err := strconv.Atoi(sport)
 	if err != nil {
-		return merry.Errorf("parsing port: %v", err)
+		return merry.WithMessage(err, "registration failed").WithValue("addr", addr)
 	}
 
 	servreg := &consul.AgentServiceRegistration{
@@ -58,7 +58,7 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 
 	e := r.agent.ServiceRegister(servreg)
 	if e != nil {
-		return merry.Wrap(e)
+		return merry.WithMessage(e, "registration failed").WithValue("addr", addr)
 	}
 	return nil
 }
@@ -66,7 +66,7 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 func (r *consulSD) Deregister(serviceID string) merry.Error {
 	e := r.agent.ServiceDeregister(serviceID)
 	if e != nil {
-		return merry.Wrap(e)
+		return merry.Wrap(e).WithMessage("service deregister failed").WithValue("service", serviceID)
 	}
 	return nil
 }
@@ -74,7 +74,7 @@ func (r *consulSD) Deregister(serviceID string) merry.Error {
 func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
 	ses, _, err := r.health.Service(name, "", true, nil)
 	if err != nil {
-		merr = merry.Wrap(err)
+		merr = merry.Wrap(err).WithMessage("service resolve failed").WithValue("service", name)
 		return
 	}
 
@@ -169,7 +169,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 func (r *consulSD) RemoveChecks(serviceID string) merry.Error {
 	err := r.agent.CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
 	if err != nil {
-		return merry.Wrap(err)
+		return merry.Wrap(err).WithMessage("check removal failed")
 	}
 	return nil
 }

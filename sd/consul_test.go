@@ -71,7 +71,6 @@ func TestConsulSDRegisterServiceRegisterError(t *testing.T) {
 	e := c.Register(testServiceName, testAddr)
 
 	assert.Error(t, e)
-	assert.Equal(t, terr, e)
 	freg.AssertServiceRegisterCalledOnce(t)
 }
 
@@ -109,7 +108,6 @@ func TestConsulSDDeregisterError(t *testing.T) {
 	e := c.Deregister(testServiceName)
 
 	assert.Error(t, e)
-	assert.Equal(t, terr, e)
 	freg.AssertServiceDeregisterCalledOnceWith(t, testServiceName)
 }
 
@@ -570,7 +568,6 @@ func TestConsulSDRemoveChecksError(t *testing.T) {
 	e := c.RemoveChecks(testServiceName)
 
 	assert.Error(t, e)
-	assert.Equal(t, terr, e)
 	freg.AssertCheckDeregisterCalledOnceWith(t, hcname)
 }
 
