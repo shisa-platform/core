@@ -6,6 +6,7 @@ import (
 	"github.com/ansel1/merry"
 )
 
+//go:generate charlatan -output=./registrar_charlatan.go Registrar
 type Registrar interface {
 	Register(serviceID, addr string) merry.Error
 	Deregister(serviceID string) merry.Error
