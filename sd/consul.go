@@ -24,8 +24,8 @@ type consulResolver interface {
 }
 
 type consulSD struct {
-	agent    consulRegistry
-	health   consulResolver
+	agent  consulRegistry
+	health consulResolver
 }
 
 var _ Registrar = &consulSD{}
