@@ -18,7 +18,6 @@ import (
 	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
@@ -31,8 +30,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		logger.Fatal("consul failed to initialize", zap.Error(e))
 	}
 
-	b := lb.NewRoundRobin()
-	res := sd.NewConsulLB(c, b)
+	res := sd.NewConsul(c)
 
 	idp := &ExampleIdentityProvider{Env: env.DefaultProvider, Resolver: res}
 
