@@ -89,7 +89,7 @@ func TestConsulSDRegisterSuccess(t *testing.T) {
 
 	e := c.Register(testServiceName, testAddr)
 
-	assert.Nil(t, e)
+	assert.NoError(t, e)
 	freg.AssertServiceRegisterCalledOnce(t)
 }
 
@@ -127,7 +127,7 @@ func TestConsulSDDeregisterSuccess(t *testing.T) {
 
 	e := c.Deregister(testServiceName)
 
-	assert.Nil(t, e)
+	assert.NoError(t, e)
 	freg.AssertServiceDeregisterCalledOnceWith(t, testServiceName)
 }
 
@@ -178,7 +178,7 @@ func TestConsulSDResolveNodeAddress(t *testing.T) {
 	res, e := c.Resolve(testServiceName)
 
 	assert.Equal(t, exp, res)
-	assert.Nil(t, e)
+	assert.NoError(t, e)
 	fres.AssertServiceCalledOnceWith(t, testServiceName, "", true, nil)
 }
 
@@ -209,7 +209,7 @@ func TestConsulSDResolveServiceAddress(t *testing.T) {
 	res, e := c.Resolve(testServiceName)
 
 	assert.Equal(t, exp, res)
-	assert.Nil(t, e)
+	assert.NoError(t, e)
 	fres.AssertServiceCalledOnceWith(t, testServiceName, "", true, nil)
 }
 
@@ -232,7 +232,7 @@ func TestConsulSDAddCheckGRPC(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -312,7 +312,7 @@ func TestConsulSDAddCheckDocker(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -354,7 +354,7 @@ func TestConsulSDAddCheckScript(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -378,7 +378,7 @@ func TestConsulSDAddCheckTTL(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -401,7 +401,7 @@ func TestConsulSDAddCheckTCP(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -462,7 +462,7 @@ func TestConsulSDAddCheckHTTP(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -485,7 +485,7 @@ func TestConsulSDAddCheckHTTPS(t *testing.T) {
 
 	err := c.AddCheck(testServiceName, u)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 }
 
@@ -589,7 +589,7 @@ func TestConsulSDRemoveChecksSuccess(t *testing.T) {
 
 	e := c.RemoveChecks(testServiceName)
 
-	assert.Nil(t, e)
+	assert.NoError(t, e)
 	freg.AssertCheckDeregisterCalledOnceWith(t, hcname)
 }
 
