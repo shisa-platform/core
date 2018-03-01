@@ -145,8 +145,8 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
 	case "http", "https":
 		urlstr := u.String()
-		if len(urlstr) == 0 {
-			return merry.New("non-empty url.String required for HTTP(S) check")
+		if len(u.Host) == 0 {
+			return merry.New("url Host field required for HTTP(S) check")
 		}
 		if err := validateKeysExist(q, "interval"); err != nil {
 			return err
@@ -195,10 +195,9 @@ func popQueryBool(v url.Values, key string) (re bool) {
 }
 
 func popQuerySlice(v url.Values, key string) (re []string) {
-	val, ok := v[key]
+	re, ok := v[key]
 	if ok {
 		delete(v, key)
-		re = val
 	}
 	return
 }
