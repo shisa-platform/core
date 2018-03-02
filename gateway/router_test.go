@@ -2579,6 +2579,34 @@ func TestRouterPipelineHandlerResponseWithErrorDefaultHandler(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
+func TestRouterEndpointHandlerTimeout(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		time.Sleep(time.Second * 2)
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{TimeBudget: 30 * time.Millisecond}
+	installHandlerWithPolicy(t, cut, handler, policy)
+	w := httptest.NewRecorder()
+	start := time.Now().UTC()
+	cut.ServeHTTP(w, fakeRequest)
+	end := time.Now().UTC()
+
+	assert.WithinDuration(t, start, end, time.Millisecond * 50)
+	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
 func TestGatewayHandlerResponseWithError(t *testing.T) {
 	var gwHandlerCalled bool
 	gwHandler := func(ctx context.Context, r *httpx.Request) httpx.Response {
