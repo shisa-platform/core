@@ -31,7 +31,7 @@ var (
 )
 
 type Gateway struct {
-	Name             string        // The name of the Gateway for in logging
+	Name             string        // The name of the Gateway for registration
 	Address          string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
@@ -114,11 +114,14 @@ type Gateway struct {
 	NotFoundHandler httpx.Handler `json:"-"`
 
 	// Registrar implements sd.Registrar and registers
-	// the gateway service with a service registry
+	// the gateway service with a service registry, using the Gateway's
+	// `Name` field. If nil, no registration occurs.
 	Registrar sd.Registrar
 
 	// CheckURLHook provides the *url.URL to be used in
-	// the Registrar's `AddCheck` method
+	// the Registrar's `AddCheck` method. If `Registrar` is nil,
+	// this hook is not called. If this hook is nil, no check is registered
+	// via `AddCheck`.
 	CheckURLHook func() (*url.URL, error)
 
 	// ErrorHook optionally customizes how errors encountered

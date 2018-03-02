@@ -6,7 +6,6 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/models"
 	"github.com/percolate/shisa/sd"
@@ -25,7 +24,6 @@ func (u simpleUser) String() string {
 }
 
 type ExampleIdentityProvider struct {
-	Env      env.Provider
 	Resolver sd.Resolver
 }
 

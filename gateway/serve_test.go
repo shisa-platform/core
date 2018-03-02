@@ -389,7 +389,7 @@ func TestGatewayServeWithDeregisterError(t *testing.T) {
 
 	err := cut.Serve([]service.Service{svc})
 
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	res.AssertRegisterCalledOnce(t)
 	res.AssertDeregisterCalledOnce(t)
 }

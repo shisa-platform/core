@@ -9,7 +9,6 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/sd"
@@ -35,19 +34,17 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 
 type HelloService struct {
 	service.ServiceAdapter
-	env       env.Provider
 	endpoints []service.Endpoint
 	resolver  sd.Resolver
 }
 
-func NewHelloService(environment env.Provider, res sd.Resolver) *HelloService {
+func NewHelloService(res sd.Resolver) *HelloService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 
 	svc := &HelloService{
-		env:      environment,
 		resolver: res,
 	}
 
@@ -105,7 +102,7 @@ func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Res
 func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
-		return err.WithUserMessage("service registry not found")
+		return err.Prepend("healthcheck")
 	}
 
 	if len(addrs) < 1 {
@@ -118,7 +115,7 @@ func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 func (s *HelloService) connect() (*rpc.Client, merry.Error) {
 	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
-		return nil, err.WithUserMessage("service registry not found")
+		return nil, err.Prepend("connect")
 	}
 
 	if len(addrs) < 1 {

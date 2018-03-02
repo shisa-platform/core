@@ -4,7 +4,6 @@ import (
 	"context"
 	"expvar"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -71,25 +70,26 @@ func main() {
 		errCh <- server.Serve(listener)
 	}()
 
-	conf := consul.DefaultConfig()
-	c, err := consul.NewClient(conf)
+	client, err := consul.NewClient(consul.DefaultConfig())
 	if err != nil {
 		logger.Fatal("consul client failed to initialize", zap.Error(err))
 	}
 
-	reg := sd.NewConsul(c)
+	reg := sd.NewConsul(client)
 
 	if err := reg.Register(name, listener.Addr().String()); err != nil {
 		logger.Fatal("service failed to register", zap.Error(err))
 	}
 	defer reg.Deregister(name)
 
-	surl, err := url.Parse(fmt.Sprintf("tcp://%s/%s?interval=5s", listener.Addr().String(), rpc.DefaultRPCPath))
-	if err != nil {
-		logger.Fatal("healthcheck url failed to parse", zap.Error(err))
+	u := &url.URL{
+		Scheme:   "tcp",
+		Host:     listener.Addr().String(),
+		Path:     rpc.DefaultRPCPath,
+		RawQuery: "interval=5s",
 	}
 
-	if err := reg.AddCheck(name, surl); err != nil {
+	if err := reg.AddCheck(name, u); err != nil {
 		logger.Fatal("healthcheck failed to register", zap.Error(err))
 	}
 	defer reg.RemoveChecks(name)

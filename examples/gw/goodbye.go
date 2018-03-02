@@ -10,7 +10,6 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
@@ -27,19 +26,17 @@ func (g Farewell) MarshalJSON() ([]byte, error) {
 
 type GoodbyeService struct {
 	service.ServiceAdapter
-	env       env.Provider
 	endpoints []service.Endpoint
 	resolver  sd.Resolver
 }
 
-func NewGoodbyeService(environment env.Provider, res sd.Resolver) *GoodbyeService {
+func NewGoodbyeService(res sd.Resolver) *GoodbyeService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 
 	svc := &GoodbyeService{
-		env:      environment,
 		resolver: res,
 	}
 
@@ -66,7 +63,7 @@ func (s *GoodbyeService) Endpoints() []service.Endpoint {
 func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 	addrs, merr := s.resolver.Resolve(s.Name())
 	if merr != nil {
-		return merr
+		return merry.Prepend(merr, "healthcheck")
 	}
 
 	if len(addrs) < 1 {
@@ -79,11 +76,11 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
 	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
-		return nil, err
+		return nil, merry.Prepend(err, "router")
 	}
 
 	if len(addrs) < 1 {
-		return nil, err.WithUserMessage("no healthy hosts")
+		return nil, merry.New("no healthy hosts")
 	}
 
 	request.URL.Scheme = "http"

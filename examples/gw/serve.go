@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
@@ -24,15 +22,14 @@ import (
 )
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
-	conf := consul.DefaultConfig()
-	c, e := consul.NewClient(conf)
+	client, e := consul.NewClient(consul.DefaultConfig())
 	if e != nil {
 		logger.Fatal("consul failed to initialize", zap.Error(e))
 	}
 
-	res := sd.NewConsul(c)
+	res := sd.NewConsul(client)
 
-	idp := &ExampleIdentityProvider{Env: env.DefaultProvider, Resolver: res}
+	idp := &ExampleIdentityProvider{Resolver: res}
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
@@ -65,9 +62,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		},
 	}
 
-	hello := NewHelloService(env.DefaultProvider, res)
+	hello := NewHelloService(res)
 
-	goodbye := NewGoodbyeService(env.DefaultProvider, res)
+	goodbye := NewGoodbyeService(res)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
@@ -83,16 +80,14 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	services := []service.Service{hello, goodbye}
 
 	gw.CheckURLHook = func() (*url.URL, error) {
-		var scheme string
-
-		if healthcheck.UseTLS {
-			scheme = "https"
-		} else {
-			scheme = "http"
+		u := &url.URL{
+			Scheme:   "http",
+			Host:     healthcheck.Address(),
+			Path:     healthcheck.Path,
+			User:     url.UserPassword("Admin", "password"),
+			RawQuery: "interval=10s",
 		}
-
-		surl := fmt.Sprintf("%s://Admin:password@%s%s?interval=10s", scheme, healthcheck.Address(), healthcheck.Path)
-		return url.Parse(surl)
+		return u, nil
 	}
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {

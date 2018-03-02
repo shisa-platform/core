@@ -212,10 +212,10 @@ func TestConsulSDResolveServiceAddress(t *testing.T) {
 }
 
 func TestConsulSDAddCheckGRPC(t *testing.T) {
-	surl := "grpc://127.0.0.1:9000?interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "grpc",
+		Host:     "127.0.0.1:9000",
+		RawQuery: "interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -235,10 +235,8 @@ func TestConsulSDAddCheckGRPC(t *testing.T) {
 }
 
 func TestConsulSDAddCheckGRPCMissingHost(t *testing.T) {
-	surl := "grpc://" // missing `host`
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "grpc",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -254,10 +252,9 @@ func TestConsulSDAddCheckGRPCMissingHost(t *testing.T) {
 }
 
 func TestConsulSDAddCheckGRPCMissingInterval(t *testing.T) {
-	surl := "grpc://localhost:9000" // missing `interval`
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "grpc",
+		Host:   "localhost:9000",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -273,10 +270,8 @@ func TestConsulSDAddCheckGRPCMissingInterval(t *testing.T) {
 }
 
 func TestConsulSDAddCheckDockerMissingKey(t *testing.T) {
-	surl := "docker://" // missing keys
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "docker",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -292,10 +287,10 @@ func TestConsulSDAddCheckDockerMissingKey(t *testing.T) {
 }
 
 func TestConsulSDAddCheckDocker(t *testing.T) {
-	surl := "docker://127.0.0.1:9000?dockercontainerid=d858g8ergj&args=\"run command\"&interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "docker",
+		Host:     "localhost:9000",
+		RawQuery: "dockercontainerid=d858g8ergj&args=\"run command\"&interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -315,10 +310,8 @@ func TestConsulSDAddCheckDocker(t *testing.T) {
 }
 
 func TestConsulSDAddCheckScriptMissingKey(t *testing.T) {
-	surl := "script://" // missing keys
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "script",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -334,10 +327,10 @@ func TestConsulSDAddCheckScriptMissingKey(t *testing.T) {
 }
 
 func TestConsulSDAddCheckScript(t *testing.T) {
-	surl := "script://127.0.0.1:9000?args=\"run command\"&interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "script",
+		Host:     "localhost:9000",
+		RawQuery: "args=\"run command\"&interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -357,10 +350,10 @@ func TestConsulSDAddCheckScript(t *testing.T) {
 }
 
 func TestConsulSDAddCheckTTL(t *testing.T) {
-	surl := "ttl://127.0.0.1:9000?ttl=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "ttl",
+		Host:     "localhost:9000",
+		RawQuery: "ttl=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(c *consul.AgentCheckRegistration) error {
@@ -381,10 +374,10 @@ func TestConsulSDAddCheckTTL(t *testing.T) {
 }
 
 func TestConsulSDAddCheckTCP(t *testing.T) {
-	surl := "tcp://127.0.0.1:9000?interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "tcp",
+		Host:     "localhost:9000",
+		RawQuery: "interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -404,10 +397,8 @@ func TestConsulSDAddCheckTCP(t *testing.T) {
 }
 
 func TestConsulSDAddCheckTCPMissingHost(t *testing.T) {
-	surl := "tcp://" // missing host
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "tcp",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -423,10 +414,9 @@ func TestConsulSDAddCheckTCPMissingHost(t *testing.T) {
 }
 
 func TestConsulSDAddCheckTCPMissingKey(t *testing.T) {
-	surl := "tcp://127.0.0.1:9000" // missing interval
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "tcp",
+		Host:   "localhost:9000",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -442,10 +432,10 @@ func TestConsulSDAddCheckTCPMissingKey(t *testing.T) {
 }
 
 func TestConsulSDAddCheckHTTP(t *testing.T) {
-	surl := "http://127.0.0.1:9000?interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "http",
+		Host:     "localhost:9000",
+		RawQuery: "interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -465,10 +455,10 @@ func TestConsulSDAddCheckHTTP(t *testing.T) {
 }
 
 func TestConsulSDAddCheckHTTPS(t *testing.T) {
-	surl := "https://127.0.0.1:9000?interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "https",
+		Host:     "localhost:9000",
+		RawQuery: "interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -488,10 +478,9 @@ func TestConsulSDAddCheckHTTPS(t *testing.T) {
 }
 
 func TestConsulSDAddCheckHTTPSMissingKey(t *testing.T) {
-	surl := "https://127.0.0.1:9000"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "https",
+		Host:   "localhost:9000",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -507,10 +496,8 @@ func TestConsulSDAddCheckHTTPSMissingKey(t *testing.T) {
 }
 
 func TestConsulSDAddCheckHTTPSMissingURL(t *testing.T) {
-	surl := "https://"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme: "https",
 	}
 	freg := &FakeconsulRegistry{}
 	fres := &FakeconsulResolver{}
@@ -527,10 +514,10 @@ func TestConsulSDAddCheckHTTPSMissingURL(t *testing.T) {
 
 func TestConsulSDAddCheckCheckRegisterError(t *testing.T) {
 	terr := merry.New("error in consul registration")
-	surl := "https://127.0.0.1:9000?interval=5s"
-	u, e := url.Parse(surl)
-	if e != nil {
-		t.Error(e)
+	u := &url.URL{
+		Scheme:   "https",
+		Host:     "localhost:9000",
+		RawQuery: "interval=5s",
 	}
 	freg := &FakeconsulRegistry{
 		CheckRegisterHook: func(*consul.AgentCheckRegistration) error {
@@ -546,7 +533,6 @@ func TestConsulSDAddCheckCheckRegisterError(t *testing.T) {
 	err := c.AddCheck(testServiceName, u)
 
 	assert.Error(t, err)
-	assert.Equal(t, terr, err)
 	freg.AssertCheckRegisterCalledOnce(t)
 
 }
