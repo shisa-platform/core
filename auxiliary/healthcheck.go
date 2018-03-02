@@ -85,16 +85,20 @@ func (s *HealthcheckServer) Name() string {
 	return "healthcheck"
 }
 
-func (s *HealthcheckServer) Serve() error {
-	s.init()
-
-	return s.HTTPServer.Serve()
-}
-
 func (s *HealthcheckServer) Route(ctx context.Context, request *httpx.Request) httpx.Handler {
 	if request.URL.Path == s.Path {
 		return s.Service
 	}
+
+	return nil
+}
+
+func (s *HealthcheckServer) Listen() error {
+	if err := s.HTTPServer.Listen(); err != nil {
+		return err
+	}
+
+	s.init()
 
 	return nil
 }

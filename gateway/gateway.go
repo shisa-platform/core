@@ -7,6 +7,7 @@ import (
 	"expvar"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,18 +17,21 @@ import (
 
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 )
 
 const (
+	defaultName                    = "gateway"
 	defaultRequestIDResponseHeader = "X-Request-ID"
 	timeFormat                     = "2006-01-02T15:04:05+00:00"
 )
 
 var (
-	gatewayExpvar = expvar.NewMap("gateway")
+	gatewayExpvar = expvar.NewMap(defaultName)
 )
 
 type Gateway struct {
+	Name             string        // The name of the Gateway for registration
 	Address          string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
@@ -109,6 +113,17 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler httpx.Handler `json:"-"`
 
+	// Registrar implements sd.Registrar and registers
+	// the gateway service with a service registry, using the Gateway's
+	// `Name` field. If nil, no registration occurs.
+	Registrar sd.Registrar
+
+	// CheckURLHook provides the *url.URL to be used in
+	// the Registrar's `AddCheck` method. If `Registrar` is nil,
+	// this hook is not called. If this hook is nil, no check is registered
+	// via `AddCheck`.
+	CheckURLHook func() (*url.URL, error)
+
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
 	// If nil the error is sent to the `Error` level of the
@@ -174,6 +189,10 @@ func (g *Gateway) init() {
 
 	if g.Logger == nil {
 		g.Logger = zap.NewNop()
+	}
+
+	if g.Name == "" {
+		g.Name = defaultName
 	}
 
 	g.tree = new(node)

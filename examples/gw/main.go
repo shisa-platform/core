@@ -7,12 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	goodbyeServiceAddrEnv = "GOODBYE_SERVICE_ADDR"
-	helloServiceAddrEnv   = "HELLO_SERVICE_ADDR"
-	idpServiceAddrEnv     = "IDP_SERVICE_ADDR"
-)
-
 func main() {
 	addr := flag.String("addr", ":0", "gateway service address")
 	debugAddr := flag.String("debugaddr", ":0", "debug service address")

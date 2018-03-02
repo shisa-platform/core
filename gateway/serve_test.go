@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -11,11 +12,13 @@ import (
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
 func TestGatewayNoServices(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -25,6 +28,7 @@ func TestGatewayNoServices(t *testing.T) {
 
 func TestGatewayServiceWithNoName(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -37,6 +41,7 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 
 func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -51,6 +56,7 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 
 func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -63,6 +69,7 @@ func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 
 func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -75,6 +82,7 @@ func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 
 func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -87,6 +95,7 @@ func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 
 func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -100,6 +109,7 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 
 func TestGatewayFieldDefaultMissingName(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9003",
 	}
 
@@ -128,6 +138,7 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 
 func TestGatewayMisconfiguredTLS(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -140,6 +151,7 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 
 func TestGatewayFailingAuxiliaryListen(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: ":9001",
 	}
 
@@ -268,6 +280,7 @@ func TestGatewayPanicAuxiliaryServe(t *testing.T) {
 
 func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	cut := &Gateway{
+		Name:    "test",
 		Address: "127.0.0.1:0",
 	}
 
@@ -310,6 +323,7 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 func TestGatewayAuxiliaryServer(t *testing.T) {
 	expectedGracePeriod := 2 * time.Second
 	gw := &Gateway{
+		Name:        "test",
 		Address:     "127.0.0.1:0",
 		GracePeriod: expectedGracePeriod,
 	}
@@ -361,4 +375,195 @@ func TestInstallPipelineAppliesServiceHandlers(t *testing.T) {
 	assert.Len(t, augpipe.Handlers, 2)
 	assert.Equal(t, augpipe.Handlers[0](nil, nil).StatusCode(), 418)
 	assert.Equal(t, augpipe.Handlers[1](nil, nil).StatusCode(), 200)
+}
+
+func TestGatewayServeWithRegistrar(t *testing.T) {
+	res := &sd.FakeRegistrar{
+		RegisterHook: func(string, string) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Address:   ":9050",
+		Registrar: res,
+	}
+	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
+	endpoint := service.Endpoint{
+		Route: expectedRoute,
+		Head:  pipline,
+	}
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve([]service.Service{svc})
+
+	assert.NoError(t, err)
+	res.AssertRegisterCalledOnce(t)
+}
+
+func TestGatewayServeWithRegistrarError(t *testing.T) {
+	res := &sd.FakeRegistrar{
+		RegisterHook: func(string, string) merry.Error {
+			return merry.New("error")
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Address:   ":9050",
+		Registrar: res,
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve([]service.Service{svc})
+
+	assert.Error(t, err)
+	res.AssertRegisterCalledOnce(t)
+}
+
+func TestGatewayServeWithDeregisterError(t *testing.T) {
+	terr := merry.New("new error")
+	res := &sd.FakeRegistrar{
+		RegisterHook: func(string, string) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return terr
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Address:   ":9055",
+		Registrar: res,
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve([]service.Service{svc})
+
+	assert.Error(t, err)
+	res.AssertRegisterCalledOnce(t)
+	res.AssertDeregisterCalledOnce(t)
+}
+
+func TestGatewayServeWithCheckURLHookParseError(t *testing.T) {
+	res := &sd.FakeRegistrar{
+		RegisterHook: func(string, string) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	terr := merry.New("new error")
+	cut := &Gateway{
+		Name:      "test",
+		Address:   ":9070",
+		Registrar: res,
+		CheckURLHook: func() (*url.URL, error) {
+			return nil, terr
+		},
+	}
+	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
+	endpoint := service.Endpoint{
+		Route: expectedRoute,
+		Head:  pipline,
+	}
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	err := cut.Serve([]service.Service{svc})
+
+	assert.Error(t, err)
+	assert.Equal(t, terr, err)
+	res.AssertRegisterCalledOnce(t)
+}
+
+func TestGatewayServeWithCheckURLHookAddCheckError(t *testing.T) {
+	terr := merry.New("new error")
+	res := &sd.FakeRegistrar{
+		RegisterHook: func(string, string) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+		AddCheckHook: func(string, *url.URL) merry.Error {
+			return terr
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Address:   ":9999",
+		Registrar: res,
+		CheckURLHook: func() (*url.URL, error) {
+			return url.Parse("http://localhost:5000")
+		},
+	}
+	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
+	endpoint := service.Endpoint{
+		Route: expectedRoute,
+		Head:  pipline,
+	}
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	err := cut.Serve([]service.Service{svc})
+
+	assert.Error(t, err)
+	assert.Equal(t, terr, err)
+	res.AssertRegisterCalledOnce(t)
+	res.AssertAddCheckCalledOnce(t)
+}
+
+func TestGatewayServeWithCheckURLHookRemoveChecksError(t *testing.T) {
+	terr := merry.New("new error")
+	res := &sd.FakeRegistrar{
+		RegisterHook: func(string, string) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+		AddCheckHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		RemoveChecksHook: func(string) merry.Error {
+			return terr
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Address:   ":9998",
+		Registrar: res,
+		CheckURLHook: func() (*url.URL, error) {
+			return url.Parse("http://localhost:5000")
+		},
+	}
+	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
+	endpoint := service.Endpoint{
+		Route: expectedRoute,
+		Head:  pipline,
+	}
+	svc := newFakeService([]service.Endpoint{endpoint})
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve([]service.Service{svc})
+
+	assert.NoError(t, err)
+	res.AssertRegisterCalledOnce(t)
+	res.AssertAddCheckCalledOnce(t)
+	res.AssertDeregisterCalledOnce(t)
+	res.AssertRemoveChecksCalledOnce(t)
 }

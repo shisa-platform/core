@@ -6,20 +6,26 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/ansel1/merry"
+	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 )
 
-const timeFormat = "2006-01-02T15:04:05+00:00"
+const (
+	timeFormat = "2006-01-02T15:04:05+00:00"
+	name       = "goodbye"
+)
 
-var goodbye = expvar.NewMap("goodbye")
+var goodbye = expvar.NewMap(name)
 
 func main() {
 	start := time.Now().UTC()
@@ -60,6 +66,30 @@ func main() {
 	go func() {
 		errCh <- server.Serve(listener)
 	}()
+
+	client, err := consul.NewClient(consul.DefaultConfig())
+	if err != nil {
+		logger.Fatal("consul client failed to initialize", zap.Error(err))
+	}
+
+	reg := sd.NewConsul(client)
+
+	if err := reg.Register(name, listener.Addr().String()); err != nil {
+		logger.Fatal("service failed to register", zap.Error(err))
+	}
+	defer reg.Deregister(name)
+
+	u := &url.URL{
+		Scheme:   "http",
+		Host:     listener.Addr().String(),
+		Path:     "/healthcheck",
+		RawQuery: "interval=5s",
+	}
+
+	if err := reg.AddCheck(name, u); err != nil {
+		logger.Fatal("healthcheck failed to register", zap.Error(err))
+	}
+	defer reg.RemoveChecks(name)
 
 	select {
 	case err := <-errCh:

@@ -9,9 +9,9 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -34,18 +34,18 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 
 type HelloService struct {
 	service.ServiceAdapter
-	env       env.Provider
 	endpoints []service.Endpoint
+	resolver  sd.Resolver
 }
 
-func NewHelloService(environment env.Provider) *HelloService {
+func NewHelloService(res sd.Resolver) *HelloService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 
 	svc := &HelloService{
-		env: environment,
+		resolver: res,
 	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
@@ -100,31 +100,29 @@ func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Res
 }
 
 func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
-	client, err := s.connect()
+	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
-		return err
+		return err.Prepend("healthcheck")
 	}
 
-	var ready bool
-	arg := ctx.RequestID()
-	rpcErr := client.Call("Hello.Healthcheck", &arg, &ready)
-	if rpcErr != nil {
-		return merry.Wrap(rpcErr).WithUserMessage("unable to complete request")
-	}
-	if !ready {
-		return merry.New("not ready").WithUserMessage("not ready")
+	if len(addrs) < 1 {
+		return merry.New("no healthy hosts")
 	}
 
 	return nil
 }
 
 func (s *HelloService) connect() (*rpc.Client, merry.Error) {
-	addr, envErr := env.Get(helloServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr.WithUserMessage("address environment variable not found")
+	addrs, err := s.resolver.Resolve(s.Name())
+	if err != nil {
+		return nil, err.Prepend("connect")
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	if len(addrs) < 1 {
+		return nil, merry.New("no healthy hosts")
+	}
+
+	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
 	if rpcErr != nil {
 		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
 	}

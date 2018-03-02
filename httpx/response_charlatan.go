@@ -2,12 +2,12 @@
 
 package httpx
 
+import "reflect"
 import "github.com/ansel1/merry"
 
 import "net/http"
 
 import "io"
-import "reflect"
 
 // ResponseStatusCodeInvocation represents a single call of FakeResponse.StatusCode
 type ResponseStatusCodeInvocation struct {

@@ -4,17 +4,17 @@ package env
 
 import "reflect"
 
-import consulapi "github.com/hashicorp/consul/api"
+import consul "github.com/hashicorp/consul/api"
 
 // KVGetterGetInvocation represents a single call of FakeKVGetter.Get
 type KVGetterGetInvocation struct {
 	Parameters struct {
 		Ident1 string
-		Ident2 *consulapi.QueryOptions
+		Ident2 *consul.QueryOptions
 	}
 	Results struct {
-		Ident3 *consulapi.KVPair
-		Ident4 *consulapi.QueryMeta
+		Ident3 *consul.KVPair
+		Ident4 *consul.QueryMeta
 		Ident5 error
 	}
 }
@@ -23,11 +23,11 @@ type KVGetterGetInvocation struct {
 type KVGetterListInvocation struct {
 	Parameters struct {
 		Ident1 string
-		Ident2 *consulapi.QueryOptions
+		Ident2 *consul.QueryOptions
 	}
 	Results struct {
-		Ident3 consulapi.KVPairs
-		Ident4 *consulapi.QueryMeta
+		Ident3 consul.KVPairs
+		Ident4 *consul.QueryMeta
 		Ident5 error
 	}
 }
@@ -48,7 +48,7 @@ Use it in your tests as in this example:
 
 	func TestWithKVGetter(t *testing.T) {
 		f := &env.FakeKVGetter{
-			GetHook: func(ident1 string, ident2 *consulapi.QueryOptions) (ident3 *consulapi.KVPair, ident4 *consulapi.QueryMeta, ident5 error) {
+			GetHook: func(ident1 string, ident2 *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -65,8 +65,8 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeGet.
 */
 type FakeKVGetter struct {
-	GetHook  func(string, *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error)
-	ListHook func(string, *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error)
+	GetHook  func(string, *consul.QueryOptions) (*consul.KVPair, *consul.QueryMeta, error)
+	ListHook func(string, *consul.QueryOptions) (consul.KVPairs, *consul.QueryMeta, error)
 
 	GetCalls  []*KVGetterGetInvocation
 	ListCalls []*KVGetterListInvocation
@@ -75,10 +75,10 @@ type FakeKVGetter struct {
 // NewFakeKVGetterDefaultPanic returns an instance of FakeKVGetter with all hooks configured to panic
 func NewFakeKVGetterDefaultPanic() *FakeKVGetter {
 	return &FakeKVGetter{
-		GetHook: func(string, *consulapi.QueryOptions) (ident3 *consulapi.KVPair, ident4 *consulapi.QueryMeta, ident5 error) {
+		GetHook: func(string, *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
 			panic("Unexpected call to KVGetter.Get")
 		},
-		ListHook: func(string, *consulapi.QueryOptions) (ident3 consulapi.KVPairs, ident4 *consulapi.QueryMeta, ident5 error) {
+		ListHook: func(string, *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error) {
 			panic("Unexpected call to KVGetter.List")
 		},
 	}
@@ -87,11 +87,11 @@ func NewFakeKVGetterDefaultPanic() *FakeKVGetter {
 // NewFakeKVGetterDefaultFatal returns an instance of FakeKVGetter with all hooks configured to call t.Fatal
 func NewFakeKVGetterDefaultFatal(t KVGetterTestingT) *FakeKVGetter {
 	return &FakeKVGetter{
-		GetHook: func(string, *consulapi.QueryOptions) (ident3 *consulapi.KVPair, ident4 *consulapi.QueryMeta, ident5 error) {
+		GetHook: func(string, *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
 			t.Fatal("Unexpected call to KVGetter.Get")
 			return
 		},
-		ListHook: func(string, *consulapi.QueryOptions) (ident3 consulapi.KVPairs, ident4 *consulapi.QueryMeta, ident5 error) {
+		ListHook: func(string, *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error) {
 			t.Fatal("Unexpected call to KVGetter.List")
 			return
 		},
@@ -101,11 +101,11 @@ func NewFakeKVGetterDefaultFatal(t KVGetterTestingT) *FakeKVGetter {
 // NewFakeKVGetterDefaultError returns an instance of FakeKVGetter with all hooks configured to call t.Error
 func NewFakeKVGetterDefaultError(t KVGetterTestingT) *FakeKVGetter {
 	return &FakeKVGetter{
-		GetHook: func(string, *consulapi.QueryOptions) (ident3 *consulapi.KVPair, ident4 *consulapi.QueryMeta, ident5 error) {
+		GetHook: func(string, *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
 			t.Error("Unexpected call to KVGetter.Get")
 			return
 		},
-		ListHook: func(string, *consulapi.QueryOptions) (ident3 consulapi.KVPairs, ident4 *consulapi.QueryMeta, ident5 error) {
+		ListHook: func(string, *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error) {
 			t.Error("Unexpected call to KVGetter.List")
 			return
 		},
@@ -117,7 +117,7 @@ func (f *FakeKVGetter) Reset() {
 	f.ListCalls = []*KVGetterListInvocation{}
 }
 
-func (_f1 *FakeKVGetter) Get(ident1 string, ident2 *consulapi.QueryOptions) (ident3 *consulapi.KVPair, ident4 *consulapi.QueryMeta, ident5 error) {
+func (_f1 *FakeKVGetter) Get(ident1 string, ident2 *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
 	invocation := new(KVGetterGetInvocation)
 
 	invocation.Parameters.Ident1 = ident1
@@ -187,7 +187,7 @@ func (f *FakeKVGetter) AssertGetCalledN(t KVGetterTestingT, n int) {
 }
 
 // GetCalledWith returns true if FakeKVGetter.Get was called with the given values
-func (_f2 *FakeKVGetter) GetCalledWith(ident1 string, ident2 *consulapi.QueryOptions) (found bool) {
+func (_f2 *FakeKVGetter) GetCalledWith(ident1 string, ident2 *consul.QueryOptions) (found bool) {
 	for _, call := range _f2.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
@@ -199,7 +199,7 @@ func (_f2 *FakeKVGetter) GetCalledWith(ident1 string, ident2 *consulapi.QueryOpt
 }
 
 // AssertGetCalledWith calls t.Error if FakeKVGetter.Get was not called with the given values
-func (_f3 *FakeKVGetter) AssertGetCalledWith(t KVGetterTestingT, ident1 string, ident2 *consulapi.QueryOptions) {
+func (_f3 *FakeKVGetter) AssertGetCalledWith(t KVGetterTestingT, ident1 string, ident2 *consul.QueryOptions) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.GetCalls {
@@ -215,7 +215,7 @@ func (_f3 *FakeKVGetter) AssertGetCalledWith(t KVGetterTestingT, ident1 string, 
 }
 
 // GetCalledOnceWith returns true if FakeKVGetter.Get was called exactly once with the given values
-func (_f4 *FakeKVGetter) GetCalledOnceWith(ident1 string, ident2 *consulapi.QueryOptions) bool {
+func (_f4 *FakeKVGetter) GetCalledOnceWith(ident1 string, ident2 *consul.QueryOptions) bool {
 	var count int
 	for _, call := range _f4.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
@@ -227,7 +227,7 @@ func (_f4 *FakeKVGetter) GetCalledOnceWith(ident1 string, ident2 *consulapi.Quer
 }
 
 // AssertGetCalledOnceWith calls t.Error if FakeKVGetter.Get was not called exactly once with the given values
-func (_f5 *FakeKVGetter) AssertGetCalledOnceWith(t KVGetterTestingT, ident1 string, ident2 *consulapi.QueryOptions) {
+func (_f5 *FakeKVGetter) AssertGetCalledOnceWith(t KVGetterTestingT, ident1 string, ident2 *consul.QueryOptions) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.GetCalls {
@@ -242,7 +242,7 @@ func (_f5 *FakeKVGetter) AssertGetCalledOnceWith(t KVGetterTestingT, ident1 stri
 }
 
 // GetResultsForCall returns the result values for the first call to FakeKVGetter.Get with the given values
-func (_f6 *FakeKVGetter) GetResultsForCall(ident1 string, ident2 *consulapi.QueryOptions) (ident3 *consulapi.KVPair, ident4 *consulapi.QueryMeta, ident5 error, found bool) {
+func (_f6 *FakeKVGetter) GetResultsForCall(ident1 string, ident2 *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error, found bool) {
 	for _, call := range _f6.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3
@@ -256,7 +256,7 @@ func (_f6 *FakeKVGetter) GetResultsForCall(ident1 string, ident2 *consulapi.Quer
 	return
 }
 
-func (_f7 *FakeKVGetter) List(ident1 string, ident2 *consulapi.QueryOptions) (ident3 consulapi.KVPairs, ident4 *consulapi.QueryMeta, ident5 error) {
+func (_f7 *FakeKVGetter) List(ident1 string, ident2 *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error) {
 	invocation := new(KVGetterListInvocation)
 
 	invocation.Parameters.Ident1 = ident1
@@ -326,7 +326,7 @@ func (f *FakeKVGetter) AssertListCalledN(t KVGetterTestingT, n int) {
 }
 
 // ListCalledWith returns true if FakeKVGetter.List was called with the given values
-func (_f8 *FakeKVGetter) ListCalledWith(ident1 string, ident2 *consulapi.QueryOptions) (found bool) {
+func (_f8 *FakeKVGetter) ListCalledWith(ident1 string, ident2 *consul.QueryOptions) (found bool) {
 	for _, call := range _f8.ListCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
@@ -338,7 +338,7 @@ func (_f8 *FakeKVGetter) ListCalledWith(ident1 string, ident2 *consulapi.QueryOp
 }
 
 // AssertListCalledWith calls t.Error if FakeKVGetter.List was not called with the given values
-func (_f9 *FakeKVGetter) AssertListCalledWith(t KVGetterTestingT, ident1 string, ident2 *consulapi.QueryOptions) {
+func (_f9 *FakeKVGetter) AssertListCalledWith(t KVGetterTestingT, ident1 string, ident2 *consul.QueryOptions) {
 	t.Helper()
 	var found bool
 	for _, call := range _f9.ListCalls {
@@ -354,7 +354,7 @@ func (_f9 *FakeKVGetter) AssertListCalledWith(t KVGetterTestingT, ident1 string,
 }
 
 // ListCalledOnceWith returns true if FakeKVGetter.List was called exactly once with the given values
-func (_f10 *FakeKVGetter) ListCalledOnceWith(ident1 string, ident2 *consulapi.QueryOptions) bool {
+func (_f10 *FakeKVGetter) ListCalledOnceWith(ident1 string, ident2 *consul.QueryOptions) bool {
 	var count int
 	for _, call := range _f10.ListCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
@@ -366,7 +366,7 @@ func (_f10 *FakeKVGetter) ListCalledOnceWith(ident1 string, ident2 *consulapi.Qu
 }
 
 // AssertListCalledOnceWith calls t.Error if FakeKVGetter.List was not called exactly once with the given values
-func (_f11 *FakeKVGetter) AssertListCalledOnceWith(t KVGetterTestingT, ident1 string, ident2 *consulapi.QueryOptions) {
+func (_f11 *FakeKVGetter) AssertListCalledOnceWith(t KVGetterTestingT, ident1 string, ident2 *consul.QueryOptions) {
 	t.Helper()
 	var count int
 	for _, call := range _f11.ListCalls {
@@ -381,7 +381,7 @@ func (_f11 *FakeKVGetter) AssertListCalledOnceWith(t KVGetterTestingT, ident1 st
 }
 
 // ListResultsForCall returns the result values for the first call to FakeKVGetter.List with the given values
-func (_f12 *FakeKVGetter) ListResultsForCall(ident1 string, ident2 *consulapi.QueryOptions) (ident3 consulapi.KVPairs, ident4 *consulapi.QueryMeta, ident5 error, found bool) {
+func (_f12 *FakeKVGetter) ListResultsForCall(ident1 string, ident2 *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error, found bool) {
 	for _, call := range _f12.ListCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3

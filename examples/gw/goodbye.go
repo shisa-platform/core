@@ -10,9 +10,9 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
@@ -26,18 +26,18 @@ func (g Farewell) MarshalJSON() ([]byte, error) {
 
 type GoodbyeService struct {
 	service.ServiceAdapter
-	env       env.Provider
 	endpoints []service.Endpoint
+	resolver  sd.Resolver
 }
 
-func NewGoodbyeService(environment env.Provider) *GoodbyeService {
+func NewGoodbyeService(res sd.Resolver) *GoodbyeService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 5,
 		AllowTrailingSlashRedirects: true,
 	}
 
 	svc := &GoodbyeService{
-		env: environment,
+		resolver: res,
 	}
 
 	proxy := middleware.ReverseProxy{
@@ -61,41 +61,30 @@ func (s *GoodbyeService) Endpoints() []service.Endpoint {
 }
 
 func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
-	addr, envErr := s.env.Get(goodbyeServiceAddrEnv)
-	if envErr != nil {
-		return envErr.WithUserMessage("address environment variable not found")
+	addrs, merr := s.resolver.Resolve(s.Name())
+	if merr != nil {
+		return merry.Prepend(merr, "healthcheck")
 	}
 
-	url := "http://" + addr + "/healthcheck"
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return merry.Wrap(err).WithUserMessage("unable to create request")
-	}
-	request.Header.Set("X-Request-Id", ctx.RequestID())
-
-	if ctx.Actor() != nil {
-		request.Header.Set("X-User-Id", ctx.Actor().ID())
-	}
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return merry.Wrap(err).WithUserMessage("unable to complete request")
-	}
-	if response.StatusCode != http.StatusOK {
-		return merry.New("not ready").WithUserMessage("not ready")
+	if len(addrs) < 1 {
+		return merry.New("no healthy hosts")
 	}
 
 	return nil
 }
 
 func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
-	addr, envErr := s.env.Get(goodbyeServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr
+	addrs, err := s.resolver.Resolve(s.Name())
+	if err != nil {
+		return nil, merry.Prepend(err, "router")
+	}
+
+	if len(addrs) < 1 {
+		return nil, merry.New("no healthy hosts")
 	}
 
 	request.URL.Scheme = "http"
-	request.URL.Host = addr
+	request.URL.Host = addrs[0]
 	request.URL.Path = "/goodbye"
 
 	request.Header.Set("X-Request-Id", ctx.RequestID())

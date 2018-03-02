@@ -1,10 +1,12 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"time"
 
 	"github.com/ansel1/merry"
+	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -12,15 +14,22 @@ import (
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
+	"github.com/percolate/shisa/sd"
 	"github.com/percolate/shisa/service"
 )
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
-	idp := &ExampleIdentityProvider{Env: env.DefaultProvider}
+	client, e := consul.NewClient(consul.DefaultConfig())
+	if e != nil {
+		logger.Fatal("consul failed to initialize", zap.Error(e))
+	}
+
+	res := sd.NewConsul(client)
+
+	idp := &ExampleIdentityProvider{Resolver: res}
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
@@ -31,11 +40,13 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	lh := logHandler{logger}
 
 	gw := &gateway.Gateway{
+		Name:            "example",
 		Address:         addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
 		Handlers:        []httpx.Handler{authN.Service},
 		Logger:          logger,
+		Registrar:       res,
 		CompletionHook:  lh.completion,
 		ErrorHook:       lh.error,
 	}
@@ -51,8 +62,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		},
 	}
 
-	hello := NewHelloService(env.DefaultProvider)
-	goodbye := NewGoodbyeService(env.DefaultProvider)
+	hello := NewHelloService(res)
+
+	goodbye := NewGoodbyeService(res)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
@@ -66,6 +78,17 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 
 	services := []service.Service{hello, goodbye}
+
+	gw.CheckURLHook = func() (*url.URL, error) {
+		u := &url.URL{
+			Scheme:   "http",
+			Host:     healthcheck.Address(),
+			Path:     healthcheck.Path,
+			User:     url.UserPassword("Admin", "password"),
+			RawQuery: "interval=10s",
+		}
+		return u, nil
+	}
 
 	if err := gw.Serve(services, debug, healthcheck); err != nil {
 		for _, e := range multierr.Errors(err) {
