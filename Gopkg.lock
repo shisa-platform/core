@@ -52,7 +52,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -81,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1278277f5859b6a485d45beb6418c438a92080f562b4a827504ee5985c5fae02"
+  inputs-digest = "aec057a0c1d4f513a17908883af404e59489857934c237a221225c0684b81a9f"
   solver-name = "gps-cdcl"
   solver-version = 1
