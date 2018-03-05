@@ -89,6 +89,39 @@ func (m *mockErrorHook) assertCalledN(t *testing.T, expected int) {
 	assert.Equalf(t, expected, m.calls, "error handler called %d times, expected %d", m.calls, expected)
 }
 
+type closingResponseWriter struct {
+	http.ResponseWriter
+	ch               chan bool
+	writeCalls       int
+	writeHeaderCalls int
+}
+
+func (w *closingResponseWriter) Close() {
+	close(w.ch)
+}
+
+func (w *closingResponseWriter) CloseNotify() <-chan bool {
+	return w.ch
+}
+
+func (w *closingResponseWriter) Write(bs []byte) (int, error) {
+	w.writeCalls++
+	return w.ResponseWriter.Write(bs)
+}
+
+func (w *closingResponseWriter) WriteHeader(statusCode int) {
+	w.writeHeaderCalls++
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *closingResponseWriter) AssertWriteNotCalled(t *testing.T) {
+	assert.Equalf(t, 0, w.writeCalls, "Write method called %d times", w.writeCalls)
+}
+
+func (w *closingResponseWriter) AssertWriteHeaderNotCalled(t *testing.T) {
+	assert.Equalf(t, 0, w.writeHeaderCalls, "WriteHeader called %d", w.writeHeaderCalls)
+}
+
 func TestRouterCustomRequestIDGenerator(t *testing.T) {
 	expectedRequestID := "zalgo-he-comes"
 	var generatorCalled bool
@@ -2600,11 +2633,83 @@ func TestRouterEndpointHandlerTimeout(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 	end := time.Now().UTC()
 
-	assert.WithinDuration(t, start, end, time.Millisecond * 50)
+	assert.WithinDuration(t, start, end, time.Millisecond*50)
 	assert.True(t, handlerCalled, "handler not called")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterEndpointHandlerClientDisconnect(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		time.Sleep(time.Second * 2)
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	policy := service.Policy{TimeBudget: 5 * time.Second}
+	installHandlerWithPolicy(t, cut, handler, policy)
+	recorder := httptest.NewRecorder()
+	w := &closingResponseWriter{
+		ResponseWriter: recorder,
+		ch:             make(chan bool),
+	}
+	timer := time.AfterFunc(250*time.Millisecond, func() { w.Close() })
+	defer timer.Stop()
+
+	start := time.Now().UTC()
+	cut.ServeHTTP(w, fakeRequest)
+	end := time.Now().UTC()
+
+	assert.WithinDuration(t, start, end, time.Millisecond*500)
+	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 2)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, 0, recorder.Body.Len())
+	assert.False(t, recorder.Flushed)
+	w.AssertWriteNotCalled(t)
+	w.AssertWriteHeaderNotCalled(t)
+}
+
+func TestRouterGatewayHandlerClientDisconnect(t *testing.T) {
+	var gatewayHandlerCalled bool
+	gatewayHandler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		gatewayHandlerCalled = true
+		time.Sleep(time.Second * 2)
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		Handlers:  []httpx.Handler{gatewayHandler},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	installHandler(t, cut, dummyHandler)
+	recorder := httptest.NewRecorder()
+	w := &closingResponseWriter{
+		ResponseWriter: recorder,
+		ch:             make(chan bool),
+	}
+	timer := time.AfterFunc(500*time.Millisecond, func() { w.Close() })
+	defer timer.Stop()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, gatewayHandlerCalled, "gateway handler not called")
+	errHook.assertCalledN(t, 2)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, 0, recorder.Body.Len())
+	assert.False(t, recorder.Flushed)
+	w.AssertWriteNotCalled(t)
+	w.AssertWriteHeaderNotCalled(t)
 }
 
 func TestGatewayHandlerResponseWithError(t *testing.T) {

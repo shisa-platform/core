@@ -52,6 +52,19 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	request.ParseQueryParameters()
 
+	if cn, ok := w.(http.CloseNotifier); ok {
+		var cancel stdctx.CancelFunc
+		ctx, cancel = ctx.WithCancel()
+		defer cancel()
+		go func() {
+			select {
+			case <-cn.CloseNotify():
+				cancel()
+			case <-ctx.Done():
+			}
+		}()
+	}
+
 	var (
 		err           merry.Error
 		response      httpx.Response
@@ -73,16 +86,29 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	handlersStart := time.Now().UTC()
 	for i, handler := range g.Handlers {
-		response = handler.InvokeSafely(ctx, request, &err)
-		if err != nil {
-			err = merry.Prepend(err, "running gateway handler").WithValue("index", i)
+		go func() {
+			response := handler.InvokeSafely(ctx, request, &err)
+			if err != nil {
+				err = merry.Prepend(err, "running gateway handler").WithValue("index", i)
+				response = g.handleError(ctx, request, err)
+			}
+
+			responseCh <- response
+		}()
+		select {
+		case <-ctx.Done():
+			handlersStop = time.Now().UTC()
+			err = merry.Prepend(ctx.Err(), "request aborted")
+			if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
+				err = err.WithHTTPCode(http.StatusGatewayTimeout)
+			}
 			response = g.handleError(ctx, request, err)
-			handlersStop = time.Now().UTC()
 			goto finish
-		}
-		if response != nil {
-			handlersStop = time.Now().UTC()
-			goto finish
+		case response = <-responseCh:
+			if response != nil {
+				handlersStop = time.Now().UTC()
+				goto finish
+			}
 		}
 	}
 	handlersStop = time.Now().UTC()
@@ -226,7 +252,10 @@ endpointHandlers:
 		select {
 		case <-ctx.Done():
 			pipelineStop = time.Now().UTC()
-			err = merry.Prepend(ctx.Err(), "request aborted").WithHTTPCode(http.StatusGatewayTimeout)
+			err = merry.Prepend(ctx.Err(), "request aborted")
+			if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
+				err = err.WithHTTPCode(http.StatusGatewayTimeout)
+			}
 			response = g.handleEndpointError(endpoint, ctx, request, err)
 			goto finish
 		case response = <-responseCh:
@@ -244,8 +273,17 @@ endpointHandlers:
 
 finish:
 	serializationStart := time.Now().UTC()
-	writeErr := ri.WriteResponse(response)
-	snapshot := ri.Flush()
+	var (
+		writeErr merry.Error
+		snapshot httpx.ResponseSnapshot
+	)
+	if merry.Is(ctx.Err(), stdctx.Canceled) {
+		writeErr = merry.New("user agent disconnect or network failure")
+		snapshot = ri.Snapshot()
+	} else {
+		writeErr = merry.Prepend(ri.WriteResponse(response), "serializing response")
+		snapshot = ri.Flush()
+	}
 
 	end := time.Now().UTC()
 
@@ -274,9 +312,8 @@ finish:
 		g.invokeErrorHookSafely(ctx, request, err)
 	}
 
-	writeErr1 := merry.Prepend(writeErr, "serializing response")
-	if writeErr1 != nil {
-		g.invokeErrorHookSafely(ctx, request, writeErr1)
+	if writeErr != nil {
+		g.invokeErrorHookSafely(ctx, request, writeErr)
 	}
 
 	respErr := response.Err()
