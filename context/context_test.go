@@ -171,6 +171,16 @@ func TestWithValue(t *testing.T) {
 	assert.Equal(t, c3, new3)
 }
 
+func TestWithCancel(t *testing.T) {
+	c := New(context.Background())
+	new, cancel := c.WithCancel()
+	assert.NotNil(t, new)
+	assert.NotNil(t, cancel)
+	defer cancel()
+
+	assert.Equal(t, c, new)
+}
+
 func TestWithDeadline(t *testing.T) {
 	c := New(context.Background())
 	new, cancel := c.WithDeadline(time.Time{})
@@ -191,7 +201,7 @@ func TestWithTimeout(t *testing.T) {
 	assert.Equal(t, c, new)
 }
 
-func TestWithCancel(t *testing.T) {
+func TestWithCancelConstructor(t *testing.T) {
 	c, cancel := WithCancel(context.WithValue(context.Background(), "mnky", "fnky"))
 	defer cancel()
 

@@ -22,6 +22,7 @@ type Context interface {
 	WithActor(value models.User) Context
 	WithRequestID(value string) Context
 	WithValue(key, value interface{}) Context
+	WithCancel() (Context, context.CancelFunc)
 	WithDeadline(deadline time.Time) (Context, context.CancelFunc)
 	WithTimeout(timeout time.Duration) (Context, context.CancelFunc)
 }
@@ -89,6 +90,13 @@ func (c *ctx) WithValue(key, value interface{}) Context {
 	}
 
 	return c
+}
+
+func (c *ctx) WithCancel() (Context, context.CancelFunc) {
+	parent, cancel := context.WithCancel(c.Context)
+	c.Context = parent
+
+	return c, cancel
 }
 
 func (c *ctx) WithDeadline(deadline time.Time) (Context, context.CancelFunc) {
