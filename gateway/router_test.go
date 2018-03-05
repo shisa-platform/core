@@ -119,7 +119,7 @@ func (w *closingResponseWriter) AssertWriteNotCalled(t *testing.T) {
 }
 
 func (w *closingResponseWriter) AssertWriteHeaderNotCalled(t *testing.T) {
-	assert.Equalf(t, 0, w.writeHeaderCalls, "WriteHeader called %d", w.writeHeaderCalls)
+	assert.Equalf(t, 0, w.writeHeaderCalls, "WriteHeader called %d times", w.writeHeaderCalls)
 }
 
 func TestRouterCustomRequestIDGenerator(t *testing.T) {
@@ -2629,12 +2629,51 @@ func TestRouterEndpointHandlerTimeout(t *testing.T) {
 	policy := service.Policy{TimeBudget: 30 * time.Millisecond}
 	installHandlerWithPolicy(t, cut, handler, policy)
 	w := httptest.NewRecorder()
+
 	start := time.Now().UTC()
 	cut.ServeHTTP(w, fakeRequest)
 	end := time.Now().UTC()
 
 	assert.WithinDuration(t, start, end, time.Millisecond*50)
 	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterSlowGatewayHandlerDisruptsEndpointHandlers(t *testing.T) {
+	var gatewayHandlerCalled bool
+	gatewayHandler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		gatewayHandlerCalled = true
+		time.Sleep(time.Second * 1)
+		return nil
+	}
+
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		Handlers:  []httpx.Handler{gatewayHandler},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	policy := service.Policy{TimeBudget: 30 * time.Millisecond}
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	installHandlerWithPolicy(t, cut, handler, policy)
+	w := httptest.NewRecorder()
+
+	start := time.Now().UTC()
+	cut.ServeHTTP(w, fakeRequest)
+	end := time.Now().UTC()
+
+	assert.WithinDuration(t, start, end, time.Millisecond*1250)
+	assert.True(t, gatewayHandlerCalled, "gateway handler not called")
+	assert.False(t, handlerCalled, "handler called unexpectedly")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
 	assert.Equal(t, 0, w.Body.Len())

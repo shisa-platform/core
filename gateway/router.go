@@ -238,6 +238,18 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineStart = time.Now().UTC()
+	select {
+	case <-ctx.Done():
+		pipelineStop = time.Now().UTC()
+		err = merry.Prepend(ctx.Err(), "request aborted")
+		if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
+			err = err.WithHTTPCode(http.StatusGatewayTimeout)
+		}
+		response = g.handleEndpointError(endpoint, ctx, request, err)
+		goto finish
+	default:
+	}
+
 endpointHandlers:
 	for i, handler := range pipeline.Handlers {
 		go func() {
