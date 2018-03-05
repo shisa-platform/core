@@ -3,6 +3,8 @@ package httpx
 import (
 	"net/http"
 	"time"
+
+	"github.com/ansel1/merry"
 )
 
 // ResponseInterceptor implements `http.ResponseWriter` to capture
@@ -42,7 +44,7 @@ func (i *ResponseInterceptor) WriteHeader(status int) {
 // `ResponseWriter` methods of this instance after calling this
 // method.
 // Any error returned from `Response.Serialize` will be returned.
-func (i *ResponseInterceptor) WriteResponse(response Response) error {
+func (i *ResponseInterceptor) WriteResponse(response Response) merry.Error {
 	return WriteResponse(i, response)
 }
 
@@ -53,6 +55,10 @@ func (i *ResponseInterceptor) Flush() ResponseSnapshot {
 		f.Flush()
 	}
 
+	return i.Snapshot()
+}
+
+func (i *ResponseInterceptor) Snapshot() ResponseSnapshot {
 	return ResponseSnapshot{
 		StatusCode: i.status,
 		Size:       i.size,
