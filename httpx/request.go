@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/multierr"
 
 	"github.com/percolate/shisa/uuid"
 )
@@ -20,6 +19,10 @@ var (
 			return new(Request)
 		},
 	}
+	InvalidParameterNameEscape   = merry.New("invalid parameter name escape")
+	InvalidParameterValueEscape   = merry.New("invalid parameter value escape")
+	MissingQueryParamter = merry.New("missing query parameters")
+	UnknownQueryParamter = merry.New("unknown query parameters")
 )
 
 // GetRequest returns a Request instance from the shared pool,
@@ -43,15 +46,19 @@ func PutRequest(request *Request) {
 type Request struct {
 	*http.Request
 	PathParams  []PathParameter
-	QueryParams []QueryParameter
+	QueryParams []*QueryParameter
 	id          string
 	clientIP    string
 }
 
-func (r *Request) ParseQueryParameters() merry.Error {
-	m := make(map[string]QueryParameter)
+// ParseQueryParameters parses the URL-encoded query string and
+// fills in the `QueryParams` field.  Any existing values will
+// be lost when this method is called.
+func (r *Request) ParseQueryParameters() bool {
+	r.QueryParams = nil
+	indices := make(map[string]int)
 	query := r.URL.RawQuery
-	var err error
+	ok := true
 
 	for i := 0; query != ""; {
 		key := query
@@ -68,46 +75,50 @@ func (r *Request) ParseQueryParameters() merry.Error {
 			key, value = key[:idx], key[idx+1:]
 		}
 
-		key1, err1 := url.QueryUnescape(key)
-		if err1 == nil {
+		key1, err := url.QueryUnescape(key)
+		if err == nil {
 			key = key1
 		}
 
-		p, found := m[key]
+		index, found := indices[key]
 		if !found {
-			p.Name = key
-			p.Ordinal = i
-			p.Unknown = true
+			indices[key] = i
+			index = i
+			r.QueryParams = append(r.QueryParams, &QueryParameter{
+				Name: key,
+				Ordinal: i,
+			})
+		}
+		parameter := r.QueryParams[index]
+
+		if err != nil {
+			parameter.Err = InvalidParameterNameEscape.Append(err.Error())
+			ok = false
 		}
 
-		if err1 != nil {
-			err = multierr.Append(err, err1)
-			p.Invalid = true
-		}
-
-		value1, err1 := url.QueryUnescape(value)
-		if err1 == nil {
+		value1, err := url.QueryUnescape(value)
+		if err == nil {
 			value = value1
-		} else {
-			err = multierr.Append(err, err1)
-			p.Invalid = true
+		} else if parameter.Err == nil {
+			parameter.Err = InvalidParameterValueEscape.Append(err.Error())
+			ok = false
 		}
 
-		p.Values = append(p.Values, value)
-		if err1 != nil {
-			p.Invalid = true
-		}
-
-		m[key] = p
+		parameter.Values = append(parameter.Values, value)
 		i++
 	}
+	
+	return ok
+}
 
-	r.QueryParams = make([]QueryParameter, len(m))
-	for _, v := range m {
-		r.QueryParams[v.Ordinal] = v
+func (r *Request) QueryParamExists(name string) bool {
+	for _, p := range r.QueryParams {
+		if p.Name == name {
+			return true
+		}
 	}
 
-	return merry.Wrap(err)
+	return false
 }
 
 func (r *Request) PathParamExists(name string) bool {
