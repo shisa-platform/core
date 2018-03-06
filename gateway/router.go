@@ -52,10 +52,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	request.ParseQueryParameters()
 
+	var cancel stdctx.CancelFunc
+	ctx, cancel = ctx.WithCancel()
+	defer cancel()
+
 	if cn, ok := w.(http.CloseNotifier); ok {
-		var cancel stdctx.CancelFunc
-		ctx, cancel = ctx.WithCancel()
-		defer cancel()
 		go func() {
 			select {
 			case <-cn.CloseNotify():
@@ -84,25 +85,33 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		responseCh    chan httpx.Response = make(chan httpx.Response, 1)
 	)
 
+	subCtx := ctx
+	if g.HandlersTimeout != 0 {
+		var subCancel stdctx.CancelFunc
+		subCtx, subCancel = subCtx.WithTimeout(g.HandlersTimeout - ri.Elapsed())
+		defer subCancel()
+	}
+
 	handlersStart := time.Now().UTC()
 	for i, handler := range g.Handlers {
 		go func() {
-			response := handler.InvokeSafely(ctx, request, &err)
+			response := handler.InvokeSafely(subCtx, request, &err)
 			if err != nil {
 				err = merry.Prepend(err, "running gateway handler").WithValue("index", i)
-				response = g.handleError(ctx, request, err)
+				response = g.handleError(subCtx, request, err)
 			}
 
 			responseCh <- response
 		}()
 		select {
-		case <-ctx.Done():
+		case <-subCtx.Done():
 			handlersStop = time.Now().UTC()
-			err = merry.Prepend(ctx.Err(), "request aborted")
-			if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
+			cancel()
+			err = merry.Prepend(subCtx.Err(), "request aborted")
+			if merry.Is(subCtx.Err(), stdctx.DeadlineExceeded) {
 				err = err.WithHTTPCode(http.StatusGatewayTimeout)
 			}
-			response = g.handleError(ctx, request, err)
+			response = g.handleError(subCtx, request, err)
 			goto finish
 		case response = <-responseCh:
 			if response != nil {

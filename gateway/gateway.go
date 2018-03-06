@@ -94,6 +94,11 @@ type Gateway struct {
 	// Example uses would be rate limiting or authentication.
 	Handlers []httpx.Handler `json:"-"`
 
+	// HandlersTimeout is the maximum amout of time to wait for
+	// all gateway-level handlers to complete.
+	// If the timeout is exceeded the entire request is aborted.
+	HandlersTimeout time.Duration
+
 	// InternalServerErrorHandler optionally customizes the
 	// response returned to the user agent when the gateway
 	// encounters an error trying to service the requst before
