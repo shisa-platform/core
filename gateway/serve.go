@@ -17,7 +17,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type fields []service.Field
+type fields []httpx.Field
 
 func (p fields) Len() int           { return len(p) }
 func (p fields) Less(i, j int) bool { return p[i].Name < p[j].Name }
@@ -298,7 +298,7 @@ func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*ser
 	result := &service.Pipeline{
 		Policy:      pipeline.Policy,
 		Handlers:    append(handlers, pipeline.Handlers...),
-		QueryFields: append([]service.Field(nil), pipeline.QueryFields...),
+		QueryFields: append([]httpx.Field(nil), pipeline.QueryFields...),
 	}
 	sort.Sort(fields(result.QueryFields))
 

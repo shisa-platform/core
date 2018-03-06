@@ -1,4 +1,4 @@
-package service
+package httpx
 
 import (
 	"regexp"
@@ -6,10 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-)
-
-var (
-	tokyo = time.FixedZone("", 9*60*60)
 )
 
 func TestFieldMatchName(t *testing.T) {

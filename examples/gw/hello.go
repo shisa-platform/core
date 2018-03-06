@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	language = service.Field{
+	language = httpx.Field{
 		Name:         "language",
 		Default:      hello.AmericanEnglish,
-		Validator:    service.StringSliceValidator{Target: hello.SupportedLanguages}.Validate,
+		Validator:    httpx.StringSliceValidator{Target: hello.SupportedLanguages}.Validate,
 		Multiplicity: 1,
 	}
 )
@@ -49,7 +49,7 @@ func NewHelloService(res sd.Resolver) *HelloService {
 	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
-	greeting.Get.QueryFields = []service.Field{
+	greeting.Get.QueryFields = []httpx.Field{
 		language,
 		{Name: "name", Multiplicity: 1},
 	}

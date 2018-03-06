@@ -191,7 +191,7 @@ func TestDeleteEndpointWithPolicy(t *testing.T) {
 
 func TestEndpointExpvarStringExerciseComma(t *testing.T) {
 	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
-	cut.Get.QueryFields = []Field{
+	cut.Get.QueryFields = []httpx.Field{
 		{Name: "thing", Required: true},
 	}
 	cut.Put = &Pipeline{
@@ -221,7 +221,7 @@ func TestEndpointExpvarStringExerciseComma(t *testing.T) {
 
 func TestEndpointExpvarString(t *testing.T) {
 	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
-	cut.Get.QueryFields = []Field{
+	cut.Get.QueryFields = []httpx.Field{
 		{Name: "thing", Required: true},
 	}
 	cut.Head = &Pipeline{
