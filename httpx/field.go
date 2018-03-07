@@ -35,7 +35,6 @@ func (v Validator) InvokeSafely(values []string, exception *merry.Error) merry.E
 	return v(values)
 }
 
-
 // Field is the schema to validate a query parameter or request
 // body.
 // Either `Name` or `Regex` _should_ be provided.

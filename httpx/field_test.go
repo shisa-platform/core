@@ -90,8 +90,8 @@ func TestFieldValidateMultiplicity(t *testing.T) {
 
 func TestFieldValidatorPanic(t *testing.T) {
 	cut := Field{
-		Name:         "zalgo",
-		Validator:    func([]string) merry.Error {
+		Name: "zalgo",
+		Validator: func([]string) merry.Error {
 			panic(merry.New("i blewed up!"))
 		},
 	}
@@ -103,8 +103,8 @@ func TestFieldValidatorPanic(t *testing.T) {
 
 func TestFieldValidatorPanicString(t *testing.T) {
 	cut := Field{
-		Name:         "zalgo",
-		Validator:    func([]string) merry.Error {
+		Name: "zalgo",
+		Validator: func([]string) merry.Error {
 			panic("i blewed up!")
 		},
 	}

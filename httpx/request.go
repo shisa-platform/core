@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -19,10 +20,11 @@ var (
 			return new(Request)
 		},
 	}
-	InvalidParameterNameEscape   = merry.New("invalid parameter name escape")
-	InvalidParameterValueEscape   = merry.New("invalid parameter value escape")
-	MissingQueryParamter = merry.New("missing query parameters")
-	UnknownQueryParamter = merry.New("unknown query parameters")
+	InvalidParameterNameEscape  = merry.New("invalid parameter name escape")
+	InvalidParameterValueEscape = merry.New("invalid parameter value escape")
+	MalformedQueryParamter      = merry.New("malformed query parameter")
+	MissingQueryParamter        = merry.New("missing query parameter")
+	UnknownQueryParamter        = merry.New("unknown query parameter")
 )
 
 // GetRequest returns a Request instance from the shared pool,
@@ -85,7 +87,7 @@ func (r *Request) ParseQueryParameters() bool {
 			indices[key] = i
 			index = i
 			r.QueryParams = append(r.QueryParams, &QueryParameter{
-				Name: key,
+				Name:    key,
 				Ordinal: i,
 			})
 		}
@@ -107,7 +109,7 @@ func (r *Request) ParseQueryParameters() bool {
 		parameter.Values = append(parameter.Values, value)
 		i++
 	}
-	
+
 	return ok
 }
 
@@ -131,14 +133,72 @@ func (r *Request) PathParamExists(name string) bool {
 	return false
 }
 
-func (r *Request) QueryParamExists(name string) bool {
-	for _, p := range r.QueryParams {
-		if p.Name == name {
-			return true
+type byName []*QueryParameter
+
+func (p byName) Len() int           { return len(p) }
+func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
+func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+// ValidateQueryParameters validates the values in `QueryParams`
+// with the provided fields.
+// Validation errors are assigned to the problematic parameter.
+// If a validator panics an error will be returned in `err`.
+// The `malformed` and `unknown` return values indicate if any
+// paramters fail validation or do not match a field,
+// respectively.
+func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unknown bool, err merry.Error) {
+	params := make([]*QueryParameter, len(r.QueryParams))
+	copy(params, r.QueryParams)
+	sort.Sort(byName(params))
+
+	for _, field := range fields {
+		var found bool
+		for j, param := range params {
+			if param.Err != nil {
+				malformed = true
+			}
+			if field.Match(param.Name) {
+				found = true
+				params = append(params[:j], params[j+1:]...)
+				if param.Err != nil {
+					break
+				}
+
+				if vErr := field.Validate(param.Values, &err); vErr != nil {
+					param.Err = MalformedQueryParamter.Append(vErr.Error())
+					malformed = true
+				}
+				if err != nil {
+					return
+				}
+				break
+			}
+		}
+
+		if !found {
+			if field.Default != "" {
+				r.QueryParams = append(r.QueryParams, &QueryParameter{
+					Name:    field.Name,
+					Ordinal: -1,
+					Values:  []string{field.Default},
+				})
+			} else if field.Required {
+				r.QueryParams = append(r.QueryParams, &QueryParameter{
+					Name:    field.Name,
+					Ordinal: -1,
+					Err:     MissingQueryParamter,
+				})
+				malformed = true
+			}
 		}
 	}
 
-	return false
+	for _, param := range params {
+		param.Err = UnknownQueryParamter
+		unknown = true
+	}
+
+	return
 }
 
 // ID returns a globally unique string for the request.

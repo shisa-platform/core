@@ -186,23 +186,27 @@ func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *httpx.Request
 	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
-func cloneQueryParams(p []httpx.QueryParameter) []httpx.QueryParameter {
-	p2 := make([]httpx.QueryParameter, len(p))
-	copy(p2, p)
+func cloneQueryParams(params []*httpx.QueryParameter) []*httpx.QueryParameter {
+	p2 := make([]*httpx.QueryParameter, len(params))
+	for i, param := range params {
+		dup := new(httpx.QueryParameter)
+		*dup = *param
+		p2[i] = dup
+	}
 
 	return p2
 }
 
-func clonePathParams(p []httpx.PathParameter) []httpx.PathParameter {
-	p2 := make([]httpx.PathParameter, len(p))
-	copy(p2, p)
+func clonePathParams(params []httpx.PathParameter) []httpx.PathParameter {
+	p2 := make([]httpx.PathParameter, len(params))
+	copy(p2, params)
 
 	return p2
 }
 
-func cloneHeaders(h http.Header) http.Header {
-	h2 := make(http.Header, len(h))
-	for k, vv := range h {
+func cloneHeaders(headers http.Header) http.Header {
+	h2 := make(http.Header, len(headers))
+	for k, vv := range headers {
 		vv2 := make([]string, len(vv))
 		copy(vv2, vv)
 		h2[k] = vv2
