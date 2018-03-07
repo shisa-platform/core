@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,9 +42,13 @@ func TestFieldValidateNoValidator(t *testing.T) {
 		Name: "zalgo",
 	}
 
-	assert.NoError(t, cut.Validate([]string(nil)))
-	assert.NoError(t, cut.Validate([]string{}))
-	assert.NoError(t, cut.Validate([]string{"foo"}))
+	var err merry.Error
+	assert.NoError(t, cut.Validate([]string(nil), &err))
+	assert.NoError(t, err)
+	assert.NoError(t, cut.Validate([]string{}, &err))
+	assert.NoError(t, err)
+	assert.NoError(t, cut.Validate([]string{"foo"}, &err))
+	assert.NoError(t, err)
 }
 
 func TestFieldValidate(t *testing.T) {
@@ -52,10 +57,15 @@ func TestFieldValidate(t *testing.T) {
 		Validator: FixedStringValidator{"he comes"}.Validate,
 	}
 
-	assert.NoError(t, cut.Validate([]string{"he comes"}))
-	assert.NoError(t, cut.Validate([]string(nil)))
-	assert.NoError(t, cut.Validate([]string{}))
-	assert.Error(t, cut.Validate([]string{"foo"}))
+	var err merry.Error
+	assert.NoError(t, cut.Validate([]string{"he comes"}, &err))
+	assert.NoError(t, err)
+	assert.NoError(t, cut.Validate([]string(nil), &err))
+	assert.NoError(t, err)
+	assert.NoError(t, cut.Validate([]string{}, &err))
+	assert.NoError(t, err)
+	assert.Error(t, cut.Validate([]string{"foo"}, &err))
+	assert.NoError(t, err)
 }
 
 func TestFieldValidateMultiplicity(t *testing.T) {
@@ -65,11 +75,43 @@ func TestFieldValidateMultiplicity(t *testing.T) {
 		Multiplicity: 1,
 	}
 
-	assert.NoError(t, cut.Validate([]string{"he comes"}))
-	assert.NoError(t, cut.Validate([]string(nil)))
-	assert.NoError(t, cut.Validate([]string{}))
-	assert.Error(t, cut.Validate([]string{"he comes", "foo"}))
-	assert.Error(t, cut.Validate([]string{"foo"}))
+	var err merry.Error
+	assert.NoError(t, cut.Validate([]string{"he comes"}, &err))
+	assert.NoError(t, err)
+	assert.NoError(t, cut.Validate([]string(nil), &err))
+	assert.NoError(t, err)
+	assert.NoError(t, cut.Validate([]string{}, &err))
+	assert.NoError(t, err)
+	assert.Error(t, cut.Validate([]string{"he comes", "foo"}, &err))
+	assert.NoError(t, err)
+	assert.Error(t, cut.Validate([]string{"foo"}, &err))
+	assert.NoError(t, err)
+}
+
+func TestFieldValidatorPanic(t *testing.T) {
+	cut := Field{
+		Name:         "zalgo",
+		Validator:    func([]string) merry.Error {
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	var err merry.Error
+	assert.NoError(t, cut.Validate([]string{"zalgo", "he comes"}, &err))
+	assert.Error(t, err)
+}
+
+func TestFieldValidatorPanicString(t *testing.T) {
+	cut := Field{
+		Name:         "zalgo",
+		Validator:    func([]string) merry.Error {
+			panic("i blewed up!")
+		},
+	}
+
+	var err merry.Error
+	assert.NoError(t, cut.Validate([]string{"zalgo", "he comes"}, &err))
+	assert.Error(t, err)
 }
 
 func TestFixedStringValidator(t *testing.T) {

@@ -17,6 +17,25 @@ var (
 // criteria.
 type Validator func([]string) merry.Error
 
+func (v Validator) InvokeSafely(values []string, exception *merry.Error) merry.Error {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			*exception = merry.Prepend(err1, "panic in validator")
+			return
+		}
+
+		*exception = merry.New("panic in validator").WithValue("context", arg)
+	}()
+
+	return v(values)
+}
+
+
 // Field is the schema to validate a query parameter or request
 // body.
 // Either `Name` or `Regex` _should_ be provided.
@@ -43,12 +62,12 @@ func (f Field) Match(name string) bool {
 
 // Validate returns an error if all input values don't meet the
 // criteria of `Field.Validator`.
-func (f Field) Validate(values []string) merry.Error {
+func (f Field) Validate(values []string, exception *merry.Error) merry.Error {
 	if f.Multiplicity != 0 && uint(len(values)) > f.Multiplicity {
-		return validationErr.Here()
+		return merry.New("too many values")
 	}
 	if f.Validator != nil {
-		return f.Validator(values)
+		return f.Validator.InvokeSafely(values, exception)
 	}
 
 	return nil
