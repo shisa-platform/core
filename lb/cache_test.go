@@ -7,7 +7,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	c := NewBasic()
+	c := NewRRCache()
 
 	res := c.Next(testServiceName, testHosts)
 
@@ -15,7 +15,7 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheOrder(t *testing.T) {
-	c := NewBasic()
+	c := NewRRCache()
 
 	res1 := c.Next(testServiceName, testHosts)
 
@@ -32,7 +32,7 @@ func TestCacheOrder(t *testing.T) {
 }
 
 func TestCacheAdditon(t *testing.T) {
-	c := NewBasic()
+	c := NewRRCache()
 
 	res1 := c.Next(testServiceName, testHosts)
 

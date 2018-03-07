@@ -9,7 +9,15 @@ import (
 var _ Balancer = &roundRobin{}
 
 func NewRoundRobin(r sd.Resolver) Balancer {
-	cache := NewBasic()
+	cache := NewRRCache()
+	return &roundRobin{
+		cache:    cache,
+		resolver: r,
+	}
+}
+
+func NewLNCNRC(r sd.Resolver) Balancer {
+	cache := NewLNCNRCCache(2)
 	return &roundRobin{
 		cache:    cache,
 		resolver: r,
@@ -19,7 +27,6 @@ func NewRoundRobin(r sd.Resolver) Balancer {
 type roundRobin struct {
 	cache    Cache
 	resolver sd.Resolver
-	c        uint64
 }
 
 func (r *roundRobin) Balance(service string) (string, merry.Error) {
