@@ -141,7 +141,9 @@ func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // ValidateQueryParameters validates the values in `QueryParams`
 // with the provided fields.
-// Validation errors are assigned to the problematic parameter.
+// Validation errors are assigned to the problematic parameter
+// and placeholder parameter instances are created for missing
+// required or unknown parameters.
 // If a validator panics an error will be returned in `err`.
 // The `malformed` and `unknown` return values indicate if any
 // paramters fail validation or do not match a field,

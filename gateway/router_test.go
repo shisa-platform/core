@@ -1398,14 +1398,14 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 			switch p.Ordinal {
 			case 0:
 				assert.Equal(t, "bad", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foo%zzbar", p.Values[0])
-				assert.True(t, p.Invalid)
-				assert.True(t, p.Unknown)
+				assert.Error(t, p.Err)
 			case 1:
 				assert.Equal(t, "good", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foobar", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.True(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1414,8 +1414,13 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 		return httpx.NewEmpty(http.StatusPaymentRequired)
 	}
 
-	policy := service.Policy{AllowMalformedQueryParameters: true}
-	installHandlerWithPolicy(t, cut, handler, policy)
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Policy = service.Policy{AllowMalformedQueryParameters: true}
+	endpoint.Get.QueryFields = []httpx.Field{
+		httpx.Field{Name: "good"},
+		httpx.Field{Name: "bad"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
 	uri := expectedRoute + "?bad=foo%zzbar&good=foobar"
@@ -1428,7 +1433,33 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParametersWithoutFields(t *testing.T) {
+func TestRouterQueryParametersWithoutFieldsForbidUnknown(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	installHandler(t, cut, handler)
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "handler called unexpectedly")
+	errHook.assertNotCalled(t)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersWithoutFieldsAllowUnknown(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
 		ErrorHook: errHook.Handle,
@@ -1443,17 +1474,15 @@ func TestRouterQueryParametersWithoutFields(t *testing.T) {
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
-				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.True(t, p.Unknown)
-			case 1:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.Error(t, p.Err)
+			case 1:
 				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.True(t, p.Unknown)
+				assert.Error(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1462,7 +1491,9 @@ func TestRouterQueryParametersWithoutFields(t *testing.T) {
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	installHandler(t, cut, handler)
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.Policy = service.Policy{AllowUnknownQueryParameters: true}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
 	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
@@ -1516,12 +1547,20 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 	var handlerCalled bool
 	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		handlerCalled = true
-		assert.Len(t, r.QueryParams, 1)
-		assert.Len(t, r.QueryParams[0].Values, 1)
-		assert.Equal(t, "waits", r.QueryParams[0].Name)
-		assert.Equal(t, "behind the walls", r.QueryParams[0].Values[0])
-		assert.False(t, r.QueryParams[0].Invalid)
-		assert.False(t, r.QueryParams[0].Unknown)
+		assert.Len(t, r.QueryParams, 2)
+		for i, p := range r.QueryParams {
+			switch i {
+			case 0:
+				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.NoError(t, p.Err)
+			case 1:
+				assert.Equal(t, "zalgo", p.Name)
+				assert.Empty(t, p.Values)
+				assert.Error(t, p.Err)
+			}
+		}
 
 		return httpx.NewEmpty(http.StatusOK)
 	}
@@ -1632,17 +1671,15 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
-				assert.Equal(t, "he%zzcomes", p.Values[0])
-				assert.True(t, p.Invalid)
-				assert.False(t, p.Unknown)
-			case 1:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "he%zzcomes", p.Values[0])
+				assert.Error(t, p.Err)
+			case 1:
 				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1685,17 +1722,15 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
-				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
-			case 1:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.NoError(t, p.Err)
+			case 1:
 				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1737,17 +1772,15 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
-				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
-			case 1:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "he:comes", p.Values[0])
+				assert.NoError(t, p.Err)
+			case 1:
 				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1827,17 +1860,15 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
-				assert.Equal(t, "foobar", p.Values[0])
-				assert.True(t, p.Invalid)
-				assert.False(t, p.Unknown)
-			case 1:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "foobar", p.Values[0])
+				assert.Error(t, p.Err)
+			case 1:
 				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1918,23 +1949,20 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			case 1:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "waits", p.Name)
-				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
-			case 2:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.NoError(t, p.Err)
+			case 2:
 				assert.Equal(t, "foo", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "bar", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.True(t, p.Unknown)
+				assert.Error(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -1977,23 +2005,20 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 			assert.Equal(t, i, p.Ordinal)
 			switch p.Ordinal {
 			case 0:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			case 1:
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "waits", p.Name)
-				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
-			case 2:
 				assert.Len(t, p.Values, 1)
+				assert.Equal(t, "behind the walls", p.Values[0])
+				assert.NoError(t, p.Err)
+			case 2:
 				assert.Equal(t, "x", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foo%zzbar", p.Values[0])
-				assert.True(t, p.Invalid)
-				assert.True(t, p.Unknown)
+				assert.Error(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
@@ -2039,18 +2064,16 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 			switch i {
 			case 0:
 				assert.Equal(t, i, p.Ordinal)
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "zalgo", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "he:comes", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			case 1:
 				assert.Equal(t, -1, p.Ordinal)
-				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "waits", p.Name)
+				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.False(t, p.Invalid)
-				assert.False(t, p.Unknown)
+				assert.NoError(t, p.Err)
 			default:
 				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
