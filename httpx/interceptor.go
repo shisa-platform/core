@@ -3,6 +3,8 @@ package httpx
 import (
 	"net/http"
 	"time"
+
+	"github.com/ansel1/merry"
 )
 
 // ResponseInterceptor implements `http.ResponseWriter` to capture
@@ -12,6 +14,12 @@ type ResponseInterceptor struct {
 	start  time.Time
 	status int
 	size   int
+}
+
+// Elapsed returns the amount of time since this instance was
+// created.
+func (i *ResponseInterceptor) Elapsed() time.Duration {
+	return time.Now().UTC().Sub(i.start)
 }
 
 func (i *ResponseInterceptor) Header() http.Header {
@@ -36,7 +44,7 @@ func (i *ResponseInterceptor) WriteHeader(status int) {
 // `ResponseWriter` methods of this instance after calling this
 // method.
 // Any error returned from `Response.Serialize` will be returned.
-func (i *ResponseInterceptor) WriteResponse(response Response) error {
+func (i *ResponseInterceptor) WriteResponse(response Response) merry.Error {
 	return WriteResponse(i, response)
 }
 
@@ -47,6 +55,10 @@ func (i *ResponseInterceptor) Flush() ResponseSnapshot {
 		f.Flush()
 	}
 
+	return i.Snapshot()
+}
+
+func (i *ResponseInterceptor) Snapshot() ResponseSnapshot {
 	return ResponseSnapshot{
 		StatusCode: i.status,
 		Size:       i.size,

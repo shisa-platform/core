@@ -81,13 +81,13 @@ func (e endpoint) handleBadQuery(ctx context.Context, request *httpx.Request) (h
 
 func (e endpoint) handleError(ctx context.Context, request *httpx.Request, err merry.Error) (httpx.Response, merry.Error) {
 	if e.iseHandler == nil {
-		return httpx.NewEmptyError(http.StatusInternalServerError, err), nil
+		return httpx.NewEmptyError(merry.HTTPCode(err), err), nil
 	}
 
 	var exception merry.Error
 	response := e.iseHandler.InvokeSafely(ctx, request, err, &exception)
 	if exception != nil {
-		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
+		response = httpx.NewEmptyError(merry.HTTPCode(err), err)
 		exception = merry.WithMessage(exception, "while invoking InternalServerErrorHandler")
 	}
 

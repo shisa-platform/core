@@ -12,7 +12,7 @@ import (
 // value of `Response.StatusCode()` so it is not safe to use the
 // `ResponseWriter` after calling this function.
 // Any error returned from `Response.Serialize` will be returned.
-func WriteResponse(w http.ResponseWriter, response Response) (err error) {
+func WriteResponse(w http.ResponseWriter, response Response) (err merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {
