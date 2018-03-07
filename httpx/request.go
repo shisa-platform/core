@@ -86,10 +86,7 @@ func (r *Request) ParseQueryParameters() bool {
 		if !found {
 			indices[key] = i
 			index = i
-			r.QueryParams = append(r.QueryParams, &QueryParameter{
-				Name:    key,
-				Ordinal: i,
-			})
+			r.QueryParams = append(r.QueryParams, &QueryParameter{Name: key})
 		}
 		parameter := r.QueryParams[index]
 
@@ -180,15 +177,13 @@ func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unkno
 		if !found {
 			if field.Default != "" {
 				r.QueryParams = append(r.QueryParams, &QueryParameter{
-					Name:    field.Name,
-					Ordinal: -1,
-					Values:  []string{field.Default},
+					Name:   field.Name,
+					Values: []string{field.Default},
 				})
 			} else if field.Required {
 				r.QueryParams = append(r.QueryParams, &QueryParameter{
-					Name:    field.Name,
-					Ordinal: -1,
-					Err:     MissingQueryParamter,
+					Name: field.Name,
+					Err:  MissingQueryParamter,
 				})
 				malformed = true
 			}

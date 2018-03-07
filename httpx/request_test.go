@@ -30,14 +30,12 @@ func TestRequestParseQueryParametersIgnoreEmptyQueryPair(t *testing.T) {
 	for i, p := range cut.QueryParams {
 		switch i {
 		case 0:
-			assert.Equal(t, i, p.Ordinal)
 			assert.Len(t, p.Values, 2)
 			assert.Equal(t, "zalgo", p.Name)
 			assert.Equal(t, "he:comes", p.Values[0])
 			assert.Equal(t, "slithy", p.Values[1])
 			assert.NoError(t, p.Err)
 		case 1:
-			assert.Equal(t, i, p.Ordinal)
 			assert.Len(t, p.Values, 1)
 			assert.Equal(t, "waits", p.Name)
 			assert.Equal(t, "behind the walls", p.Values[0])
@@ -57,13 +55,11 @@ func TestRequestParseQueryParametersBadEscapeCodes(t *testing.T) {
 	for i, p := range cut.QueryParams {
 		switch i {
 		case 0:
-			assert.Equal(t, i, p.Ordinal)
 			assert.Len(t, p.Values, 1)
 			assert.Equal(t, "name", p.Name)
 			assert.Equal(t, "foo%zzbar", p.Values[0])
 			assert.Error(t, p.Err)
 		case 1:
-			assert.Equal(t, i, p.Ordinal)
 			assert.Len(t, p.Values, 1)
 			assert.Equal(t, "sec%zzret", p.Name)
 			assert.Equal(t, "42", p.Values[0])

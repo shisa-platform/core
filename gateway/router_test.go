@@ -1435,8 +1435,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "bad", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1447,8 +1446,6 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foobar", p.Values[0])
 				assert.NoError(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -1512,8 +1509,7 @@ func TestRouterQueryParametersWithoutFieldsAllowUnknown(t *testing.T) {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1524,8 +1520,6 @@ func TestRouterQueryParametersWithoutFieldsAllowUnknown(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
 				assert.Error(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -1709,8 +1703,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1721,8 +1714,6 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
 				assert.NoError(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -1760,8 +1751,7 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1772,8 +1762,6 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
 				assert.NoError(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -1810,8 +1798,7 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1822,8 +1809,6 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
 				assert.NoError(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -1898,8 +1883,7 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 2)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1910,8 +1894,6 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
 				assert.NoError(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -1987,8 +1969,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 3)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -2004,8 +1985,6 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "bar", p.Values[0])
 				assert.Error(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -2043,8 +2022,7 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 		handlerCalled = true
 		assert.Len(t, r.QueryParams, 3)
 		for i, p := range r.QueryParams {
-			assert.Equal(t, i, p.Ordinal)
-			switch p.Ordinal {
+			switch i {
 			case 0:
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -2060,8 +2038,6 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foo%zzbar", p.Values[0])
 				assert.Error(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
@@ -2104,19 +2080,15 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 		for i, p := range r.QueryParams {
 			switch i {
 			case 0:
-				assert.Equal(t, i, p.Ordinal)
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "he:comes", p.Values[0])
 				assert.NoError(t, p.Err)
 			case 1:
-				assert.Equal(t, -1, p.Ordinal)
 				assert.Equal(t, "waits", p.Name)
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
 				assert.NoError(t, p.Err)
-			default:
-				t.Errorf("unexpected ordinal: %d", p.Ordinal)
 			}
 		}
 
