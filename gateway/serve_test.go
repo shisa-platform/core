@@ -246,7 +246,7 @@ func TestGatewayFailingAuxiliaryServe(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGatewayPanicAuxiliaryServe(t *testing.T) {
+func TestGatewayAuxiliaryServePanic(t *testing.T) {
 	cut := &Gateway{
 		Address: ":9001",
 	}
@@ -266,6 +266,38 @@ func TestGatewayPanicAuxiliaryServe(t *testing.T) {
 		},
 		ServeHook: func() error {
 			panic(merry.New("i blewed up!"))
+		},
+		ShutdownHook: func(gracePeriod time.Duration) error {
+			return nil
+		},
+	}
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+	err := cut.Serve([]service.Service{svc}, aux)
+	assert.Error(t, err)
+}
+
+func TestGatewayAuxiliaryServePanicString(t *testing.T) {
+	cut := &Gateway{
+		Address: ":9001",
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	aux := &auxiliary.FakeServer{
+		AddressHook: func() string {
+			return "127.0.0.1:0"
+		},
+		NameHook: func() string {
+			return "aux"
+		},
+		ListenHook: func() error {
+			return nil
+		},
+		ServeHook: func() error {
+			panic("i blewed up!")
 		},
 		ShutdownHook: func(gracePeriod time.Duration) error {
 			return nil
