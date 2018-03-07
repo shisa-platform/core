@@ -25,6 +25,14 @@ func NewRoundRobin(r sd.Resolver) Balancer {
 	}
 }
 
+func NewRandom(r sd.Resolver) Balancer {
+	cache := NewRandomCache()
+	return &BasicBalancer{
+		Cache:    cache,
+		Resolver: r,
+	}
+}
+
 func NewLeastConns(r sd.Resolver, n int) Balancer {
 	cache := NewLeastConnsCache(n)
 	return &BasicBalancer{
