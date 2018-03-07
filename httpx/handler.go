@@ -31,7 +31,7 @@ func handlerRecovery(exception *merry.Error) {
 	}
 
 	if err, ok := arg.(error); ok {
-		*exception = merry.WithMessage(err, "panic in handler")
+		*exception = merry.Prepend(err, "panic in handler")
 		return
 	}
 

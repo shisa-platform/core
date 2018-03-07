@@ -35,7 +35,7 @@ func hookRecovery(exception *merry.Error) {
 	}
 
 	if err, ok := arg.(error); ok {
-		*exception = merry.WithMessage(err, "panic in hook")
+		*exception = merry.Prepend(err, "panic in hook")
 		return
 	}
 

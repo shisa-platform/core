@@ -18,8 +18,8 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 			return
 		}
 
-		if e1, ok := arg.(error); ok {
-			err = merry.WithMessage(e1, "panic in extractor")
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic in extractor")
 			return
 		}
 
