@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCache(t *testing.T) {
+func TestRRCache(t *testing.T) {
 	c := NewRRCache()
 
 	res := c.Next(testServiceName, testHosts)
@@ -14,7 +14,7 @@ func TestCache(t *testing.T) {
 	assert.Contains(t, testHosts[0], res)
 }
 
-func TestCacheOrder(t *testing.T) {
+func TestRRCacheOrder(t *testing.T) {
 	c := NewRRCache()
 
 	res1 := c.Next(testServiceName, testHosts)
@@ -31,7 +31,7 @@ func TestCacheOrder(t *testing.T) {
 	assert.Equal(t, testHosts[1], res2)
 }
 
-func TestCacheAdditon(t *testing.T) {
+func TestRRCacheAdditon(t *testing.T) {
 	c := NewRRCache()
 
 	res1 := c.Next(testServiceName, testHosts)

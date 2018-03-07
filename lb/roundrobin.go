@@ -1,45 +1,64 @@
 package lb
 
 import (
-	"github.com/ansel1/merry"
-
-	"github.com/percolate/shisa/sd"
+	"sync"
+	"sync/atomic"
 )
 
-var _ Balancer = &roundRobin{}
+var _ Cache = &rrCache{}
 
-func NewRoundRobin(r sd.Resolver) Balancer {
-	cache := NewRRCache()
-	return &roundRobin{
-		cache:    cache,
-		resolver: r,
+type ring struct {
+	*NodeGroup
+
+	c uint64
+}
+
+type rrCache struct {
+	mtx sync.RWMutex
+
+	r map[string]*ring
+}
+
+func NewRRCache() *rrCache {
+	return &rrCache{
+		r: make(map[string]*ring),
 	}
 }
 
-func NewLNCNRC(r sd.Resolver) Balancer {
-	cache := NewLNCNRCCache(2)
-	return &roundRobin{
-		cache:    cache,
-		resolver: r,
-	}
-}
-
-type roundRobin struct {
-	cache    Cache
-	resolver sd.Resolver
-}
-
-func (r *roundRobin) Balance(service string) (string, merry.Error) {
-	nodes, err := r.resolver.Resolve(service)
-	if err != nil {
-		return "", err.Prepend("balance")
+func (c *rrCache) Next(service string, nodes []string) string {
+	if len(nodes) == 0 {
+		return ""
 	}
 
-	on := r.cache.Next(service, nodes)
+	var (
+		inew uint64
+		idx  uint64
+	)
+	ng := NewNodeGroup(nodes)
 
-	if on == "" {
-		return "", merry.New("no nodes available")
+	c.mtx.RLock()
+	r, ok := c.r[service]
+	c.mtx.RUnlock()
+	if !ok {
+		// acquire write lock in order to add to add `*nodes` to the cache
+		c.mtx.Lock()
+		c.r[service] = &ring{NodeGroup: ng}
+		c.mtx.Unlock()
+
+		r = c.r[service]
+
+		r.mtx.Lock()
+		defer r.mtx.Unlock()
+
+		idx = uint64(0)
+	} else {
+		r.mtx.Lock()
+		defer r.mtx.Unlock()
+
+		r.nodes = UpdateNodes(ng.nodes, r.nodes)
+
+		inew = atomic.AddUint64(&r.c, 1)
+		idx = inew % uint64(len(r.nodes))
 	}
-
-	return on, nil
+	return r.nodes[idx].host
 }

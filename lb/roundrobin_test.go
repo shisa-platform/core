@@ -8,10 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testServiceName = "testservice"
-
-var testHosts = []string{"10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"}
-
 func TestRoundRobinBalance(t *testing.T) {
 	res := &sd.FakeResolver{
 		ResolveHook: func(name string) ([]string, merry.Error) {
@@ -53,49 +49,6 @@ func TestRoundRobinBalanceNoNodes(t *testing.T) {
 		},
 	}
 	rr := NewRoundRobin(res)
-
-	node, e := rr.Balance(testServiceName)
-
-	assert.Error(t, e)
-	assert.Equal(t, "", node)
-}
-
-func TestLNCNRBalance(t *testing.T) {
-	res := &sd.FakeResolver{
-		ResolveHook: func(name string) ([]string, merry.Error) {
-			return testHosts, nil
-		},
-	}
-	rr := NewLNCNRC(res)
-	b, e := rr.Balance(testServiceName)
-	if e != nil {
-		t.Fatal(e)
-	}
-
-	assert.Contains(t, testHosts, b)
-}
-
-func TestLNCNRBalanceResolveError(t *testing.T) {
-	res := &sd.FakeResolver{
-		ResolveHook: func(name string) ([]string, merry.Error) {
-			return nil, merry.New("some error")
-		},
-	}
-	rr := NewLNCNRC(res)
-
-	node, e := rr.Balance(testServiceName)
-
-	assert.Error(t, e)
-	assert.Equal(t, "", node)
-}
-
-func TestLNCNRBalanceNoNodes(t *testing.T) {
-	res := &sd.FakeResolver{
-		ResolveHook: func(name string) ([]string, merry.Error) {
-			return make([]string, 0), nil
-		},
-	}
-	rr := NewLNCNRC(res)
 
 	node, e := rr.Balance(testServiceName)
 
