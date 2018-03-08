@@ -1469,7 +1469,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterValidateQueryParametersWithoutFields(t *testing.T) {
+func TestRouterQueryParametersWithoutFields(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
 		ErrorHook: errHook.Handle,
@@ -1827,6 +1827,85 @@ func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
 	errHook.assertNotCalled(t)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersFieldValidationPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	validator := func([]string) merry.Error {
+		panic(merry.New("i blewed up!"))
+	}
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.QueryFields = []httpx.Field{
+		{Name: "zalgo", Validator: validator},
+		{Name: "waits"},
+	}
+	installEndpoints(t, cut, []service.Endpoint{endpoint})
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=foobar&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterQueryParametersFieldValidationPanicErrorHandlerPanic(t *testing.T) {
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusOK)
+	}
+
+	validator := func([]string) merry.Error {
+		panic(merry.New("i blewed up!"))
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, handler)
+	endpoint.Get.QueryFields = []httpx.Field{
+		{Name: "zalgo", Validator: validator},
+		{Name: "waits"},
+	}
+
+	var iseHandlerCalled bool
+	svc := newFakeService([]service.Endpoint{endpoint})
+	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
+		return func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
+			iseHandlerCalled = true
+			panic(merry.New("i blewed up!"))
+		}
+	}
+	installService(t, cut, svc)
+
+	w := httptest.NewRecorder()
+	uri := expectedRoute + "?zalgo=foobar&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, uri, nil)
+	cut.ServeHTTP(w, request)
+
+	assert.False(t, handlerCalled, "unexpected call to handler")
+	assert.True(t, iseHandlerCalled, "ISE handler not called")
+	errHook.assertCalledN(t, 2)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
