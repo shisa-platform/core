@@ -137,15 +137,21 @@ func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // ValidateQueryParameters validates the values in `QueryParams`
-// with the provided fields.
+// with the provided fields.  If no fields are given, no action
+// will be taken.
 // Validation errors are assigned to the problematic parameter
-// and placeholder parameter instances are created for missing
-// required or unknown parameters.
-// If a validator panics an error will be returned in `err`.
+// and placeholder instances are created for missing required or
+// unknown parameters.
+//
 // The `malformed` and `unknown` return values indicate if any
 // paramters fail validation or do not match a field,
-// respectively.
+// respectively.  If a validator panics an error will be returned
+// in `err`.
 func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unknown bool, err merry.Error) {
+	if len(fields) == 0 {
+		return
+	}
+
 	params := make([]*QueryParameter, len(r.QueryParams))
 	copy(params, r.QueryParams)
 	sort.Sort(byName(params))

@@ -1468,33 +1468,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterQueryParametersWithoutFieldsForbidUnknown(t *testing.T) {
-	errHook := new(mockErrorHook)
-	cut := &Gateway{
-		ErrorHook: errHook.Handle,
-	}
-	cut.init()
-
-	var handlerCalled bool
-	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
-		handlerCalled = true
-		return httpx.NewEmpty(http.StatusOK)
-	}
-
-	installHandler(t, cut, handler)
-
-	w := httptest.NewRecorder()
-	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
-	request := httptest.NewRequest(http.MethodGet, uri, nil)
-	cut.ServeHTTP(w, request)
-
-	assert.False(t, handlerCalled, "handler called unexpectedly")
-	errHook.assertNotCalled(t)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
-func TestRouterQueryParametersWithoutFieldsAllowUnknown(t *testing.T) {
+func TestRouterValidateQueryParametersWithoutFields(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
 		ErrorHook: errHook.Handle,
@@ -1511,21 +1485,19 @@ func TestRouterQueryParametersWithoutFieldsAllowUnknown(t *testing.T) {
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "he:comes", p.Values[0])
-				assert.Error(t, p.Err)
+				assert.NoError(t, p.Err)
 			case 1:
 				assert.Equal(t, "waits", p.Name)
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "behind the walls", p.Values[0])
-				assert.Error(t, p.Err)
+				assert.NoError(t, p.Err)
 			}
 		}
 
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.Policy = service.Policy{AllowUnknownQueryParameters: true}
-	installEndpoints(t, cut, []service.Endpoint{endpoint})
+	installHandler(t, cut, handler)
 
 	w := httptest.NewRecorder()
 	uri := expectedRoute + "?zalgo=he:comes&waits=behind%20the%20walls"
