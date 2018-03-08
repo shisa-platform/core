@@ -1441,6 +1441,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foo%zzbar", p.Values[0])
 				assert.Error(t, p.Err)
+				assert.True(t, merry.Is(p.Err, httpx.InvalidParameterValueEscape))
 			case 1:
 				assert.Equal(t, "good", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1563,6 +1564,7 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 				assert.Equal(t, "zalgo", p.Name)
 				assert.Empty(t, p.Values)
 				assert.Error(t, p.Err)
+				assert.True(t, merry.Is(p.Err, httpx.MissingQueryParamter))
 			}
 		}
 
@@ -1672,6 +1674,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "he%zzcomes", p.Values[0])
 				assert.Error(t, p.Err)
+				assert.True(t, merry.Is(p.Err, httpx.InvalidParameterValueEscape))
 			case 1:
 				assert.Equal(t, "waits", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1846,6 +1849,7 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foobar", p.Values[0])
 				assert.Error(t, p.Err)
+				assert.True(t, merry.Is(p.Err, httpx.MalformedQueryParamter))
 			case 1:
 				assert.Equal(t, "waits", p.Name)
 				assert.Len(t, p.Values, 1)
@@ -1939,6 +1943,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "bar", p.Values[0])
 				assert.Error(t, p.Err)
+				assert.True(t, merry.Is(p.Err, httpx.UnknownQueryParamter))
 			}
 		}
 
@@ -1989,6 +1994,7 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 				assert.Len(t, p.Values, 1)
 				assert.Equal(t, "foo%zzbar", p.Values[0])
 				assert.Error(t, p.Err)
+				assert.True(t, merry.Is(p.Err, httpx.InvalidParameterValueEscape))
 			}
 		}
 

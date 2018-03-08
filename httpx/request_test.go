@@ -131,6 +131,7 @@ func TestRequestValidateQueryParametersInvalidParameter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
+	assert.True(t, merry.Is(cut.QueryParams[1].Err, MalformedQueryParamter))
 }
 
 func TestRequestValidateQueryParametersUnknownParameter(t *testing.T) {
@@ -149,6 +150,7 @@ func TestRequestValidateQueryParametersUnknownParameter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
+	assert.True(t, merry.Is(cut.QueryParams[1].Err, UnknownQueryParamter))
 }
 
 func TestRequestValidateQueryParametersInvalidAndUnknownParameters(t *testing.T) {
@@ -169,7 +171,9 @@ func TestRequestValidateQueryParametersInvalidAndUnknownParameters(t *testing.T)
 	assert.True(t, unknown)
 	assert.NoError(t, err)
 	assert.Error(t, cut.QueryParams[0].Err)
+	assert.True(t, merry.Is(cut.QueryParams[0].Err, MalformedQueryParamter))
 	assert.Error(t, cut.QueryParams[1].Err)
+	assert.True(t, merry.Is(cut.QueryParams[1].Err, UnknownQueryParamter))
 }
 
 func TestRequestValidateQueryParametersMissingParameterWithDefault(t *testing.T) {
@@ -210,6 +214,7 @@ func TestRequestValidateQueryParametersMissingRequiredParameter(t *testing.T) {
 	assert.Len(t, cut.QueryParams, 2)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
+	assert.True(t, merry.Is(cut.QueryParams[1].Err, MissingQueryParamter))
 	assert.Equal(t, "waits", cut.QueryParams[1].Name)
 }
 
