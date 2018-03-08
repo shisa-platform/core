@@ -197,7 +197,9 @@ func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unkno
 	}
 
 	for _, param := range params {
-		param.Err = UnknownQueryParamter
+		if param.Err == nil {
+			param.Err = UnknownQueryParamter
+		}
 		unknown = true
 	}
 
