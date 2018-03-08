@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	validationErr = merry.New("unexpected value").WithUserMessage("Value is not allowed")
+	UnexpectedValue = merry.New("unexpected value")
 )
 
 // Validator ensures that the given strings all meet certain
@@ -81,7 +81,7 @@ type FixedStringValidator struct {
 func (v FixedStringValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		if v.Target != value {
-			return validationErr.Here().WithValue("value", value)
+			return UnexpectedValue.Appendf("must match %q", v.Target)
 		}
 	}
 
@@ -105,7 +105,7 @@ func (v StringSliceValidator) Validate(values []string) merry.Error {
 			}
 		}
 		if !found {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Append(value)
 			err = multierr.Combine(err, err1)
 		}
 	}
@@ -124,12 +124,12 @@ func (v StringValidator) Validate(values []string) merry.Error {
 	var err error
 	for _, value := range values {
 		if v.MinLen != 0 && uint(len(value)) < v.MinLen {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is shorter than minimum: %d", value, v.MinLen)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.MaxLen != 0 && uint(len(value)) > v.MaxLen {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is longer than maximum: %d", value, v.MaxLen)
 			err = multierr.Combine(err, err1)
 		}
 	}
@@ -150,17 +150,17 @@ func (v IntValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		i, parseErr := strconv.Atoi(value)
 		if parseErr != nil {
-			err1 := merry.Wrap(parseErr).WithUserMessage("Value is not allowed").WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is not an integer", value)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.Min != nil && i < *v.Min {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is less than minimum: %d", value, v.Min)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.Max != nil && i > *v.Max {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is greater than maximum: %d", value, v.Max)
 			err = multierr.Combine(err, err1)
 		}
 	}
@@ -174,7 +174,7 @@ func BoolValidator(values []string) merry.Error {
 	var err error
 	for _, value := range values {
 		if _, parseErr := strconv.ParseBool(value); parseErr != nil {
-			err1 := merry.Wrap(parseErr).WithUserMessage("Value is not allowed").WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is not a boolean", value)
 			err = multierr.Combine(err, err1)
 		}
 	}
@@ -196,17 +196,17 @@ func (v TimestampValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		t, parseErr := time.Parse(v.Format, value)
 		if parseErr != nil {
-			err1 := merry.Wrap(parseErr).WithUserMessage("Value is not allowed").WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is not a timestamp", value)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.Min != nil && t.Before(*v.Min) {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is before minimum: %s", value, v.Min)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.Max != nil && t.After(*v.Max) {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Appendf("%q is after maximum: %s", value, v.Min)
 			err = multierr.Combine(err, err1)
 		}
 	}
@@ -224,7 +224,7 @@ func (v RegexValidator) Validate(values []string) merry.Error {
 	var err error
 	for _, value := range values {
 		if !v.Regex.MatchString(value) {
-			err1 := validationErr.Here().WithValue("value", value)
+			err1 := UnexpectedValue.Append(value)
 			err = multierr.Combine(err, err1)
 		}
 	}
