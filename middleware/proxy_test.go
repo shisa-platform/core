@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
