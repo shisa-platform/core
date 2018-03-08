@@ -4,7 +4,6 @@ import (
 	stdctx "context"
 	"net/http"
 	"net/url"
-	"sort"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -28,12 +27,6 @@ const (
 	SerializeResponseMetricKey = "serialization"
 )
 
-type byName []httpx.QueryParameter
-
-func (p byName) Len() int           { return len(p) }
-func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
-func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri := httpx.NewInterceptor(w)
 
@@ -50,7 +43,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ctx.WithRequestID(requestID)
 	ri.Header().Set(g.RequestIDHeaderName, requestID)
 
-	request.ParseQueryParameters()
+	parseOK := request.ParseQueryParameters()
 
 	var cancel stdctx.CancelFunc
 	ctx, cancel = ctx.WithCancel()
@@ -67,21 +60,17 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
+		path          string
+		endpoint      *endpoint
+		pipeline      *service.Pipeline
 		err           merry.Error
 		response      httpx.Response
-		pipeline      *service.Pipeline
 		findPathStart time.Time
 		findPathStop  time.Time
 		pipelineStart time.Time
 		pipelineStop  time.Time
 		handlersStop  time.Time
-		endpoint      *endpoint
-		path          string
-		params        []httpx.QueryParameter
-		pathParams    []httpx.PathParameter
 		tsr           bool
-		invalidParams bool
-		missingParams bool
 		responseCh    chan httpx.Response = make(chan httpx.Response, 1)
 	)
 
@@ -124,7 +113,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	findPathStart = time.Now().UTC()
 	path = request.URL.EscapedPath()
-	endpoint, pathParams, tsr, err = g.tree.getValue(path)
+	endpoint, request.PathParams, tsr, err = g.tree.getValue(path)
 	findPathStop = time.Now().UTC()
 
 	if err != nil {
@@ -177,61 +166,27 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if len(pipeline.QueryFields) == 0 {
-		for _, p := range request.QueryParams {
-			if p.Invalid {
-				invalidParams = true
-				break
-			}
-		}
-	} else {
-		params = append(params, request.QueryParams...)
-		sort.Sort(byName(params))
-	}
-
-	for _, field := range pipeline.QueryFields {
-		var found bool
-		for j, p := range params {
-			if p.Invalid {
-				invalidParams = true
-			}
-			if field.Match(p.Name) {
-				found = true
-				request.QueryParams[p.Ordinal].Unknown = false
-				params = append(params[:j], params[j+1:]...)
-				if err := field.Validate(p.Values); err != nil {
-					request.QueryParams[p.Ordinal].Invalid = true
-					invalidParams = true
-				}
-				break
-			}
-		}
-
-		if !found {
-			if field.Default != "" {
-				dp := httpx.QueryParameter{
-					Name:    field.Name,
-					Values:  []string{field.Default},
-					Ordinal: -1,
-				}
-				request.QueryParams = append(request.QueryParams, dp)
-			} else if field.Required {
-				missingParams = true
-			}
-		}
-	}
-
-	if (invalidParams || missingParams) && !pipeline.Policy.AllowMalformedQueryParameters {
+	if !parseOK && !pipeline.Policy.AllowMalformedQueryParameters {
 		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
 
-	if len(params) != 0 && !pipeline.Policy.AllowUnknownQueryParameters {
+	if malformed, unknown, vErr := request.ValidateQueryParameters(pipeline.QueryFields); vErr != nil {
+		vErr = vErr.WithHTTPCode(http.StatusBadRequest)
+		var exception merry.Error
+		response, exception = endpoint.handleError(ctx, request, vErr)
+		if exception != nil {
+			g.invokeErrorHookSafely(ctx, request, exception)
+		}
+		goto finish
+	} else if malformed && !pipeline.Policy.AllowMalformedQueryParameters {
+		response, err = endpoint.handleBadQuery(ctx, request)
+		goto finish
+	} else if unknown && !pipeline.Policy.AllowUnknownQueryParameters {
 		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
 
-	request.PathParams = pathParams
 	if !pipeline.Policy.PreserveEscapedPathParameters {
 		for i := range request.PathParams {
 			if esc, r := url.PathUnescape(request.PathParams[i].Value); r == nil {

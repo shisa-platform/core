@@ -14,7 +14,6 @@ type queryParamConversionTestFixture struct {
 }
 
 var (
-	tokyo    = time.FixedZone("", 9*60*60)
 	fixtures = []queryParamConversionTestFixture{
 		{[]string{"one,\"foo\",bar", "\"two\",baz,quux"}, []string{"one", "foo", "bar", "two", "baz", "quux"}},
 		{[]string{"true"}, true},

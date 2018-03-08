@@ -45,7 +45,7 @@ func NewGoodbyeService(res sd.Resolver) *GoodbyeService {
 		Responder: svc.responder,
 	}
 	farewell := service.GetEndpointWithPolicy("/api/farewell", policy, proxy.Service)
-	farewell.Get.QueryFields = []service.Field{{Name: "name", Multiplicity: 1}}
+	farewell.Get.QueryFields = []httpx.Field{{Name: "name", Multiplicity: 1}}
 
 	svc.endpoints = []service.Endpoint{farewell}
 

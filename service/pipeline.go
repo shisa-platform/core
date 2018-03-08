@@ -15,7 +15,7 @@ import (
 type Pipeline struct {
 	Policy      Policy          // customizes automated behavior
 	Handlers    []httpx.Handler // the pipline steps, minimum one
-	QueryFields []Field         // optional query parameter validation
+	QueryFields []httpx.Field   // optional query parameter validation
 }
 
 func (p Pipeline) jsonify(buf *bytes.Buffer) {
