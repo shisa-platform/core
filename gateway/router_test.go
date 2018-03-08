@@ -1454,10 +1454,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
 	endpoint.Get.Policy = service.Policy{AllowMalformedQueryParameters: true}
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "good"},
-		httpx.Field{Name: "bad"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "good"}, {Name: "bad"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1556,8 +1553,8 @@ func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
 	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo", Required: true},
-		httpx.Field{Name: "waits"},
+		{Name: "zalgo", Required: true},
+		{Name: "waits"},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -1603,8 +1600,8 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
 	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo", Required: true},
-		httpx.Field{Name: "waits"},
+		{Name: "zalgo", Required: true},
+		{Name: "waits"},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -1633,10 +1630,7 @@ func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1664,10 +1658,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 
 	var queryHandlerCalled bool
 	svc := newFakeService([]service.Endpoint{endpoint})
@@ -1722,10 +1713,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1770,8 +1758,8 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
 	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo", Required: true},
-		httpx.Field{Name: "waits"},
+		{Name: "zalgo", Required: true},
+		{Name: "waits"},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -1816,10 +1804,7 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1855,8 +1840,8 @@ func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
 	}
 	endpoint := service.GetEndpoint(expectedRoute, handler)
 	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo", Validator: validator},
-		httpx.Field{Name: "waits"},
+		{Name: "zalgo", Validator: validator},
+		{Name: "waits"},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -1910,8 +1895,8 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 		return nil
 	}
 	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo", Validator: validator},
-		httpx.Field{Name: "waits"},
+		{Name: "zalgo", Validator: validator},
+		{Name: "waits"},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
@@ -1940,10 +1925,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1993,10 +1975,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 
 	policy := service.Policy{AllowUnknownQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -2049,10 +2028,7 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 		AllowUnknownQueryParameters:   true,
 	}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits"},
-	}
+	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -2097,8 +2073,8 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
 	endpoint.Get.QueryFields = []httpx.Field{
-		httpx.Field{Name: "zalgo"},
-		httpx.Field{Name: "waits", Default: "behind the walls"},
+		{Name: "zalgo"},
+		{Name: "waits", Default: "behind the walls"},
 	}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
