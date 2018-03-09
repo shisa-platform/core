@@ -11,7 +11,7 @@ import (
 func TestRandomBalance(t *testing.T) {
 	res := &sd.FakeResolver{
 		ResolveHook: func(name string) ([]string, merry.Error) {
-			return testHosts, nil
+			return testAddrs, nil
 		},
 	}
 	rr := NewRandom(res)
@@ -21,7 +21,7 @@ func TestRandomBalance(t *testing.T) {
 		t.Fatal(e)
 	}
 
-	assert.Contains(t, testHosts, result)
+	assert.Contains(t, testAddrs, result)
 }
 
 func TestRandomBalanceResolveError(t *testing.T) {

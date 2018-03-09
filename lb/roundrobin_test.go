@@ -11,21 +11,21 @@ import (
 func TestRoundRobinBalance(t *testing.T) {
 	res := &sd.FakeResolver{
 		ResolveHook: func(name string) ([]string, merry.Error) {
-			return testHosts, nil
+			return testAddrs, nil
 		},
 	}
 	rr := NewRoundRobin(res)
-	results := make([]string, len(testHosts))
+	results := make([]string, len(testAddrs))
 
 	var e error
-	for i := range testHosts {
+	for i := range testAddrs {
 		results[i], e = rr.Balance(testServiceName)
 		if e != nil {
 			t.Fatal(e)
 		}
 	}
 
-	assert.ElementsMatch(t, testHosts, results)
+	assert.ElementsMatch(t, testAddrs, results)
 }
 
 func TestRoundRobinBalanceResolveError(t *testing.T) {
