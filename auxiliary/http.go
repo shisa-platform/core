@@ -155,35 +155,40 @@ func (s *HTTPServer) Authenticate(ctx context.Context, request *httpx.Request) (
 		return
 	}
 
+	if response = s.Authentication.Service(ctx, request); response != nil {
+		return
+	}
+
+	return s.Authorize(ctx, request)
+}
+
+func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (response httpx.Response) {
+	if s.Authorizer == nil {
+		return
+	}
+
 	defer func() {
 		arg := recover()
 		if arg == nil {
 			return
 		}
 
-		response = httpx.NewEmpty(http.StatusInternalServerError)
-		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
-
-		if err, ok := arg.(error); ok {
-			err1 := merry.WithMessage(err, "panic during authentication")
-			s.invokeErrorHookSafely(ctx, request, err1)
-			return
+		var err merry.Error
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic in auxiliary authorizer")
+		} else {
+			err = merry.New("panic in auxiliary authorizer").WithValue("context", arg)
 		}
 
-		err := merry.New("panic during authentication").WithValue("context", arg)
-		s.invokeErrorHookSafely(ctx, request, err)
+		err = err.WithHTTPCode(http.StatusForbidden)
+		response = httpx.NewEmptyError(http.StatusForbidden, err)
 	}()
 
-	if response = s.Authentication.Service(ctx, request); response != nil {
-		return
-	}
-	if s.Authorizer != nil {
-		if ok, err := s.Authorizer.Authorize(ctx, request); err != nil {
-			err = err.WithHTTPCode(http.StatusUnauthorized)
-			response = s.Authentication.ErrorHandler(ctx, request, err)
-		} else if !ok {
-			response = s.Authentication.UnauthorizedHandler(ctx, request)
-		}
+	if ok, err := s.Authorizer.Authorize(ctx, request); err != nil {
+		err = err.WithHTTPCode(http.StatusForbidden)
+		response = s.Authentication.HandleError(ctx, request, err)
+	} else if !ok {
+		response = s.Authentication.HandleUnauthorized(ctx, request)
 	}
 
 	return
@@ -193,7 +198,7 @@ func (s *HTTPServer) Listen() (err error) {
 	s.init()
 
 	if s.listener, err = httpx.HTTPListenerForAddress(s.Addr); err != nil {
-		err = merry.WithMessage(err, "opening listener")
+		err = merry.Prepend(err, "opening auxiliary listener")
 		return
 	}
 
@@ -202,7 +207,7 @@ func (s *HTTPServer) Listen() (err error) {
 
 func (s *HTTPServer) Serve() error {
 	if s.listener == nil {
-		return merry.New("call Listen first")
+		return merry.New("call auxiliary Listen method before Serve")
 	}
 
 	if s.UseTLS {
@@ -217,7 +222,7 @@ func (s *HTTPServer) Shutdown(timeout time.Duration) error {
 	defer cancel()
 	s.listener = nil
 
-	return merry.Wrap(s.base.Shutdown(ctx))
+	return merry.Prepend(s.base.Shutdown(ctx), "shutting down auxiliary")
 }
 
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -251,14 +256,15 @@ finish:
 		s.invokeErrorHookSafely(ctx, request, idErr)
 	}
 
-	writeErr1 := merry.WithMessage(writeErr, "serializing response")
+	writeErr1 := merry.Prepend(writeErr, "serializing auxiliary response")
 	if writeErr1 != nil {
 		s.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
 
 	respErr := response.Err()
 	if respErr != nil {
-		s.invokeErrorHookSafely(ctx, request, merry.WithMessage(respErr, "handler failed"))
+		respErr1 := merry.Prepend(respErr, "auxiliary handler failed")
+		s.invokeErrorHookSafely(ctx, request, respErr1)
 	}
 }
 
@@ -269,11 +275,11 @@ func (s *HTTPServer) generateRequestID(ctx context.Context, request *httpx.Reque
 
 	requestID, err := s.RequestIDGenerator.InvokeSafely(ctx, request)
 	if err != nil {
-		err = merry.WithMessage(err, "generating request id")
+		err = merry.Prepend(err, "generating auxiliary request id")
 		requestID = request.ID()
 	}
 	if requestID == "" {
-		err = merry.New("generator returned empty request id")
+		err = merry.New("auxiliary request id generator returned empty value")
 		requestID = request.ID()
 	}
 
@@ -323,7 +329,7 @@ func (s *HTTPServer) invokeCompletionHookSafely(ctx context.Context, request *ht
 
 	s.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
 	if exception != nil {
-		exception = merry.WithMessage(exception, "while invoking CompletionHook")
+		exception = merry.Prepend(exception, "running auxiliary CompletionHook")
 		s.invokeErrorHookSafely(ctx, request, exception)
 	}
 }

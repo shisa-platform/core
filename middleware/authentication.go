@@ -39,17 +39,17 @@ func (m *Authentication) Service(ctx context.Context, request *httpx.Request) ht
 	if m.Authenticator == nil {
 		err := merry.New("authentication proxy authenticator is nil")
 		err = err.WithHTTPCode(http.StatusInternalServerError)
-		return m.handleError(ctx, request, err)
+		return m.HandleError(ctx, request, err)
 	}
 
 	user, err := m.authenticate(ctx, request)
 	if err != nil {
 		err = err.Prepend("running authentication middleware authenticator")
 		err = err.WithHTTPCode(http.StatusUnauthorized)
-		return m.handleError(ctx, request, err)
+		return m.HandleError(ctx, request, err)
 	}
 	if user == nil {
-		return m.handleUnauthorized(ctx, request)
+		return m.HandleUnauthorized(ctx, request)
 	}
 
 	ctx = ctx.WithActor(user)
@@ -65,17 +65,17 @@ func (m *Authentication) authenticate(ctx context.Context, request *httpx.Reques
 		}
 
 		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in authenticator")
+			err = merry.Prepend(err1, "panic in authentication middleware authenticator")
 			return
 		}
 
-		err = merry.New("panic in authenticator").WithValue("context", arg)
+		err = merry.New("panic in authentication middleware authenticator").WithValue("context", arg)
 	}()
 
 	return m.Authenticator.Authenticate(ctx, request)
 }
 
-func (m *Authentication) handleUnauthorized(ctx context.Context, request *httpx.Request) httpx.Response {
+func (m *Authentication) HandleUnauthorized(ctx context.Context, request *httpx.Request) httpx.Response {
 	if m.UnauthorizedHandler == nil {
 		response := httpx.NewEmpty(http.StatusUnauthorized)
 		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
@@ -87,13 +87,13 @@ func (m *Authentication) handleUnauthorized(ctx context.Context, request *httpx.
 	if exception != nil {
 		exception = exception.Prepend("running authentication middleware unauthorized handler")
 		exception = exception.WithHTTPCode(http.StatusUnauthorized)
-		response = m.handleError(ctx, request, exception)
+		response = m.HandleError(ctx, request, exception)
 	}
 
 	return response
 }
 
-func (m *Authentication) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
 	if m.ErrorHandler == nil {
 		response := httpx.NewEmptyError(merry.HTTPCode(err), err)
 		if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized {
@@ -110,6 +110,10 @@ func (m *Authentication) handleError(ctx context.Context, request *httpx.Request
 		exception = exception.Prepend("running authentication middleware ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
+		if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized {
+			challenge := m.Authenticator.Challenge()
+			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
+		}
 	}
 
 	return response
@@ -136,9 +140,9 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 
 		var err merry.Error
 		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in authenticator")
+			err = merry.Prepend(err1, "panic in passive authenticator middleware authenticator")
 		} else {
-			err = merry.New("panic in authenticator").WithValue("context", arg)
+			err = merry.New("panic in passive authenticator middleware").WithValue("context authenticator", arg)
 		}
 
 		err = err.WithHTTPCode(http.StatusInternalServerError)
@@ -146,7 +150,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 	}()
 
 	if m.Authenticator == nil {
-		err := merry.New("passive authentication proxy authenticator is nil")
+		err := merry.New("passive authentication middleare authenticator is nil")
 		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}

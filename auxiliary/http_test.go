@@ -257,7 +257,7 @@ func TestHTTPServerAuthenticationPanic(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
@@ -292,7 +292,7 @@ func TestHTTPServerAuthenticationPanicString(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
@@ -327,7 +327,7 @@ func TestHTTPServerAuthorizationPanic(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
@@ -365,7 +365,7 @@ func TestHTTPServerAuthorizationErrorHandlerPanic(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
@@ -403,7 +403,7 @@ func TestHTTPServerAuthorizationUnauthorizedHandlerPanic(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 	assert.True(t, w.Flushed)
