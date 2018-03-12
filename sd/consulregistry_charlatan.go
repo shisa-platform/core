@@ -161,14 +161,13 @@ func (f *FakeconsulRegistry) Reset() {
 
 func (_f1 *FakeconsulRegistry) ServiceRegister(ident1 *consul.AgentServiceRegistration) (ident2 error) {
 	invocation := new(consulRegistryServiceRegisterInvocation)
+	_f1.ServiceRegisterCalls = append(_f1.ServiceRegisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f1.ServiceRegisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f1.ServiceRegisterCalls = append(_f1.ServiceRegisterCalls, invocation)
 
 	return
 }
@@ -295,14 +294,13 @@ func (_f6 *FakeconsulRegistry) ServiceRegisterResultsForCall(ident1 *consul.Agen
 
 func (_f7 *FakeconsulRegistry) ServiceDeregister(ident1 string) (ident2 error) {
 	invocation := new(consulRegistryServiceDeregisterInvocation)
+	_f7.ServiceDeregisterCalls = append(_f7.ServiceDeregisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f7.ServiceDeregisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f7.ServiceDeregisterCalls = append(_f7.ServiceDeregisterCalls, invocation)
 
 	return
 }
@@ -429,14 +427,13 @@ func (_f12 *FakeconsulRegistry) ServiceDeregisterResultsForCall(ident1 string) (
 
 func (_f13 *FakeconsulRegistry) CheckRegister(ident1 *consul.AgentCheckRegistration) (ident2 error) {
 	invocation := new(consulRegistryCheckRegisterInvocation)
+	_f13.CheckRegisterCalls = append(_f13.CheckRegisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f13.CheckRegisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f13.CheckRegisterCalls = append(_f13.CheckRegisterCalls, invocation)
 
 	return
 }
@@ -563,14 +560,13 @@ func (_f18 *FakeconsulRegistry) CheckRegisterResultsForCall(ident1 *consul.Agent
 
 func (_f19 *FakeconsulRegistry) CheckDeregister(ident1 string) (ident2 error) {
 	invocation := new(consulRegistryCheckDeregisterInvocation)
+	_f19.CheckDeregisterCalls = append(_f19.CheckDeregisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f19.CheckDeregisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f19.CheckDeregisterCalls = append(_f19.CheckDeregisterCalls, invocation)
 
 	return
 }

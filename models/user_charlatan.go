@@ -103,12 +103,11 @@ func (f *FakeUser) Reset() {
 
 func (_f1 *FakeUser) String() (ident5 string) {
 	invocation := new(UserStringInvocation)
+	_f1.StringCalls = append(_f1.StringCalls, invocation)
 
 	ident5 = _f1.StringHook()
 
 	invocation.Results.Ident5 = ident5
-
-	_f1.StringCalls = append(_f1.StringCalls, invocation)
 
 	return
 }
@@ -167,12 +166,11 @@ func (f *FakeUser) AssertStringCalledN(t UserTestingT, n int) {
 
 func (_f2 *FakeUser) ID() (ident1 string) {
 	invocation := new(UserIDInvocation)
+	_f2.IDCalls = append(_f2.IDCalls, invocation)
 
 	ident1 = _f2.IDHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f2.IDCalls = append(_f2.IDCalls, invocation)
 
 	return
 }

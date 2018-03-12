@@ -365,13 +365,12 @@ func (f *FakeContext) Reset() {
 
 func (_f1 *FakeContext) Deadline() (deadline time.Time, ok bool) {
 	invocation := new(ContextDeadlineInvocation)
+	_f1.DeadlineCalls = append(_f1.DeadlineCalls, invocation)
 
 	deadline, ok = _f1.DeadlineHook()
 
 	invocation.Results.Deadline = deadline
 	invocation.Results.Ok = ok
-
-	_f1.DeadlineCalls = append(_f1.DeadlineCalls, invocation)
 
 	return
 }
@@ -430,12 +429,11 @@ func (f *FakeContext) AssertDeadlineCalledN(t ContextTestingT, n int) {
 
 func (_f2 *FakeContext) Done() (ident1 <-chan struct{}) {
 	invocation := new(ContextDoneInvocation)
+	_f2.DoneCalls = append(_f2.DoneCalls, invocation)
 
 	ident1 = _f2.DoneHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f2.DoneCalls = append(_f2.DoneCalls, invocation)
 
 	return
 }
@@ -494,12 +492,11 @@ func (f *FakeContext) AssertDoneCalledN(t ContextTestingT, n int) {
 
 func (_f3 *FakeContext) Err() (ident2 error) {
 	invocation := new(ContextErrInvocation)
+	_f3.ErrCalls = append(_f3.ErrCalls, invocation)
 
 	ident2 = _f3.ErrHook()
 
 	invocation.Results.Ident2 = ident2
-
-	_f3.ErrCalls = append(_f3.ErrCalls, invocation)
 
 	return
 }
@@ -558,14 +555,13 @@ func (f *FakeContext) AssertErrCalledN(t ContextTestingT, n int) {
 
 func (_f4 *FakeContext) Value(key interface{}) (ident3 interface{}) {
 	invocation := new(ContextValueInvocation)
+	_f4.ValueCalls = append(_f4.ValueCalls, invocation)
 
 	invocation.Parameters.Key = key
 
 	ident3 = _f4.ValueHook(key)
 
 	invocation.Results.Ident3 = ident3
-
-	_f4.ValueCalls = append(_f4.ValueCalls, invocation)
 
 	return
 }
@@ -692,12 +688,11 @@ func (_f9 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}
 
 func (_f10 *FakeContext) RequestID() (ident1 string) {
 	invocation := new(ContextRequestIDInvocation)
+	_f10.RequestIDCalls = append(_f10.RequestIDCalls, invocation)
 
 	ident1 = _f10.RequestIDHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f10.RequestIDCalls = append(_f10.RequestIDCalls, invocation)
 
 	return
 }
@@ -756,12 +751,11 @@ func (f *FakeContext) AssertRequestIDCalledN(t ContextTestingT, n int) {
 
 func (_f11 *FakeContext) Actor() (ident1 models.User) {
 	invocation := new(ContextActorInvocation)
+	_f11.ActorCalls = append(_f11.ActorCalls, invocation)
 
 	ident1 = _f11.ActorHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f11.ActorCalls = append(_f11.ActorCalls, invocation)
 
 	return
 }
@@ -820,14 +814,13 @@ func (f *FakeContext) AssertActorCalledN(t ContextTestingT, n int) {
 
 func (_f12 *FakeContext) WithParent(value context.Context) (ident1 Context) {
 	invocation := new(ContextWithParentInvocation)
+	_f12.WithParentCalls = append(_f12.WithParentCalls, invocation)
 
 	invocation.Parameters.Value = value
 
 	ident1 = _f12.WithParentHook(value)
 
 	invocation.Results.Ident1 = ident1
-
-	_f12.WithParentCalls = append(_f12.WithParentCalls, invocation)
 
 	return
 }
@@ -954,14 +947,13 @@ func (_f17 *FakeContext) WithParentResultsForCall(value context.Context) (ident1
 
 func (_f18 *FakeContext) WithActor(value models.User) (ident1 Context) {
 	invocation := new(ContextWithActorInvocation)
+	_f18.WithActorCalls = append(_f18.WithActorCalls, invocation)
 
 	invocation.Parameters.Value = value
 
 	ident1 = _f18.WithActorHook(value)
 
 	invocation.Results.Ident1 = ident1
-
-	_f18.WithActorCalls = append(_f18.WithActorCalls, invocation)
 
 	return
 }
@@ -1088,14 +1080,13 @@ func (_f23 *FakeContext) WithActorResultsForCall(value models.User) (ident1 Cont
 
 func (_f24 *FakeContext) WithRequestID(value string) (ident1 Context) {
 	invocation := new(ContextWithRequestIDInvocation)
+	_f24.WithRequestIDCalls = append(_f24.WithRequestIDCalls, invocation)
 
 	invocation.Parameters.Value = value
 
 	ident1 = _f24.WithRequestIDHook(value)
 
 	invocation.Results.Ident1 = ident1
-
-	_f24.WithRequestIDCalls = append(_f24.WithRequestIDCalls, invocation)
 
 	return
 }
@@ -1222,6 +1213,7 @@ func (_f29 *FakeContext) WithRequestIDResultsForCall(value string) (ident1 Conte
 
 func (_f30 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 Context) {
 	invocation := new(ContextWithValueInvocation)
+	_f30.WithValueCalls = append(_f30.WithValueCalls, invocation)
 
 	invocation.Parameters.Key = key
 	invocation.Parameters.Value = value
@@ -1229,8 +1221,6 @@ func (_f30 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 C
 	ident1 = _f30.WithValueHook(key, value)
 
 	invocation.Results.Ident1 = ident1
-
-	_f30.WithValueCalls = append(_f30.WithValueCalls, invocation)
 
 	return
 }
@@ -1357,13 +1347,12 @@ func (_f35 *FakeContext) WithValueResultsForCall(key interface{}, value interfac
 
 func (_f36 *FakeContext) WithCancel() (ident1 Context, ident2 context.CancelFunc) {
 	invocation := new(ContextWithCancelInvocation)
+	_f36.WithCancelCalls = append(_f36.WithCancelCalls, invocation)
 
 	ident1, ident2 = _f36.WithCancelHook()
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
-
-	_f36.WithCancelCalls = append(_f36.WithCancelCalls, invocation)
 
 	return
 }
@@ -1422,6 +1411,7 @@ func (f *FakeContext) AssertWithCancelCalledN(t ContextTestingT, n int) {
 
 func (_f37 *FakeContext) WithDeadline(deadline time.Time) (ident1 Context, ident2 context.CancelFunc) {
 	invocation := new(ContextWithDeadlineInvocation)
+	_f37.WithDeadlineCalls = append(_f37.WithDeadlineCalls, invocation)
 
 	invocation.Parameters.Deadline = deadline
 
@@ -1429,8 +1419,6 @@ func (_f37 *FakeContext) WithDeadline(deadline time.Time) (ident1 Context, ident
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
-
-	_f37.WithDeadlineCalls = append(_f37.WithDeadlineCalls, invocation)
 
 	return
 }
@@ -1558,6 +1546,7 @@ func (_f42 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident1 
 
 func (_f43 *FakeContext) WithTimeout(timeout time.Duration) (ident1 Context, ident2 context.CancelFunc) {
 	invocation := new(ContextWithTimeoutInvocation)
+	_f43.WithTimeoutCalls = append(_f43.WithTimeoutCalls, invocation)
 
 	invocation.Parameters.Timeout = timeout
 
@@ -1565,8 +1554,6 @@ func (_f43 *FakeContext) WithTimeout(timeout time.Duration) (ident1 Context, ide
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
-
-	_f43.WithTimeoutCalls = append(_f43.WithTimeoutCalls, invocation)
 
 	return
 }

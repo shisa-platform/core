@@ -92,6 +92,7 @@ func (f *FakeAuthorizer) Reset() {
 
 func (_f1 *FakeAuthorizer) Authorize(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error) {
 	invocation := new(AuthorizerAuthorizeInvocation)
+	_f1.AuthorizeCalls = append(_f1.AuthorizeCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
@@ -100,8 +101,6 @@ func (_f1 *FakeAuthorizer) Authorize(ident1 context.Context, ident2 *httpx.Reque
 
 	invocation.Results.Ident3 = ident3
 	invocation.Results.Ident4 = ident4
-
-	_f1.AuthorizeCalls = append(_f1.AuthorizeCalls, invocation)
 
 	return
 }

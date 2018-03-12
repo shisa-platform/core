@@ -138,6 +138,7 @@ func (f *FakeProvider) Reset() {
 
 func (_f1 *FakeProvider) Limit(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
 	invocation := new(ProviderLimitInvocation)
+	_f1.LimitCalls = append(_f1.LimitCalls, invocation)
 
 	invocation.Parameters.Actor = actor
 	invocation.Parameters.Action = action
@@ -147,8 +148,6 @@ func (_f1 *FakeProvider) Limit(actor string, action string, path string) (ident1
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
-
-	_f1.LimitCalls = append(_f1.LimitCalls, invocation)
 
 	return
 }
@@ -276,6 +275,7 @@ func (_f6 *FakeProvider) LimitResultsForCall(actor string, action string, path s
 
 func (_f7 *FakeProvider) Allow(actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 	invocation := new(ProviderAllowInvocation)
+	_f7.AllowCalls = append(_f7.AllowCalls, invocation)
 
 	invocation.Parameters.Actor = actor
 	invocation.Parameters.Action = action
@@ -286,8 +286,6 @@ func (_f7 *FakeProvider) Allow(actor string, action string, path string) (ident1
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
-
-	_f7.AllowCalls = append(_f7.AllowCalls, invocation)
 
 	return
 }
@@ -416,10 +414,9 @@ func (_f12 *FakeProvider) AllowResultsForCall(actor string, action string, path 
 
 func (_f13 *FakeProvider) Close() {
 	invocation := new(ProviderCloseInvocation)
+	_f13.CloseCalls = append(_f13.CloseCalls, invocation)
 
 	_f13.CloseHook()
-
-	_f13.CloseCalls = append(_f13.CloseCalls, invocation)
 
 	return
 }
