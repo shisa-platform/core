@@ -60,9 +60,9 @@ func (s *GoodbyeService) Endpoints() []service.Endpoint {
 }
 
 func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
-	addrs, merr := s.resolver.Resolve(s.Name())
-	if merr != nil {
-		return merry.Prepend(merr, "healthcheck")
+	addrs, err := s.resolver.Resolve(s.Name())
+	if err != nil {
+		return err.Prepend("healthcheck")
 	}
 
 	if len(addrs) < 1 {
@@ -75,7 +75,7 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
 	addrs, err := s.resolver.Resolve(s.Name())
 	if err != nil {
-		return nil, merry.Prepend(err, "router")
+		return nil, err.Prepend("router")
 	}
 
 	if len(addrs) < 1 {
@@ -95,7 +95,7 @@ func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*h
 func (s *GoodbyeService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) (httpx.Response, merry.Error) {
 	var buf bytes.Buffer
 	if err := response.Serialize(&buf); err != nil {
-		return nil, merry.Prepend(err, "serializing response")
+		return nil, err.Prepend("serializing response")
 	}
 	body := make(map[string]string)
 	if err := json.Unmarshal(buf.Bytes(), &body); err != nil {
