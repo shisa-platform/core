@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/ansel1/merry"
@@ -93,23 +92,22 @@ func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*h
 	return request, nil
 }
 
-func (s *GoodbyeService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) httpx.Response {
+func (s *GoodbyeService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) (httpx.Response, merry.Error) {
 	var buf bytes.Buffer
 	if err := response.Serialize(&buf); err != nil {
-		return httpx.NewEmptyError(http.StatusBadGateway, err)
+		return nil, merry.Prepend(err, "serializing response")
 	}
 	body := make(map[string]string)
 	if err := json.Unmarshal(buf.Bytes(), &body); err != nil {
-		return httpx.NewEmptyError(http.StatusBadGateway, err)
+		return nil, merry.Prepend(err, "unmarshaling response")
 	}
 	who, ok := body["goodbye"]
 	if !ok {
-		err := merry.New("goodbye key missing from response")
-		return httpx.NewEmptyError(http.StatusBadGateway, err)
+		return nil, merry.New("goodbye key missing from response")
 	}
 
 	farewell := httpx.NewOK(Farewell{"Goodbye " + who})
 	addCommonHeaders(farewell)
 
-	return farewell
+	return farewell, nil
 }
