@@ -112,24 +112,10 @@ func (n *nodeGroup) choose(g int) (final *node) {
 	n.mtx.RLock()
 	defer n.mtx.RUnlock()
 
-	ranIndices := make([]int, 0, g)
-	for len(ranIndices) != g {
-		i := rando.Intn(len(n.nodes))
-		found := false
+	choices := rando.Perm(len(n.nodes))
 
-		for _, j := range ranIndices {
-			if i == j {
-				found = true
-			}
-		}
-
-		if !found {
-			ranIndices = append(ranIndices, i)
-		}
-	}
-
-	for _, k := range ranIndices {
-		choice := n.nodes[k]
+	for i := 0; i < g; i++ {
+		choice := n.nodes[choices[i]]
 		if final == nil || choice.conns < final.conns {
 			final = choice
 		}

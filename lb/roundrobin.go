@@ -53,8 +53,6 @@ func (c *rrCache) Next(service string, nodes []string) string {
 
 			c.mtx.Unlock()
 
-			r = c.services[service]
-
 			return nodes[0]
 		}
 

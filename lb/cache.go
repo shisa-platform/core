@@ -20,6 +20,14 @@ type CacheBalancer struct {
 }
 
 func (r *CacheBalancer) Balance(service string) (string, merry.Error) {
+	if r.Cache == nil {
+		return "", merry.New("cache must not be nil")
+	}
+
+	if r.Resolver == nil {
+		return "", merry.New("resolver must not be nil")
+	}
+
 	nodes, err := r.Resolver.Resolve(service)
 	if err != nil {
 		return "", err.Prepend("balance")
