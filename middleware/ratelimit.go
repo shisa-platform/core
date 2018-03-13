@@ -71,7 +71,7 @@ type RateLimiter struct {
 // NewClient returns a rate-limiting middleware that throttles
 // requests from the request's client IP address using the given
 // rate limit Provider.
-func NewClient(provider ratelimit.Provider, opts ...RateLimiterOption) (*RateLimiter, merry.Error) {
+func NewClientLimiter(provider ratelimit.Provider, opts ...RateLimiterOption) (*RateLimiter, merry.Error) {
 	if provider == nil {
 		return nil, merry.New("rate limit provider must be non-nil")
 	}
@@ -92,7 +92,7 @@ func NewClient(provider ratelimit.Provider, opts ...RateLimiterOption) (*RateLim
 // NewUser returns a rate-limiting middleware that throttles
 // requests from the context's Actor using the given rate limit
 // Provider.
-func NewUser(provider ratelimit.Provider, opts ...RateLimiterOption) (*RateLimiter, merry.Error) {
+func NewUserLimiter(provider ratelimit.Provider, opts ...RateLimiterOption) (*RateLimiter, merry.Error) {
 	if provider == nil {
 		return nil, merry.New("rate limit provider must be non-nil")
 	}
@@ -113,7 +113,7 @@ func NewUser(provider ratelimit.Provider, opts ...RateLimiterOption) (*RateLimit
 // New returns a rate-limiting middleware that throttles requests
 // from the given extractor's value using the given rate limit
 // Provider.
-func New(provider ratelimit.Provider, extractor httpx.StringExtractor, opts ...RateLimiterOption) (*RateLimiter, merry.Error) {
+func NewRateLimiter(provider ratelimit.Provider, extractor httpx.StringExtractor, opts ...RateLimiterOption) (*RateLimiter, merry.Error) {
 	if provider == nil {
 		return nil, merry.New("rate limit provider must be non-nil")
 	}

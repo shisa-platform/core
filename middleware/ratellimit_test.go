@@ -79,7 +79,7 @@ func TestRateLimiterServiceCustomErrorHandler(t *testing.T) {
 		return httpx.NewEmpty(http.StatusTeapot)
 	}
 
-	limiter, err := New(provider, lolExtractor, RateLimiterErrorHandler(handler))
+	limiter, err := NewRateLimiter(provider, lolExtractor, RateLimiterErrorHandler(handler))
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -103,7 +103,7 @@ func TestRateLimiterServiceCustomRateLimitHandler(t *testing.T) {
 		return httpx.NewEmpty(http.StatusTeapot)
 	}
 
-	limiter, err := New(provider, lolExtractor, RateLimiterHandler(handler))
+	limiter, err := NewRateLimiter(provider, lolExtractor, RateLimiterHandler(handler))
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -127,7 +127,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerPanic(t *testing.T) {
 		panic(merry.New("i blew up!"))
 	}
 
-	limiter, err := New(provider, lolExtractor, RateLimiterHandler(handler))
+	limiter, err := NewRateLimiter(provider, lolExtractor, RateLimiterHandler(handler))
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -155,7 +155,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerPanicErrorHandler(t *testing.T)
 		return httpx.NewEmpty(http.StatusTeapot)
 	}
 
-	limiter, err := New(provider, lolExtractor)
+	limiter, err := NewRateLimiter(provider, lolExtractor)
 	assert.NoError(t, err)
 
 	limiter.Handler = handler
@@ -185,7 +185,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerAndErrorHandlerBoom(t *testing.
 		panic(merry.New("i blewed up too!"))
 	}
 
-	limiter, err := New(provider, lolExtractor)
+	limiter, err := NewRateLimiter(provider, lolExtractor)
 	assert.NoError(t, err)
 
 	limiter.Handler = handler
@@ -213,7 +213,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerPanicString(t *testing.T) {
 		panic("i blew up!")
 	}
 
-	limiter, err := New(provider, lolExtractor, RateLimiterHandler(handler))
+	limiter, err := NewRateLimiter(provider, lolExtractor, RateLimiterHandler(handler))
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -234,7 +234,7 @@ func TestClientRateLimiterServiceAllowError(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClient(provider)
+	limiter, err := NewClientLimiter(provider)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -254,7 +254,7 @@ func TestClientRateLimiterServiceThrottled(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClient(provider)
+	limiter, err := NewClientLimiter(provider)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -275,7 +275,7 @@ func TestRateLimiterServiceRateLimitProviderPanic(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClient(provider)
+	limiter, err := NewClientLimiter(provider)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -295,7 +295,7 @@ func TestRateLimiterServiceRateLimitProviderPanicString(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClient(provider)
+	limiter, err := NewClientLimiter(provider)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -314,7 +314,7 @@ func TestClientRateLimiterOK(t *testing.T) {
 			return true, 0, nil
 		},
 	}
-	limiter, err := NewClient(provider)
+	limiter, err := NewClientLimiter(provider)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -332,7 +332,7 @@ func TestUserRateLimiterOK(t *testing.T) {
 			return true, 0, nil
 		},
 	}
-	limiter, err := NewUser(provider)
+	limiter, err := NewUserLimiter(provider)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -350,7 +350,7 @@ func TestCustomRateLimiterOK(t *testing.T) {
 			return true, 0, nil
 		},
 	}
-	limiter, err := New(provider, lolExtractor)
+	limiter, err := NewRateLimiter(provider, lolExtractor)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -369,19 +369,19 @@ func TestRateLimiterConstrctor(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClient(provider)
+	limiter, err := NewClientLimiter(provider)
 	assert.NotNil(t, limiter)
 	assert.NoError(t, err)
 	assert.Nil(t, limiter.Handler)
 	assert.Nil(t, limiter.ErrorHandler)
 
-	limiter, err = NewUser(provider)
+	limiter, err = NewUserLimiter(provider)
 	assert.NotNil(t, limiter)
 	assert.NoError(t, err)
 	assert.Nil(t, limiter.Handler)
 	assert.Nil(t, limiter.ErrorHandler)
 
-	limiter, err = New(provider, lolExtractor)
+	limiter, err = NewRateLimiter(provider, lolExtractor)
 	assert.NotNil(t, limiter)
 	assert.NoError(t, err)
 	assert.Nil(t, limiter.Handler)
@@ -399,7 +399,7 @@ func TestCustomRateLimiterExtractorPanic(t *testing.T) {
 		panic(merry.New("i blewed up!"))
 	}
 
-	limiter, err := New(provider, panicExtractor)
+	limiter, err := NewRateLimiter(provider, panicExtractor)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -424,7 +424,7 @@ func TestCustomRateLimiterExtractorPanicString(t *testing.T) {
 		panic("i blewed up!")
 	}
 
-	limiter, err := New(provider, panicExtractor)
+	limiter, err := NewRateLimiter(provider, panicExtractor)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -479,57 +479,57 @@ func TestRateLimiterServiceNilExtractor(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 }
 
-func TestRateLimiterNewClientNilProvider(t *testing.T) {
-	limiter, err := NewClient(nil)
+func TestRateLimiterNewClientLimiterNilProvider(t *testing.T) {
+	limiter, err := NewClientLimiter(nil)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
 
-func TestRateLimiterNewClientPanicOption(t *testing.T) {
+func TestRateLimiterNewClientLimiterPanicOption(t *testing.T) {
 	provider := &ratelimit.FakeProvider{}
 
-	limiter, err := NewClient(provider, panicOption)
+	limiter, err := NewClientLimiter(provider, panicOption)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 
-	limiter, err = NewClient(provider, panicStringOption)
-	assert.Nil(t, limiter)
-	assert.Error(t, err)
-}
-
-func TestRateLimiterNewUserNilProvider(t *testing.T) {
-	limiter, err := NewUser(nil)
+	limiter, err = NewClientLimiter(provider, panicStringOption)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
 
-func TestRateLimiterNewUserPanicOption(t *testing.T) {
+func TestRateLimiterNewUserLimiterNilProvider(t *testing.T) {
+	limiter, err := NewUserLimiter(nil)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewUserLimiterPanicOption(t *testing.T) {
 	provider := &ratelimit.FakeProvider{}
 
-	limiter, err := NewUser(provider, panicOption)
+	limiter, err := NewUserLimiter(provider, panicOption)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 
-	limiter, err = NewUser(provider, panicStringOption)
+	limiter, err = NewUserLimiter(provider, panicStringOption)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
 
 func TestRateLimiterNewrNilProvider(t *testing.T) {
-	limiter, err := New(nil, lolExtractor)
+	limiter, err := NewRateLimiter(nil, lolExtractor)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
 
 func TestRateLimiterNewrNilExtractor(t *testing.T) {
 	provider := &ratelimit.FakeProvider{}
-	limiter, err := New(provider, nil)
+	limiter, err := NewRateLimiter(provider, nil)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
 
 func TestRateLimiterNewrAllNil(t *testing.T) {
-	limiter, err := New(nil, nil)
+	limiter, err := NewRateLimiter(nil, nil)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
@@ -537,11 +537,11 @@ func TestRateLimiterNewrAllNil(t *testing.T) {
 func TestRateLimiterNewPanicOption(t *testing.T) {
 	provider := &ratelimit.FakeProvider{}
 
-	limiter, err := New(provider, lolExtractor, panicOption)
+	limiter, err := NewRateLimiter(provider, lolExtractor, panicOption)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 
-	limiter, err = New(provider, lolExtractor, panicStringOption)
+	limiter, err = NewRateLimiter(provider, lolExtractor, panicStringOption)
 	assert.Nil(t, limiter)
 	assert.Error(t, err)
 }
