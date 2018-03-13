@@ -95,14 +95,17 @@ type ReverseProxy struct {
 	// Router must be non-nil or an InternalServiceError
 	// status response will be returned.
 	Router Router
+
 	// Invoker can be set to optionally customize how the proxied
 	// server is contacted.  If this is not set
 	// `http.DefaultTransport` will be used.
 	Invoker Invoker
+
 	// Responder can be set to optionally customize the response
 	// from the proxied server.  If this is not set the response
 	// will not be modified.
 	Responder Responder
+
 	// ErrorHandler can be set to optionally customize the
 	// response for an error. The `err` parameter passed to the
 	// handler will have a recommended HTTP status code. The
