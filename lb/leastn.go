@@ -12,27 +12,20 @@ import (
 var _ Cache = &leastConnsCache{}
 
 type leastConnsCache struct {
-	n int
-
+	n   int
 	mtx sync.RWMutex
-
-	r map[string]*nodeGroup
+	r   map[string]*nodeGroup
 }
 
 // NewLeastN returns a Balancer that returns the node with the least connections
 // of `n` randomly chosen nodes
 func NewLeastN(r sd.Resolver, n int) Balancer {
-	cache := newLeastNCache(n)
-	return &cacheBalancer{
-		Cache:    cache,
+	return &CacheBalancer{
+		Cache: &leastConnsCache{
+			n: n,
+			r: make(map[string]*nodeGroup),
+		},
 		Resolver: r,
-	}
-}
-
-func newLeastNCache(n int) *leastConnsCache {
-	return &leastConnsCache{
-		n: n,
-		r: make(map[string]*nodeGroup),
 	}
 }
 
@@ -40,8 +33,6 @@ func (c *leastConnsCache) Next(service string, nodeList []string) string {
 	if len(nodeList) == 0 {
 		return ""
 	}
-
-	rando := rand.New(rand.NewSource(time.Now().Unix()))
 
 	ng := newNodeGroup(nodeList)
 
@@ -52,14 +43,18 @@ func (c *leastConnsCache) Next(service string, nodeList []string) string {
 	if !ok {
 		// acquire write lock in order to add to add `*nodes` to the cache
 		c.mtx.Lock()
-		c.r[service] = ng
-		c.mtx.Unlock()
+		// Check service again after acquiring write lock
+		if r, ok = c.r[service]; !ok {
+			c.r[service] = ng
+			c.mtx.Unlock()
 
-		r = ng
+			r = ng
+		} else {
+			c.mtx.Unlock()
+			r.merge(ng.nodes)
+		}
 	} else {
-		r.mtx.Lock()
-		r.nodes = updateNodes(ng.nodes, r.nodes)
-		r.mtx.Unlock()
+		r.merge(ng.nodes)
 	}
 
 	g := c.n
@@ -67,16 +62,92 @@ func (c *leastConnsCache) Next(service string, nodeList []string) string {
 		g = len(nodeList)
 	}
 
-	r.mtx.RLock()
-	var final *node
-	for i := 0; i < g; i++ {
-		choice := r.nodes[rando.Intn(len(nodeList))]
+	final := r.choose(g)
+
+	atomic.AddUint64(&final.conns, 1)
+	return final.addr
+}
+
+type nodeGroup struct {
+	mtx   sync.RWMutex
+	nodes []*node
+}
+
+type node struct {
+	addr  string
+	conns uint64
+}
+
+func (n *nodeGroup) merge(newNodes []*node) {
+	merged := make([]*node, 0, len(newNodes))
+	newSet := make(map[string]*node, len(newNodes))
+
+	n.mtx.Lock()
+	defer n.mtx.Unlock()
+
+	for i := range newNodes {
+		newN := newNodes[i]
+		newSet[newN.addr] = newN
+	}
+
+	for i, o := range n.nodes {
+		if _, ok := newSet[o.addr]; ok {
+			merged = append(merged, n.nodes[i])
+			delete(newSet, o.addr)
+		}
+	}
+
+	for _, node := range newSet {
+		merged = append(merged, node)
+	}
+
+	n.nodes = merged
+
+	return
+}
+
+func (n *nodeGroup) choose(g int) (final *node) {
+	rando := rand.New(rand.NewSource(time.Now().Unix()))
+
+	n.mtx.RLock()
+	defer n.mtx.RUnlock()
+
+	ranIndices := make([]int, 0, g)
+	for len(ranIndices) != g {
+		i := rando.Intn(len(n.nodes))
+		found := false
+
+		for _, j := range ranIndices {
+			if i == j {
+				found = true
+			}
+		}
+
+		if !found {
+			ranIndices = append(ranIndices, i)
+		}
+	}
+
+	for _, k := range ranIndices {
+		choice := n.nodes[k]
 		if final == nil || choice.conns < final.conns {
 			final = choice
 		}
 	}
-	r.mtx.RUnlock()
 
-	atomic.AddUint64(&final.conns, 1)
-	return final.addr
+	return final
+}
+
+func newNodeGroup(nodeList []string) *nodeGroup {
+	ng := &nodeGroup{
+		nodes: make([]*node, len(nodeList)),
+	}
+
+	for i, addr := range nodeList {
+		ng.nodes[i] = &node{
+			addr: addr,
+		}
+	}
+
+	return ng
 }

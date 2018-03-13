@@ -4,8 +4,10 @@ import (
 	"github.com/ansel1/merry"
 )
 
-// Balancer defines a Balance method that returns an addr string and
-// merry.Error for a service node given a string denoting the service name
+// Balancer is a load balancer that wraps a service discovery
+// instance to distribute access across the nodes of a service.
 type Balancer interface {
+	// Balance will return an address for a service or an empty
+	// string if no nodes are available.
 	Balance(service string) (addr string, err merry.Error)
 }

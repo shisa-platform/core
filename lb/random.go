@@ -15,7 +15,8 @@ type randomLB struct {
 	res sd.Resolver
 }
 
-// NewRandom returns a Balancer
+// NewRandom returns a Balancer that randomly selects one of the current nodes
+// supplied by its Resolver
 func NewRandom(res sd.Resolver) Balancer {
 	return &randomLB{
 		res: res,

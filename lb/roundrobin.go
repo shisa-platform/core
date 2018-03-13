@@ -23,7 +23,7 @@ type rrCache struct {
 // NewRoundRobin returns a Balancer that implements round robin load balancing
 func NewRoundRobin(r sd.Resolver) Balancer {
 	cache := newRRCache()
-	return &cacheBalancer{
+	return &CacheBalancer{
 		Cache:    cache,
 		Resolver: r,
 	}
@@ -40,32 +40,34 @@ func (c *rrCache) Next(service string, nodes []string) string {
 		return ""
 	}
 
-	var (
-		inew uint64
-		idx  uint64
-	)
-
 	c.mtx.RLock()
 	r, ok := c.services[service]
 	c.mtx.RUnlock()
 	if !ok {
-		// acquire write lock in order to add to add `*nodes` to the cache
 		c.mtx.Lock()
-		c.services[service] = &ring{
-			nodes: nodes,
+		// Check service again after acquiring write lock
+		if r, ok = c.services[service]; !ok {
+			c.services[service] = &ring{
+				nodes: nodes,
+			}
+
+			c.mtx.Unlock()
+
+			r = c.services[service]
+
+			return nodes[0]
 		}
+
 		c.mtx.Unlock()
-
-		r = c.services[service]
-
-		r.mtx.RLock()
-		defer r.mtx.RUnlock()
-		idx = uint64(0)
-		return r.nodes[idx]
 	}
 
-	// Update (potentially) happens here
-	merged := make([]string, len(nodes))
+	r.merge(nodes)
+
+	return r.nextNode()
+}
+
+func (r *ring) merge(nodes []string) {
+	merged := make([]string, 0, len(nodes))
 	newSet := make(map[string]struct{}, len(nodes))
 
 	for _, node := range nodes {
@@ -73,30 +75,29 @@ func (c *rrCache) Next(service string, nodes []string) string {
 	}
 
 	r.mtx.RLock()
-	i := 0
 	for _, o := range r.nodes {
 		if _, ok := newSet[o]; ok {
-			merged[i] = o
+			merged = append(merged, o)
 			delete(newSet, o)
-			i++
 		}
 	}
 	r.mtx.RUnlock()
 
 	for node := range newSet {
-		merged[i] = node
-		i++
+		merged = append(merged, node)
 	}
 
 	r.mtx.Lock()
 	r.nodes = merged
 	r.mtx.Unlock()
+}
 
-	inew = atomic.AddUint64(&r.index, 1)
+func (r *ring) nextNode() string {
+	inew := atomic.AddUint64(&r.index, 1)
 
 	r.mtx.RLock()
 	defer r.mtx.RUnlock()
 
-	idx = inew % uint64(len(r.nodes))
+	idx := inew % uint64(len(r.nodes))
 	return r.nodes[idx]
 }

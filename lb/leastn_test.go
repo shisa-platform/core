@@ -82,3 +82,37 @@ func TestLeastNBalanceLargeN(t *testing.T) {
 	assert.NoError(t, e)
 	assert.Contains(t, testAddrs, node1)
 }
+
+func TestMergeNodes(t *testing.T) {
+	newGroup := newNodeGroup(testAddrs)
+	before := make([]*node, len(newGroup.nodes))
+	copy(before, newGroup.nodes)
+
+	old := newNodeGroup([]string{"10.0.0.4:9000", "10.0.0.5:9000", "10.0.0.6:9000"})
+
+	old.merge(newGroup.nodes)
+	result := old.nodes
+	resAddrs := make([]string, len(result))
+
+	for i, r := range result {
+		resAddrs[i] = r.addr
+	}
+
+	assert.Len(t, result, len(before))
+	assert.Subset(t, result, before)
+	assert.Contains(t, resAddrs, "10.0.0.4:9000")
+	assert.NotContains(t, resAddrs, "10.0.0.5:9000")
+	assert.NotContains(t, resAddrs, "10.0.0.6:9000")
+}
+
+func TestNewNodeGroup(t *testing.T) {
+	result := newNodeGroup(testAddrs)
+
+	resAddrs := make([]string, len(result.nodes))
+	for i, r := range result.nodes {
+		resAddrs[i] = r.addr
+	}
+
+	assert.Equal(t, len(testAddrs), len(result.nodes))
+	assert.ElementsMatch(t, testAddrs, resAddrs)
+}
