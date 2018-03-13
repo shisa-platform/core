@@ -88,7 +88,7 @@ func (e endpoint) handleError(ctx context.Context, request *httpx.Request, err m
 	response := e.iseHandler.InvokeSafely(ctx, request, err, &exception)
 	if exception != nil {
 		response = httpx.NewEmptyError(merry.HTTPCode(err), err)
-		exception = merry.WithMessage(exception, "while invoking InternalServerErrorHandler")
+		exception = merry.WithMessage(exception, "invoking InternalServerErrorHandler")
 	}
 
 	return response, exception
