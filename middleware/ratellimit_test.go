@@ -16,316 +16,532 @@ import (
 	"github.com/percolate/shisa/ratelimit"
 )
 
-type clientThrottlerCase struct {
-	Throttler          *ClientThrottler
-	FakeLimiter        *ratelimit.FakeProvider
-	ExpectShortCircuit bool
-	StatusCode         int
-	CoolDown           string
+func lolExtractor(context.Context, *httpx.Request) (string, merry.Error) {
+	return "lol", nil
 }
 
-func checkClientThrottlerCase(t *testing.T, c clientThrottlerCase) {
-	ctx := context.New(nil)
+func panicOption(*RateLimiter) {
+	panic(merry.New("i blewed up"))
+}
 
-	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{
-		Request: httpReq,
+func panicStringOption(*RateLimiter) {
+	panic("i blewed up")
+}
+
+type rateLimitTestCase struct {
+	RateLimiter    *RateLimiter
+	Provider       *ratelimit.FakeProvider
+	ExpectResponse bool
+	StatusCode     int
+	CoolDown       string
+	ExtractorError bool
+}
+
+func (c rateLimitTestCase) check(t *testing.T) {
+	t.Helper()
+	request := &httpx.Request{
+		Request: httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil),
 	}
+	ctx := context.New(request.Context())
+	ctx = ctx.WithActor(&models.FakeUser{IDHook: func() string { return "123" }})
 
-	res := c.Throttler.Service(ctx, req)
+	result := c.RateLimiter.Service(ctx, request)
 
-	if res != nil {
-		assert.True(t, c.ExpectShortCircuit)
-		assert.Equal(t, c.StatusCode, res.StatusCode())
+	if result != nil {
+		assert.True(t, c.ExpectResponse)
+		assert.Equal(t, c.StatusCode, result.StatusCode())
 		if c.CoolDown != "" {
-			assert.Equal(t, c.CoolDown, res.Headers().Get(RetryAfterHeaderKey))
+			assert.Equal(t, c.CoolDown, result.Headers().Get(RetryAfterHeaderKey))
 		}
 	} else {
-		assert.False(t, c.ExpectShortCircuit)
+		assert.False(t, c.ExpectResponse)
 	}
 
-	c.FakeLimiter.AssertAllowCalledOnceWith(t, req.ClientIP(), req.Method, req.URL.Path)
+	actor, err := c.RateLimiter.extractor.InvokeSafely(ctx, request)
+	if c.ExtractorError {
+		assert.Empty(t, actor)
+		assert.Error(t, err)
+	} else {
+		assert.NotEmpty(t, actor)
+		assert.NoError(t, err)
+		c.Provider.AssertAllowCalledOnceWith(t, actor, request.Method, request.URL.Path)
+	}
 }
 
-func TestClientThrottlerServiceErrorHandlerHook(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+func TestRateLimiterServiceCustomErrorHandler(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
 			return false, 0, merry.New("found a teapot")
 		},
 	}
 
-	ct := &ClientThrottler{
-		Limiter: fl,
-		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			return httpx.NewEmpty(http.StatusTeapot)
-		},
+	handler := func(context.Context, *httpx.Request, merry.Error) httpx.Response {
+		return httpx.NewEmpty(http.StatusTeapot)
 	}
 
-	c := clientThrottlerCase{
-		Throttler:          ct,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusTeapot,
+	limiter, err := New(provider, lolExtractor, RateLimiterErrorHandler(handler))
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTeapot,
 	}
 
-	checkClientThrottlerCase(t, c)
+	c.check(t)
 }
 
-func TestClientThrottlerServiceRateLimitHandlerHook(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+func TestRateLimiterServiceCustomRateLimitHandler(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
 
-	ut := &ClientThrottler{
-		Limiter: fl,
-		RateLimitHandler: func(c context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
-			return httpx.NewEmpty(http.StatusTeapot)
+	handler := func(context.Context, *httpx.Request, time.Duration) httpx.Response {
+		return httpx.NewEmpty(http.StatusTeapot)
+	}
+
+	limiter, err := New(provider, lolExtractor, RateLimiterHandler(handler))
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTeapot,
+	}
+
+	c.check(t)
+}
+
+func TestRateLimiterServiceCustomRateLimitHandlerPanic(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
 		},
 	}
 
-	c := clientThrottlerCase{
-		Throttler:          ut,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusTeapot,
+	handler := func(context.Context, *httpx.Request, time.Duration) httpx.Response {
+		panic(merry.New("i blew up!"))
 	}
 
-	checkClientThrottlerCase(t, c)
+	limiter, err := New(provider, lolExtractor, RateLimiterHandler(handler))
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTooManyRequests,
+		CoolDown:       strconv.Itoa(60 * 60),
+	}
+
+	c.check(t)
 }
 
-func TestClientThrottlerServiceAllowError(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+func TestRateLimiterServiceCustomRateLimitHandlerPanicErrorHandler(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
+		},
+	}
+
+	handler := func(context.Context, *httpx.Request, time.Duration) httpx.Response {
+		panic(merry.New("i blew up!"))
+	}
+	errHandler := func(context.Context, *httpx.Request, merry.Error) httpx.Response {
+		return httpx.NewEmpty(http.StatusTeapot)
+	}
+
+	limiter, err := New(provider, lolExtractor)
+	assert.NoError(t, err)
+
+	limiter.Handler = handler
+	limiter.ErrorHandler = errHandler
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTeapot,
+	}
+
+	c.check(t)
+}
+
+func TestRateLimiterServiceCustomRateLimitHandlerAndErrorHandlerBoom(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
+		},
+	}
+
+	handler := func(context.Context, *httpx.Request, time.Duration) httpx.Response {
+		panic(merry.New("i blew up!"))
+	}
+	errHandler := func(context.Context, *httpx.Request, merry.Error) httpx.Response {
+		panic(merry.New("i blewed up too!"))
+	}
+
+	limiter, err := New(provider, lolExtractor)
+	assert.NoError(t, err)
+
+	limiter.Handler = handler
+	limiter.ErrorHandler = errHandler
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTooManyRequests,
+		CoolDown:       strconv.Itoa(60 * 60),
+	}
+
+	c.check(t)
+}
+
+func TestRateLimiterServiceCustomRateLimitHandlerPanicString(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return false, time.Hour, nil
+		},
+	}
+
+	handler := func(context.Context, *httpx.Request, time.Duration) httpx.Response {
+		panic("i blew up!")
+	}
+
+	limiter, err := New(provider, lolExtractor, RateLimiterHandler(handler))
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTooManyRequests,
+		CoolDown:       strconv.Itoa(60 * 60),
+	}
+
+	c.check(t)
+}
+
+func TestClientRateLimiterServiceAllowError(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
 			return false, 0, merry.New("something broke")
 		},
 	}
 
-	ct := &ClientThrottler{
-		Limiter: fl,
+	limiter, err := NewClient(provider)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusInternalServerError,
 	}
 
-	c := clientThrottlerCase{
-		Throttler:          ct,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusInternalServerError,
-	}
-
-	checkClientThrottlerCase(t, c)
+	c.check(t)
 }
 
-func TestClientThrottlerServiceThrottled(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
+func TestClientRateLimiterServiceThrottled(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
 
-	ct := &ClientThrottler{
-		Limiter: fl,
+	limiter, err := NewClient(provider)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusTooManyRequests,
+		CoolDown:       strconv.Itoa(60 * 60),
 	}
 
-	c := clientThrottlerCase{
-		Throttler:          ct,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusTooManyRequests,
-		CoolDown:           strconv.Itoa(60 * 60),
-	}
-
-	checkClientThrottlerCase(t, c)
+	c.check(t)
 }
 
-func TestClientThrottlerServiceNilLimiter(t *testing.T) {
+func TestRateLimiterServiceRateLimitProviderPanic(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	limiter, err := NewClient(provider)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusInternalServerError,
+	}
+
+	c.check(t)
+}
+
+func TestRateLimiterServiceRateLimitProviderPanicString(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			panic("i blewed up!")
+		},
+	}
+
+	limiter, err := NewClient(provider)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusInternalServerError,
+	}
+
+	c.check(t)
+}
+
+func TestClientRateLimiterOK(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+	limiter, err := NewClient(provider)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: false,
+	}
+
+	c.check(t)
+}
+
+func TestUserRateLimiterOK(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+	limiter, err := NewUser(provider)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: false,
+	}
+
+	c.check(t)
+}
+
+func TestCustomRateLimiterOK(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+	limiter, err := New(provider, lolExtractor)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: false,
+	}
+
+	c.check(t)
+}
+
+func TestRateLimiterConstrctor(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+
+	limiter, err := NewClient(provider)
+	assert.NotNil(t, limiter)
+	assert.NoError(t, err)
+	assert.Nil(t, limiter.Handler)
+	assert.Nil(t, limiter.ErrorHandler)
+
+	limiter, err = NewUser(provider)
+	assert.NotNil(t, limiter)
+	assert.NoError(t, err)
+	assert.Nil(t, limiter.Handler)
+	assert.Nil(t, limiter.ErrorHandler)
+
+	limiter, err = New(provider, lolExtractor)
+	assert.NotNil(t, limiter)
+	assert.NoError(t, err)
+	assert.Nil(t, limiter.Handler)
+	assert.Nil(t, limiter.ErrorHandler)
+}
+
+func TestCustomRateLimiterExtractorPanic(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+
+	panicExtractor := func(context.Context, *httpx.Request) (string, merry.Error) {
+		panic(merry.New("i blewed up!"))
+	}
+
+	limiter, err := New(provider, panicExtractor)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusInternalServerError,
+		ExtractorError: true,
+	}
+
+	c.check(t)
+}
+
+func TestCustomRateLimiterExtractorPanicString(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+
+	panicExtractor := func(context.Context, *httpx.Request) (string, merry.Error) {
+		panic("i blewed up!")
+	}
+
+	limiter, err := New(provider, panicExtractor)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusInternalServerError,
+		ExtractorError: true,
+	}
+
+	c.check(t)
+}
+
+func TestRateLimiterServiceEmpty(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	req := &httpx.Request{Request: httpReq}
 
-	ut := &ClientThrottler{}
+	ut := &RateLimiter{}
 	res := ut.Service(ctx, req)
 
 	assert.NotNil(t, res)
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 }
 
-func TestClientThrottlerServicePass(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return true, 0, nil
-		},
-	}
-
-	ct := &ClientThrottler{
-		Limiter: fl,
-	}
-
-	c := clientThrottlerCase{
-		Throttler:          ct,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: false,
-	}
-
-	checkClientThrottlerCase(t, c)
-}
-
-type userThrottlerCase struct {
-	Throttler          *UserThrottler
-	FakeLimiter        *ratelimit.FakeProvider
-	ExpectShortCircuit bool
-	StatusCode         int
-	CoolDown           string
-}
-
-func checkUserThrottlerCase(t *testing.T, u userThrottlerCase) {
-	ctx := context.New(nil).WithActor(&models.FakeUser{
-		IDHook: func() string {
-			return "5"
-		},
-	})
-
-	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{
-		Request: httpReq,
-	}
-
-	res := u.Throttler.Service(ctx, req)
-
-	if res != nil {
-		assert.True(t, u.ExpectShortCircuit)
-		assert.Equal(t, u.StatusCode, res.StatusCode())
-		if u.CoolDown != "" {
-			assert.Equal(t, u.CoolDown, res.Headers().Get(RetryAfterHeaderKey))
-		}
-	} else {
-		assert.False(t, u.ExpectShortCircuit)
-	}
-
-	u.FakeLimiter.AssertAllowCalledOnceWith(t, ctx.Actor().ID(), req.Method, req.URL.Path)
-}
-
-func TestUserThrottlerServiceErrorHandlerHook(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return false, 0, merry.New("found a teapot")
-		},
-	}
-
-	ut := &UserThrottler{
-		Limiter: fl,
-		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			return httpx.NewEmpty(http.StatusTeapot)
-		},
-	}
-
-	c := userThrottlerCase{
-		Throttler:          ut,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusTeapot,
-	}
-
-	checkUserThrottlerCase(t, c)
-}
-
-func TestUserThrottlerServiceRateLimitHandlerHook(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return false, time.Hour, nil
-		},
-	}
-
-	ut := &UserThrottler{
-		Limiter: fl,
-		RateLimitHandler: func(c context.Context, r *httpx.Request, cd time.Duration) httpx.Response {
-			return httpx.NewEmpty(http.StatusTeapot)
-		},
-	}
-
-	c := userThrottlerCase{
-		Throttler:          ut,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusTeapot,
-	}
-
-	checkUserThrottlerCase(t, c)
-}
-
-func TestUserThrottlerServiceAllowError(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return false, 0, merry.New("something broke")
-		},
-	}
-
-	ut := &UserThrottler{
-		Limiter: fl,
-	}
-
-	c := userThrottlerCase{
-		Throttler:          ut,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusInternalServerError,
-	}
-
-	checkUserThrottlerCase(t, c)
-}
-
-func TestUserThrottlerServiceThrottled(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return false, time.Hour, nil
-		},
-	}
-
-	ut := &UserThrottler{
-		Limiter: fl,
-	}
-
-	c := userThrottlerCase{
-		Throttler:          ut,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: true,
-		StatusCode:         http.StatusTooManyRequests,
-		CoolDown:           strconv.Itoa(60 * 60),
-	}
-
-	checkUserThrottlerCase(t, c)
-}
-
-func TestUserThrottlerServiceNilLimiter(t *testing.T) {
+func TestRateLimiterServiceNilLimiter(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	req := &httpx.Request{Request: httpReq}
 
-	ut := &UserThrottler{}
+	ut := &RateLimiter{extractor: lolExtractor}
 	res := ut.Service(ctx, req)
 
 	assert.NotNil(t, res)
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
 }
 
-func TestUserThrottlerServicePass(t *testing.T) {
-	fl := &ratelimit.FakeProvider{
-		AllowHook: func(actor, action, path string) (bool, time.Duration, merry.Error) {
-			return true, 0, nil
-		},
-	}
+func TestRateLimiterServiceNilExtractor(t *testing.T) {
+	ctx := context.New(nil)
 
-	ut := &UserThrottler{
-		Limiter: fl,
-	}
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	req := &httpx.Request{Request: httpReq}
 
-	c := userThrottlerCase{
-		Throttler:          ut,
-		FakeLimiter:        fl,
-		ExpectShortCircuit: false,
+	ut := &RateLimiter{
+		limiter: &ratelimit.FakeProvider{},
 	}
+	res := ut.Service(ctx, req)
 
-	checkUserThrottlerCase(t, c)
+	assert.NotNil(t, res)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
+}
+
+func TestRateLimiterNewClientNilProvider(t *testing.T) {
+	limiter, err := NewClient(nil)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewClientPanicOption(t *testing.T) {
+	provider := &ratelimit.FakeProvider{}
+
+	limiter, err := NewClient(provider, panicOption)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+
+	limiter, err = NewClient(provider, panicStringOption)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewUserNilProvider(t *testing.T) {
+	limiter, err := NewUser(nil)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewUserPanicOption(t *testing.T) {
+	provider := &ratelimit.FakeProvider{}
+
+	limiter, err := NewUser(provider, panicOption)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+
+	limiter, err = NewUser(provider, panicStringOption)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewrNilProvider(t *testing.T) {
+	limiter, err := New(nil, lolExtractor)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewrNilExtractor(t *testing.T) {
+	provider := &ratelimit.FakeProvider{}
+	limiter, err := New(provider, nil)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewrAllNil(t *testing.T) {
+	limiter, err := New(nil, nil)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+}
+
+func TestRateLimiterNewPanicOption(t *testing.T) {
+	provider := &ratelimit.FakeProvider{}
+
+	limiter, err := New(provider, lolExtractor, panicOption)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
+
+	limiter, err = New(provider, lolExtractor, panicStringOption)
+	assert.Nil(t, limiter)
+	assert.Error(t, err)
 }

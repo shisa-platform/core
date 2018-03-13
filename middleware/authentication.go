@@ -142,7 +142,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 		if err1, ok := arg.(error); ok {
 			err = merry.Prepend(err1, "panic in passive authenticator middleware authenticator")
 		} else {
-			err = merry.New("panic in passive authenticator middleware").WithValue("context authenticator", arg)
+			err = merry.New("panic in passive authenticator middleware").WithValue("context", arg)
 		}
 
 		err = err.WithHTTPCode(http.StatusInternalServerError)
