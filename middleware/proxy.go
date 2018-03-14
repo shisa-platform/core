@@ -184,7 +184,6 @@ func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Resp
 func (m *ReverseProxy) route(ctx context.Context, request *httpx.Request) (*httpx.Request, httpx.Response) {
 	if m.Router == nil {
 		err := merry.New("proxy middleware router is nil")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return nil, m.handleError(ctx, request, err)
 	}
 

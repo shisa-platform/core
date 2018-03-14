@@ -38,7 +38,6 @@ type Authentication struct {
 func (m *Authentication) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	if m.Authenticator == nil {
 		err := merry.New("authentication proxy authenticator is nil")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return m.HandleError(ctx, request, err)
 	}
 
@@ -145,13 +144,11 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 			err = merry.New("panic in passive authenticator middleware").WithValue("context", arg)
 		}
 
-		err = err.WithHTTPCode(http.StatusInternalServerError)
 		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}()
 
 	if m.Authenticator == nil {
 		err := merry.New("passive authentication middleare authenticator is nil")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
