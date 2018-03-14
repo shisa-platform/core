@@ -37,17 +37,19 @@ type Authentication struct {
 
 func (m *Authentication) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	if m.Authenticator == nil {
-		err := merry.New("authentication proxy authenticator is nil")
+		err := merry.New("authentication middleware: check invariants: authenticator nil")
 		return m.HandleError(ctx, request, err)
 	}
 
-	user, err := m.authenticate(ctx, request)
-	if err != nil {
-		err = err.Prepend("running authentication middleware authenticator")
+	user, err, exception := m.authenticate(ctx, request)
+	if exception != nil {
+		exception = exception.Prepend("authentication middleware: authenticate")
+		return m.HandleError(ctx, request, exception)
+	} else if err != nil {
+		err = err.Prepend("authentication middleware: authenticate")
 		err = err.WithHTTPCode(http.StatusUnauthorized)
 		return m.HandleError(ctx, request, err)
-	}
-	if user == nil {
+	} else if user == nil {
 		return m.HandleUnauthorized(ctx, request)
 	}
 
@@ -56,7 +58,7 @@ func (m *Authentication) Service(ctx context.Context, request *httpx.Request) ht
 	return nil
 }
 
-func (m *Authentication) authenticate(ctx context.Context, request *httpx.Request) (user models.User, err merry.Error) {
+func (m *Authentication) authenticate(ctx context.Context, request *httpx.Request) (user models.User, err merry.Error, exception merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {
@@ -64,14 +66,16 @@ func (m *Authentication) authenticate(ctx context.Context, request *httpx.Reques
 		}
 
 		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in authentication middleware authenticator")
+			exception = merry.Prepend(err1, "panic in authenticator")
 			return
 		}
 
-		err = merry.New("panic in authentication middleware authenticator").WithValue("context", arg)
+		exception = merry.New("panic in authenticator").WithValue("context", arg)
 	}()
 
-	return m.Authenticator.Authenticate(ctx, request)
+	user, err = m.Authenticator.Authenticate(ctx, request)
+
+	return
 }
 
 func (m *Authentication) HandleUnauthorized(ctx context.Context, request *httpx.Request) httpx.Response {
@@ -83,9 +87,12 @@ func (m *Authentication) HandleUnauthorized(ctx context.Context, request *httpx.
 
 	response, exception := m.UnauthorizedHandler.InvokeSafely(ctx, request)
 	if exception != nil {
-		exception = exception.Prepend("running authentication middleware unauthorized handler")
-		exception = exception.WithHTTPCode(http.StatusUnauthorized)
+		exception = exception.Prepend("authentication middleware: run UnauthorizedHandler")
 		response = m.HandleError(ctx, request, exception)
+	}
+
+	if response.StatusCode() == http.StatusUnauthorized && response.Headers().Get(WWWAuthenticateHeaderKey) == "" {
+		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
 
 	return response
@@ -95,8 +102,7 @@ func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request
 	if m.ErrorHandler == nil {
 		response := httpx.NewEmptyError(merry.HTTPCode(err), err)
 		if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized {
-			challenge := m.Authenticator.Challenge()
-			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
+			response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 		}
 
 		return response
@@ -104,13 +110,13 @@ func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request
 
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
-		exception = exception.Prepend("running authentication middleware ErrorHandler")
+		exception = exception.Prepend("authentication middleware: run ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
-		if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized {
-			challenge := m.Authenticator.Challenge()
-			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
-		}
+	}
+
+	if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized && response.Headers().Get(WWWAuthenticateHeaderKey) == "" {
+		response.Headers().Set(WWWAuthenticateHeaderKey, m.Authenticator.Challenge())
 	}
 
 	return response
@@ -137,16 +143,16 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 
 		var err merry.Error
 		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in passive authenticator middleware authenticator")
+			err = merry.Prepend(err1, "passive authentication middleware: authenticate: panic in authenticator")
 		} else {
-			err = merry.New("panic in passive authenticator middleware").WithValue("context", arg)
+			err = merry.New("passive authentication middleware: authenticate: panic in authenticator").WithValue("context", arg)
 		}
 
 		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}()
 
 	if m.Authenticator == nil {
-		err := merry.New("passive authentication middleare authenticator is nil")
+		err := merry.New("passive authentication middleware: check invariants: authenticator nil")
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 

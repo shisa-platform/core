@@ -179,7 +179,7 @@ func (m *CSRFProtector) isExempt(ctx context.Context, request *httpx.Request) (o
 
 	ok, exception = m.IsExempt.InvokeSafely(ctx, request)
 	if exception != nil {
-		exception = exception.Prepend("running csrf middleware IsExempt")
+		exception = exception.Prepend("csrf middleware: run IsExempt")
 	}
 
 	return

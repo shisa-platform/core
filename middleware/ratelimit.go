@@ -205,26 +205,26 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 	return m.limiter.Allow(actor, request.Method, request.URL.Path)
 }
 
-func (m *RateLimiter) handleRateLimit(ctx context.Context, request *httpx.Request, cooldown time.Duration) (response httpx.Response) {
+func (m *RateLimiter) handleRateLimit(ctx context.Context, request *httpx.Request, cooldown time.Duration) httpx.Response {
 	value := strconv.Itoa(int(cooldown / time.Second))
 	if m.Handler == nil {
-		response = httpx.NewEmpty(http.StatusTooManyRequests)
+		response := httpx.NewEmpty(http.StatusTooManyRequests)
 		response.Headers().Set(RetryAfterHeaderKey, value)
-		return
+		return response
 	}
 
-	var exception merry.Error
-	response, exception = m.Handler.InvokeSafely(ctx, request, cooldown)
+	response, exception := m.Handler.InvokeSafely(ctx, request, cooldown)
 	if exception != nil {
 		exception = exception.Prepend("running rate limit middleware rate limit handler")
 		exception = exception.WithHTTPCode(http.StatusTooManyRequests)
 		response = m.handleError(ctx, request, exception)
-		if response.StatusCode() == http.StatusTooManyRequests {
-			response.Headers().Set(RetryAfterHeaderKey, value)
-		}
 	}
 
-	return
+	if response.StatusCode() == http.StatusTooManyRequests && response.Headers().Get(RetryAfterHeaderKey) == "" {
+		response.Headers().Set(RetryAfterHeaderKey, value)
+	}
+
+	return response
 }
 
 func (m *RateLimiter) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
