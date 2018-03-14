@@ -58,16 +58,15 @@ func (c rateLimitTestCase) check(t *testing.T) {
 		assert.False(t, c.ExpectResponse)
 	}
 
-	var exception merry.Error
-	actor, err := c.RateLimiter.extractor.InvokeSafely(ctx, request, &exception)
-	if c.ExtractorError {
-		assert.Empty(t, actor)
-		assert.NoError(t, exception)
-		assert.Error(t, err)
-	} else if c.ExtractorExcep {
+	actor, err, exception := c.RateLimiter.extractor.InvokeSafely(ctx, request)
+	if c.ExtractorExcep {
 		assert.Empty(t, actor)
 		assert.NoError(t, err)
 		assert.Error(t, exception)
+	} else if c.ExtractorError {
+		assert.Empty(t, actor)
+		assert.NoError(t, exception)
+		assert.Error(t, err)
 	} else {
 		assert.NotEmpty(t, actor)
 		assert.NoError(t, err)

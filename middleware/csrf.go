@@ -205,7 +205,7 @@ func (m *CSRFProtector) extractToken(ctx context.Context, request *httpx.Request
 	}
 
 	var exception merry.Error
-	token, err = m.ExtractToken.InvokeSafely(ctx, request, &exception)
+	token, err, exception = m.ExtractToken.InvokeSafely(ctx, request)
 	if exception != nil {
 		err = exception
 	} else if err != nil {

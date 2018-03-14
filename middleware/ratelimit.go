@@ -193,9 +193,7 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 		err = merry.New("panic in rate limit middleware limiter").WithValue("context", arg)
 	}()
 
-	var actor string
-	var exception merry.Error
-	actor, err = m.extractor.InvokeSafely(ctx, request, &exception)
+	actor, err, exception := m.extractor.InvokeSafely(ctx, request)
 	if exception != nil {
 		err = exception.Prepend("running rate limit middleware extractor")
 		return
