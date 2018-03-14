@@ -35,7 +35,7 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 // returns a determination based on that analysis.
 type RequestPredicate func(context.Context, *Request) bool
 
-func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (ok bool, exception merry.Error) {
+func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (_ bool, exception merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {

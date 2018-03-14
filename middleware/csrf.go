@@ -220,8 +220,7 @@ func (m *CSRFProtector) handleError(ctx context.Context, request *httpx.Request,
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := m.ErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("csrf middleware: run ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())

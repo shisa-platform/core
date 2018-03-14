@@ -232,8 +232,7 @@ func (m *RateLimiter) handleError(ctx context.Context, request *httpx.Request, e
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := m.ErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("running rate limit middleware ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())

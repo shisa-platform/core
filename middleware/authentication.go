@@ -81,8 +81,7 @@ func (m *Authentication) HandleUnauthorized(ctx context.Context, request *httpx.
 		return response
 	}
 
-	var exception merry.Error
-	response := m.UnauthorizedHandler.InvokeSafely(ctx, request, &exception)
+	response, exception := m.UnauthorizedHandler.InvokeSafely(ctx, request)
 	if exception != nil {
 		exception = exception.Prepend("running authentication middleware unauthorized handler")
 		exception = exception.WithHTTPCode(http.StatusUnauthorized)
@@ -103,8 +102,7 @@ func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request
 		return response
 	}
 
-	var exception merry.Error
-	response := m.ErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("running authentication middleware ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())

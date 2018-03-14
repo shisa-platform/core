@@ -84,9 +84,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handlersStart := time.Now().UTC()
 	for i, handler := range g.Handlers {
 		go func() {
-			response := handler.InvokeSafely(subCtx, request, &err)
-			if err != nil {
-				err = err.Prepend("running gateway handler").WithValue("index", i)
+			response, exception := handler.InvokeSafely(subCtx, request)
+			if exception != nil {
+				err = exception.Prepend("running gateway handler").WithValue("index", i)
 				response = g.handleError(subCtx, request, err)
 			}
 
@@ -217,9 +217,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 endpointHandlers:
 	for i, handler := range pipeline.Handlers {
 		go func() {
-			response := handler.InvokeSafely(ctx, request, &err)
-			if err != nil {
-				err = err.Prepend("running endpoint handler").WithValue("index", i)
+			response, exception := handler.InvokeSafely(ctx, request)
+			if exception != nil {
+				err = exception.Prepend("running endpoint handler").WithValue("index", i)
 				response = g.handleEndpointError(endpoint, ctx, request, err)
 			}
 
@@ -323,8 +323,7 @@ func (g *Gateway) handleNotFound(ctx context.Context, request *httpx.Request) (h
 		return httpx.NewEmpty(http.StatusNotFound), nil
 	}
 
-	var exception merry.Error
-	response := g.NotFoundHandler.InvokeSafely(ctx, request, &exception)
+	response, exception := g.NotFoundHandler.InvokeSafely(ctx, request)
 	if exception != nil {
 		err := exception.Prepend("running NotFoundHandler")
 		return httpx.NewEmpty(http.StatusNotFound), err
@@ -338,8 +337,7 @@ func (g *Gateway) handleError(ctx context.Context, request *httpx.Request, err m
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := g.InternalServerErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := g.InternalServerErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		response = httpx.NewEmptyError(merry.HTTPCode(err), err)
 		exception = exception.Prepend("running InternalServerErrorHandler")

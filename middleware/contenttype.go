@@ -97,8 +97,7 @@ func (m *RestrictContentTypes) handleError(ctx context.Context, request *httpx.R
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := m.ErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("running restrict content type middleware ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())
@@ -189,8 +188,7 @@ func (m *AllowContentTypes) handleError(ctx context.Context, request *httpx.Requ
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := m.ErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("running allow content type middleware ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())

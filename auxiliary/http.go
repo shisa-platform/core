@@ -311,7 +311,7 @@ func (s *HTTPServer) route(ctx context.Context, request *httpx.Request) (respons
 		return
 	}
 
-	response = handler.InvokeSafely(ctx, request, &exception)
+	response, exception = handler.InvokeSafely(ctx, request)
 	if exception != nil {
 		s.invokeErrorHookSafely(ctx, request, exception)
 		response = httpx.NewEmpty(http.StatusInternalServerError)

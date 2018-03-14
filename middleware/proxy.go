@@ -251,8 +251,7 @@ func (m *ReverseProxy) handleError(ctx context.Context, request *httpx.Request, 
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := m.ErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("running proxy middleware ErrorHandler")
 		exception = exception.Append("original error").Append(err.Error())

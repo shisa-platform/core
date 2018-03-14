@@ -65,9 +65,9 @@ func TestErrorHookOK(t *testing.T) {
 func TestCompletionHookNil(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 	request := &Request{Request: httptest.NewRequest(http.MethodGet, "/test", nil)}
+	snapshot := ResponseSnapshot{}
 
 	var ch CompletionHook
-	snapshot := ResponseSnapshot{}
 
 	exception := ch.InvokeSafely(ctx, request, snapshot)
 	assert.Nil(t, exception)
@@ -76,8 +76,8 @@ func TestCompletionHookNil(t *testing.T) {
 func TestCompletionHookPanic(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 	request := &Request{Request: httptest.NewRequest(http.MethodGet, "/test", nil)}
-
 	snapshot := ResponseSnapshot{}
+
 	var ch CompletionHook
 	ch = func(context.Context, *Request, ResponseSnapshot) {
 		panic(merry.New("i blewed up!"))
@@ -90,8 +90,8 @@ func TestCompletionHookPanic(t *testing.T) {
 func TestCompletionHookPanicString(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 	request := &Request{Request: httptest.NewRequest(http.MethodGet, "/test", nil)}
-
 	snapshot := ResponseSnapshot{}
+
 	var ch CompletionHook
 	ch = func(context.Context, *Request, ResponseSnapshot) {
 		panic("i blewed up!")
@@ -104,8 +104,8 @@ func TestCompletionHookPanicString(t *testing.T) {
 func TestCompletionHookOK(t *testing.T) {
 	ctx := context.NewFakeContextDefaultFatal(t)
 	request := &Request{Request: httptest.NewRequest(http.MethodGet, "/test", nil)}
-
 	snapshot := ResponseSnapshot{}
+
 	var ch CompletionHook
 	ch = func(context.Context, *Request, ResponseSnapshot) {
 	}
