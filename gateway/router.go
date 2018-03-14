@@ -303,12 +303,15 @@ func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request)
 		return request.ID(), nil
 	}
 
-	requestID, err := g.RequestIDGenerator.InvokeSafely(ctx, request)
-	if err != nil {
+	var exception merry.Error
+	requestID, err := g.RequestIDGenerator.InvokeSafely(ctx, request, &exception)
+	if exception != nil {
+		err = exception.Prepend("generating request id")
+		requestID = request.ID()
+	} else if err != nil {
 		err = err.Prepend("generating request id")
 		requestID = request.ID()
-	}
-	if requestID == "" {
+	} else if requestID == "" {
 		err = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}

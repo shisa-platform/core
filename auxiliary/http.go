@@ -273,12 +273,15 @@ func (s *HTTPServer) generateRequestID(ctx context.Context, request *httpx.Reque
 		return request.ID(), nil
 	}
 
-	requestID, err := s.RequestIDGenerator.InvokeSafely(ctx, request)
-	if err != nil {
-		err = merry.Prepend(err, "generating auxiliary request id")
+	var exception merry.Error
+	requestID, err := s.RequestIDGenerator.InvokeSafely(ctx, request, &exception)
+	if exception != nil {
+		err = exception.Prepend("generating auxiliary request id")
 		requestID = request.ID()
-	}
-	if requestID == "" {
+	} else if err != nil {
+		err = err.Prepend("generating auxiliary request id")
+		requestID = request.ID()
+	} else if requestID == "" {
 		err = merry.New("auxiliary request id generator returned empty value")
 		requestID = request.ID()
 	}
