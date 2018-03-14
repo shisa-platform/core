@@ -276,7 +276,6 @@ func TestClientRateLimiterServiceThrottled(t *testing.T) {
 	c.check(t)
 }
 
-
 func TestUserRateLimiterServiceMissingActor(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
 		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
@@ -286,7 +285,7 @@ func TestUserRateLimiterServiceMissingActor(t *testing.T) {
 
 	cut, err := NewUserLimiter(provider)
 	assert.NoError(t, err)
-	
+
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{Request: httpReq}
 	ctx := context.New(request.Context())

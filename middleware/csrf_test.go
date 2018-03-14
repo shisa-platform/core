@@ -24,7 +24,7 @@ var (
 	siteURL = mustParse(defaultSiteURL)
 )
 
-type serviceTest struct {
+type csrfTest struct {
 	name           string
 	headerKey      string
 	headerVal      string
@@ -34,17 +34,8 @@ type serviceTest struct {
 	expectedStatus int
 }
 
-func mustParse(value string) *url.URL {
-	parsed, err := url.Parse(value)
-	if err != nil {
-		panic(err)
-	}
-
-	return parsed
-}
-
-func (st serviceTest) check(t *testing.T) {
-	t.Helper()
+func (st csrfTest) check(t *testing.T) {
+	t.Parallel()
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -80,8 +71,17 @@ func (st serviceTest) check(t *testing.T) {
 	}
 }
 
+func mustParse(value string) *url.URL {
+	parsed, err := url.Parse(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return parsed
+}
+
 func TestCSRFProtectorService(t *testing.T) {
-	serviceTests := []serviceTest{
+	csrfTests := []csrfTest{
 		{"missing origin/referer headers", "", "", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
 		{"nil siteurl", "Origin", defaultSiteURL, nil, defaultSecret, defaultSecret, http.StatusInternalServerError},
 		{"empty siteurl scheme", "Origin", defaultSiteURL, &url.URL{Host: "example.com", Path: "/"}, defaultSecret, defaultSecret, http.StatusInternalServerError},
@@ -100,7 +100,7 @@ func TestCSRFProtectorService(t *testing.T) {
 		{"success - referer header", "Referer", defaultSiteURL, siteURL, defaultSecret, defaultSecret, 0},
 	}
 
-	for _, test := range serviceTests {
+	for _, test := range csrfTests {
 		t.Run(test.name, test.check)
 	}
 }
