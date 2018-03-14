@@ -28,7 +28,7 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 
 	str, err = h(ctx, request)
 
-	return 
+	return
 }
 
 // RequestPredicate examines the given context and request and

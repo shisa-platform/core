@@ -359,9 +359,8 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 }
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
-	var exception merry.Error
-	g.ErrorHook.InvokeSafely(ctx, request, err, &exception)
-	if exception != nil {
+
+	if exception := g.ErrorHook.InvokeSafely(ctx, request, err); exception != nil {
 		g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 		exception = exception.Prepend("running ErrorHook")
 		g.Logger.Error(exception.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(exception))
@@ -369,10 +368,8 @@ func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Requ
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
-	var exception merry.Error
 
-	g.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
-	if exception != nil {
+	if exception := g.CompletionHook.InvokeSafely(ctx, request, snapshot); exception != nil {
 		exception = exception.Prepend("running CompletionHook")
 		g.invokeErrorHookSafely(ctx, request, exception)
 	}

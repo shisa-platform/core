@@ -322,16 +322,12 @@ func (s *HTTPServer) route(ctx context.Context, request *httpx.Request) (respons
 }
 
 func (s *HTTPServer) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
-	var exception merry.Error
-	s.ErrorHook.InvokeSafely(ctx, request, err, &exception)
+	s.ErrorHook.InvokeSafely(ctx, request, err)
 }
 
 func (s *HTTPServer) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
-	var exception merry.Error
-
-	s.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
-	if exception != nil {
-		exception = merry.Prepend(exception, "running auxiliary CompletionHook")
+	if ex := s.CompletionHook.InvokeSafely(ctx, request, snapshot); ex != nil {
+		exception := merry.Prepend(ex, "running auxiliary CompletionHook")
 		s.invokeErrorHookSafely(ctx, request, exception)
 	}
 }
