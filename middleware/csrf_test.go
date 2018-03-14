@@ -20,226 +20,383 @@ const (
 	defaultSiteURL       = "http://example.com"
 )
 
+var (
+	siteURL = mustParse(defaultSiteURL)
+)
+
 type serviceTest struct {
+	name           string
 	headerKey      string
 	headerVal      string
-	siteurl        string
+	siteURL        *url.URL
 	token          string
 	cookieVal      string
 	expectedStatus int
 }
 
-func checkServiceTest(t *testing.T, c context.Context, st serviceTest) {
-	s, err := url.Parse(st.siteurl)
+func mustParse(value string) *url.URL {
+	parsed, err := url.Parse(value)
 	if err != nil {
-		t.Errorf("error parsing url: %v", err)
-		return
-	}
-	p := CSRFProtector{
-		SiteURL: *s,
+		panic(err)
 	}
 
+	return parsed
+}
+
+func (st serviceTest) check(t *testing.T) {
+	t.Helper()
+
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{
+	request := &httpx.Request{
 		Request: httpReq,
 	}
+	ctx := context.NewFakeContextDefaultFatal(t)
 
 	if st.headerKey != "" {
 		vals := strings.Split(st.headerVal, ",")
 		for _, v := range vals {
-			req.Header.Add(st.headerKey, v)
+			request.Header.Add(st.headerKey, v)
 		}
 	}
-	req.Header.Add("X-CSRF-Token", st.token)
+	request.Header.Add("X-CSRF-Token", st.token)
 
 	if st.cookieVal != "" {
-		req.AddCookie(&http.Cookie{
+		request.AddCookie(&http.Cookie{
 			Name:  defaultCookieName,
 			Value: st.cookieVal,
 		})
 	}
 
-	resp := p.Service(c, req)
+	cut := CSRFProtector{
+		SiteURL: st.siteURL,
+	}
 
-	if resp == nil {
-		assert.Zerof(t, st.expectedStatus, "%v response for %v when expected %v", resp, st, st.expectedStatus)
+	response := cut.Service(ctx, request)
+
+	if response == nil {
+		assert.Zero(t, st.expectedStatus, "expected response")
 	} else {
-		assert.Equalf(t, st.expectedStatus, resp.StatusCode(), "received %v response for %v when expected %v", resp.StatusCode(), st, st.expectedStatus)
+		assert.Equal(t, st.expectedStatus, response.StatusCode(), "unexpected status: %v", response)
 	}
 }
 
-func TestCSRFProtector_Service(t *testing.T) {
-	c := context.New(nil)
-
-	servicetests := []serviceTest{
-		// Missing Origin/Referer headers
-		{"", "", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
-		// Nil SiteUrl
-		{"Origin", defaultSiteURL, "", defaultSecret, defaultSecret, http.StatusInternalServerError},
-		// Unparseable Origin
-		{"Origin", ":", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
-		// Multiple Origin Headers
-		{"Origin", "http://example.com,http://malicious.com", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
-		// Mismatched Origin/SiteUrl
-		{"Origin", "http://malicious.com", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
-		// Unparseable Referer
-		{"Referer", ":", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
-		// Mismatched Referer/SiteUrl
-		{"Referer", "http://malicious.com", defaultSiteURL, defaultSecret, defaultSecret, http.StatusForbidden},
-		// Success - Origin header
-		{"Origin", defaultSiteURL, defaultSiteURL, defaultSecret, defaultSecret, 0},
-		// Success - Referer header
-		{"Referer", defaultSiteURL, defaultSiteURL, defaultSecret, defaultSecret, 0},
-		// No cookie present
-		{"Referer", defaultSiteURL, defaultSiteURL, defaultSecret, "", http.StatusForbidden},
-		// Wrong length cookie value
-		{"Referer", defaultSiteURL, defaultSiteURL, defaultSecret, "wronglength", http.StatusForbidden},
-		// Error extracting token
-		{"Referer", defaultSiteURL, defaultSiteURL, "", defaultSecret, http.StatusForbidden},
-		// Wrong-length token
-		{"Referer", defaultSiteURL, defaultSiteURL, "wronglength", defaultSecret, http.StatusForbidden},
-		// Invalid token
-		{"Referer", defaultSiteURL, defaultSiteURL, defaultInvalidSecret, defaultSecret, http.StatusForbidden},
+func TestCSRFProtectorService(t *testing.T) {
+	serviceTests := []serviceTest{
+		{"missing origin/referer headers", "", "", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		{"nil siteurl", "Origin", defaultSiteURL, nil, defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"empty siteurl scheme", "Origin", defaultSiteURL, &url.URL{Host: "example.com", Path: "/"}, defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"empty siteurl host", "Origin", defaultSiteURL, &url.URL{Scheme: "http", Path: "/"}, defaultSecret, defaultSecret, http.StatusInternalServerError},
+		{"unparseable origin", "Origin", ":", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		{"multiple origin Headers", "Origin", "http://example.com,http://malicious.com", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		{"mismatched origin/siteurl", "Origin", "http://malicious.com", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		{"unparseable referer", "Referer", ":", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		{"mismatched referer/siteurl", "Referer", "http://malicious.com", siteURL, defaultSecret, defaultSecret, http.StatusForbidden},
+		{"no cookie present", "Referer", defaultSiteURL, siteURL, defaultSecret, "", http.StatusForbidden},
+		{" wrong cookie length", "Referer", defaultSiteURL, siteURL, defaultSecret, "wronglength", http.StatusForbidden},
+		{"error extracting token", "Referer", defaultSiteURL, siteURL, "", defaultSecret, http.StatusForbidden},
+		{"wrong token length", "Referer", defaultSiteURL, siteURL, "wronglength", defaultSecret, http.StatusForbidden},
+		{"invalid token", "Referer", defaultSiteURL, siteURL, defaultInvalidSecret, defaultSecret, http.StatusForbidden},
+		{"success - origin header", "Origin", defaultSiteURL, siteURL, defaultSecret, defaultSecret, 0},
+		{"success - referer header", "Referer", defaultSiteURL, siteURL, defaultSecret, defaultSecret, 0},
 	}
 
-	for _, tt := range servicetests {
-		checkServiceTest(t, c, tt)
+	for _, test := range serviceTests {
+		t.Run(test.name, test.check)
 	}
+}
 
-	s, err := url.Parse(defaultSiteURL)
-	if err != nil {
-		t.Errorf("error parsing url: %v", err)
-	}
+func TestCSRFProtectorIsExemptHook(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
 
-	// N.B. Check `IsExempt` Hook
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{
+	request := &httpx.Request{
 		Request: httpReq,
 	}
 
-	p := CSRFProtector{
-		SiteURL: *s,
+	cut := CSRFProtector{
+		SiteURL: siteURL,
 		IsExempt: func(c context.Context, r *httpx.Request) bool {
 			return true
 		},
 	}
-	resp := p.Service(c, req)
-	assert.Nil(t, resp, "response should be nil for CSRF exempt request")
 
-	// N.B. Check `TokenExtractor` Hook
-	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &httpx.Request{
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response, "response should be nil for CSRF exempt request")
+}
+
+func TestCSRFProtectorIsExemptHookPanic(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
 		Request: httpReq,
 	}
 
-	req.Header.Add("Origin", defaultSiteURL)
-	req.Header.Add("X-CSRF-Token", defaultSecret)
-	req.AddCookie(&http.Cookie{
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		IsExempt: func(c context.Context, r *httpx.Request) bool {
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestCSRFProtectorServiceCheckOriginHook(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
+	}
+
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+	request.AddCookie(&http.Cookie{
 		Name:  defaultCookieName,
 		Value: defaultSecret,
 	})
 
-	p = CSRFProtector{
-		SiteURL: *s,
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		CheckOrigin: func(expected, actual *url.URL) bool {
+			return false
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode())
+}
+
+func TestCSRFProtectorServiceCheckOriginHookPanic(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
+	}
+
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+	request.AddCookie(&http.Cookie{
+		Name:  defaultCookieName,
+		Value: defaultSecret,
+	})
+
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		CheckOrigin: func(expected, actual *url.URL) bool {
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestCSRFProtectorServiceCheckOriginHookPanicString(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
+	}
+
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+	request.AddCookie(&http.Cookie{
+		Name:  defaultCookieName,
+		Value: defaultSecret,
+	})
+
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		CheckOrigin: func(expected, actual *url.URL) bool {
+			panic("i blewed up!")
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestCSRFProtectorTokenExtractorHook(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
+	}
+
+	request.Header.Add("Origin", defaultSiteURL)
+	request.AddCookie(&http.Cookie{
+		Name:  defaultCookieName,
+		Value: "foo",
+	})
+
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		ExtractToken: func(c context.Context, r *httpx.Request) (string, merry.Error) {
+			return "foo", nil
+		},
+		TokenLength: 3,
+	}
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+}
+
+func TestCSRFProtectorTokenExtractorHookError(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
+	}
+
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+	request.AddCookie(&http.Cookie{
+		Name:  defaultCookieName,
+		Value: defaultSecret,
+	})
+
+	cut := CSRFProtector{
+		SiteURL: siteURL,
 		ExtractToken: func(c context.Context, r *httpx.Request) (string, merry.Error) {
 			return "", merry.New("token not found")
 		},
 	}
-	resp = p.Service(c, req)
-	if resp == nil {
-		assert.NotNil(t, resp, "response status be should 403 for 'Token Not Found', got nil response")
-	} else {
-		assert.Equal(t, 403, resp.StatusCode(), "response status should be 403 for 'Token Not Found', got %v", resp.StatusCode())
-	}
 
-	// N.B. Check `CookieName` Hook
-	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &httpx.Request{
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode())
+}
+
+func TestCSRFProtectorTokenExtractorHookPanic(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
 		Request: httpReq,
 	}
 
-	cname := "csrfspecial"
-	req.Header.Add("Origin", defaultSiteURL)
-	req.Header.Add("X-CSRF-Token", defaultSecret)
-	req.AddCookie(&http.Cookie{
-		Name:  cname,
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+	request.AddCookie(&http.Cookie{
+		Name:  defaultCookieName,
 		Value: defaultSecret,
 	})
 
-	p = CSRFProtector{
-		SiteURL:    *s,
-		CookieName: cname,
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		ExtractToken: func(c context.Context, r *httpx.Request) (string, merry.Error) {
+			panic(merry.New("i blewed up!"))
+		},
 	}
-	resp = p.Service(c, req)
-	assert.Nil(t, resp, "response should be nil for custom cookie name")
 
-	// N.B. Check `TokenLength` Hook
-	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &httpx.Request{
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
+func TestCSRFProtectorServiceCookieNameHook(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
+	}
+
+	cookieName := "csrfspecial"
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+	request.AddCookie(&http.Cookie{
+		Name:  cookieName,
+		Value: defaultSecret,
+	})
+
+	cut := CSRFProtector{
+		SiteURL:    siteURL,
+		CookieName: cookieName,
+	}
+
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+}
+
+func TestCSRFProtectorServiceTokenLengthHook(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
 		Request: httpReq,
 	}
 
 	specialLength := 13
-	req.Header.Add("Origin", defaultSiteURL)
-	req.Header.Add("X-CSRF-Token", defaultSecret[:specialLength])
-	req.AddCookie(&http.Cookie{
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret[:specialLength])
+	request.AddCookie(&http.Cookie{
 		Name:  defaultCookieName,
 		Value: defaultSecret[:specialLength],
 	})
 
-	p = CSRFProtector{
-		SiteURL:     *s,
+	cut := CSRFProtector{
+		SiteURL:     siteURL,
 		TokenLength: specialLength,
 	}
-	resp = p.Service(c, req)
-	assert.Nil(t, resp, "response should be nil for custom token length")
 
-	// N.B. Check `CheckOrigin` Hook
-	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &httpx.Request{
+	response := cut.Service(ctx, request)
+	assert.Nil(t, response)
+}
+
+func TestCSRFProtectorServiceErrorHandlerHook(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
 		Request: httpReq,
 	}
 
-	req.Header.Add("Origin", defaultSiteURL)
-	req.Header.Add("X-CSRF-Token", defaultSecret)
-	req.AddCookie(&http.Cookie{
-		Name:  defaultCookieName,
-		Value: defaultSecret,
-	})
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
 
-	p = CSRFProtector{
-		SiteURL: *s,
-		CheckOrigin: func(expected, actual url.URL) bool {
-			return false
-		},
-	}
-	resp = p.Service(c, req)
-	if resp == nil {
-		assert.NotNil(t, resp, "response status be should 403 for failed origin check, got nil response")
-	} else {
-		assert.Equal(t, 403, resp.StatusCode(), "response status should be 403 for failed origin check, got %v", resp.StatusCode())
-	}
-
-	// N.B. Check `ErrorHandler` Hook
-	httpReq = httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req = &httpx.Request{
-		Request: httpReq,
-	}
-
-	req.Header.Add("Origin", defaultSiteURL)
-	req.Header.Add("X-CSRF-Token", defaultSecret)
-
-	p = CSRFProtector{
-		SiteURL: *s,
+	cut := CSRFProtector{
+		SiteURL: siteURL,
 		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
 			return httpx.NewEmpty(http.StatusTeapot)
 		},
 	}
 
-	resp = p.Service(c, req)
-	if resp == nil {
-		assert.NotNil(t, resp, "response status be should 418 for custom error handler, got nil response")
-	} else {
-		assert.Equal(t, 418, resp.StatusCode(), "response status should be 418 for custom error handler, got %v", resp.StatusCode())
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusTeapot, response.StatusCode())
+}
+
+func TestCSRFProtectorServiceErrorHandlerHookPanic(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{
+		Request: httpReq,
 	}
+
+	request.Header.Add("Origin", defaultSiteURL)
+	request.Header.Add("X-CSRF-Token", defaultSecret)
+
+	cut := CSRFProtector{
+		SiteURL: siteURL,
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode())
 }
