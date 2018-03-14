@@ -28,3 +28,25 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 
 	return h(ctx, request)
 }
+
+// RequestPredicate examines the given context and request and
+// returns a determination based on that analysis.
+type RequestPredicate func(context.Context, *Request) bool
+
+func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (ok bool, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in request predicate")
+			return
+		}
+
+		exception = merry.New("panic in request predicate").WithValue("context", arg)
+	}()
+
+	return h(ctx, request), nil
+}

@@ -16,10 +16,6 @@ const (
 	defaultTokenLength = 32
 )
 
-// RequestPredicate examines the given context and request and
-// returns a determination based on that analysis.
-type RequestPredicate func(context.Context, *httpx.Request) bool
-
 // CheckOrigin compares two URLs and determines if they should be
 // considered the "same" for the purposes of CSRF protection.
 type CheckOrigin func(expected, actual url.URL) bool
