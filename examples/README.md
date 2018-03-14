@@ -10,8 +10,8 @@ Shisa.
 ## Services
 
 - [`gw`](gw) - A Shisa implemenation talking to the `rest` and `rpc` services.
-- [`rest`](rest) - A "legacy" RESTful web service implementing the "goodbye" service
-- [`rpc`](rpc) - A "modern" RPC service implementing the "hello" service
+- [`rest`](rest) - A "legacy" RESTful web service implementing the "Goodbye" service
+- [`rpc`](rpc) - A "modern" RPC service implementing the "Hello" service
 - [`idp`](idp) - An Identity Provider service used by the other services.
 
 ## Building

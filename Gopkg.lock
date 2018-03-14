@@ -73,15 +73,9 @@
   revision = "35aad584952c3e7020db7b839f6b102de6271f89"
   version = "v1.7.1"
 
-[[projects]]
-  name = "gopkg.in/redis.v5"
-  packages = [".","internal","internal/consistenthash","internal/hashtag","internal/pool","internal/proto"]
-  revision = "a16aeec10ff407b1e7be6dd35797ccf5426ef0f0"
-  version = "v5.2.9"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "aec057a0c1d4f513a17908883af404e59489857934c237a221225c0684b81a9f"
+  inputs-digest = "9bed8d46cc04d6e51d7f60a79410a3c43d72dd40e9537fa7a21e6eaf63171e9a"
   solver-name = "gps-cdcl"
   solver-version = 1

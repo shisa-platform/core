@@ -1,9 +1,9 @@
 digraph {
 
-    gw [label="API Gateway"];
-    idp [label="IdP Service"];
-    rest [label="REST Service"];
-    rpc [label="RPC Service"];
+    gw [shape=box label="API Gateway"];
+    idp [shape=box label="IdP Service"];
+    rest [shape=box label="REST Service"];
+    rpc [shape=box label="RPC Service"];
 
     gw -> idp [label="rpc"];
     gw -> rest [label="http"];

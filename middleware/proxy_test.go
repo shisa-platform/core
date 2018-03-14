@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -414,6 +415,60 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 	err = response.Serialize(&buf)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, buf.Len())
+}
+
+func TestReverseProxyWithQueryParameters(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(helloWorldHandler))
+	defer server.Close()
+
+	url, err := url.ParseRequestURI(server.URL)
+	if err != nil {
+		panic(err)
+	}
+
+	var routerInvoked bool
+	cut := ReverseProxy{
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
+			routerInvoked = true
+			assert.Len(t, r.QueryParams, 2)
+			assert.Equal(t, "zalgo", r.QueryParams[0].Name)
+			assert.Len(t, r.QueryParams[0].Values, 1)
+			assert.Equal(t, "answer", r.QueryParams[1].Name)
+			assert.Len(t, r.QueryParams[1].Values, 1)
+
+			param := r.QueryParams[0]
+			r.URL.Scheme = url.Scheme
+			r.URL.Host = url.Host
+			r.URL.Path = "/"
+			r.URL.RawQuery = fmt.Sprintf("%s=%s", param.Name, param.Values[0])
+			return r, nil
+		},
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/?zalgo=he:comes&answer=42", nil)
+	request := &httpx.Request{Request: r}
+	assert.True(t, request.ParseQueryParameters())
+	ctx := context.New(r.Context())
+
+	response := cut.Service(ctx, request)
+
+	assert.Len(t, request.QueryParams, 2)
+	assert.Equal(t, "zalgo", request.QueryParams[0].Name)
+	assert.Equal(t, "answer", request.QueryParams[1].Name)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusOK, response.StatusCode())
+	assert.True(t, routerInvoked)
+	assert.Empty(t, response.Trailers())
+	assert.NoError(t, response.Err())
+
+	var buf bytes.Buffer
+	err = response.Serialize(&buf)
+	assert.NoError(t, err)
+	assert.NotEqual(t, 0, buf.Len())
+	expectedJson := `{
+  "message": "hello"
+}`
+	assert.JSONEq(t, expectedJson, buf.String())
 }
 
 func TestReverseProxy(t *testing.T) {
