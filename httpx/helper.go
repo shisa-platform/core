@@ -11,7 +11,7 @@ import (
 // An error is returned if the string could not be extracted.
 type StringExtractor func(context.Context, *Request) (string, merry.Error)
 
-func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (str string, err merry.Error) {
+func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request, exception *merry.Error) (str string, err merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {
@@ -19,11 +19,11 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 		}
 
 		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in extractor")
+			*exception = merry.Prepend(err1, "panic in request extractor")
 			return
 		}
 
-		err = merry.New("panic in extractor").WithValue("context", arg)
+		*exception = merry.New("panic in request extractor").WithValue("context", arg)
 	}()
 
 	return h(ctx, request)

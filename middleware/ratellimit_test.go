@@ -35,6 +35,7 @@ type rateLimitTestCase struct {
 	StatusCode     int
 	CoolDown       string
 	ExtractorError bool
+	ExtractorExcep bool
 }
 
 func (c rateLimitTestCase) check(t *testing.T) {
@@ -57,13 +58,20 @@ func (c rateLimitTestCase) check(t *testing.T) {
 		assert.False(t, c.ExpectResponse)
 	}
 
-	actor, err := c.RateLimiter.extractor.InvokeSafely(ctx, request)
+	var exception merry.Error
+	actor, err := c.RateLimiter.extractor.InvokeSafely(ctx, request, &exception)
 	if c.ExtractorError {
 		assert.Empty(t, actor)
+		assert.NoError(t, exception)
 		assert.Error(t, err)
+	} else if c.ExtractorExcep {
+		assert.Empty(t, actor)
+		assert.NoError(t, err)
+		assert.Error(t, exception)
 	} else {
 		assert.NotEmpty(t, actor)
 		assert.NoError(t, err)
+		assert.NoError(t, exception)
 		c.Provider.AssertAllowCalledOnceWith(t, actor, request.Method, request.URL.Path)
 	}
 }
@@ -407,7 +415,7 @@ func TestCustomRateLimiterExtractorPanic(t *testing.T) {
 		Provider:       provider,
 		ExpectResponse: true,
 		StatusCode:     http.StatusInternalServerError,
-		ExtractorError: true,
+		ExtractorExcep: true,
 	}
 
 	c.check(t)
@@ -425,6 +433,31 @@ func TestCustomRateLimiterExtractorPanicString(t *testing.T) {
 	}
 
 	limiter, err := NewRateLimiter(provider, panicExtractor)
+	assert.NoError(t, err)
+
+	c := rateLimitTestCase{
+		RateLimiter:    limiter,
+		Provider:       provider,
+		ExpectResponse: true,
+		StatusCode:     http.StatusInternalServerError,
+		ExtractorExcep: true,
+	}
+
+	c.check(t)
+}
+
+func TestCustomRateLimiterExtractorError(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+
+	extractor := func(context.Context, *httpx.Request) (string, merry.Error) {
+		return "", merry.New("i blewed up!")
+	}
+
+	limiter, err := NewRateLimiter(provider, extractor)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{

@@ -28,9 +28,9 @@ func (h RateLimitHandler) InvokeSafely(ctx context.Context, request *httpx.Reque
 		if err1, ok := arg.(error); ok {
 			exception = merry.Prepend(err1, "panic in rate limit handler")
 			return
-		} else {
-			exception = merry.New("panic in rate limit handler").WithValue("context", arg)
 		}
+
+		exception = merry.New("panic in rate limit handler").WithValue("context", arg)
 	}()
 
 	return h(ctx, request, cooldown), nil
@@ -97,8 +97,12 @@ func NewUserLimiter(provider ratelimit.Provider, opts ...RateLimiterOption) (*Ra
 		return nil, merry.New("rate limit provider must be non-nil")
 	}
 	limiter := &RateLimiter{
-		extractor: func(ctx context.Context, _ *httpx.Request) (string, merry.Error) {
-			return ctx.Actor().ID(), nil
+		extractor: func(c context.Context, _ *httpx.Request) (string, merry.Error) {
+			actor := c.Actor()
+			if actor == nil {
+				return "", merry.New("no actor in user rate limiter context")
+			}
+			return actor.ID(), nil
 		},
 		limiter: provider,
 	}
@@ -141,9 +145,10 @@ func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
 
 		if err1, ok := arg.(error); ok {
 			err = merry.Prepend(err1, "panic in rate limit middleware option")
-		} else {
-			err = merry.New("panic in rate limit middleware option").WithValue("context", arg)
+			return
 		}
+
+		err = merry.New("panic in rate limit middleware option").WithValue("context", arg)
 	}()
 
 	for _, opt := range opts {
@@ -156,20 +161,17 @@ func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
 func (m *RateLimiter) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	if m.limiter == nil {
 		err := merry.New("rate limit middleware limiter is nil")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return m.handleError(ctx, request, err)
 	}
 	if m.extractor == nil {
 		err := merry.New("rate limit middleware extrator is nil")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
 		return m.handleError(ctx, request, err)
 	}
 
 	ok, cooldown, err := m.throttle(ctx, request)
 	if err != nil {
 		return m.handleError(ctx, request, err)
-	}
-	if !ok {
+	} else if !ok {
 		return m.handleRateLimit(ctx, request, cooldown)
 	}
 
@@ -185,18 +187,20 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 
 		if err1, ok := arg.(error); ok {
 			err = merry.Prepend(err1, "panic in rate limit middleware limiter")
-		} else {
-			err = merry.New("panic in rate limit middleware limiter").WithValue("context", arg)
+			return
 		}
 
-		err = err.WithHTTPCode(http.StatusInternalServerError)
+		err = merry.New("panic in rate limit middleware limiter").WithValue("context", arg)
 	}()
 
 	var actor string
-	actor, err = m.extractor.InvokeSafely(ctx, request)
-	if err != nil {
-		err = err.Prepend("running rate limit middleware extractor")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
+	var exception merry.Error
+	actor, err = m.extractor.InvokeSafely(ctx, request, &exception)
+	if exception != nil {
+		err = exception.Prepend("running rate limit middleware extractor")
+		return
+	} else if err != nil {
+		err = merry.Prepend(err, "extracting rate limit middleware actor")
 		return
 	}
 
