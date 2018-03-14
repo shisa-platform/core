@@ -171,10 +171,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if malformed, unknown, vErr := request.ValidateQueryParameters(pipeline.QueryFields); vErr != nil {
-		vErr = vErr.WithHTTPCode(http.StatusBadRequest)
-		var exception merry.Error
-		response, exception = endpoint.handleError(ctx, request, vErr)
+	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QueryFields); exception != nil {
+		response, exception = endpoint.handleError(ctx, request, exception)
 		if exception != nil {
 			g.invokeErrorHookSafely(ctx, request, exception)
 		}

@@ -296,8 +296,7 @@ func (s *HTTPServer) route(ctx context.Context, request *httpx.Request) (respons
 		return
 	}
 
-	var exception merry.Error
-	handler := s.Router.InvokeSafely(ctx, request, &exception)
+	handler, exception := s.Router.InvokeSafely(ctx, request)
 	if exception != nil {
 		s.invokeErrorHookSafely(ctx, request, exception)
 		response = httpx.NewEmpty(http.StatusInternalServerError)

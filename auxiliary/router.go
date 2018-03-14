@@ -9,7 +9,7 @@ import (
 
 type Router func(context.Context, *httpx.Request) httpx.Handler
 
-func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request, exception *merry.Error) httpx.Handler {
+func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (_ httpx.Handler, exception merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {
@@ -17,12 +17,12 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request, except
 		}
 
 		if err, ok := arg.(error); ok {
-			*exception = merry.WithMessage(err, "panic in router")
+			exception = merry.WithMessage(err, "panic in router")
 			return
 		}
 
-		*exception = merry.New("panic in router").WithValue("context", arg)
+		exception = merry.New("panic in router").WithValue("context", arg)
 	}()
 
-	return r(ctx, request)
+	return r(ctx, request), nil
 }

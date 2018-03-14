@@ -1861,7 +1861,7 @@ func TestRouterQueryParametersFieldValidationPanic(t *testing.T) {
 
 	assert.False(t, handlerCalled, "unexpected call to handler")
 	errHook.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 
@@ -1906,7 +1906,7 @@ func TestRouterQueryParametersFieldValidationPanicErrorHandlerPanic(t *testing.T
 	assert.False(t, handlerCalled, "unexpected call to handler")
 	assert.True(t, iseHandlerCalled, "ISE handler not called")
 	errHook.assertCalledN(t, 2)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
 

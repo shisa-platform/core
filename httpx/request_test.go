@@ -81,8 +81,8 @@ func TestRequestValidateQueryParametersPanic(t *testing.T) {
 	}
 	fields := []Field{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
 
-	_, _, err := cut.ValidateQueryParameters(fields)
-	assert.Error(t, err)
+	_, _, exception := cut.ValidateQueryParameters(fields)
+	assert.Error(t, exception)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.NoError(t, cut.QueryParams[1].Err)
 }
@@ -103,10 +103,10 @@ func TestRequestValidateQueryParametersAlreadyBad(t *testing.T) {
 	}
 	fields := []Field{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
 	assert.False(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
 	assert.Equal(t, expectedErr, cut.QueryParams[1].Err)
@@ -125,10 +125,10 @@ func TestRequestValidateQueryParametersInvalidParameter(t *testing.T) {
 	}
 	fields := []Field{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
 	assert.False(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
 	assert.True(t, merry.Is(cut.QueryParams[1].Err, MalformedQueryParamter))
@@ -144,10 +144,10 @@ func TestRequestValidateQueryParametersUnknownParameter(t *testing.T) {
 
 	fields := []Field{{Name: "zalgo"}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
 	assert.True(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
 	assert.True(t, merry.Is(cut.QueryParams[1].Err, UnknownQueryParamter))
@@ -166,10 +166,10 @@ func TestRequestValidateQueryParametersInvalidAndUnknownParameters(t *testing.T)
 	}
 	fields := []Field{{Name: "zalgo", Validator: validator}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
 	assert.True(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.Error(t, cut.QueryParams[0].Err)
 	assert.True(t, merry.Is(cut.QueryParams[0].Err, MalformedQueryParamter))
 	assert.Error(t, cut.QueryParams[1].Err)
@@ -186,10 +186,10 @@ func TestRequestValidateQueryParametersMissingParameterWithDefault(t *testing.T)
 
 	fields := []Field{{Name: "zalgo"}, {Name: "waits", Default: "behind the walls"}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
 	assert.False(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.Len(t, cut.QueryParams, 2)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.NoError(t, cut.QueryParams[1].Err)
@@ -207,10 +207,10 @@ func TestRequestValidateQueryParametersMissingRequiredParameter(t *testing.T) {
 
 	fields := []Field{{Name: "zalgo"}, {Name: "waits", Required: true}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
 	assert.False(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.Len(t, cut.QueryParams, 2)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.Error(t, cut.QueryParams[1].Err)
@@ -228,10 +228,10 @@ func TestRequestValidateQueryParametersMissingParameter(t *testing.T) {
 
 	fields := []Field{{Name: "zalgo"}, {Name: "waits"}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
 	assert.False(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.Len(t, cut.QueryParams, 1)
 	assert.NoError(t, cut.QueryParams[0].Err)
 }
@@ -246,10 +246,10 @@ func TestRequestValidateQueryParameters(t *testing.T) {
 
 	fields := []Field{{Name: "zalgo"}, {Name: "waits"}}
 
-	malformed, unknown, err := cut.ValidateQueryParameters(fields)
+	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
 	assert.False(t, unknown)
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.NoError(t, cut.QueryParams[1].Err)
 }
