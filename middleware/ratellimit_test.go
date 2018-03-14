@@ -276,6 +276,27 @@ func TestClientRateLimiterServiceThrottled(t *testing.T) {
 	c.check(t)
 }
 
+
+func TestUserRateLimiterServiceMissingActor(t *testing.T) {
+	provider := &ratelimit.FakeProvider{
+		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+			return true, 0, nil
+		},
+	}
+
+	cut, err := NewUserLimiter(provider)
+	assert.NoError(t, err)
+	
+	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
+	request := &httpx.Request{Request: httpReq}
+	ctx := context.New(request.Context())
+
+	response := cut.Service(ctx, request)
+
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+}
+
 func TestRateLimiterServiceRateLimitProviderPanic(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
 		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
@@ -283,7 +304,7 @@ func TestRateLimiterServiceRateLimitProviderPanic(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClientLimiter(provider)
+	limiter, err := NewRateLimiter(provider, lolExtractor)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -303,7 +324,7 @@ func TestRateLimiterServiceRateLimitProviderPanicString(t *testing.T) {
 		},
 	}
 
-	limiter, err := NewClientLimiter(provider)
+	limiter, err := NewRateLimiter(provider, lolExtractor)
 	assert.NoError(t, err)
 
 	c := rateLimitTestCase{
@@ -475,41 +496,41 @@ func TestRateLimiterServiceEmpty(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{Request: httpReq}
+	request := &httpx.Request{Request: httpReq}
 
-	ut := &RateLimiter{}
-	res := ut.Service(ctx, req)
+	cut := &RateLimiter{}
+	response := cut.Service(ctx, request)
 
-	assert.NotNil(t, res)
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 }
 
 func TestRateLimiterServiceNilLimiter(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{Request: httpReq}
+	request := &httpx.Request{Request: httpReq}
 
-	ut := &RateLimiter{extractor: lolExtractor}
-	res := ut.Service(ctx, req)
+	cut := &RateLimiter{extractor: lolExtractor}
+	response := cut.Service(ctx, request)
 
-	assert.NotNil(t, res)
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 }
 
 func TestRateLimiterServiceNilExtractor(t *testing.T) {
 	ctx := context.New(nil)
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
-	req := &httpx.Request{Request: httpReq}
+	request := &httpx.Request{Request: httpReq}
 
-	ut := &RateLimiter{
+	cut := &RateLimiter{
 		limiter: &ratelimit.FakeProvider{},
 	}
-	res := ut.Service(ctx, req)
+	response := cut.Service(ctx, request)
 
-	assert.NotNil(t, res)
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode())
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 }
 
 func TestRateLimiterNewClientLimiterNilProvider(t *testing.T) {
