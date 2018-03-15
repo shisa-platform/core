@@ -82,13 +82,13 @@ type CSRFProtector struct {
 
 func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	if m.SiteURL == nil {
-		err := merry.New("csrf middleware: check invariants: SiteURL nil")
+		err := merry.New("csrf middleware: check invariants: SiteURL is nil")
 		return m.handleError(ctx, request, err)
 	} else if m.SiteURL.Host == "" {
-		err := merry.New("csrf middleware: check invariants: SiteURL host empty")
+		err := merry.New("csrf middleware: check invariants: SiteURL host is empty")
 		return m.handleError(ctx, request, err)
 	} else if m.SiteURL.Scheme == "" {
-		err := merry.New("csrf middleware: check invariants: SiteURL scheme empty")
+		err := merry.New("csrf middleware: check invariants: SiteURL scheme is empty")
 		return m.handleError(ctx, request, err)
 	}
 
