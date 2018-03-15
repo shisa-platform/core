@@ -31,7 +31,8 @@ type Authentication struct {
 	// response for an error. The `err` parameter passed to the
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code,
-	// the "WWW-Authenticate" header and an empty body.
+	// the "WWW-Authenticate" header (if the recommended status
+	// code is 401) and an empty body.
 	ErrorHandler httpx.ErrorHandler
 }
 
