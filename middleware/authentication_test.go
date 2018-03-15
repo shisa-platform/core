@@ -219,7 +219,7 @@ func TestAuthenticationCustomHandlerWithoutSettingHeader(t *testing.T) {
 
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
-	assert.Equal(t, http.StatusForbidden, response.StatusCode())
+	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
 	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 	assert.True(t, handlerInvoked, "custom error handler not invoked")
 
