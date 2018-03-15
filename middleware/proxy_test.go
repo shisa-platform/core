@@ -172,7 +172,7 @@ func TestReverseProxyRouterPanic(t *testing.T) {
 
 	assert.NotNil(t, response)
 	assert.True(t, routerInvoked)
-	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 }
 
 func TestReverseProxyRouterPanicString(t *testing.T) {
@@ -190,7 +190,7 @@ func TestReverseProxyRouterPanicString(t *testing.T) {
 
 	assert.NotNil(t, response)
 	assert.True(t, routerInvoked)
-	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 }
 
 func TestReverseProxyInvokerError(t *testing.T) {
@@ -328,7 +328,7 @@ func TestReverseProxyInvokerPanic(t *testing.T) {
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
-	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 	assert.True(t, routerInvoked)
 	assert.True(t, invokerInvoked)
 }
@@ -352,7 +352,7 @@ func TestReverseProxyInvokerPanicString(t *testing.T) {
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
-	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 	assert.True(t, routerInvoked)
 	assert.True(t, invokerInvoked)
 }
@@ -546,7 +546,7 @@ func TestReverseProxyResponderPanic(t *testing.T) {
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
-	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 	assert.True(t, routerInvoked)
 	assert.True(t, responderInvoked)
 }
@@ -572,7 +572,7 @@ func TestReverseProxyResponderPanicString(t *testing.T) {
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
-	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 	assert.True(t, routerInvoked)
 	assert.True(t, responderInvoked)
 }
