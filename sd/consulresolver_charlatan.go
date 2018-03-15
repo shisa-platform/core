@@ -93,6 +93,7 @@ func (f *FakeconsulResolver) Reset() {
 
 func (_f1 *FakeconsulResolver) Service(service string, tag string, passingOnly bool, q *consul.QueryOptions) (ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error) {
 	invocation := new(consulResolverServiceInvocation)
+	_f1.ServiceCalls = append(_f1.ServiceCalls, invocation)
 
 	invocation.Parameters.Service = service
 	invocation.Parameters.Tag = tag
@@ -104,8 +105,6 @@ func (_f1 *FakeconsulResolver) Service(service string, tag string, passingOnly b
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
-
-	_f1.ServiceCalls = append(_f1.ServiceCalls, invocation)
 
 	return
 }

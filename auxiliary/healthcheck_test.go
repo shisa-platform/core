@@ -413,10 +413,10 @@ func TestHealthcheckServerServeHTTPAuthorizationError(t *testing.T) {
 	cut.ServeHTTP(w, r)
 
 	errHandler.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
-	assert.Equal(t, challenge, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
+	assert.Empty(t, w.HeaderMap.Get(middleware.WWWAuthenticateHeaderKey))
 	assert.True(t, w.Flushed)
 }
 

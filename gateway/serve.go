@@ -82,9 +82,9 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 			return err
 		}
 		defer func() {
-			if e := g.Registrar.Deregister(g.Name); e != nil {
+			if err1 := g.Registrar.Deregister(g.Name); err1 != nil {
 				if err == nil {
-					err = merry.Prepend(e, "deregister")
+					err = err1.Prepend("deregister")
 				}
 			}
 		}()
@@ -101,9 +101,9 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 			}
 
 			defer func() {
-				if e := g.Registrar.RemoveChecks(g.Name); e != nil {
+				if err1 := g.Registrar.RemoveChecks(g.Name); err1 != nil {
 					if err == nil {
-						err = merry.Prepend(e, "remove checks")
+						err = err1.Prepend("remove checks")
 					}
 				}
 			}()

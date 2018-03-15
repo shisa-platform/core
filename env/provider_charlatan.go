@@ -187,6 +187,7 @@ func (f *FakeProvider) Reset() {
 
 func (_f1 *FakeProvider) Get(ident1 string) (ident2 string, ident3 merry.Error) {
 	invocation := new(ProviderGetInvocation)
+	_f1.GetCalls = append(_f1.GetCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
@@ -194,8 +195,6 @@ func (_f1 *FakeProvider) Get(ident1 string) (ident2 string, ident3 merry.Error) 
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
-
-	_f1.GetCalls = append(_f1.GetCalls, invocation)
 
 	return
 }
@@ -323,6 +322,7 @@ func (_f6 *FakeProvider) GetResultsForCall(ident1 string) (ident2 string, ident3
 
 func (_f7 *FakeProvider) GetInt(ident1 string) (ident2 int, ident3 merry.Error) {
 	invocation := new(ProviderGetIntInvocation)
+	_f7.GetIntCalls = append(_f7.GetIntCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
@@ -330,8 +330,6 @@ func (_f7 *FakeProvider) GetInt(ident1 string) (ident2 int, ident3 merry.Error) 
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
-
-	_f7.GetIntCalls = append(_f7.GetIntCalls, invocation)
 
 	return
 }
@@ -459,6 +457,7 @@ func (_f12 *FakeProvider) GetIntResultsForCall(ident1 string) (ident2 int, ident
 
 func (_f13 *FakeProvider) GetBool(ident1 string) (ident2 bool, ident3 merry.Error) {
 	invocation := new(ProviderGetBoolInvocation)
+	_f13.GetBoolCalls = append(_f13.GetBoolCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
@@ -466,8 +465,6 @@ func (_f13 *FakeProvider) GetBool(ident1 string) (ident2 bool, ident3 merry.Erro
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
-
-	_f13.GetBoolCalls = append(_f13.GetBoolCalls, invocation)
 
 	return
 }
@@ -595,13 +592,12 @@ func (_f18 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ide
 
 func (_f19 *FakeProvider) Monitor(ident1 string, ident2 chan<- Value) {
 	invocation := new(ProviderMonitorInvocation)
+	_f19.MonitorCalls = append(_f19.MonitorCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
 
 	_f19.MonitorHook(ident1, ident2)
-
-	_f19.MonitorCalls = append(_f19.MonitorCalls, invocation)
 
 	return
 }
@@ -715,14 +711,13 @@ func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1
 
 func (_f24 *FakeProvider) Healthcheck(ident1 context.Context) (ident2 merry.Error) {
 	invocation := new(ProviderHealthcheckInvocation)
+	_f24.HealthcheckCalls = append(_f24.HealthcheckCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f24.HealthcheckHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f24.HealthcheckCalls = append(_f24.HealthcheckCalls, invocation)
 
 	return
 }

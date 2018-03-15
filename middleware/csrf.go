@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/ansel1/merry"
 
@@ -16,20 +17,45 @@ const (
 	defaultTokenLength = 32
 )
 
-// RequestPredicate examines the given context and request and
-// returns a determination based on that analysis.
-type RequestPredicate func(context.Context, *httpx.Request) bool
-
 // CheckOrigin compares two URLs and determines if they should be
 // considered the "same" for the purposes of CSRF protection.
-type CheckOrigin func(expected, actual url.URL) bool
+type CheckOrigin func(expected, actual *url.URL) bool
+
+func (h CheckOrigin) InvokeSafely(expected, actual *url.URL) (ok bool, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in check origin hook")
+			return
+		}
+
+		exception = merry.New("panic in check origin hook").WithValue("context", arg)
+	}()
+
+	return h(expected, actual), nil
+}
 
 // CSRFProtector is middleware used to guard against CSRF attacks.
 type CSRFProtector struct {
 	// SiteURL is the URL to use for CSRF protection. This must
 	// be non-nil and contain non-empty Scheme and Host values
 	// or a internal server error will be returned.
-	SiteURL url.URL
+	SiteURL *url.URL
+
+	// IsExempt optionally customizes checking request exemption
+	// from CSRF protection.
+	// The default checker always returns `false`.
+	IsExempt httpx.RequestPredicate
+
+	// CheckOrigin optionally customizes how URLs should be
+	// compared for the purposes of CSRF protection.
+	// The default comparisons ensures that URL Schemes and Hosts
+	// are equal.
+	CheckOrigin CheckOrigin
 
 	// ExtractToken optionally customizes how the CSRF token is
 	// extracted from the request.
@@ -46,17 +72,6 @@ type CSRFProtector struct {
 	// The default length is 32.
 	TokenLength int
 
-	// IsExempt optionally customizes checking request exemption
-	// from CSRF protection.
-	// The default checker always returns `false`.
-	IsExempt RequestPredicate
-
-	// CheckOrigin optionally customizes how URLs should be
-	// compared for the purposes of CSRF protection.
-	// The default comparisons ensures that URL Schemes and Hosts
-	// are equal.
-	CheckOrigin CheckOrigin
-
 	// ErrorHandler optionally customizes the response for an
 	// error. The `err` parameter passed to the handler will
 	// have a recommended HTTP status code.
@@ -65,129 +80,152 @@ type CSRFProtector struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *CSRFProtector) Service(c context.Context, r *httpx.Request) httpx.Response {
-	if m.ErrorHandler == nil {
-		m.ErrorHandler = m.defaultErrorHandler
+func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) httpx.Response {
+	if m.SiteURL == nil {
+		err := merry.New("csrf middleware: check invariants: SiteURL is nil")
+		return m.handleError(ctx, request, err)
+	} else if m.SiteURL.Host == "" {
+		err := merry.New("csrf middleware: check invariants: SiteURL host is empty")
+		return m.handleError(ctx, request, err)
+	} else if m.SiteURL.Scheme == "" {
+		err := merry.New("csrf middleware: check invariants: SiteURL scheme is empty")
+		return m.handleError(ctx, request, err)
 	}
 
-	if m.IsExempt == nil {
-		m.IsExempt = m.defaultIsExempt
-	}
-
-	if m.CheckOrigin == nil {
-		m.CheckOrigin = m.defaultCheckOrigin
-	}
-
-	if m.ExtractToken == nil {
-		m.ExtractToken = m.defaultTokenExtractor
-	}
-
-	if m.CookieName == "" {
-		m.CookieName = defaultCookieName
-	}
-
-	if m.TokenLength == 0 {
-		m.TokenLength = defaultTokenLength
-	}
-
-	if m.SiteURL.String() == "" || m.SiteURL.Host == "" || m.SiteURL.Scheme == "" {
-		merr := merry.New("invalid SiteURL")
-		merr = merr.WithUserMessage("CSRFProtector.SiteURL must be non-nil and contain Scheme + Host")
-		merr = merr.WithHTTPCode(http.StatusInternalServerError)
-		return m.ErrorHandler(c, r, merr)
-	}
-
-	if m.IsExempt(c, r) {
+	if ok, exception := m.isExempt(ctx, request); exception != nil {
+		return m.handleError(ctx, request, exception)
+	} else if ok {
 		return nil
 	}
 
-	values, exists := r.Header["Origin"]
+	values, exists := request.Header["Origin"]
 	if !exists {
-		values, exists = r.Header["Referer"]
+		values, exists = request.Header["Referer"]
 	}
 	if !exists {
-		merr := merry.New("no Origin/Referer header")
-		merr = merr.WithUserMessage("Either Origin or Referrer header must be presented")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+		err := merry.New("csrf middleware: find header: missing Origin or Referer")
+		return m.handleError(ctx, request, err.WithHTTPCode(http.StatusForbidden))
 	}
 	if len(values) != 1 {
-		merr := merry.New("too many Origin/Referer values")
-		merr = merr.WithUserMessage("Too many values provided for Origin or Referer header")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+		err1 := merry.New("csrf middleware: validate header: too many values")
+		err1 = err1.WithValue("header", strings.Join(values, ", "))
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	actual, err := url.Parse(values[0])
 	if err != nil {
-		merr := merry.Wrap(err)
-		merr = merr.WithUserMessagef("Origin/Referer header is not a URL: %v", values[0])
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+		err1 := merry.Prepend(err, "csrf middleware: parse Origin/Referer URL")
+		err1 = err1.WithValue("url", values[0])
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
-	if !m.CheckOrigin(m.SiteURL, *actual) {
-		merr := merry.Errorf("invalid origin")
-		merr = merr.WithUserMessagef("Origin/Referer header invalid: %v, expected: %v", values[0], m.SiteURL)
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+	if ok, exception := m.checkOrigin(m.SiteURL, actual); exception != nil {
+		exception = exception.Prepend("csrf middleware: check origin")
+		return m.handleError(ctx, request, exception)
+	} else if !ok {
+		err1 := merry.New("csrf middleware: check origin: not equal")
+		err1 = err1.WithValue("expected", m.SiteURL.String())
+		err1 = err1.WithValue("actual", actual.String())
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
-	cookie, err := r.Cookie(m.CookieName)
+	name := defaultCookieName
+	if m.CookieName != "" {
+		name = m.CookieName
+	}
+	cookie, err := request.Cookie(name)
 	if err != nil {
-		merr := merry.Wrap(err)
-		merr = merr.WithMessage("no csrf cookie")
-		merr = merr.WithUserMessage("CSRF Cookie must be presented")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
-	}
-	if len(cookie.Value) != m.TokenLength {
-		merr := merry.New("invalid CSRF cookie")
-		merr = merr.WithUserMessage("Invalid CSRF cookie presented")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+		err1 := merry.New("csrf middleware: find cookie: not found")
+		err1 = err1.WithValue("name", name)
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
-	token, err := m.ExtractToken(c, r)
-	if err != nil {
-		merr := merry.Wrap(err)
-		merr = merr.WithUserMessage("Unable to find CSRF token")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+	length := defaultTokenLength
+	if m.TokenLength != 0 {
+		length = m.TokenLength
 	}
-	if len(token) != m.TokenLength {
-		merr := merry.New("invalid CSRF token")
-		merr = merr.WithUserMessage("Invalid CSRF token")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+	if len(cookie.Value) != length {
+		err1 := merry.New("csrf middleware: vaidate cookie: invalid length")
+		err1 = err1.WithValue("cookie", cookie.Value)
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+	}
+
+	token, err := m.extractToken(ctx, request)
+	if err != nil {
+		err1 := merry.Prepend(err, "csrf middleware: extract token")
+		return m.handleError(ctx, request, err1)
+	}
+
+	if len(token) != length {
+		err1 := merry.New("csrf middleware: vaidate token: invalid length")
+		err1 = err1.WithValue("token", token)
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	if subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(token)) != 1 {
-		merr := merry.New("invalid CSRF token")
-		merr = merr.WithUserMessage("Invalid CSRF token")
-		merr = merr.WithHTTPCode(http.StatusForbidden)
-		return m.ErrorHandler(c, r, merr)
+		err1 := merry.New("csrf middleware: compare tokens: not equal")
+		err1 = err1.WithValue("cookie", cookie.Value)
+		err1 = err1.WithValue("token", token)
+		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	return nil
 }
 
-func (m *CSRFProtector) defaultCheckOrigin(expected, actual url.URL) bool {
-	return expected.Scheme == actual.Scheme && expected.Host == actual.Host
-}
-
-func (m *CSRFProtector) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-	return httpx.NewEmptyError(merry.HTTPCode(err), err)
-}
-
-func (m *CSRFProtector) defaultIsExempt(c context.Context, r *httpx.Request) bool {
-	return false
-}
-
-func (m *CSRFProtector) defaultTokenExtractor(c context.Context, r *httpx.Request) (token string, err merry.Error) {
-	token = r.Header.Get("X-Csrf-Token")
-	if token == "" {
-		err = merry.New("missing X-Csrf-Token header")
+func (m *CSRFProtector) isExempt(ctx context.Context, request *httpx.Request) (ok bool, exception merry.Error) {
+	if m.IsExempt == nil {
+		return false, nil
 	}
+
+	ok, exception = m.IsExempt.InvokeSafely(ctx, request)
+	if exception != nil {
+		exception = exception.Prepend("csrf middleware: run IsExempt")
+	}
+
 	return
+}
+
+func (m *CSRFProtector) checkOrigin(expected, actual *url.URL) (bool, merry.Error) {
+	if m.CheckOrigin == nil {
+		return expected.Scheme == actual.Scheme && expected.Host == actual.Host, nil
+	}
+
+	return m.CheckOrigin.InvokeSafely(expected, actual)
+}
+
+func (m *CSRFProtector) extractToken(ctx context.Context, request *httpx.Request) (token string, err merry.Error) {
+	if m.ExtractToken == nil {
+		token = request.Header.Get("X-Csrf-Token")
+		if token == "" {
+			err = merry.New("missing X-Csrf-Token header")
+			err = err.WithHTTPCode(http.StatusForbidden)
+		}
+
+		return
+	}
+
+	var exception merry.Error
+	token, err, exception = m.ExtractToken.InvokeSafely(ctx, request)
+	if exception != nil {
+		err = exception
+	} else if err != nil {
+		err = err.WithHTTPCode(http.StatusForbidden)
+	}
+
+	return
+}
+
+func (m *CSRFProtector) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	if m.ErrorHandler == nil {
+		return httpx.NewEmptyError(merry.HTTPCode(err), err)
+	}
+
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
+	if exception != nil {
+		exception = exception.Prepend("csrf middleware: run ErrorHandler")
+		exception = exception.Append("original error").Append(err.Error())
+		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
+	}
+
+	return response
 }

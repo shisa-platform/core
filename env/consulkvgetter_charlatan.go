@@ -119,6 +119,7 @@ func (f *FakeKVGetter) Reset() {
 
 func (_f1 *FakeKVGetter) Get(ident1 string, ident2 *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
 	invocation := new(KVGetterGetInvocation)
+	_f1.GetCalls = append(_f1.GetCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
@@ -128,8 +129,6 @@ func (_f1 *FakeKVGetter) Get(ident1 string, ident2 *consul.QueryOptions) (ident3
 	invocation.Results.Ident3 = ident3
 	invocation.Results.Ident4 = ident4
 	invocation.Results.Ident5 = ident5
-
-	_f1.GetCalls = append(_f1.GetCalls, invocation)
 
 	return
 }
@@ -258,6 +257,7 @@ func (_f6 *FakeKVGetter) GetResultsForCall(ident1 string, ident2 *consul.QueryOp
 
 func (_f7 *FakeKVGetter) List(ident1 string, ident2 *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error) {
 	invocation := new(KVGetterListInvocation)
+	_f7.ListCalls = append(_f7.ListCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
@@ -267,8 +267,6 @@ func (_f7 *FakeKVGetter) List(ident1 string, ident2 *consul.QueryOptions) (ident
 	invocation.Results.Ident3 = ident3
 	invocation.Results.Ident4 = ident4
 	invocation.Results.Ident5 = ident5
-
-	_f7.ListCalls = append(_f7.ListCalls, invocation)
 
 	return
 }

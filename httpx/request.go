@@ -147,7 +147,7 @@ func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // paramters fail validation or do not match a field,
 // respectively.  If a validator panics an error will be returned
 // in `err`.
-func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unknown bool, err merry.Error) {
+func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unknown bool, exception merry.Error) {
 	if len(fields) == 0 {
 		return
 	}
@@ -169,11 +169,12 @@ func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unkno
 					break
 				}
 
-				if vErr := field.Validate(param.Values, &err); vErr != nil {
-					param.Err = MalformedQueryParamter.Append(vErr.Error())
+				param.Err, exception = field.Validate(param.Values)
+				if param.Err != nil {
+					param.Err = MalformedQueryParamter.Append(param.Err.Error())
 					malformed = true
 				}
-				if err != nil {
+				if exception != nil {
 					return
 				}
 				break

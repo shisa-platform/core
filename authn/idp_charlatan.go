@@ -93,6 +93,7 @@ func (f *FakeIdentityProvider) Reset() {
 
 func (_f1 *FakeIdentityProvider) Authenticate(ident1 context.Context, ident2 string) (ident3 models.User, ident4 merry.Error) {
 	invocation := new(IdentityProviderAuthenticateInvocation)
+	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
@@ -101,8 +102,6 @@ func (_f1 *FakeIdentityProvider) Authenticate(ident1 context.Context, ident2 str
 
 	invocation.Results.Ident3 = ident3
 	invocation.Results.Ident4 = ident4
-
-	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 
 	return
 }

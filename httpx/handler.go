@@ -7,21 +7,21 @@ import (
 )
 
 // Handler is a block of logic to apply to a request.
-// Returning a non-nil response indicates further request
-// processing should be stopped.
+// Returning a non-nil Response indicates request processing
+// should stop.
 type Handler func(context.Context, *Request) Response
 
-func (h Handler) InvokeSafely(ctx context.Context, request *Request, exception *merry.Error) Response {
-	defer handlerRecovery(exception)
-	return h(ctx, request)
+func (h Handler) InvokeSafely(ctx context.Context, request *Request) (_ Response, exception merry.Error) {
+	defer handlerRecovery(&exception)
+	return h(ctx, request), nil
 }
 
 // ErrorHandler creates a response for the given error condition.
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
-func (h ErrorHandler) InvokeSafely(ctx context.Context, request *Request, err merry.Error, exception *merry.Error) Response {
-	defer handlerRecovery(exception)
-	return h(ctx, request, err)
+func (h ErrorHandler) InvokeSafely(ctx context.Context, request *Request, err merry.Error) (_ Response, exception merry.Error) {
+	defer handlerRecovery(&exception)
+	return h(ctx, request, err), nil
 }
 
 func handlerRecovery(exception *merry.Error) {

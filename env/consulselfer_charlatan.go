@@ -83,13 +83,12 @@ func (f *FakeSelfer) Reset() {
 
 func (_f1 *FakeSelfer) Self() (ident1 map[string]map[string]interface{}, ident2 error) {
 	invocation := new(SelferSelfInvocation)
+	_f1.SelfCalls = append(_f1.SelfCalls, invocation)
 
 	ident1, ident2 = _f1.SelfHook()
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
-
-	_f1.SelfCalls = append(_f1.SelfCalls, invocation)
 
 	return
 }

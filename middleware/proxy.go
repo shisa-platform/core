@@ -25,14 +25,74 @@ var (
 	}
 )
 
-// Route returns the request to contact the proxied server.
-type Route func(context.Context, *httpx.Request) (*httpx.Request, merry.Error)
+// Router returns the request to contact the proxied server.
+type Router func(context.Context, *httpx.Request) (*httpx.Request, merry.Error)
 
-// Invoke sends the proxied request and returns the response.
-type Invoke func(context.Context, *httpx.Request) (httpx.Response, merry.Error)
+func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (out *httpx.Request, err merry.Error, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
 
-// Respond modifies the response from the proxied server.
-type Respond func(context.Context, *httpx.Request, httpx.Response) httpx.Response
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in router")
+			return
+		}
+
+		exception = merry.New("panic in router").WithValue("context", arg)
+	}()
+
+	out, err = r(ctx, request)
+
+	return
+}
+
+// Invoker sends the proxied request and returns the response.
+type Invoker func(context.Context, *httpx.Request) (httpx.Response, merry.Error)
+
+func (i Invoker) InvokeSafely(ctx context.Context, request *httpx.Request) (response httpx.Response, err merry.Error, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in invoker")
+			return
+		}
+
+		exception = merry.New("panic in invoker").WithValue("context", arg)
+	}()
+
+	response, err = i(ctx, request)
+
+	return
+}
+
+// Responder modifies the response from the proxied server.
+type Responder func(context.Context, *httpx.Request, httpx.Response) (httpx.Response, merry.Error)
+
+func (r Responder) InvokeSafely(ctx context.Context, request *httpx.Request, in httpx.Response) (out httpx.Response, err merry.Error, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in responder")
+			return
+		}
+
+		exception = merry.New("panic in responder").WithValue("context", arg)
+	}()
+
+	out, err = r(ctx, request, in)
+
+	return
+}
 
 // ReverseProxy is a Handler that takes an incoming request and
 // sends it to another server, proxying the response back to the
@@ -40,41 +100,27 @@ type Respond func(context.Context, *httpx.Request, httpx.Response) httpx.Respons
 type ReverseProxy struct {
 	// Router must be non-nil or an InternalServiceError
 	// status response will be returned.
-	Router Route
+	Router Router
+
 	// Invoker can be set to optionally customize how the proxied
 	// server is contacted.  If this is not set
 	// `http.DefaultTransport` will be used.
-	Invoker Invoke
-	// Router can be set to optionally customize the response
+	Invoker Invoker
+
+	// Responder can be set to optionally customize the response
 	// from the proxied server.  If this is not set the response
 	// will not be modified.
-	Responder Respond
+	Responder Responder
+
 	// ErrorHandler can be set to optionally customize the
 	// response for an error. The `err` parameter passed to the
 	// handler will have a recommended HTTP status code. The
 	// default handler will return the recommended status code
 	// and an empty body.
 	ErrorHandler httpx.ErrorHandler
-
-	tripper http.RoundTripper
 }
 
 func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Response {
-	if m.ErrorHandler == nil {
-		m.ErrorHandler = m.defaultErrorHandler
-	}
-
-	if m.Invoker == nil {
-		m.Invoker = m.defaultInvoker
-	}
-
-	if m.Router == nil {
-		err := merry.New("router is nil")
-		err = err.WithUserMessage("middleware.ReverseProxy.Router must be non-nil")
-		err = err.WithHTTPCode(http.StatusInternalServerError)
-		return m.ErrorHandler(ctx, r, err)
-	}
-
 	request := &httpx.Request{Request: r.WithContext(ctx)}
 
 	request.Header = cloneHeaders(r.Header)
@@ -85,16 +131,9 @@ func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Resp
 		request.Body = nil
 	}
 
-	request, err := m.Router(ctx, request)
-	if err != nil {
-		err = err.WithHTTPCode(http.StatusBadGateway)
-		return m.ErrorHandler(ctx, r, err)
-	}
-	if request == nil {
-		err := merry.New("proxy request is nil")
-		err = err.WithUserMessage("middleware.ReverseProxy.Router returned nil request")
-		err = err.WithHTTPCode(http.StatusBadGateway)
-		return m.ErrorHandler(ctx, r, err)
+	request, response := m.route(ctx, request)
+	if response != nil {
+		return response
 	}
 
 	request.Close = false
@@ -126,17 +165,7 @@ func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Resp
 		request.Header.Set("X-Forwarded-For", clientIP)
 	}
 
-	response, err := m.Invoker(ctx, request)
-	if err != nil {
-		err = err.WithHTTPCode(http.StatusBadGateway)
-		return m.ErrorHandler(ctx, request, err)
-	}
-	if response == nil {
-		err := merry.New("proxy response is nil")
-		err = err.WithUserMessage("middleware.ReverseProxy.Invoker returned nil response")
-		err = err.WithHTTPCode(http.StatusBadGateway)
-		return m.ErrorHandler(ctx, r, err)
-	}
+	response = m.invoke(ctx, request)
 
 	// Remove hop-by-hop headers listed in the "Connection"
 	// header of the response.
@@ -155,35 +184,96 @@ func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Resp
 		delete(response.Headers(), h)
 	}
 
+	return m.respond(ctx, request, response)
+}
+
+func (m *ReverseProxy) route(ctx context.Context, request *httpx.Request) (*httpx.Request, httpx.Response) {
+	if m.Router == nil {
+		err := merry.New("proxy middleware: check invariants: router is nil")
+		return nil, m.handleError(ctx, request, err)
+	}
+
+	out, err, exception := m.Router.InvokeSafely(ctx, request)
+	if exception != nil {
+		exception = exception.Prepend("proxy middleware: run Router")
+		return nil, m.handleError(ctx, request, exception)
+	} else if err != nil {
+		err = err.Prepend("proxy middleware: run Router")
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		return nil, m.handleError(ctx, request, err)
+	} else if out == nil {
+		err := merry.New("proxy middleware: run Router: result is nil")
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		return nil, m.handleError(ctx, request, err)
+	}
+
+	return out, nil
+}
+
+func (m *ReverseProxy) invoke(ctx context.Context, request *httpx.Request) httpx.Response {
+	if m.Invoker == nil {
+		response, err := http.DefaultTransport.RoundTrip(request.Request)
+		if err != nil {
+			err1 := merry.Prepend(err, "proxy middleware: run default invoker")
+			err1 = err1.WithHTTPCode(http.StatusBadGateway)
+			return m.handleError(ctx, request, err1)
+		}
+
+		return httpx.ResponseAdapter{Response: response}
+	}
+
+	response, err, exception := m.Invoker.InvokeSafely(ctx, request)
+	if exception != nil {
+		exception = exception.Prepend("proxy middleware: run Invoker")
+		response = m.handleError(ctx, request, exception)
+	} else if err != nil {
+		err = err.Prepend("proxy middleware: run Invoker")
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		response = m.handleError(ctx, request, err)
+	} else if response == nil {
+		err := merry.New("proxy middleware: run Invoker: result is nil")
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		response = m.handleError(ctx, request, err)
+	}
+
+	return response
+}
+
+func (m *ReverseProxy) respond(ctx context.Context, request *httpx.Request, response httpx.Response) httpx.Response {
 	if m.Responder == nil {
 		return response
 	}
 
-	response = m.Responder(ctx, request, response)
-	if response == nil {
-		err := merry.New("proxy response is nil")
-		err = err.WithUserMessage("middleware.ReverseProxy.Responder returned nil response")
+	out, err, exception := m.Responder.InvokeSafely(ctx, request, response)
+	if exception != nil {
+		exception = exception.Prepend("proxy middleware: run Responder")
+		out = m.handleError(ctx, request, exception)
+	} else if err != nil {
+		err = err.Prepend("proxy middleware: run Responder")
 		err = err.WithHTTPCode(http.StatusBadGateway)
-		return m.ErrorHandler(ctx, r, err)
+		out = m.handleError(ctx, request, err)
+	} else if out == nil {
+		err := merry.New("proxy middleware: run Responder: result is nil")
+		err = err.WithHTTPCode(http.StatusBadGateway)
+		out = m.handleError(ctx, request, err)
 	}
+
+	return out
+}
+
+func (m *ReverseProxy) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	if m.ErrorHandler == nil {
+		return httpx.NewEmptyError(merry.HTTPCode(err), err)
+	}
+
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
+	if exception != nil {
+		exception = exception.Prepend("proxy middleware: run ErrorHandler")
+		exception = exception.Append("original error").Append(err.Error())
+		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
+	}
+
 	return response
-}
-
-func (m *ReverseProxy) defaultInvoker(ctx context.Context, req *httpx.Request) (httpx.Response, merry.Error) {
-	if m.tripper == nil {
-		m.tripper = http.DefaultTransport
-	}
-
-	response, err := m.tripper.RoundTrip(req.Request)
-	if err != nil {
-		return nil, merry.Wrap(err).WithHTTPCode(http.StatusBadGateway)
-	}
-
-	return httpx.ResponseAdapter{Response: response}, nil
-}
-
-func (m *ReverseProxy) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-	return httpx.NewEmptyError(merry.HTTPCode(err), err)
 }
 
 func cloneQueryParams(params []*httpx.QueryParameter) []*httpx.QueryParameter {

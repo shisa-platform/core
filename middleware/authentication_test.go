@@ -57,6 +57,54 @@ func TestAuthenticationAuthenticatorError(t *testing.T) {
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
 
+func TestAuthenticationAuthenticatorPanic(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			panic(merry.New("I blewed up!"))
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
+	}
+
+	cut := &Authentication{
+		Authenticator: authn,
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestAuthenticationAuthenticatorPanicString(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			panic("I blewed up!")
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
+	}
+
+	cut := &Authentication{
+		Authenticator: authn,
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
 func TestAuthenticationOK(t *testing.T) {
 	authn := &authn.FakeAuthenticator{
 		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
@@ -77,7 +125,7 @@ func TestAuthenticationOK(t *testing.T) {
 
 	response := cut.Service(ctx, request)
 	assert.Nil(t, response)
-	assert.NotNil(t, cut.ErrorHandler)
+	assert.Nil(t, cut.ErrorHandler)
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 	ctx.AssertWithActorCalledOnceWith(t, expectedUser)
@@ -121,7 +169,6 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.NewFakeContextDefaultFatal(t)
 
-	challenge := "Custom realm=\"secrets, inc\""
 	var handlerInvoked bool
 	cut := &Authentication{
 		Authenticator: authn,
@@ -131,7 +178,6 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 			assert.Equal(t, request, r)
 
 			response := httpx.NewEmpty(http.StatusForbidden)
-			response.Headers().Set(WWWAuthenticateHeaderKey, challenge)
 			return response
 		},
 	}
@@ -139,11 +185,103 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusForbidden, response.StatusCode())
-	assert.Equal(t, challenge, response.Headers().Get(WWWAuthenticateHeaderKey))
+	assert.Empty(t, response.Headers().Get(WWWAuthenticateHeaderKey))
+	assert.True(t, handlerInvoked, "custom error handler not invoked")
 
-	if !handlerInvoked {
-		t.Fatal("custom error handler not invoked")
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestAuthenticationCustomHandlerWithoutSettingHeader(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
 	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	var handlerInvoked bool
+	cut := &Authentication{
+		Authenticator: authn,
+		UnauthorizedHandler: func(c context.Context, r *httpx.Request) httpx.Response {
+			handlerInvoked = true
+			assert.Equal(t, ctx, c)
+			assert.Equal(t, request, r)
+
+			response := httpx.NewEmpty(http.StatusUnauthorized)
+			return response
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
+	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
+	assert.True(t, handlerInvoked, "custom error handler not invoked")
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestAuthenticationCustomHandlerPanic(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	var handlerInvoked bool
+	cut := &Authentication{
+		Authenticator: authn,
+		UnauthorizedHandler: func(c context.Context, r *httpx.Request) httpx.Response {
+			handlerInvoked = true
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+	assert.True(t, handlerInvoked, "custom error handler not invoked")
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestAuthenticationCustomHandlerPanicString(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			return nil, nil
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	var handlerInvoked bool
+	cut := &Authentication{
+		Authenticator: authn,
+		UnauthorizedHandler: func(c context.Context, r *httpx.Request) httpx.Response {
+			handlerInvoked = true
+			panic("i blewed up!")
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+	assert.True(t, handlerInvoked, "custom error handler not invoked")
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
@@ -182,10 +320,69 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusForbidden, response.StatusCode())
 	assert.Equal(t, challenge, response.Headers().Get(WWWAuthenticateHeaderKey))
+	assert.True(t, errorHandlerInvoked, "custom error handler not invoked")
 
-	if !errorHandlerInvoked {
-		t.Fatal("custom error handler not invoked")
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestAuthenticationCustomErrorHandlerPanic(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			return nil, merry.New("I blewed up!")
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
 	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	var errorHandlerInvoked bool
+	cut := &Authentication{
+		Authenticator: authn,
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+			errorHandlerInvoked = true
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
+	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
+	assert.True(t, errorHandlerInvoked, "custom error handler not invoked")
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestAuthenticationCustomErrorHandlerPanicString(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			return nil, merry.New("I blewed up!")
+		},
+		ChallengeHook: func() string {
+			return expectedChallenge
+		},
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	var errorHandlerInvoked bool
+	cut := &Authentication{
+		Authenticator: authn,
+		ErrorHandler: func(c context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+			errorHandlerInvoked = true
+			panic("i blewed up!")
+		},
+	}
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
+	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
+	assert.True(t, errorHandlerInvoked, "custom error handler not invoked")
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }
@@ -218,6 +415,50 @@ func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
 
 	response := cut.Service(ctx, request)
 	assert.Nil(t, response)
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationAuthenticatorPanic(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			panic(merry.New("i blewed up!"))
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+	assert.Equal(t, "", response.Headers().Get(WWWAuthenticateHeaderKey))
+
+	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+}
+
+func TestPassiveAuthenticationAuthenticatorPanicString(t *testing.T) {
+	authn := &authn.FakeAuthenticator{
+		AuthenticateHook: func(context.Context, *httpx.Request) (models.User, merry.Error) {
+			panic("i blewed up!")
+		},
+	}
+
+	cut := &PassiveAuthentication{
+		Authenticator: authn,
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.NewFakeContextDefaultFatal(t)
+
+	response := cut.Service(ctx, request)
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
+	assert.Equal(t, "", response.Headers().Get(WWWAuthenticateHeaderKey))
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
 }

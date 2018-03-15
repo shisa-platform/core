@@ -173,12 +173,11 @@ func (f *FakeServer) Reset() {
 
 func (_f1 *FakeServer) Name() (ident1 string) {
 	invocation := new(ServerNameInvocation)
+	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
 	ident1 = _f1.NameHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
 	return
 }
@@ -237,12 +236,11 @@ func (f *FakeServer) AssertNameCalledN(t ServerTestingT, n int) {
 
 func (_f2 *FakeServer) Address() (ident1 string) {
 	invocation := new(ServerAddressInvocation)
+	_f2.AddressCalls = append(_f2.AddressCalls, invocation)
 
 	ident1 = _f2.AddressHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f2.AddressCalls = append(_f2.AddressCalls, invocation)
 
 	return
 }
@@ -301,12 +299,11 @@ func (f *FakeServer) AssertAddressCalledN(t ServerTestingT, n int) {
 
 func (_f3 *FakeServer) Listen() (ident1 error) {
 	invocation := new(ServerListenInvocation)
+	_f3.ListenCalls = append(_f3.ListenCalls, invocation)
 
 	ident1 = _f3.ListenHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f3.ListenCalls = append(_f3.ListenCalls, invocation)
 
 	return
 }
@@ -365,12 +362,11 @@ func (f *FakeServer) AssertListenCalledN(t ServerTestingT, n int) {
 
 func (_f4 *FakeServer) Serve() (ident1 error) {
 	invocation := new(ServerServeInvocation)
+	_f4.ServeCalls = append(_f4.ServeCalls, invocation)
 
 	ident1 = _f4.ServeHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f4.ServeCalls = append(_f4.ServeCalls, invocation)
 
 	return
 }
@@ -429,14 +425,13 @@ func (f *FakeServer) AssertServeCalledN(t ServerTestingT, n int) {
 
 func (_f5 *FakeServer) Shutdown(ident1 time.Duration) (ident2 error) {
 	invocation := new(ServerShutdownInvocation)
+	_f5.ShutdownCalls = append(_f5.ShutdownCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f5.ShutdownHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f5.ShutdownCalls = append(_f5.ShutdownCalls, invocation)
 
 	return
 }

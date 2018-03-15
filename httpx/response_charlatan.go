@@ -3,6 +3,7 @@
 package httpx
 
 import "reflect"
+
 import "github.com/ansel1/merry"
 
 import "net/http"
@@ -176,12 +177,11 @@ func (f *FakeResponse) Reset() {
 
 func (_f1 *FakeResponse) StatusCode() (ident1 int) {
 	invocation := new(ResponseStatusCodeInvocation)
+	_f1.StatusCodeCalls = append(_f1.StatusCodeCalls, invocation)
 
 	ident1 = _f1.StatusCodeHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f1.StatusCodeCalls = append(_f1.StatusCodeCalls, invocation)
 
 	return
 }
@@ -240,12 +240,11 @@ func (f *FakeResponse) AssertStatusCodeCalledN(t ResponseTestingT, n int) {
 
 func (_f2 *FakeResponse) Headers() (ident1 http.Header) {
 	invocation := new(ResponseHeadersInvocation)
+	_f2.HeadersCalls = append(_f2.HeadersCalls, invocation)
 
 	ident1 = _f2.HeadersHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f2.HeadersCalls = append(_f2.HeadersCalls, invocation)
 
 	return
 }
@@ -304,12 +303,11 @@ func (f *FakeResponse) AssertHeadersCalledN(t ResponseTestingT, n int) {
 
 func (_f3 *FakeResponse) Trailers() (ident1 http.Header) {
 	invocation := new(ResponseTrailersInvocation)
+	_f3.TrailersCalls = append(_f3.TrailersCalls, invocation)
 
 	ident1 = _f3.TrailersHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f3.TrailersCalls = append(_f3.TrailersCalls, invocation)
 
 	return
 }
@@ -368,12 +366,11 @@ func (f *FakeResponse) AssertTrailersCalledN(t ResponseTestingT, n int) {
 
 func (_f4 *FakeResponse) Err() (ident1 error) {
 	invocation := new(ResponseErrInvocation)
+	_f4.ErrCalls = append(_f4.ErrCalls, invocation)
 
 	ident1 = _f4.ErrHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f4.ErrCalls = append(_f4.ErrCalls, invocation)
 
 	return
 }
@@ -432,14 +429,13 @@ func (f *FakeResponse) AssertErrCalledN(t ResponseTestingT, n int) {
 
 func (_f5 *FakeResponse) Serialize(ident1 io.Writer) (ident2 merry.Error) {
 	invocation := new(ResponseSerializeInvocation)
+	_f5.SerializeCalls = append(_f5.SerializeCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
 	ident2 = _f5.SerializeHook(ident1)
 
 	invocation.Results.Ident2 = ident2
-
-	_f5.SerializeCalls = append(_f5.SerializeCalls, invocation)
 
 	return
 }

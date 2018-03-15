@@ -210,12 +210,11 @@ func (f *FakeService) Reset() {
 
 func (_f1 *FakeService) Name() (ident1 string) {
 	invocation := new(ServiceNameInvocation)
+	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
 	ident1 = _f1.NameHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
 	return
 }
@@ -274,12 +273,11 @@ func (f *FakeService) AssertNameCalledN(t ServiceTestingT, n int) {
 
 func (_f2 *FakeService) Endpoints() (ident1 []Endpoint) {
 	invocation := new(ServiceEndpointsInvocation)
+	_f2.EndpointsCalls = append(_f2.EndpointsCalls, invocation)
 
 	ident1 = _f2.EndpointsHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f2.EndpointsCalls = append(_f2.EndpointsCalls, invocation)
 
 	return
 }
@@ -338,12 +336,11 @@ func (f *FakeService) AssertEndpointsCalledN(t ServiceTestingT, n int) {
 
 func (_f3 *FakeService) Handlers() (ident1 []httpx.Handler) {
 	invocation := new(ServiceHandlersInvocation)
+	_f3.HandlersCalls = append(_f3.HandlersCalls, invocation)
 
 	ident1 = _f3.HandlersHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f3.HandlersCalls = append(_f3.HandlersCalls, invocation)
 
 	return
 }
@@ -402,12 +399,11 @@ func (f *FakeService) AssertHandlersCalledN(t ServiceTestingT, n int) {
 
 func (_f4 *FakeService) MalformedRequestHandler() (ident1 httpx.Handler) {
 	invocation := new(ServiceMalformedRequestHandlerInvocation)
+	_f4.MalformedRequestHandlerCalls = append(_f4.MalformedRequestHandlerCalls, invocation)
 
 	ident1 = _f4.MalformedRequestHandlerHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f4.MalformedRequestHandlerCalls = append(_f4.MalformedRequestHandlerCalls, invocation)
 
 	return
 }
@@ -466,12 +462,11 @@ func (f *FakeService) AssertMalformedRequestHandlerCalledN(t ServiceTestingT, n 
 
 func (_f5 *FakeService) MethodNotAllowedHandler() (ident1 httpx.Handler) {
 	invocation := new(ServiceMethodNotAllowedHandlerInvocation)
+	_f5.MethodNotAllowedHandlerCalls = append(_f5.MethodNotAllowedHandlerCalls, invocation)
 
 	ident1 = _f5.MethodNotAllowedHandlerHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f5.MethodNotAllowedHandlerCalls = append(_f5.MethodNotAllowedHandlerCalls, invocation)
 
 	return
 }
@@ -530,12 +525,11 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t ServiceTestingT, n 
 
 func (_f6 *FakeService) RedirectHandler() (ident1 httpx.Handler) {
 	invocation := new(ServiceRedirectHandlerInvocation)
+	_f6.RedirectHandlerCalls = append(_f6.RedirectHandlerCalls, invocation)
 
 	ident1 = _f6.RedirectHandlerHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f6.RedirectHandlerCalls = append(_f6.RedirectHandlerCalls, invocation)
 
 	return
 }
@@ -594,12 +588,11 @@ func (f *FakeService) AssertRedirectHandlerCalledN(t ServiceTestingT, n int) {
 
 func (_f7 *FakeService) InternalServerErrorHandler() (ident1 httpx.ErrorHandler) {
 	invocation := new(ServiceInternalServerErrorHandlerInvocation)
+	_f7.InternalServerErrorHandlerCalls = append(_f7.InternalServerErrorHandlerCalls, invocation)
 
 	ident1 = _f7.InternalServerErrorHandlerHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f7.InternalServerErrorHandlerCalls = append(_f7.InternalServerErrorHandlerCalls, invocation)
 
 	return
 }

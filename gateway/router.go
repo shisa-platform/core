@@ -84,9 +84,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handlersStart := time.Now().UTC()
 	for i, handler := range g.Handlers {
 		go func() {
-			response := handler.InvokeSafely(subCtx, request, &err)
-			if err != nil {
-				err = merry.Prepend(err, "running gateway handler").WithValue("index", i)
+			response, exception := handler.InvokeSafely(subCtx, request)
+			if exception != nil {
+				err = exception.Prepend("running gateway handler").WithValue("index", i)
 				response = g.handleError(subCtx, request, err)
 			}
 
@@ -117,7 +117,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	findPathStop = time.Now().UTC()
 
 	if err != nil {
-		err = merry.Prepend(err, "routing request")
+		err = err.Prepend("routing request")
 		response = g.handleError(ctx, request, err)
 		goto finish
 	}
@@ -171,10 +171,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	if malformed, unknown, vErr := request.ValidateQueryParameters(pipeline.QueryFields); vErr != nil {
-		vErr = vErr.WithHTTPCode(http.StatusBadRequest)
-		var exception merry.Error
-		response, exception = endpoint.handleError(ctx, request, vErr)
+	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QueryFields); exception != nil {
+		response, exception = endpoint.handleError(ctx, request, exception)
 		if exception != nil {
 			g.invokeErrorHookSafely(ctx, request, exception)
 		}
@@ -217,9 +215,9 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 endpointHandlers:
 	for i, handler := range pipeline.Handlers {
 		go func() {
-			response := handler.InvokeSafely(ctx, request, &err)
-			if err != nil {
-				err = merry.Prepend(err, "running endpoint handler").WithValue("index", i)
+			response, exception := handler.InvokeSafely(ctx, request)
+			if exception != nil {
+				err = exception.Prepend("running endpoint handler").WithValue("index", i)
 				response = g.handleEndpointError(endpoint, ctx, request, err)
 			}
 
@@ -303,12 +301,14 @@ func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request)
 		return request.ID(), nil
 	}
 
-	requestID, err := g.RequestIDGenerator.InvokeSafely(ctx, request)
-	if err != nil {
-		err = merry.Prepend(err, "generating request id")
+	requestID, err, exception := g.RequestIDGenerator.InvokeSafely(ctx, request)
+	if exception != nil {
+		err = exception.Prepend("generating request id")
 		requestID = request.ID()
-	}
-	if requestID == "" {
+	} else if err != nil {
+		err = err.Prepend("generating request id")
+		requestID = request.ID()
+	} else if requestID == "" {
 		err = merry.New("generator returned empty request id")
 		requestID = request.ID()
 	}
@@ -321,10 +321,9 @@ func (g *Gateway) handleNotFound(ctx context.Context, request *httpx.Request) (h
 		return httpx.NewEmpty(http.StatusNotFound), nil
 	}
 
-	var exception merry.Error
-	response := g.NotFoundHandler.InvokeSafely(ctx, request, &exception)
+	response, exception := g.NotFoundHandler.InvokeSafely(ctx, request)
 	if exception != nil {
-		err := merry.Prepend(exception, "running NotFoundHandler")
+		err := exception.Prepend("running NotFoundHandler")
 		return httpx.NewEmpty(http.StatusNotFound), err
 	}
 
@@ -336,11 +335,10 @@ func (g *Gateway) handleError(ctx context.Context, request *httpx.Request, err m
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
 
-	var exception merry.Error
-	response := g.InternalServerErrorHandler.InvokeSafely(ctx, request, err, &exception)
+	response, exception := g.InternalServerErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		response = httpx.NewEmptyError(merry.HTTPCode(err), err)
-		exception = merry.Prepend(exception, "running InternalServerErrorHandler")
+		exception = exception.Prepend("running InternalServerErrorHandler")
 		g.invokeErrorHookSafely(ctx, request, exception)
 	}
 
@@ -357,22 +355,18 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 }
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
-	var exception merry.Error
 
-	g.ErrorHook.InvokeSafely(ctx, request, err, &exception)
-	if exception != nil {
+	if exception := g.ErrorHook.InvokeSafely(ctx, request, err); exception != nil {
 		g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
-		exception = merry.Prepend(exception, "running ErrorHook")
+		exception = exception.Prepend("running ErrorHook")
 		g.Logger.Error(exception.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(exception))
 	}
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
-	var exception merry.Error
 
-	g.CompletionHook.InvokeSafely(ctx, request, snapshot, &exception)
-	if exception != nil {
-		exception = merry.Prepend(exception, "running CompletionHook")
+	if exception := g.CompletionHook.InvokeSafely(ctx, request, snapshot); exception != nil {
+		exception = exception.Prepend("running CompletionHook")
 		g.invokeErrorHookSafely(ctx, request, exception)
 	}
 }

@@ -42,13 +42,17 @@ func TestFieldValidateNoValidator(t *testing.T) {
 		Name: "zalgo",
 	}
 
-	var err merry.Error
-	assert.NoError(t, cut.Validate([]string(nil), &err))
+	err, exception := cut.Validate([]string(nil))
 	assert.NoError(t, err)
-	assert.NoError(t, cut.Validate([]string{}, &err))
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{})
 	assert.NoError(t, err)
-	assert.NoError(t, cut.Validate([]string{"foo"}, &err))
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{"foo"})
 	assert.NoError(t, err)
+	assert.NoError(t, exception)
 }
 
 func TestFieldValidate(t *testing.T) {
@@ -57,15 +61,21 @@ func TestFieldValidate(t *testing.T) {
 		Validator: FixedStringValidator{"he comes"}.Validate,
 	}
 
-	var err merry.Error
-	assert.NoError(t, cut.Validate([]string{"he comes"}, &err))
+	err, exception := cut.Validate([]string{"he comes"})
 	assert.NoError(t, err)
-	assert.NoError(t, cut.Validate([]string(nil), &err))
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string(nil))
 	assert.NoError(t, err)
-	assert.NoError(t, cut.Validate([]string{}, &err))
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{})
 	assert.NoError(t, err)
-	assert.Error(t, cut.Validate([]string{"foo"}, &err))
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{"foo"})
+	assert.Error(t, err)
+	assert.NoError(t, exception)
 }
 
 func TestFieldValidateMultiplicity(t *testing.T) {
@@ -75,17 +85,25 @@ func TestFieldValidateMultiplicity(t *testing.T) {
 		Multiplicity: 1,
 	}
 
-	var err merry.Error
-	assert.NoError(t, cut.Validate([]string{"he comes"}, &err))
+	err, exception := cut.Validate([]string{"he comes"})
 	assert.NoError(t, err)
-	assert.NoError(t, cut.Validate([]string(nil), &err))
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string(nil))
 	assert.NoError(t, err)
-	assert.NoError(t, cut.Validate([]string{}, &err))
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{})
 	assert.NoError(t, err)
-	assert.Error(t, cut.Validate([]string{"he comes", "foo"}, &err))
-	assert.NoError(t, err)
-	assert.Error(t, cut.Validate([]string{"foo"}, &err))
-	assert.NoError(t, err)
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{"he comes", "foo"})
+	assert.Error(t, err)
+	assert.NoError(t, exception)
+
+	err, exception = cut.Validate([]string{"foo"})
+	assert.Error(t, err)
+	assert.NoError(t, exception)
 }
 
 func TestFieldValidatorPanic(t *testing.T) {
@@ -96,9 +114,9 @@ func TestFieldValidatorPanic(t *testing.T) {
 		},
 	}
 
-	var err merry.Error
-	assert.NoError(t, cut.Validate([]string{"zalgo", "he comes"}, &err))
-	assert.Error(t, err)
+	err, exception := cut.Validate([]string{"zalgo", "he comes"})
+	assert.NoError(t, err)
+	assert.Error(t, exception)
 }
 
 func TestFieldValidatorPanicString(t *testing.T) {
@@ -109,9 +127,9 @@ func TestFieldValidatorPanicString(t *testing.T) {
 		},
 	}
 
-	var err merry.Error
-	assert.NoError(t, cut.Validate([]string{"zalgo", "he comes"}, &err))
-	assert.Error(t, err)
+	err, exception := cut.Validate([]string{"zalgo", "he comes"})
+	assert.NoError(t, err)
+	assert.Error(t, exception)
 }
 
 func TestFixedStringValidator(t *testing.T) {

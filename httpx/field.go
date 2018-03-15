@@ -17,7 +17,7 @@ var (
 // criteria.
 type Validator func([]string) merry.Error
 
-func (v Validator) InvokeSafely(values []string, exception *merry.Error) merry.Error {
+func (v Validator) InvokeSafely(values []string) (_ merry.Error, exception merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {
@@ -25,14 +25,14 @@ func (v Validator) InvokeSafely(values []string, exception *merry.Error) merry.E
 		}
 
 		if err1, ok := arg.(error); ok {
-			*exception = merry.Prepend(err1, "panic in validator")
+			exception = merry.Prepend(err1, "panic in validator")
 			return
 		}
 
-		*exception = merry.New("panic in validator").WithValue("context", arg)
+		exception = merry.New("panic in validator").WithValue("context", arg)
 	}()
 
-	return v(values)
+	return v(values), nil
 }
 
 // Field is the schema to validate a query parameter or request
@@ -60,16 +60,17 @@ func (f Field) Match(name string) bool {
 }
 
 // Validate returns an error if all input values don't meet the
-// criteria of `Field.Validator`.
-func (f Field) Validate(values []string, exception *merry.Error) merry.Error {
+// criteria of `Field.Validator`.  If the validator panics an
+// error will be returned in the second result parameter.
+func (f Field) Validate(values []string) (merry.Error, merry.Error) {
 	if f.Multiplicity != 0 && uint(len(values)) > f.Multiplicity {
-		return merry.New("too many values")
+		return merry.New("too many values"), nil
 	}
 	if f.Validator != nil {
-		return f.Validator.InvokeSafely(values, exception)
+		return f.Validator.InvokeSafely(values)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // FixedStringValidator enforces that all input values match a

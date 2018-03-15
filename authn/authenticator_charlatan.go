@@ -114,6 +114,7 @@ func (f *FakeAuthenticator) Reset() {
 
 func (_f1 *FakeAuthenticator) Authenticate(ident1 context.Context, ident2 *httpx.Request) (ident3 models.User, ident4 merry.Error) {
 	invocation := new(AuthenticatorAuthenticateInvocation)
+	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
@@ -122,8 +123,6 @@ func (_f1 *FakeAuthenticator) Authenticate(ident1 context.Context, ident2 *httpx
 
 	invocation.Results.Ident3 = ident3
 	invocation.Results.Ident4 = ident4
-
-	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 
 	return
 }
@@ -251,12 +250,11 @@ func (_f6 *FakeAuthenticator) AuthenticateResultsForCall(ident1 context.Context,
 
 func (_f7 *FakeAuthenticator) Challenge() (ident1 string) {
 	invocation := new(AuthenticatorChallengeInvocation)
+	_f7.ChallengeCalls = append(_f7.ChallengeCalls, invocation)
 
 	ident1 = _f7.ChallengeHook()
 
 	invocation.Results.Ident1 = ident1
-
-	_f7.ChallengeCalls = append(_f7.ChallengeCalls, invocation)
 
 	return
 }

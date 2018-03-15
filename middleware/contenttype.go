@@ -31,10 +31,6 @@ type RestrictContentTypes struct {
 func (m *RestrictContentTypes) Service(c context.Context, r *httpx.Request) httpx.Response {
 	var err merry.Error
 
-	if m.ErrorHandler == nil {
-		m.ErrorHandler = m.defaultErrorHandler
-	}
-
 	switch r.Method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch:
 		err = m.checkPayload(r)
@@ -43,7 +39,7 @@ func (m *RestrictContentTypes) Service(c context.Context, r *httpx.Request) http
 	}
 
 	if err != nil {
-		return m.ErrorHandler(c, r, err)
+		return m.handleError(c, r, err)
 	}
 
 	return nil
@@ -52,24 +48,23 @@ func (m *RestrictContentTypes) Service(c context.Context, r *httpx.Request) http
 func (m *RestrictContentTypes) checkPayload(r *httpx.Request) (err merry.Error) {
 	if values, ok := r.Header[contenttype.ContentTypeHeaderKey]; ok {
 		if len(values) != 1 {
-			err = merry.New("too many content types declared")
-			err = err.WithUserMessage("Content-Type header must be a single value")
+			err = merry.New("restrict content type middleware: validate content type: too many values")
 			err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 			return
 		}
 		for _, ct := range m.Forbidden {
 			if strings.HasPrefix(values[0], ct.String()) {
-				err = merry.Errorf("unsupported content type: %q", ct)
-				err = err.WithUserMessagef("Unsupported Content-Type: %s", ct)
+				err = merry.New("restrict content type middleware: validate content type: forbidden value")
+				err = err.WithValue("value", ct.String())
 				err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 				return
 			}
 		}
 	} else {
-		err = merry.New("content type header not provided")
-		err = err.WithUserMessage("Content-Type header must be provided")
+		err = merry.New("restrict content type middleware: find header: missing Content-Type")
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 	}
+
 	return
 }
 
@@ -89,18 +84,30 @@ func (m *RestrictContentTypes) checkQuery(r *httpx.Request) (err merry.Error) {
 				}
 			}
 		}
-		err = merry.Errorf("unsupported accept header: %q", values)
-		err = err.WithUserMessage("Unsupported Accept header")
+		err = merry.New("restrict content type middleware: validate content type: forbidden value")
+		err = err.WithValue("value", strings.Join(values, ", "))
 	} else {
-		err = merry.New("accept header not provided")
-		err = err.WithUserMessage("Accept header must be provided")
+		err = merry.New("restrict content type middleware: find header: missing Accept")
 	}
+
 	err = err.WithHTTPCode(http.StatusNotAcceptable)
+
 	return
 }
 
-func (m *RestrictContentTypes) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-	return httpx.NewEmptyError(merry.HTTPCode(err), err)
+func (m *RestrictContentTypes) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	if m.ErrorHandler == nil {
+		return httpx.NewEmptyError(merry.HTTPCode(err), err)
+	}
+
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
+	if exception != nil {
+		exception = exception.Prepend("restrict content type middleware: run ErrorHandler")
+		exception = exception.Append("original error").Append(err.Error())
+		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
+	}
+
+	return response
 }
 
 // AllowContentTypes is middleware to whitelist incoming
@@ -118,10 +125,6 @@ type AllowContentTypes struct {
 func (m *AllowContentTypes) Service(c context.Context, r *httpx.Request) httpx.Response {
 	var err merry.Error
 
-	if m.ErrorHandler == nil {
-		m.ErrorHandler = m.defaultErrorHandler
-	}
-
 	switch r.Method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch:
 		err = m.checkPayload(r)
@@ -130,7 +133,7 @@ func (m *AllowContentTypes) Service(c context.Context, r *httpx.Request) httpx.R
 	}
 
 	if err != nil {
-		return m.ErrorHandler(c, r, err)
+		return m.handleError(c, r, err)
 	}
 
 	return nil
@@ -139,8 +142,7 @@ func (m *AllowContentTypes) Service(c context.Context, r *httpx.Request) httpx.R
 func (m *AllowContentTypes) checkPayload(r *httpx.Request) (err merry.Error) {
 	if values, ok := r.Header[contenttype.ContentTypeHeaderKey]; ok {
 		if len(values) != 1 {
-			err = merry.New("too many content types declared")
-			err = err.WithUserMessage("Content-Type header must be a single value")
+			err = merry.New("allow content type middleware: validate content type: too many values")
 			err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 			return
 		}
@@ -149,15 +151,15 @@ func (m *AllowContentTypes) checkPayload(r *httpx.Request) (err merry.Error) {
 				return
 			}
 		}
-		err = merry.Errorf("unsupported content type: %q", values[0])
-		err = err.WithUserMessagef("Unsupported Content-Type: %s", values[0])
+		err = merry.New("allow content type middleware: validate content type: unsupported value")
+		err = err.WithValue("value", values[0])
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 		return
 	} else {
-		err = merry.New("content-type header not provided")
-		err = err.WithUserMessage("Content-Type header must be provided")
+		err = merry.New("allow content type middleware: find header: missing Content-Type")
 		err = err.WithHTTPCode(http.StatusUnsupportedMediaType)
 	}
+
 	return
 }
 
@@ -176,16 +178,27 @@ func (m *AllowContentTypes) checkQuery(r *httpx.Request) (err merry.Error) {
 				}
 			}
 		}
-		err = merry.Errorf("unsupported accept header: %q", values)
-		err = err.WithUserMessage("Unsupported Accept header")
+		err = merry.New("allow content type middleware: validate content type: unsupported value")
+		err = err.WithValue("value", strings.Join(values, ", "))
 	} else {
-		err = merry.New("accept header not provided")
-		err = err.WithUserMessage("Accept header must be provided")
+		err = merry.New("allow content type middleware: find header: missing Accept")
 	}
 	err = err.WithHTTPCode(http.StatusNotAcceptable)
+
 	return
 }
 
-func (m *AllowContentTypes) defaultErrorHandler(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-	return httpx.NewEmptyError(merry.HTTPCode(err), err)
+func (m *AllowContentTypes) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	if m.ErrorHandler == nil {
+		return httpx.NewEmptyError(merry.HTTPCode(err), err)
+	}
+
+	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
+	if exception != nil {
+		exception = exception.Prepend("allow content type middleware: run ErrorHandler")
+		exception = exception.Append("original error").Append(err.Error())
+		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
+	}
+
+	return response
 }

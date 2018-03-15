@@ -164,6 +164,7 @@ func (f *FakeRegistrar) Reset() {
 
 func (_f1 *FakeRegistrar) Register(serviceID string, addr string) (ident1 merry.Error) {
 	invocation := new(RegistrarRegisterInvocation)
+	_f1.RegisterCalls = append(_f1.RegisterCalls, invocation)
 
 	invocation.Parameters.ServiceID = serviceID
 	invocation.Parameters.Addr = addr
@@ -171,8 +172,6 @@ func (_f1 *FakeRegistrar) Register(serviceID string, addr string) (ident1 merry.
 	ident1 = _f1.RegisterHook(serviceID, addr)
 
 	invocation.Results.Ident1 = ident1
-
-	_f1.RegisterCalls = append(_f1.RegisterCalls, invocation)
 
 	return
 }
@@ -299,14 +298,13 @@ func (_f6 *FakeRegistrar) RegisterResultsForCall(serviceID string, addr string) 
 
 func (_f7 *FakeRegistrar) Deregister(serviceID string) (ident1 merry.Error) {
 	invocation := new(RegistrarDeregisterInvocation)
+	_f7.DeregisterCalls = append(_f7.DeregisterCalls, invocation)
 
 	invocation.Parameters.ServiceID = serviceID
 
 	ident1 = _f7.DeregisterHook(serviceID)
 
 	invocation.Results.Ident1 = ident1
-
-	_f7.DeregisterCalls = append(_f7.DeregisterCalls, invocation)
 
 	return
 }
@@ -433,6 +431,7 @@ func (_f12 *FakeRegistrar) DeregisterResultsForCall(serviceID string) (ident1 me
 
 func (_f13 *FakeRegistrar) AddCheck(service string, url *url.URL) (ident1 merry.Error) {
 	invocation := new(RegistrarAddCheckInvocation)
+	_f13.AddCheckCalls = append(_f13.AddCheckCalls, invocation)
 
 	invocation.Parameters.Service = service
 	invocation.Parameters.Url = url
@@ -440,8 +439,6 @@ func (_f13 *FakeRegistrar) AddCheck(service string, url *url.URL) (ident1 merry.
 	ident1 = _f13.AddCheckHook(service, url)
 
 	invocation.Results.Ident1 = ident1
-
-	_f13.AddCheckCalls = append(_f13.AddCheckCalls, invocation)
 
 	return
 }
@@ -568,14 +565,13 @@ func (_f18 *FakeRegistrar) AddCheckResultsForCall(service string, url *url.URL) 
 
 func (_f19 *FakeRegistrar) RemoveChecks(service string) (ident1 merry.Error) {
 	invocation := new(RegistrarRemoveChecksInvocation)
+	_f19.RemoveChecksCalls = append(_f19.RemoveChecksCalls, invocation)
 
 	invocation.Parameters.Service = service
 
 	ident1 = _f19.RemoveChecksHook(service)
 
 	invocation.Results.Ident1 = ident1
-
-	_f19.RemoveChecksCalls = append(_f19.RemoveChecksCalls, invocation)
 
 	return
 }
