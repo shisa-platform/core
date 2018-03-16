@@ -74,7 +74,7 @@ func TestGatewaySignal(t *testing.T) {
 		wg.Done()
 	}()
 
-	time.Sleep(time.Millisecond*200)
+	time.Sleep(time.Millisecond * 200)
 
 	monitor := make(chan os.Signal, 1)
 	signal.Notify(monitor, syscall.SIGINT)
