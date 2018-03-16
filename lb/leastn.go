@@ -68,6 +68,13 @@ func (c *leastConnsCache) Next(service string, nodeList []string) string {
 	return final.addr
 }
 
+func (c *leastConnsCache) connsForService(service string) uint64 {
+	c.mtx.RLock()
+	ng := c.r[service]
+	c.mtx.RUnlock()
+	return ng.totalConns()
+}
+
 type nodeGroup struct {
 	mtx   sync.RWMutex
 	nodes []*node
@@ -122,6 +129,17 @@ func (n *nodeGroup) choose(g int) (final *node) {
 	}
 
 	return final
+}
+
+func (n *nodeGroup) totalConns() (m uint64) {
+	n.mtx.RLock()
+	defer n.mtx.RUnlock()
+
+	for i := range n.nodes {
+		m += n.nodes[i].conns
+	}
+
+	return
 }
 
 func newNodeGroup(nodeList []string) *nodeGroup {

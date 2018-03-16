@@ -58,15 +58,26 @@ func TestLeastNBalanceCalledTwice(t *testing.T) {
 			return testAddrs, nil
 		},
 	}
-	rr := NewLeastN(res, 2)
+	cache := &leastConnsCache{
+		n: 2,
+		r: make(map[string]*nodeGroup),
+	}
+	rr := &CacheBalancer{
+		Cache: cache,
+		Resolver: res,
+	}
 
 	node1, e := rr.Balance(testServiceName)
+	conns1 := cache.connsForService(testServiceName)
 	node2, e := rr.Balance(testServiceName)
+	conns2 := cache.connsForService(testServiceName)
 
 	assert.NoError(t, e)
 	assert.NotEqual(t, node1, node2)
 	assert.Contains(t, testAddrs, node1)
 	assert.Contains(t, testAddrs, node2)
+	assert.Equal(t, uint64(1), conns1)
+	assert.Equal(t, uint64(2), conns2)
 }
 
 func TestLeastNBalanceLargeN(t *testing.T) {
