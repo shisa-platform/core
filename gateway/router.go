@@ -4,28 +4,52 @@ import (
 	stdctx "context"
 	"net/http"
 	"net/url"
-	"time"
+	"sync"
 
 	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/metrics"
 	"github.com/percolate/shisa/service"
 )
 
 const (
 	// RequestIdGenerationMetricKey is the `ResponseSnapshot` metric for generating the request id
 	RequestIdGenerationMetricKey = "request-id-generation"
-	// FindEndpointMetricKey is the `ResponseSnapshot` metric for resolving the request's endpoint
-	FindEndpointMetricKey = "find-endpoint"
+	// ParseQueryParametersMetricKey is the `ResponseSnapshot` metric for parsing the request query parameters
+	ParseQueryParametersMetricKey = "parse-query"
 	// RunGatewayHandlersMetricKey is the `ResponseSnapshot` metric for running the Gateway level handlers
 	RunGatewayHandlersMetricKey = "handlers"
+	// FindEndpointMetricKey is the `ResponseSnapshot` metric for resolving the request's endpoint
+	FindEndpointMetricKey = "find-endpoint"
+	// ValidateQueryParametersMetricKey is the `ResponseSnapshot` metric for validating the request query parameters
+	ValidateQueryParametersMetricKey = "validate-query"
 	// RunEndpointPipelineMetricKey is the `ResponseSnapshot` metric for running the endpoint's pipeline
 	RunEndpointPipelineMetricKey = "pipeline"
 	// SerializeResponseMetricKey is the `ResponseSnapshot` metric for serializing the response
 	SerializeResponseMetricKey = "serialization"
 )
+
+var (
+	timingPool = sync.Pool{
+		New: func() interface{} {
+			return metrics.NewTiming()
+		},
+	}
+)
+
+func getTiming() *metrics.Timing {
+	timing := timingPool.Get().(*metrics.Timing)
+	timing.ResetAll()
+
+	return timing
+}
+
+func putTiming(timing *metrics.Timing) {
+	timingPool.Put(timing)
+}
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ri := httpx.NewInterceptor(w)
@@ -36,14 +60,19 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	request := httpx.GetRequest(r)
 	defer httpx.PutRequest(request)
 
-	requestIDGenerationStart := time.Now().UTC()
+	timing := getTiming()
+	defer putTiming(timing)
+
+	timing.Start(RequestIdGenerationMetricKey)
 	requestID, idErr := g.generateRequestID(ctx, request)
-	requestIDGenerationStop := time.Now().UTC()
+	timing.Stop(RequestIdGenerationMetricKey)
 
 	ctx = ctx.WithRequestID(requestID)
 	ri.Header().Set(g.RequestIDHeaderName, requestID)
 
+	timing.Start(ParseQueryParametersMetricKey)
 	parseOK := request.ParseQueryParameters()
+	timing.Stop(ParseQueryParametersMetricKey)
 
 	var cancel stdctx.CancelFunc
 	ctx, cancel = ctx.WithCancel()
@@ -60,18 +89,13 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		path          string
-		endpoint      *endpoint
-		pipeline      *service.Pipeline
-		err           merry.Error
-		response      httpx.Response
-		findPathStart time.Time
-		findPathStop  time.Time
-		pipelineStart time.Time
-		pipelineStop  time.Time
-		handlersStop  time.Time
-		tsr           bool
-		responseCh    chan httpx.Response = make(chan httpx.Response, 1)
+		path       string
+		endpoint   *endpoint
+		pipeline   *service.Pipeline
+		err        merry.Error
+		response   httpx.Response
+		tsr        bool
+		responseCh chan httpx.Response = make(chan httpx.Response, 1)
 	)
 
 	subCtx := ctx
@@ -81,7 +105,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer subCancel()
 	}
 
-	handlersStart := time.Now().UTC()
+	timing.Start(RunGatewayHandlersMetricKey)
 	for i, handler := range g.Handlers {
 		go func() {
 			response, exception := handler.InvokeSafely(subCtx, request)
@@ -94,7 +118,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}()
 		select {
 		case <-subCtx.Done():
-			handlersStop = time.Now().UTC()
+			timing.Stop(RunGatewayHandlersMetricKey)
 			cancel()
 			err = merry.Prepend(subCtx.Err(), "request aborted")
 			if merry.Is(subCtx.Err(), stdctx.DeadlineExceeded) {
@@ -104,17 +128,17 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			goto finish
 		case response = <-responseCh:
 			if response != nil {
-				handlersStop = time.Now().UTC()
+				timing.Stop(RunGatewayHandlersMetricKey)
 				goto finish
 			}
 		}
 	}
-	handlersStop = time.Now().UTC()
+	timing.Stop(RunGatewayHandlersMetricKey)
 
-	findPathStart = time.Now().UTC()
+	timing.Start(FindEndpointMetricKey)
 	path = request.URL.EscapedPath()
 	endpoint, request.PathParams, tsr, err = g.tree.getValue(path)
-	findPathStop = time.Now().UTC()
+	timing.Stop(FindEndpointMetricKey)
 
 	if err != nil {
 		err = err.Prepend("routing request")
@@ -171,19 +195,24 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
+	timing.Start(ValidateQueryParametersMetricKey)
 	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QueryFields); exception != nil {
+		timing.Stop(ValidateQueryParametersMetricKey)
 		response, exception = endpoint.handleError(ctx, request, exception)
 		if exception != nil {
 			g.invokeErrorHookSafely(ctx, request, exception)
 		}
 		goto finish
 	} else if malformed && !pipeline.Policy.AllowMalformedQueryParameters {
+		timing.Stop(ValidateQueryParametersMetricKey)
 		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	} else if unknown && !pipeline.Policy.AllowUnknownQueryParameters {
+		timing.Stop(ValidateQueryParametersMetricKey)
 		response, err = endpoint.handleBadQuery(ctx, request)
 		goto finish
 	}
+	timing.Stop(ValidateQueryParametersMetricKey)
 
 	if !pipeline.Policy.PreserveEscapedPathParameters {
 		for i := range request.PathParams {
@@ -199,10 +228,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 	}
 
-	pipelineStart = time.Now().UTC()
+	timing.Start(RunEndpointPipelineMetricKey)
 	select {
 	case <-ctx.Done():
-		pipelineStop = time.Now().UTC()
+		timing.Stop(RunEndpointPipelineMetricKey)
 		err = merry.Prepend(ctx.Err(), "request aborted")
 		if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
 			err = err.WithHTTPCode(http.StatusGatewayTimeout)
@@ -225,7 +254,7 @@ endpointHandlers:
 		}()
 		select {
 		case <-ctx.Done():
-			pipelineStop = time.Now().UTC()
+			timing.Stop(RunEndpointPipelineMetricKey)
 			err = merry.Prepend(ctx.Err(), "request aborted")
 			if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
 				err = err.WithHTTPCode(http.StatusGatewayTimeout)
@@ -238,7 +267,7 @@ endpointHandlers:
 			}
 		}
 	}
-	pipelineStop = time.Now().UTC()
+	timing.Stop(RunEndpointPipelineMetricKey)
 
 	if response == nil {
 		err = merry.New("no response from pipeline")
@@ -246,7 +275,7 @@ endpointHandlers:
 	}
 
 finish:
-	serializationStart := time.Now().UTC()
+	timing.Start(SerializeResponseMetricKey)
 	var (
 		writeErr merry.Error
 		snapshot httpx.ResponseSnapshot
@@ -258,22 +287,12 @@ finish:
 		writeErr = merry.Prepend(ri.WriteResponse(response), "serializing response")
 		snapshot = ri.Flush()
 	}
-
-	end := time.Now().UTC()
+	timing.Stop(SerializeResponseMetricKey)
 
 	if g.CompletionHook != nil {
-		idGeneration := requestIDGenerationStop.Sub(requestIDGenerationStart)
-		snapshot.Metrics[RequestIdGenerationMetricKey] = idGeneration
-		if len(g.Handlers) != 0 {
-			snapshot.Metrics[RunGatewayHandlersMetricKey] = handlersStop.Sub(handlersStart)
-		}
-		if !findPathStart.IsZero() {
-			snapshot.Metrics[FindEndpointMetricKey] = findPathStop.Sub(findPathStart)
-		}
-		if !pipelineStart.IsZero() {
-			snapshot.Metrics[RunEndpointPipelineMetricKey] = pipelineStop.Sub(pipelineStart)
-		}
-		snapshot.Metrics[SerializeResponseMetricKey] = end.Sub(serializationStart)
+		timing.Do(func(name string, timer *metrics.Timer) {
+			snapshot.Metrics[name] = timer.Interval()
+		})
 
 		g.invokeCompletionHookSafely(ctx, request, snapshot)
 	}
