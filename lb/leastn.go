@@ -119,10 +119,8 @@ func (n *nodeGroup) choose(g int) (final *node) {
 	n.mtx.RLock()
 	defer n.mtx.RUnlock()
 
-	choices := rando.Perm(len(n.nodes))
-
 	for i := 0; i < g; i++ {
-		choice := n.nodes[choices[i]]
+		choice := n.nodes[rando.Intn(len(n.nodes))]
 		if final == nil || choice.conns < final.conns {
 			final = choice
 		}

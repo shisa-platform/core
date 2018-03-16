@@ -73,7 +73,6 @@ func TestLeastNBalanceCalledTwice(t *testing.T) {
 	conns2 := cache.connsForService(testServiceName)
 
 	assert.NoError(t, e)
-	assert.NotEqual(t, node1, node2)
 	assert.Contains(t, testAddrs, node1)
 	assert.Contains(t, testAddrs, node2)
 	assert.Equal(t, uint64(1), conns1)
