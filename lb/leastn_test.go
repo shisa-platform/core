@@ -116,3 +116,25 @@ func TestNewNodeGroup(t *testing.T) {
 	assert.Equal(t, len(testAddrs), len(result.nodes))
 	assert.ElementsMatch(t, testAddrs, resAddrs)
 }
+
+func setUpLeastN(i int, testAddrs []string) Balancer {
+	res := &sd.FakeResolver{
+		ResolveHook: func(name string) ([]string, merry.Error) {
+			return testAddrs, nil
+		},
+	}
+	return NewLeastN(res, i)
+}
+
+func Benchmark2Least10Nodes(b *testing.B) {benchmarkLB(setUpLeastN(2, setUpAddrs(10)), "testservice", b)}
+func Benchmark2Least100Nodes(b *testing.B) {benchmarkLB(setUpLeastN(2, setUpAddrs(100)), "testservice", b)}
+func Benchmark2Least1000Nodes(b *testing.B) {benchmarkLB(setUpLeastN(2, setUpAddrs(1000)), "testservice", b)}
+func Benchmark2Least10000Nodes(b *testing.B) {benchmarkLB(setUpLeastN(2, setUpAddrs(10000)), "testservice", b)}
+func Benchmark3Least10Nodes(b *testing.B) {benchmarkLB(setUpLeastN(3, setUpAddrs(10)), "testservice", b)}
+func Benchmark3Least100Nodes(b *testing.B) {benchmarkLB(setUpLeastN(3, setUpAddrs(100)), "testservice", b)}
+func Benchmark3Least1000Nodes(b *testing.B) {benchmarkLB(setUpLeastN(3, setUpAddrs(1000)), "testservice", b)}
+func Benchmark3Least10000Nodes(b *testing.B) {benchmarkLB(setUpLeastN(3, setUpAddrs(10000)), "testservice", b)}
+func Benchmark4Least10Nodes(b *testing.B) {benchmarkLB(setUpLeastN(4, setUpAddrs(10)), "testservice", b)}
+func Benchmark4Least100Nodes(b *testing.B) {benchmarkLB(setUpLeastN(4, setUpAddrs(100)), "testservice", b)}
+func Benchmark4Least1000Nodes(b *testing.B) {benchmarkLB(setUpLeastN(4, setUpAddrs(1000)), "testservice", b)}
+func Benchmark4Least10000Nodes(b *testing.B) {benchmarkLB(setUpLeastN(4, setUpAddrs(10000)), "testservice", b)}
