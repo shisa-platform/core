@@ -61,7 +61,13 @@ func setUpRandom(testAddrs []string) Balancer {
 	return NewRandom(res)
 }
 
-func BenchmarkRandom10Nodes(b *testing.B) {benchmarkLB(setUpRandom(setUpAddrs(10)), "testservice", b)}
-func BenchmarkRandom100Nodes(b *testing.B) {benchmarkLB(setUpRandom(setUpAddrs(100)), "testservice", b)}
-func BenchmarkRandom1000Nodes(b *testing.B) {benchmarkLB(setUpRandom(setUpAddrs(1000)), "testservice", b)}
-func BenchmarkRandom10000Nodes(b *testing.B) {benchmarkLB(setUpRandom(setUpAddrs(10000)), "testservice", b)}
+func BenchmarkRandom10Nodes(b *testing.B) { benchmarkLB(setUpRandom(setUpAddrs(10)), "testservice", b) }
+func BenchmarkRandom100Nodes(b *testing.B) {
+	benchmarkLB(setUpRandom(setUpAddrs(100)), "testservice", b)
+}
+func BenchmarkRandom1000Nodes(b *testing.B) {
+	benchmarkLB(setUpRandom(setUpAddrs(1000)), "testservice", b)
+}
+func BenchmarkRandom10000Nodes(b *testing.B) {
+	benchmarkLB(setUpRandom(setUpAddrs(10000)), "testservice", b)
+}

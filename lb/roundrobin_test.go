@@ -56,7 +56,6 @@ func TestRoundRobinBalanceNoNodes(t *testing.T) {
 	assert.Equal(t, "", node)
 }
 
-
 func setUpRoundRobin(testAddrs []string) Balancer {
 	res := &sd.FakeResolver{
 		ResolveHook: func(name string) ([]string, merry.Error) {
@@ -66,7 +65,15 @@ func setUpRoundRobin(testAddrs []string) Balancer {
 	return NewRoundRobin(res)
 }
 
-func BenchmarkRoundRobin10Nodes(b *testing.B) {benchmarkLB(setUpRoundRobin(setUpAddrs(10)), "testservice", b)}
-func BenchmarkRoundRobin100Nodes(b *testing.B) {benchmarkLB(setUpRoundRobin(setUpAddrs(100)), "testservice", b)}
-func BenchmarkRoundRobin1000Nodes(b *testing.B) {benchmarkLB(setUpRoundRobin(setUpAddrs(1000)), "testservice", b)}
-func BenchmarkRoundRobin10000Nodes(b *testing.B) {benchmarkLB(setUpRoundRobin(setUpAddrs(10000)), "testservice", b)}
+func BenchmarkRoundRobin10Nodes(b *testing.B) {
+	benchmarkLB(setUpRoundRobin(setUpAddrs(10)), "testservice", b)
+}
+func BenchmarkRoundRobin100Nodes(b *testing.B) {
+	benchmarkLB(setUpRoundRobin(setUpAddrs(100)), "testservice", b)
+}
+func BenchmarkRoundRobin1000Nodes(b *testing.B) {
+	benchmarkLB(setUpRoundRobin(setUpAddrs(1000)), "testservice", b)
+}
+func BenchmarkRoundRobin10000Nodes(b *testing.B) {
+	benchmarkLB(setUpRoundRobin(setUpAddrs(10000)), "testservice", b)
+}

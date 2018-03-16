@@ -1,8 +1,8 @@
 package lb
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 const testServiceName = "testservice"
@@ -12,7 +12,7 @@ var testAddrs = []string{"10.0.0.1:9000", "10.0.0.2:9000", "10.0.0.3:9000", "10.
 func setUpAddrs(i int) []string {
 	s := make([]string, i)
 	for i := range s {
-		s[i] = fmt.Sprintf("10.0.0.%s", i)
+		s[i] = fmt.Sprintf("10.0.0.%d", i)
 	}
 	return s
 }
