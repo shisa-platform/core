@@ -12,7 +12,8 @@ type Timer struct {
 	stop    time.Time
 }
 
-// Start begins the timer and clears any previous values.
+// Start begins the timer (if it is not already running) and
+// clears any previous values.
 func (t *Timer) Start() {
 	if atomic.CompareAndSwapUint32(&t.running, 0, 1) {
 		t.start = time.Now().UTC()
