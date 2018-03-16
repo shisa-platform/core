@@ -3,11 +3,29 @@ package gateway
 import (
 	"crypto/tls"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/percolate/shisa/service"
 )
+
+func waitSig(t *testing.T, c <-chan os.Signal, sig os.Signal) {
+	t.Helper()
+	select {
+	case s := <-c:
+		if s != sig {
+			t.Fatalf("signal was %v, want %v", s, sig)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for %v", sig)
+	}
+}
 
 func TestGatewayInit(t *testing.T) {
 	config := tls.Config{}
@@ -37,4 +55,40 @@ func TestGatewayInit(t *testing.T) {
 	assert.Equal(t, cut, cut.base.Handler)
 	assert.Equal(t, defaultRequestIDResponseHeader, cut.RequestIDHeaderName)
 	assert.NotNil(t, cut.Logger)
+}
+
+func TestGatewaySignal(t *testing.T) {
+	cut := &Gateway{
+		Address:         ":0",
+		HandleInterrupt: true,
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		err := cut.Serve([]service.Service{svc})
+		assert.NoError(t, err)
+		wg.Done()
+	}()
+
+	time.Sleep(time.Millisecond*200)
+
+	monitor := make(chan os.Signal, 1)
+	signal.Notify(monitor, syscall.SIGINT)
+	defer signal.Stop(monitor)
+
+	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+
+	waitSig(t, monitor, syscall.SIGINT)
+
+	timer := time.AfterFunc(time.Second*2, func() {
+		wg.Done()
+		t.Fatal("timeout waiting for gateway shutdown")
+	})
+	defer timer.Stop()
+
+	wg.Wait()
 }

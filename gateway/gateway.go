@@ -218,6 +218,7 @@ func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
 	select {
 	case <-interrupt:
 		g.Logger.Info("interrupt received!")
+		signal.Stop(interrupt)
 		g.Shutdown()
 	}
 }
