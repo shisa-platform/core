@@ -186,6 +186,37 @@ func TestRouterCustomRequestIDGeneratorError(t *testing.T) {
 	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
 }
 
+func TestRouterCustomRequestIDGeneratorPanic(t *testing.T) {
+	var generatorCalled bool
+	errHook := new(mockErrorHook)
+	cut := &Gateway{
+		RequestIDGenerator: func(context.Context, *httpx.Request) (string, merry.Error) {
+			generatorCalled = true
+			panic(merry.New("i blewed up!"))
+		},
+		ErrorHook: errHook.Handle,
+	}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		assert.NotEmpty(t, ctx.RequestID())
+		return httpx.NewEmpty(http.StatusOK)
+	}
+	installHandler(t, cut, handler)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, generatorCalled, "custom request id generator not called")
+	assert.True(t, handlerCalled, "handler not called")
+	errHook.assertCalledN(t, 1)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+	assert.NotEmpty(t, w.HeaderMap.Get(cut.RequestIDHeaderName))
+}
+
 func TestRouterCustomRequestIDGeneratorEmptyResult(t *testing.T) {
 	var generatorCalled bool
 	errHook := new(mockErrorHook)
