@@ -14,6 +14,7 @@ type Registrar interface {
 	RemoveChecks(service string) merry.Error
 }
 
+//go:generate charlatan -output=./resolver_charlatan.go Resolver
 type Resolver interface {
 	Resolve(name string) ([]string, merry.Error)
 }
