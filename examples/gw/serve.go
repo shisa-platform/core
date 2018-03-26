@@ -16,7 +16,6 @@ import (
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
-	"github.com/percolate/shisa/service"
 )
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
@@ -77,7 +76,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
 		Handlers:        []httpx.Handler{authN.Service},
-		Logger:          logger,
 		Registrar:       res,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			return healthcheckURL, nil
@@ -88,7 +86,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 
 	ch := make(chan merry.Error, 1)
 	go func() {
-		ch <- gw.Serve([]service.Service{hello, goodbye})
+		ch <- gw.Serve(hello, goodbye)
 	}()
 
 	logger.Info("gateway started", zap.String("addr", gw.Address()))

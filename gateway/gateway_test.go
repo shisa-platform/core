@@ -68,7 +68,7 @@ func TestGatewaySignal(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		err := cut.Serve([]service.Service{svc})
+		err := cut.Serve(svc)
 		assert.NoError(t, err)
 		wg.Done()
 	}()

@@ -26,11 +26,11 @@ func (g *Gateway) Address() string {
 	return g.Addr
 }
 
-func (g *Gateway) Serve(services []service.Service) merry.Error {
+func (g *Gateway) Serve(services ...service.Service) merry.Error {
 	return g.serve(services, false)
 }
 
-func (g *Gateway) ServeTLS(services []service.Service) merry.Error {
+func (g *Gateway) ServeTLS(services ...service.Service) merry.Error {
 	return g.serve(services, true)
 }
 

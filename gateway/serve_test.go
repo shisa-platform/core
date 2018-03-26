@@ -21,7 +21,7 @@ func TestGatewayNoServices(t *testing.T) {
 		Addr: ":0",
 	}
 
-	err := cut.Serve([]service.Service{})
+	err := cut.Serve()
 	assert.Error(t, err)
 }
 
@@ -34,7 +34,7 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 	svc := &service.FakeService{
 		NameHook: func() string { return "" },
 	}
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -49,7 +49,7 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 		EndpointsHook: func() []service.Endpoint { return nil },
 	}
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -62,7 +62,7 @@ func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 	endpoint := service.GetEndpoint("", dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -75,7 +75,7 @@ func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 	endpoint := service.GetEndpoint("test", dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -88,7 +88,7 @@ func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 	endpoint := service.Endpoint{Route: expectedRoute}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -102,7 +102,7 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	endpoint2 := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint1, endpoint2})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -130,7 +130,7 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 
 	for _, endpoint := range endpoints {
 		svc := newFakeService([]service.Endpoint{endpoint})
-		err := cut.Serve([]service.Service{svc})
+		err := cut.Serve(svc)
 		assert.Error(t, err)
 	}
 }
@@ -144,7 +144,7 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.ServeTLS([]service.Service{svc})
+	err := cut.ServeTLS(svc)
 	assert.Error(t, err)
 }
 
@@ -157,7 +157,7 @@ func TestGatewayListenerAddressFailure(t *testing.T) {
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
 
@@ -184,7 +184,7 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 	assert.NoError(t, err)
 
 	e, _, _, err := cut.tree.getValue(expectedRoute)
@@ -242,7 +242,7 @@ func TestGatewayServeWithRegistrar(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.NoError(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -265,7 +265,7 @@ func TestGatewayServeWithRegistrarError(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -288,7 +288,7 @@ func TestGatewayServeWithRegistrarPanic(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -311,7 +311,7 @@ func TestGatewayServeWithRegistrarPanicString(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -337,7 +337,7 @@ func TestGatewayServeWithDeregisterError(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -364,7 +364,7 @@ func TestGatewayServeWithDeregisterPanic(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -391,7 +391,7 @@ func TestGatewayServeWithDeregisterPanicString(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -422,7 +422,7 @@ func TestGatewayServeWithCheckURLHookParseError(t *testing.T) {
 	}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -453,7 +453,7 @@ func TestGatewayServeWithCheckURLHookPanic(t *testing.T) {
 	}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -484,7 +484,7 @@ func TestGatewayServeWithCheckURLHookPanicString(t *testing.T) {
 	}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -519,7 +519,7 @@ func TestGatewayServeWithCheckURLHookAddCheckError(t *testing.T) {
 	}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -554,7 +554,7 @@ func TestGatewayServeWithCheckURLHookAddCheckPanic(t *testing.T) {
 	}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -589,7 +589,7 @@ func TestGatewayServeWithCheckURLHookAddCheckPanicString(t *testing.T) {
 	}
 	svc := newFakeService([]service.Endpoint{endpoint})
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -629,7 +629,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksError(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -671,7 +671,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanic(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
@@ -713,7 +713,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanicString(t *testing.T) {
 	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
 	defer timer.Stop()
 
-	err := cut.Serve([]service.Service{svc})
+	err := cut.Serve(svc)
 
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
