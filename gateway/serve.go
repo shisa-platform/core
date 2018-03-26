@@ -3,7 +3,6 @@ package gateway
 import (
 	stdctx "context"
 	"expvar"
-	"net"
 	"net/http"
 	"sort"
 	"sync"
@@ -72,21 +71,36 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 
 	listener, err := httpx.HTTPListenerForAddress(g.Address)
 	if err != nil {
-		return err
+		return merry.Prepend(err, "opening TCP listener")
 	}
 
 	addr := listener.Addr().String()
-	if err := g.register(addr); err != nil {
-		return err
+
+	if err1 := g.registerSafely(addr); err1 != nil {
+		return merry.Prepend(err1, "register gateway")
 	}
+	defer func() {
+		if err1 := g.deregisterSafely(); err1 != nil && err == nil {
+			err = merry.Prepend(err1, "deregister gateway")
+		}
+	}()
+
+	if err1 := g.addHealthcheckSafely(); err1 != nil {
+		return merry.Prepend(err1, "add gateway healthcheck")
+	}
+	defer func() {
+		if err1 := g.removeHealthcheckSafely(); err1 != nil && err == nil {
+			err = merry.Prepend(err1, "remove gateway healthcheck")
+		}
+	}()
 
 	gch := make(chan error, 1)
 	go func() {
 		g.Logger.Info("gateway started", zap.String("addr", addr))
 		if tls {
-			gch <- g.base.ServeTLS(l, "", "")
+			gch <- g.base.ServeTLS(listener, "", "")
 		} else {
-			gch <- g.base.Serve(l)
+			gch <- g.base.Serve(listener)
 		}
 	}()
 
@@ -94,53 +108,18 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 		select {
 		case aerr := <-ach:
 			if !merry.Is(aerr, http.ErrServerClosed) {
-				err = multierr.Append(err, merry.Wrap(aerr))
+				err1 := merry.Prepend(aerr, "auxiliary abnormal termination")
+				err = multierr.Append(err, err1)
 			}
 		case gerr := <-gch:
-			if gerr != http.ErrServerClosed {
-				err = multierr.Append(err, merry.Wrap(gerr))
+			if !merry.Is(gerr, http.ErrServerClosed) {
+				err1 := merry.Prepend(gerr, "gateway abnormal termination")
+				err = multierr.Append(err, merry.Wrap(err1))
 			}
 		}
 	}
 
 	return
-}
-
-func (g *Gateway) register(addr string) error {
-	if g.Registrar == nil {
-		return nil
-	}
-
-	if err = g.Registrar.Register(g.Name, addr); err != nil {
-		return err
-	}
-	defer func() {
-		if err1 := g.Registrar.Deregister(g.Name); err1 != nil {
-			if err == nil {
-				err = err1.Prepend("deregister")
-			}
-		}
-	}()
-
-	if g.CheckURLHook == nil {
-		return nil
-	}
-
-	u, err := g.CheckURLHook()
-	if err != nil {
-		return err
-	}
-
-	if err = g.Registrar.AddCheck(g.Name, u); err != nil {
-		return err
-	}
-	defer func() {
-		if err1 := g.Registrar.RemoveChecks(g.Name); err1 != nil {
-			if err == nil {
-				err = err1.Prepend("remove checks")
-			}
-		}
-	}()
 }
 
 func (g *Gateway) safelyRunAuxiliary(server auxiliary.Server, ch chan error, wg *sync.WaitGroup) {
@@ -310,4 +289,99 @@ func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*ser
 	sort.Sort(byName(result.QueryFields))
 
 	return result, nil
+}
+
+func (g *Gateway) registerSafely(addr string) (err merry.Error) {
+	if g.Registrar == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic registering service")
+			return
+		}
+
+		err = merry.New("panic registering service").WithValue("context", arg)
+	}()
+
+	return g.Registrar.Register(g.Name, addr)
+}
+
+func (g *Gateway) deregisterSafely() (err merry.Error) {
+	if g.Registrar == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic deregistering service")
+			return
+		}
+
+		err = merry.New("panic deregistering service").WithValue("context", arg)
+	}()
+
+	return g.Registrar.Deregister(g.Name)
+}
+
+func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
+	if g.CheckURLHook == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic adding healthcheck")
+			return
+		}
+
+		err = merry.New("panic adding healthcheck").WithValue("context", arg)
+	}()
+
+	url, err, exception := g.CheckURLHook.InvokeSafely()
+	if exception != nil {
+		return merry.Prepend(exception, "run CheckURLHook")
+	} else if err != nil {
+		return merry.Prepend(err, "run CheckURLHook")
+	}
+
+	return g.Registrar.AddCheck(g.Name, url)
+}
+
+func (g *Gateway) removeHealthcheckSafely() (err merry.Error) {
+	if g.CheckURLHook == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic removing healthcheck")
+			return
+		}
+
+		err = merry.New("panic removing healthcheck").WithValue("context", arg)
+	}()
+
+	return g.Registrar.RemoveChecks(g.Name)
 }

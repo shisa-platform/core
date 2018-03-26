@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ansel1/merry"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/auxiliary"
@@ -29,6 +30,28 @@ const (
 var (
 	gatewayExpvar = expvar.NewMap(defaultName)
 )
+
+type CheckURLHook func() (*url.URL, merry.Error)
+
+func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in check url hook")
+			return
+		}
+
+		exception = merry.New("panic in check url hook").WithValue("context", arg)
+	}()
+
+	u, err = h()
+
+	return
+}
 
 type Gateway struct {
 	Name             string        // The name of the Gateway for registration
@@ -127,7 +150,7 @@ type Gateway struct {
 	// the Registrar's `AddCheck` method. If `Registrar` is nil,
 	// this hook is not called. If this hook is nil, no check is registered
 	// via `AddCheck`.
-	CheckURLHook func() (*url.URL, error)
+	CheckURLHook CheckURLHook
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
