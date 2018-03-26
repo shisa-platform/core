@@ -177,7 +177,7 @@ func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (res
 		if err1, ok := arg.(error); ok {
 			err = merry.Prepend(err1, "panic in auxiliary authorizer")
 		} else {
-			err = merry.New("panic in auxiliary authorizer").WithValue("context", arg)
+			err = merry.Errorf("panic in auxiliary authorizer: \"%v\"", arg)
 		}
 
 		err = err.WithHTTPCode(http.StatusForbidden)

@@ -137,7 +137,7 @@ func (g *Gateway) safelyRunAuxiliary(server auxiliary.Server, ch chan error, wg 
 			return
 		}
 
-		ch <- merry.New("panic in auxiliary").WithValue("context", arg)
+		ch <- merry.Errorf("panic in auxiliary: \"%v\"", arg)
 	}()
 
 	err := server.Listen()
@@ -307,7 +307,7 @@ func (g *Gateway) registerSafely(addr string) (err merry.Error) {
 			return
 		}
 
-		err = merry.New("panic registering service").WithValue("context", arg)
+		err = merry.Errorf("panic registering service: \"%v\"", arg)
 	}()
 
 	return g.Registrar.Register(g.Name, addr)
@@ -329,7 +329,7 @@ func (g *Gateway) deregisterSafely() (err merry.Error) {
 			return
 		}
 
-		err = merry.New("panic deregistering service").WithValue("context", arg)
+		err = merry.Errorf("panic deregistering service: \"%v\"", arg)
 	}()
 
 	return g.Registrar.Deregister(g.Name)
@@ -351,7 +351,7 @@ func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
 			return
 		}
 
-		err = merry.New("panic adding healthcheck").WithValue("context", arg)
+		err = merry.Errorf("panic adding healthcheck: \"%v\"", arg)
 	}()
 
 	url, err, exception := g.CheckURLHook.InvokeSafely()
@@ -380,7 +380,7 @@ func (g *Gateway) removeHealthcheckSafely() (err merry.Error) {
 			return
 		}
 
-		err = merry.New("panic removing healthcheck").WithValue("context", arg)
+		err = merry.Errorf("panic removing healthcheck: \"%v\"", arg)
 	}()
 
 	return g.Registrar.RemoveChecks(g.Name)

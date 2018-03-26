@@ -71,7 +71,7 @@ func (m *Authentication) authenticate(ctx context.Context, request *httpx.Reques
 			return
 		}
 
-		exception = merry.New("panic in authenticator").WithValue("context", arg)
+		exception = merry.Errorf("panic in authenticator: \"%v\"", arg)
 	}()
 
 	user, err = m.Authenticator.Authenticate(ctx, request)
@@ -146,7 +146,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 		if err1, ok := arg.(error); ok {
 			err = merry.Prepend(err1, "passive authentication middleware: authenticate: panic in authenticator")
 		} else {
-			err = merry.New("passive authentication middleware: authenticate: panic in authenticator").WithValue("context", arg)
+			err = merry.Errorf("passive authentication middleware: authenticate: panic in authenticator: \"%v\"", arg)
 		}
 
 		response = httpx.NewEmptyError(http.StatusInternalServerError, err)

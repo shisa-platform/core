@@ -29,7 +29,7 @@ func (v Validator) InvokeSafely(values []string) (_ merry.Error, exception merry
 			return
 		}
 
-		exception = merry.New("panic in validator").WithValue("context", arg)
+		exception = merry.Errorf("panic in validator: \"%v\"", arg)
 	}()
 
 	return v(values), nil

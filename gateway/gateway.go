@@ -45,7 +45,7 @@ func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception mer
 			return
 		}
 
-		exception = merry.New("panic in check url hook").WithValue("context", arg)
+		exception = merry.Errorf("panic in check url hook: \"%v\"", arg)
 	}()
 
 	u, err = h()

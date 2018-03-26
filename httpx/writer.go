@@ -24,7 +24,7 @@ func WriteResponse(w http.ResponseWriter, response Response) (err merry.Error) {
 			return
 		}
 
-		err = merry.New("panic in response").WithValue("context", arg)
+		err = merry.Errorf("panic in response: \"%v\"", arg)
 	}()
 
 	for k, vs := range response.Headers() {

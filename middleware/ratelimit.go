@@ -30,7 +30,7 @@ func (h RateLimitHandler) InvokeSafely(ctx context.Context, request *httpx.Reque
 			return
 		}
 
-		exception = merry.New("panic in rate limit handler").WithValue("context", arg)
+		exception = merry.Errorf("panic in rate limit handler: \"%v\"", arg)
 	}()
 
 	return h(ctx, request, cooldown), nil
@@ -148,7 +148,7 @@ func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
 			return
 		}
 
-		err = merry.New("panic in option").WithValue("context", arg)
+		err = merry.Errorf("panic in option: \"%v\"", arg)
 	}()
 
 	for _, opt := range opts {
@@ -190,7 +190,7 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 			return
 		}
 
-		err = merry.New("proxy middleware: run provider: panic in provider").WithValue("context", arg)
+		err = merry.Errorf("proxy middleware: run provider: panic in provider: \"%v\"", arg)
 	}()
 
 	actor, err, exception := m.extractor.InvokeSafely(ctx, request)

@@ -40,7 +40,7 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (out *
 			return
 		}
 
-		exception = merry.New("panic in router").WithValue("context", arg)
+		exception = merry.Errorf("panic in router: \"%v\"", arg)
 	}()
 
 	out, err = r(ctx, request)
@@ -63,7 +63,7 @@ func (i Invoker) InvokeSafely(ctx context.Context, request *httpx.Request) (resp
 			return
 		}
 
-		exception = merry.New("panic in invoker").WithValue("context", arg)
+		exception = merry.Errorf("panic in invoker: \"%v\"", arg)
 	}()
 
 	response, err = i(ctx, request)
@@ -86,7 +86,7 @@ func (r Responder) InvokeSafely(ctx context.Context, request *httpx.Request, in 
 			return
 		}
 
-		exception = merry.New("panic in responder").WithValue("context", arg)
+		exception = merry.Errorf("panic in responder: \"%v\"", arg)
 	}()
 
 	out, err = r(ctx, request, in)
