@@ -76,49 +76,19 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	}
 
 	addr := listener.Addr().String()
-
-	if g.Registrar != nil {
-		if err = g.Registrar.Register(g.Name, addr); err != nil {
-			return err
-		}
-		defer func() {
-			if err1 := g.Registrar.Deregister(g.Name); err1 != nil {
-				if err == nil {
-					err = err1.Prepend("deregister")
-				}
-			}
-		}()
-
-		if g.CheckURLHook != nil {
-			u, err := g.CheckURLHook()
-
-			if err != nil {
-				return err
-			}
-
-			if err = g.Registrar.AddCheck(g.Name, u); err != nil {
-				return err
-			}
-
-			defer func() {
-				if err1 := g.Registrar.RemoveChecks(g.Name); err1 != nil {
-					if err == nil {
-						err = err1.Prepend("remove checks")
-					}
-				}
-			}()
-		}
+	if err := g.register(addr); err != nil {
+		return err
 	}
 
 	gch := make(chan error, 1)
-	go func(l net.Listener) {
-		g.Logger.Info("gateway started", zap.String("addr", l.Addr().String()))
+	go func() {
+		g.Logger.Info("gateway started", zap.String("addr", addr))
 		if tls {
 			gch <- g.base.ServeTLS(l, "", "")
 		} else {
 			gch <- g.base.Serve(l)
 		}
-	}(listener)
+	}()
 
 	for i := len(g.auxiliaries) + 1; i != 0; i-- {
 		select {
@@ -134,6 +104,43 @@ func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxi
 	}
 
 	return
+}
+
+func (g *Gateway) register(addr string) error {
+	if g.Registrar == nil {
+		return nil
+	}
+
+	if err = g.Registrar.Register(g.Name, addr); err != nil {
+		return err
+	}
+	defer func() {
+		if err1 := g.Registrar.Deregister(g.Name); err1 != nil {
+			if err == nil {
+				err = err1.Prepend("deregister")
+			}
+		}
+	}()
+
+	if g.CheckURLHook == nil {
+		return nil
+	}
+
+	u, err := g.CheckURLHook()
+	if err != nil {
+		return err
+	}
+
+	if err = g.Registrar.AddCheck(g.Name, u); err != nil {
+		return err
+	}
+	defer func() {
+		if err1 := g.Registrar.RemoveChecks(g.Name); err1 != nil {
+			if err == nil {
+				err = err1.Prepend("remove checks")
+			}
+		}
+	}()
 }
 
 func (g *Gateway) safelyRunAuxiliary(server auxiliary.Server, ch chan error, wg *sync.WaitGroup) {
