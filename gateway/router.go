@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
@@ -376,12 +375,7 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 }
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
-
-	if exception := g.ErrorHook.InvokeSafely(ctx, request, err); exception != nil {
-		g.Logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
-		exception = exception.Prepend("gateway: route: run ErrorHook")
-		g.Logger.Error(exception.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(exception))
-	}
+	g.ErrorHook.InvokeSafely(ctx, request, err)
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {

@@ -50,7 +50,6 @@ func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) 
 	}
 
 	g.init()
-	defer g.Logger.Sync()
 
 	if err := g.installServices(services); err != nil {
 		return err

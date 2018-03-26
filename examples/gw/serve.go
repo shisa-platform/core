@@ -142,7 +142,7 @@ func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.Resp
 }
 
 func (l logHandler) error(ctx context.Context, _ *httpx.Request, err merry.Error) {
-	l.logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
+	l.logger.Error(merry.Message(err), zap.String("request-id", ctx.RequestID()), zap.Error(err))
 }
 
 func runAuxiliary(server auxiliary.Server, logger *zap.Logger) {
