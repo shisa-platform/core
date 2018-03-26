@@ -55,7 +55,7 @@ func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception mer
 
 type Gateway struct {
 	Name             string        // The name of the Gateway for registration
-	Address          string        // TCP address to listen on, ":http" if empty
+	Addr             string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
 	GracePeriod      time.Duration // Timeout for graceful shutdown of open connections
@@ -168,9 +168,9 @@ type Gateway struct {
 	// If nil all logging is disabled.
 	Logger *zap.Logger `json:"-"`
 
-	base        http.Server
-	auxiliaries []auxiliary.Server
-	tree        *node
+	base     http.Server
+	listener net.Listener
+	tree     *node
 
 	started bool
 }
@@ -189,7 +189,7 @@ func (g *Gateway) init() {
 	gatewayExpvar.Set("settings", g)
 	gatewayExpvar.Set("auxiliary", auxiliary.AuxiliaryStats)
 
-	g.base.Addr = g.Address
+	g.base.Addr = g.Addr
 	g.base.TLSConfig = g.TLSConfig
 	g.base.ReadTimeout = g.ReadTimeout
 	g.base.ReadHeaderTimeout = g.ReadHeaderTimeout

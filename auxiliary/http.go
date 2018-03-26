@@ -198,8 +198,7 @@ func (s *HTTPServer) Listen() (err error) {
 	s.init()
 
 	if s.listener, err = httpx.HTTPListenerForAddress(s.Addr); err != nil {
-		err = merry.Prepend(err, "opening auxiliary listener")
-		return
+		err = merry.Prepend(err, "auxiliary server: listen")
 	}
 
 	return
@@ -207,14 +206,19 @@ func (s *HTTPServer) Listen() (err error) {
 
 func (s *HTTPServer) Serve() error {
 	if s.listener == nil {
-		return merry.New("call auxiliary Listen method before Serve")
+		return merry.New("auxiliary server: check invariants: call Listen method before Serve")
 	}
 
 	if s.UseTLS {
 		return s.base.ServeTLS(s.listener, "", "")
 	}
 
-	return s.base.Serve(s.listener)
+	err := s.base.Serve(s.listener)
+	if merry.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+
+	return merry.Prepend(err, "auxiliary server: abnormal termination")
 }
 
 func (s *HTTPServer) Shutdown(timeout time.Duration) error {
@@ -222,7 +226,7 @@ func (s *HTTPServer) Shutdown(timeout time.Duration) error {
 	defer cancel()
 	s.listener = nil
 
-	return merry.Prepend(s.base.Shutdown(ctx), "shutting down auxiliary")
+	return merry.Prepend(s.base.Shutdown(ctx), "auxiliary server: shutdown")
 }
 
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -256,15 +260,15 @@ finish:
 		s.invokeErrorHookSafely(ctx, request, idErr)
 	}
 
-	writeErr1 := merry.Prepend(writeErr, "serializing auxiliary response")
+	writeErr1 := merry.Prepend(writeErr, "auxiliary server: route: serialize response")
 	if writeErr1 != nil {
 		s.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
 
-	respErr := response.Err()
+	respErr := merry.Wrap(response.Err())
 	if respErr != nil {
-		respErr1 := merry.Prepend(respErr, "auxiliary handler failed")
-		s.invokeErrorHookSafely(ctx, request, respErr1)
+		respErr = merry.Prepend(respErr, "auxiliary server: route: handler failed")
+		s.invokeErrorHookSafely(ctx, request, respErr)
 	}
 }
 
@@ -275,13 +279,13 @@ func (s *HTTPServer) generateRequestID(ctx context.Context, request *httpx.Reque
 
 	requestID, err, exception := s.RequestIDGenerator.InvokeSafely(ctx, request)
 	if exception != nil {
-		err = exception.Prepend("generating auxiliary request id")
+		err = exception.Prepend("auxiliary server: route: generate request id")
 		requestID = request.ID()
 	} else if err != nil {
-		err = err.Prepend("generating auxiliary request id")
+		err = err.Prepend("auxiliary server: route: generate request id")
 		requestID = request.ID()
 	} else if requestID == "" {
-		err = merry.New("auxiliary request id generator returned empty value")
+		err = merry.New("auxiliary server: route: generate request id: empty value")
 		requestID = request.ID()
 	}
 
@@ -290,7 +294,8 @@ func (s *HTTPServer) generateRequestID(ctx context.Context, request *httpx.Reque
 
 func (s *HTTPServer) route(ctx context.Context, request *httpx.Request) (response httpx.Response) {
 	if s.Router == nil {
-		s.invokeErrorHookSafely(ctx, request, merry.New("router is not configured"))
+		err := merry.New("auxiliary server: check invariants: router is nil")
+		s.invokeErrorHookSafely(ctx, request, err)
 		response = httpx.NewEmpty(http.StatusNotFound)
 		response.Headers().Set("Content-Type", "text/plain; charset=utf-8")
 		return
@@ -326,7 +331,7 @@ func (s *HTTPServer) invokeErrorHookSafely(ctx context.Context, request *httpx.R
 
 func (s *HTTPServer) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
 	if ex := s.CompletionHook.InvokeSafely(ctx, request, snapshot); ex != nil {
-		exception := merry.Prepend(ex, "running auxiliary CompletionHook")
+		exception := merry.Prepend(ex, "auxiliary server: route: run CompletionHook")
 		s.invokeErrorHookSafely(ctx, request, exception)
 	}
 }

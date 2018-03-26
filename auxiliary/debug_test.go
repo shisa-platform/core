@@ -82,8 +82,7 @@ func TestDebugServer(t *testing.T) {
 	err := cut.Listen()
 	assert.NoError(t, err)
 	err = cut.Serve()
-	assert.Error(t, err)
-	assert.True(t, merry.Is(err, http.ErrServerClosed))
+	assert.NoError(t, err)
 	assert.NotEmpty(t, cut.Path)
 }
 

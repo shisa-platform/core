@@ -26,7 +26,7 @@ func (e endpoint) handleNotAllowed(ctx context.Context, request *httpx.Request) 
 
 	response, exception := e.notAllowedHandler.InvokeSafely(ctx, request)
 	if exception != nil {
-		exception = exception.Prepend("running MethodNotAllowedHandler")
+		exception = exception.Prepend("gateway: route: run MethodNotAllowedHandler")
 		response = httpx.NewEmpty(http.StatusMethodNotAllowed)
 	}
 
@@ -40,7 +40,7 @@ func (e endpoint) handleRedirect(ctx context.Context, request *httpx.Request) (h
 
 	response, exception := e.redirectHandler.InvokeSafely(ctx, request)
 	if exception != nil {
-		exception = exception.Prepend("running RedirectHandler")
+		exception = exception.Prepend("gateway: route: run RedirectHandler")
 		response = redirect(ctx, request)
 	}
 
@@ -69,7 +69,7 @@ func (e endpoint) handleBadQuery(ctx context.Context, request *httpx.Request) (h
 
 	response, exception := e.badQueryHandler.InvokeSafely(ctx, request)
 	if exception != nil {
-		exception = exception.Prepend("running MalformedRequestHandler")
+		exception = exception.Prepend("gateway: route: run MalformedRequestHandler")
 		response = httpx.NewEmpty(http.StatusBadRequest)
 	}
 
@@ -84,7 +84,7 @@ func (e endpoint) handleError(ctx context.Context, request *httpx.Request, err m
 	response, exception := e.iseHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		response = httpx.NewEmptyError(merry.HTTPCode(err), err)
-		exception = exception.Prepend("invoking InternalServerErrorHandler")
+		exception = exception.Prepend("gateway: route: run InternalServerErrorHandler")
 	}
 
 	return response, exception

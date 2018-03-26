@@ -3,18 +3,20 @@ package httpx
 import (
 	"net"
 	"time"
+
+	"github.com/ansel1/merry"
 )
 
 // HTTPListenerForAddress returns a TCP listener for the given
 // address.
 // If the address is empty `":http"` is used.
-func HTTPListenerForAddress(addr string) (net.Listener, error) {
+func HTTPListenerForAddress(addr string) (net.Listener, merry.Error) {
 	if addr == "" {
 		addr = ":http"
 	}
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, err
+		return nil, merry.Prepend(err, "open HTTP listener")
 	}
 
 	return tcpKeepAliveListener{l.(*net.TCPListener)}, nil

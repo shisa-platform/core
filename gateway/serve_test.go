@@ -9,7 +9,6 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/sd"
@@ -18,8 +17,8 @@ import (
 
 func TestGatewayNoServices(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	err := cut.Serve([]service.Service{})
@@ -28,8 +27,8 @@ func TestGatewayNoServices(t *testing.T) {
 
 func TestGatewayServiceWithNoName(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	svc := &service.FakeService{
@@ -41,8 +40,8 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 
 func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	svc := &service.FakeService{
@@ -56,8 +55,8 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 
 func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	endpoint := service.GetEndpoint("", dummyHandler)
@@ -69,8 +68,8 @@ func TestGatewayEndpointWithEmptyRoute(t *testing.T) {
 
 func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	endpoint := service.GetEndpoint("test", dummyHandler)
@@ -82,8 +81,8 @@ func TestGatewayEndpointWithRelativeRoute(t *testing.T) {
 
 func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	endpoint := service.Endpoint{Route: expectedRoute}
@@ -95,8 +94,8 @@ func TestGatewayEndpointWithNoPipelines(t *testing.T) {
 
 func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -109,8 +108,8 @@ func TestGatewayEndpointRedundantRegistration(t *testing.T) {
 
 func TestGatewayFieldDefaultMissingName(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	pipeline := &service.Pipeline{
@@ -138,8 +137,8 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 
 func TestGatewayMisconfiguredTLS(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
+		Name: "test",
+		Addr: ":0",
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -151,8 +150,8 @@ func TestGatewayMisconfiguredTLS(t *testing.T) {
 
 func TestGatewayListenerAddressFailure(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: ":80",
+		Name: "test",
+		Addr: ":80",
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -162,171 +161,10 @@ func TestGatewayListenerAddressFailure(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGatewayFailingAuxiliaryListen(t *testing.T) {
-	cut := &Gateway{
-		Name:    "test",
-		Address: ":0",
-	}
-
-	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
-	svc := newFakeService([]service.Endpoint{endpoint})
-
-	aux := &auxiliary.FakeServer{
-		AddressHook: func() string {
-			return "127.0.0.1:0"
-		},
-		NameHook: func() string {
-			return "aux"
-		},
-		ListenHook: func() error {
-			return merry.New("i blewed up!")
-		},
-		ServeHook: func() error {
-			return nil
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
-	defer timer.Stop()
-	err := cut.Serve([]service.Service{svc}, aux)
-	assert.Error(t, err)
-}
-
-func TestGatewayPanicAuxiliaryListen(t *testing.T) {
-	cut := &Gateway{
-		Address: ":0",
-	}
-
-	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
-	svc := newFakeService([]service.Endpoint{endpoint})
-
-	aux := &auxiliary.FakeServer{
-		AddressHook: func() string {
-			return "127.0.0.1:0"
-		},
-		NameHook: func() string {
-			return "aux"
-		},
-		ListenHook: func() error {
-			panic(merry.New("i blewed up!"))
-		},
-		ServeHook: func() error {
-			return nil
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
-	defer timer.Stop()
-	err := cut.Serve([]service.Service{svc}, aux)
-	assert.Error(t, err)
-}
-
-func TestGatewayFailingAuxiliaryServe(t *testing.T) {
-	cut := &Gateway{
-		Address: ":0",
-	}
-
-	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
-	svc := newFakeService([]service.Endpoint{endpoint})
-
-	aux := &auxiliary.FakeServer{
-		AddressHook: func() string {
-			return "127.0.0.1:0"
-		},
-		NameHook: func() string {
-			return "aux"
-		},
-		ListenHook: func() error {
-			return nil
-		},
-		ServeHook: func() error {
-			return merry.New("i blewed up!")
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
-	defer timer.Stop()
-	err := cut.Serve([]service.Service{svc}, aux)
-	assert.Error(t, err)
-}
-
-func TestGatewayAuxiliaryServePanic(t *testing.T) {
-	cut := &Gateway{
-		Address: ":0",
-	}
-
-	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
-	svc := newFakeService([]service.Endpoint{endpoint})
-
-	aux := &auxiliary.FakeServer{
-		AddressHook: func() string {
-			return "127.0.0.1:0"
-		},
-		NameHook: func() string {
-			return "aux"
-		},
-		ListenHook: func() error {
-			return nil
-		},
-		ServeHook: func() error {
-			panic(merry.New("i blewed up!"))
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
-	defer timer.Stop()
-	err := cut.Serve([]service.Service{svc}, aux)
-	assert.Error(t, err)
-}
-
-func TestGatewayAuxiliaryServePanicString(t *testing.T) {
-	cut := &Gateway{
-		Address: ":0",
-	}
-
-	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
-	svc := newFakeService([]service.Endpoint{endpoint})
-
-	aux := &auxiliary.FakeServer{
-		AddressHook: func() string {
-			return "127.0.0.1:0"
-		},
-		NameHook: func() string {
-			return "aux"
-		},
-		ListenHook: func() error {
-			return nil
-		},
-		ServeHook: func() error {
-			panic("i blewed up!")
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
-	defer timer.Stop()
-	err := cut.Serve([]service.Service{svc}, aux)
-	assert.Error(t, err)
-}
-
 func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	cut := &Gateway{
-		Name:    "test",
-		Address: "127.0.0.1:0",
+		Name: "test",
+		Addr: "127.0.0.1:0",
 	}
 
 	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
@@ -365,48 +203,6 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	assert.Equal(t, svc.Name(), e.serviceName)
 }
 
-func TestGatewayAuxiliaryServer(t *testing.T) {
-	expectedGracePeriod := 2 * time.Second
-	gw := &Gateway{
-		Name:        "test",
-		Address:     "127.0.0.1:0",
-		GracePeriod: expectedGracePeriod,
-	}
-	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
-	svc := newFakeService([]service.Endpoint{endpoint})
-
-	aux := &auxiliary.FakeServer{
-		AddressHook: func() string {
-			return "127.0.0.1:0"
-		},
-		NameHook: func() string {
-			return "fake"
-		},
-		ListenHook: func() error {
-			return nil
-		},
-		ServeHook: func() error {
-			return http.ErrServerClosed
-		},
-		ShutdownHook: func(gracePeriod time.Duration) error {
-			if gracePeriod != expectedGracePeriod {
-				t.Errorf("grace period %v != expected %v", gracePeriod, expectedGracePeriod)
-			}
-			return nil
-		},
-	}
-
-	timer := time.AfterFunc(50*time.Millisecond, func() { gw.Shutdown() })
-	defer timer.Stop()
-
-	if err := gw.Serve([]service.Service{svc}, aux); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	aux.AssertServeCalledOnce(t)
-	aux.AssertShutdownCalledOnceWith(t, expectedGracePeriod)
-}
-
 func teapotHandler(context.Context, *httpx.Request) httpx.Response {
 	return httpx.NewEmpty(http.StatusTeapot)
 }
@@ -433,7 +229,7 @@ func TestGatewayServeWithRegistrar(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
@@ -460,7 +256,7 @@ func TestGatewayServeWithRegistrarError(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -483,7 +279,7 @@ func TestGatewayServeWithRegistrarPanic(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -506,7 +302,7 @@ func TestGatewayServeWithRegistrarPanicString(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -532,7 +328,7 @@ func TestGatewayServeWithDeregisterError(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -559,7 +355,7 @@ func TestGatewayServeWithDeregisterPanic(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -586,7 +382,7 @@ func TestGatewayServeWithDeregisterPanicString(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
@@ -613,7 +409,7 @@ func TestGatewayServeWithCheckURLHookParseError(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			return nil, merry.New("new error")
@@ -644,7 +440,7 @@ func TestGatewayServeWithCheckURLHookPanic(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			panic(merry.New("i blew up!"))
@@ -675,7 +471,7 @@ func TestGatewayServeWithCheckURLHookPanicString(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			panic("i blew up!")
@@ -709,7 +505,7 @@ func TestGatewayServeWithCheckURLHookAddCheckError(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
@@ -744,7 +540,7 @@ func TestGatewayServeWithCheckURLHookAddCheckPanic(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
@@ -779,7 +575,7 @@ func TestGatewayServeWithCheckURLHookAddCheckPanicString(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
@@ -817,7 +613,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksError(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
@@ -859,7 +655,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanic(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
@@ -901,7 +697,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanicString(t *testing.T) {
 	}
 	cut := &Gateway{
 		Name:      "test",
-		Address:   ":0",
+		Addr:      ":0",
 		Registrar: registrar,
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
