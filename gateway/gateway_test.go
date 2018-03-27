@@ -116,3 +116,22 @@ func TestGatewaySignalNotFired(t *testing.T) {
 	case <-cut.interrupt:
 	}
 }
+
+func TestGatewayAddress(t *testing.T) {
+	cut := &Gateway{
+		Addr: ":0",
+	}
+	assert.Equal(t, ":0", cut.Address())
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(200*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	go cut.Serve(svc)
+
+	time.Sleep(time.Millisecond * 100)
+
+	assert.NotEqual(t, ":0", cut.Address())
+}
