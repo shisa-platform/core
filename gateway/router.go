@@ -2,6 +2,7 @@ package gateway
 
 import (
 	stdctx "context"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -375,11 +376,18 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 }
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
-	g.ErrorHook.InvokeSafely(ctx, request, err)
+	if g.ErrorHook == nil {
+		log.Println(ctx.RequestID(), err.Error())
+	}
+
+	if exception := g.ErrorHook.InvokeSafely(ctx, request, err); exception != nil {
+		log.Println(ctx.RequestID(), err.Error())
+		exception = exception.Prepend("gateway: route: run ErrorHook")
+		log.Println(ctx.RequestID(), exception.Error())
+	}
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
-
 	if exception := g.CompletionHook.InvokeSafely(ctx, request, snapshot); exception != nil {
 		exception = exception.Prepend("gateway: route: run CompletionHook")
 		g.invokeErrorHookSafely(ctx, request, exception)

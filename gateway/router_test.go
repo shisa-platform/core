@@ -2317,6 +2317,27 @@ func TestRouterHandlerPanicCustomISEHandleWithPanic(t *testing.T) {
 }
 
 func TestRouterHandlersNoResult(t *testing.T) {
+	cut := &Gateway{}
+	cut.init()
+
+	var handlerCalled bool
+	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+
+		return nil
+	}
+
+	installHandler(t, cut, handler)
+
+	w := httptest.NewRecorder()
+	cut.ServeHTTP(w, fakeRequest)
+
+	assert.True(t, handlerCalled, "handler not called")
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, 0, w.Body.Len())
+}
+
+func TestRouterHandlersNoResultCustomerErrorHandler(t *testing.T) {
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
 		ErrorHook: errHook.Handle,
