@@ -3,6 +3,7 @@ package gateway
 import (
 	"crypto/tls"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,9 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
+	"github.com/percolate/shisa/sd"
 )
 
 func waitSig(t *testing.T, c <-chan os.Signal, sig os.Signal) {
@@ -90,4 +95,48 @@ func TestGatewaySignal(t *testing.T) {
 	defer timer.Stop()
 
 	wg.Wait()
+}
+
+func TestGatewayRepr(t *testing.T) {
+	config := tls.Config{}
+	nextProto := map[string]func(*http.Server, *tls.Conn, http.Handler){
+		"lolwut": func(*http.Server, *tls.Conn, http.Handler) {},
+	}
+	cut := &Gateway{
+		Addr:              ":9001",
+		DisableKeepAlive:  true,
+		TLSConfig:         &config,
+		ReadTimeout:       time.Millisecond * 5,
+		ReadHeaderTimeout: time.Millisecond * 10,
+		WriteTimeout:      time.Millisecond * 15,
+		IdleTimeout:       time.Millisecond * 20,
+		MaxHeaderBytes:    1024,
+		TLSNextProto:      nextProto,
+		RequestIDGenerator: func(context.Context, *httpx.Request) (string, merry.Error) {
+			return "", nil
+		},
+		InternalServerErrorHandler: func(context.Context, *httpx.Request, merry.Error) httpx.Response {
+			return nil
+		},
+		NotFoundHandler: func(context.Context, *httpx.Request) httpx.Response {
+			return nil
+		},
+		Registrar: sd.NewFakeRegistrarDefaultFatal(t),
+		CheckURLHook: func() (*url.URL, merry.Error) {
+			return nil, nil
+		},
+		ErrorHook: func(context.Context, *httpx.Request, merry.Error) {},
+		CompletionHook: func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {},
+	}
+	cut.init()
+
+	repr := gatewayExpvar.String()
+	t.Log(repr)
+	assert.NotEmpty(t, repr)
+}
+
+func TestGatewayReprEmpty(t *testing.T) {
+	cut := &Gateway{}
+	repr := cut.String()
+	assert.NotEmpty(t, repr)
 }
