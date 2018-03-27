@@ -5,8 +5,6 @@ import (
 	"strconv"
 
 	"github.com/ansel1/merry"
-
-	"github.com/percolate/shisa/context"
 )
 
 var (
@@ -53,10 +51,6 @@ func (p *systemProvider) GetBool(name string) (bool, merry.Error) {
 
 func (p *systemProvider) Monitor(string, chan<- Value) {
 	// N.B. do nothing, system enviroment vars are not dynamic
-}
-
-func (p *systemProvider) Healthcheck(context.Context) merry.Error {
-	return nil
 }
 
 func NewSystem() Provider {
