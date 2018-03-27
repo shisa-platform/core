@@ -1,0 +1,61 @@
+version: "3.6"
+services:
+  consul:
+    container_name: consul
+    image: consul:1.0.6
+    deploy:
+      replicas: 1
+    network_mode: "host"
+  gw:
+    container_name: gw
+    image: shisa-example/gw:demo
+    build:
+      context: ../
+      dockerfile: examples/gw/Dockerfile
+    deploy:
+      replicas: 3
+    network_mode: "host"
+    depends_on:
+      - "consul"
+      - "idp"
+      - "rest"
+      - "rpc"
+  rest:
+    container_name: rest
+    image: shisa-example/rest:demo
+    build:
+      context: ../
+      dockerfile: examples/rest/Dockerfile
+    deploy:
+      replicas: 3
+    environment:
+      IDP_SERVICE_ADDR: "127.0.0.1:9601"
+    network_mode: "host"
+    depends_on:
+      - "consul"
+      - "idp"
+  rpc:
+    container_name: rpc
+    image: shisa-example/rpc:demo
+    build:
+      context: ../
+      dockerfile: examples/rpc/Dockerfile
+    deploy:
+      replicas: 3
+    environment:
+      IDP_SERVICE_ADDR: "127.0.0.1:9601"
+    network_mode: "host"
+    depends_on:
+      - "consul"
+      - "idp"
+  idp:
+    container_name: idp
+    image: shisa-example/idp:demo
+    build:
+      context: ../
+      dockerfile: examples/idp/Dockerfile
+    deploy:
+      replicas: 3
+    network_mode: "host"
+    depends_on:
+      - "consul"

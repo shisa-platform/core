@@ -21,7 +21,18 @@ project root:
 
     make examples
 
-## Running
+Alternatively, you can build the services as docker images by running the
+following from the project root (requires docker + docker-compose):
+
+    make examples-docker
+
+## Running With Docker-Compose
+
+Run the following command at the project root:
+
+    docker-compose -f examples/docker-compose.yml up
+
+## Running Without Docker-Compose
 
 Each service must run on a unique port or on a separate (virtual)
 machine.  To run on a single host, run the following commands from the
