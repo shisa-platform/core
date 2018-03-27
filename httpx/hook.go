@@ -43,5 +43,5 @@ func hookRecovery(exception *merry.Error) {
 		return
 	}
 
-	*exception = merry.New("panic in hook").WithValue("context", arg)
+	*exception = merry.Errorf("panic in hook: \"%v\"", arg)
 }

@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/httpx"
@@ -30,9 +30,31 @@ var (
 	gatewayExpvar = expvar.NewMap(defaultName)
 )
 
+type CheckURLHook func() (*url.URL, merry.Error)
+
+func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception merry.Error) {
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			exception = merry.Prepend(err1, "panic in check url hook")
+			return
+		}
+
+		exception = merry.Errorf("panic in check url hook: \"%v\"", arg)
+	}()
+
+	u, err = h()
+
+	return
+}
+
 type Gateway struct {
 	Name             string        // The name of the Gateway for registration
-	Address          string        // TCP address to listen on, ":http" if empty
+	Addr             string        // TCP address to listen on, ":http" if empty
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
 	GracePeriod      time.Duration // Timeout for graceful shutdown of open connections
@@ -127,12 +149,11 @@ type Gateway struct {
 	// the Registrar's `AddCheck` method. If `Registrar` is nil,
 	// this hook is not called. If this hook is nil, no check is registered
 	// via `AddCheck`.
-	CheckURLHook func() (*url.URL, error)
+	CheckURLHook CheckURLHook
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
-	// If nil the error is sent to the `Error` level of the
-	// `Logger` field with the request id as a field.
+	// If nil no action will be taken.
 	ErrorHook httpx.ErrorHook `json:"-"`
 
 	// CompletionHook optionally customizes the behavior after
@@ -140,14 +161,9 @@ type Gateway struct {
 	// If nil no action will be taken.
 	CompletionHook httpx.CompletionHook `json:"-"`
 
-	// Logger optionally specifies the logger to use by the
-	// Gateway.
-	// If nil all logging is disabled.
-	Logger *zap.Logger `json:"-"`
-
-	base        http.Server
-	auxiliaries []auxiliary.Server
-	tree        *node
+	base     http.Server
+	listener net.Listener
+	tree     *node
 
 	started bool
 }
@@ -166,7 +182,7 @@ func (g *Gateway) init() {
 	gatewayExpvar.Set("settings", g)
 	gatewayExpvar.Set("auxiliary", auxiliary.AuxiliaryStats)
 
-	g.base.Addr = g.Address
+	g.base.Addr = g.Addr
 	g.base.TLSConfig = g.TLSConfig
 	g.base.ReadTimeout = g.ReadTimeout
 	g.base.ReadHeaderTimeout = g.ReadHeaderTimeout
@@ -192,10 +208,6 @@ func (g *Gateway) init() {
 		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
 
-	if g.Logger == nil {
-		g.Logger = zap.NewNop()
-	}
-
 	if g.Name == "" {
 		g.Name = defaultName
 	}
@@ -217,7 +229,6 @@ func connstate(con net.Conn, state http.ConnState) {
 func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
 	select {
 	case <-interrupt:
-		g.Logger.Info("interrupt received!")
 		signal.Stop(interrupt)
 		g.Shutdown()
 	}

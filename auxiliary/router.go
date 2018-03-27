@@ -21,7 +21,7 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (_ htt
 			return
 		}
 
-		exception = merry.New("panic in router").WithValue("context", arg)
+		exception = merry.Errorf("panic in router: \"%v\"", arg)
 	}()
 
 	return r(ctx, request), nil

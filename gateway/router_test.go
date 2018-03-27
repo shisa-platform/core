@@ -10,7 +10,6 @@ import (
 
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -2652,29 +2651,6 @@ func TestRouterPipelineHandlerResponseWithError(t *testing.T) {
 
 	assert.True(t, handlerCalled, "handler not called")
 	errHook.assertCalledN(t, 1)
-	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
-	assert.Equal(t, 0, w.Body.Len())
-}
-
-func TestRouterPipelineHandlerResponseWithErrorDefaultHandler(t *testing.T) {
-	cut := &Gateway{
-		Logger: zap.NewExample(),
-	}
-	cut.init()
-
-	var handlerCalled bool
-	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
-		handlerCalled = true
-
-		err := merry.New("lol wut")
-		return httpx.NewEmptyError(http.StatusServiceUnavailable, err)
-	}
-
-	installEndpoints(t, cut, newEndpoints(handler))
-	w := httptest.NewRecorder()
-	cut.ServeHTTP(w, fakeRequest)
-
-	assert.True(t, handlerCalled, "handler not called")
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }

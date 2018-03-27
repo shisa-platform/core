@@ -142,7 +142,7 @@ func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Er
 			return
 		}
 
-		err = merry.New("panic in healthcheck").WithValue("context", arg)
+		err = merry.Errorf("panic in healthcheck: \"%v\"", arg)
 	}()
 
 	return h.Healthcheck(ctx)

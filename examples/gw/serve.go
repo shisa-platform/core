@@ -2,12 +2,10 @@ package main
 
 import (
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/ansel1/merry"
 	consul "github.com/hashicorp/consul/api"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -18,13 +16,12 @@ import (
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
-	"github.com/percolate/shisa/service"
 )
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
-	client, e := consul.NewClient(consul.DefaultConfig())
-	if e != nil {
-		logger.Fatal("consul failed to initialize", zap.Error(e))
+	client, err := consul.NewClient(consul.DefaultConfig())
+	if err != nil {
+		logger.Fatal("consul failed to initialize", zap.Error(err))
 	}
 
 	res := sd.NewConsul(client)
@@ -39,18 +36,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 
 	lh := logHandler{logger}
 
-	gw := &gateway.Gateway{
-		Name:            "example",
-		Address:         addr,
-		HandleInterrupt: true,
-		GracePeriod:     2 * time.Second,
-		Handlers:        []httpx.Handler{authN.Service},
-		Logger:          logger,
-		Registrar:       res,
-		CompletionHook:  lh.completion,
-		ErrorHook:       lh.error,
-	}
-
 	authZ := SimpleAuthorization{[]string{"user:1"}}
 	debug := &auxiliary.DebugServer{
 		HTTPServer: auxiliary.HTTPServer{
@@ -61,9 +46,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			ErrorHook:      lh.error,
 		},
 	}
+	go runAuxiliary(debug, logger)
 
 	hello := NewHelloService(res)
-
 	goodbye := NewGoodbyeService(res)
 
 	healthcheck := &auxiliary.HealthcheckServer{
@@ -76,32 +61,57 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		},
 		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
 	}
+	go runAuxiliary(healthcheck, logger)
 
-	services := []service.Service{hello, goodbye}
-
-	gw.CheckURLHook = func() (*url.URL, error) {
-		u := &url.URL{
-			Scheme:   "http",
-			Host:     healthcheck.Address(),
-			Path:     healthcheck.Path,
-			User:     url.UserPassword("Admin", "password"),
-			RawQuery: "interval=10s",
-		}
-		return u, nil
+	healthcheckURL := &url.URL{
+		Scheme:   "http",
+		Host:     healthcheck.Address(),
+		Path:     healthcheck.Path,
+		User:     url.UserPassword("Admin", "password"),
+		RawQuery: "interval=10s",
+	}
+	gw := &gateway.Gateway{
+		Name:            "example",
+		Addr:            addr,
+		HandleInterrupt: true,
+		GracePeriod:     2 * time.Second,
+		Handlers:        []httpx.Handler{authN.Service},
+		Registrar:       res,
+		CheckURLHook: func() (*url.URL, merry.Error) {
+			return healthcheckURL, nil
+		},
+		CompletionHook: lh.completion,
+		ErrorHook:      lh.error,
 	}
 
-	if err := gw.Serve(services, debug, healthcheck); err != nil {
-		for _, e := range multierr.Errors(err) {
-			values := merry.Values(e)
-			fs := make([]zapcore.Field, 0, len(values))
-			for name, value := range values {
-				if key, ok := name.(string); ok {
-					fs = append(fs, zap.Reflect(key, value))
-				}
-			}
-			logger.Error(merry.Message(e), fs...)
+	ch := make(chan merry.Error, 1)
+	go func() {
+		ch <- gw.Serve(hello, goodbye)
+	}()
+
+	logger.Info("gateway started", zap.String("addr", gw.Address()))
+
+	select {
+	case gwErr := <-ch:
+		if gwErr == nil {
+			break
 		}
-		os.Exit(1)
+		values := merry.Values(gwErr)
+		fs := make([]zapcore.Field, 0, len(values))
+		for name, value := range values {
+			if key, ok := name.(string); ok {
+				fs = append(fs, zap.Reflect(key, value))
+			}
+		}
+		logger.Error(merry.Message(gwErr), fs...)
+	}
+
+	if err := healthcheck.Shutdown(gw.GracePeriod); err != nil {
+		logger.Fatal(merry.Message(err), zap.Error(err))
+	}
+
+	if err := debug.Shutdown(gw.GracePeriod); err != nil {
+		logger.Fatal(merry.Message(err), zap.Error(err))
 	}
 }
 
@@ -130,5 +140,17 @@ func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.Resp
 }
 
 func (l logHandler) error(ctx context.Context, _ *httpx.Request, err merry.Error) {
-	l.logger.Error(err.Error(), zap.String("request-id", ctx.RequestID()), zap.Error(err))
+	l.logger.Error(merry.Message(err), zap.String("request-id", ctx.RequestID()), zap.Error(err))
+}
+
+func runAuxiliary(server auxiliary.Server, logger *zap.Logger) {
+	if err := server.Listen(); err != nil {
+		logger.Error(merry.Message(err), zap.Error(err))
+		return
+	}
+	logger.Info("starting auxiliary server", zap.String("name", server.Name()), zap.String("addr", server.Address()))
+
+	if err := server.Serve(); err != nil {
+		logger.Error(merry.Message(err), zap.Error(err))
+	}
 }

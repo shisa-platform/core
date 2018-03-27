@@ -35,5 +35,5 @@ func handlerRecovery(exception *merry.Error) {
 		return
 	}
 
-	*exception = merry.New("panic in handler").WithValue("context", arg)
+	*exception = merry.Errorf("panic in handler: \"%v\"", arg)
 }

@@ -23,7 +23,7 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 			return
 		}
 
-		exception = merry.New("panic in request extractor").WithValue("context", arg)
+		exception = merry.Errorf("panic in request extractor: \"%v\"", arg)
 	}()
 
 	str, err = h(ctx, request)
@@ -47,7 +47,7 @@ func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (_
 			return
 		}
 
-		exception = merry.New("panic in request predicate").WithValue("context", arg)
+		exception = merry.Errorf("panic in request predicate: \"%v\"", arg)
 	}()
 
 	return h(ctx, request), nil

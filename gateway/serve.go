@@ -3,16 +3,11 @@ package gateway
 import (
 	stdctx "context"
 	"expvar"
-	"net"
 	"net/http"
 	"sort"
-	"sync"
 
 	"github.com/ansel1/merry"
-	"go.uber.org/multierr"
-	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
@@ -23,145 +18,80 @@ func (p byName) Len() int           { return len(p) }
 func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
 func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-func (g *Gateway) Serve(services []service.Service, auxiliaries ...auxiliary.Server) error {
-	return g.serve(false, services, auxiliaries)
+func (g *Gateway) Address() string {
+	if g.listener != nil {
+		return g.listener.Addr().String()
+	}
+
+	return g.Addr
 }
 
-func (g *Gateway) ServeTLS(services []service.Service, auxiliaries ...auxiliary.Server) error {
-	return g.serve(true, services, auxiliaries)
+func (g *Gateway) Serve(services ...service.Service) merry.Error {
+	return g.serve(services, false)
+}
+
+func (g *Gateway) ServeTLS(services ...service.Service) merry.Error {
+	return g.serve(services, true)
 }
 
 func (g *Gateway) Shutdown() (err error) {
-	g.Logger.Info("shutting down gateway")
 	ctx, cancel := stdctx.WithTimeout(stdctx.Background(), g.GracePeriod)
 	defer cancel()
 
-	err = merry.Wrap(g.base.Shutdown(ctx))
-
-	for _, aux := range g.auxiliaries {
-		g.Logger.Info("shutting down auxiliary", zap.String("name", aux.Name()))
-		err = multierr.Append(err, merry.Wrap(aux.Shutdown(g.GracePeriod)))
-	}
+	err = merry.Prepend(g.base.Shutdown(ctx), "gateway: shutdown")
 
 	g.started = false
 	return
 }
 
-func (g *Gateway) serve(tls bool, services []service.Service, auxiliaries []auxiliary.Server) (err error) {
+func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) {
 	if len(services) == 0 {
-		return merry.New("services must not be empty")
+		return merry.New("gateway: check invariants: services empty")
 	}
 
 	g.init()
-	defer g.Logger.Sync()
 
 	if err := g.installServices(services); err != nil {
 		return err
 	}
 
-	g.auxiliaries = auxiliaries
-
-	ach := make(chan error, len(g.auxiliaries))
-	var wg sync.WaitGroup
-	for _, aux := range g.auxiliaries {
-		wg.Add(1)
-		go g.safelyRunAuxiliary(aux, ach, &wg)
-	}
-
-	wg.Wait()
-
-	listener, err := httpx.HTTPListenerForAddress(g.Address)
+	g.listener, err = httpx.HTTPListenerForAddress(g.Addr)
 	if err != nil {
-		return err
+		return merry.Prepend(err, "gateway: serve")
 	}
 
-	addr := listener.Addr().String()
-
-	if g.Registrar != nil {
-		if err = g.Registrar.Register(g.Name, addr); err != nil {
-			return err
-		}
-		defer func() {
-			if err1 := g.Registrar.Deregister(g.Name); err1 != nil {
-				if err == nil {
-					err = err1.Prepend("deregister")
-				}
-			}
-		}()
-
-		if g.CheckURLHook != nil {
-			u, err := g.CheckURLHook()
-
-			if err != nil {
-				return err
-			}
-
-			if err = g.Registrar.AddCheck(g.Name, u); err != nil {
-				return err
-			}
-
-			defer func() {
-				if err1 := g.Registrar.RemoveChecks(g.Name); err1 != nil {
-					if err == nil {
-						err = err1.Prepend("remove checks")
-					}
-				}
-			}()
-		}
+	if err1 := g.registerSafely(g.listener.Addr().String()); err1 != nil {
+		g.listener.Close()
+		return merry.Prepend(err1, "gateway: serve: register gateway")
 	}
-
-	gch := make(chan error, 1)
-	go func(l net.Listener) {
-		g.Logger.Info("gateway started", zap.String("addr", l.Addr().String()))
-		if tls {
-			gch <- g.base.ServeTLS(l, "", "")
-		} else {
-			gch <- g.base.Serve(l)
-		}
-	}(listener)
-
-	for i := len(g.auxiliaries) + 1; i != 0; i-- {
-		select {
-		case aerr := <-ach:
-			if !merry.Is(aerr, http.ErrServerClosed) {
-				err = multierr.Append(err, merry.Wrap(aerr))
-			}
-		case gerr := <-gch:
-			if gerr != http.ErrServerClosed {
-				err = multierr.Append(err, merry.Wrap(gerr))
-			}
-		}
-	}
-
-	return
-}
-
-func (g *Gateway) safelyRunAuxiliary(server auxiliary.Server, ch chan error, wg *sync.WaitGroup) {
-	var once sync.Once
-	done := func() { wg.Done() }
 	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
+		if err1 := g.deregisterSafely(); err1 != nil && err == nil {
+			err = merry.Prepend(err1, "gateway: serve: deregister gateway")
 		}
-
-		once.Do(done)
-		if err, ok := arg.(error); ok {
-			ch <- merry.WithMessage(err, "panic in auxiliary")
-			return
-		}
-
-		ch <- merry.New("panic in auxiliary").WithValue("context", arg)
 	}()
 
-	err := server.Listen()
-	once.Do(done)
-	if err != nil {
-		ch <- err
-		return
+	if err1 := g.addHealthcheckSafely(); err1 != nil {
+		g.listener.Close()
+		return merry.Prepend(err1, "gateway: serve: add healthcheck")
 	}
-	g.Logger.Info("starting auxiliary server", zap.String("name", server.Name()), zap.String("addr", server.Address()))
-	ch <- server.Serve()
+	defer func() {
+		if err1 := g.removeHealthcheckSafely(); err1 != nil && err == nil {
+			err = merry.Prepend(err1, "gateway: serve: remove healthcheck")
+		}
+	}()
+
+	var err1 error
+	if tls {
+		err1 = g.base.ServeTLS(g.listener, "", "")
+	} else {
+		err1 = g.base.Serve(g.listener)
+	}
+
+	if merry.Is(err1, http.ErrServerClosed) {
+		return nil
+	}
+
+	return merry.Prepend(err1, "gateway: serve: abnormal termination")
 }
 
 func (g *Gateway) installServices(services []service.Service) merry.Error {
@@ -169,22 +99,21 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 	gatewayExpvar.Set("services", servicesExpvar)
 	for _, svc := range services {
 		if svc.Name() == "" {
-			return merry.New("service name cannot be empty")
+			return merry.New("gateway: check invariants: service name empty")
 		}
 		if len(svc.Endpoints()) == 0 {
-			return merry.New("service endpoints cannot be empty").WithValue("service", svc.Name())
+			return merry.New("gateway: check invariants: service endpoints empty").WithValue("service", svc.Name())
 		}
 
 		serviceVar := new(expvar.Map)
 		servicesExpvar.Set(svc.Name(), serviceVar)
 
-		g.Logger.Info("installing service", zap.String("name", svc.Name()))
 		for i, endp := range svc.Endpoints() {
 			if endp.Route == "" {
-				return merry.New("endpoint route cannot be emtpy").WithValue("service", svc.Name()).WithValue("index", i)
+				return merry.New("gateway: check invariants: endpoint route emtpy").WithValue("service", svc.Name()).WithValue("index", i)
 			}
 			if endp.Route[0] != '/' {
-				return merry.New("endpoint route must begin with '/'").WithValue("service", svc.Name()).WithValue("route", endp.Route)
+				return merry.New("gateway: check invariants: endpoint route must begin with '/'").WithValue("service", svc.Name()).WithValue("route", endp.Route)
 			}
 
 			e := endpoint{
@@ -273,10 +202,9 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 			}
 
 			if !foundMethod {
-				return merry.New("endpoint requires least one method").WithValue("service", svc.Name()).WithValue("index", i)
+				return merry.New("gateway: check invariants: endpoint requires least one method").WithValue("service", svc.Name()).WithValue("index", i)
 			}
 
-			g.Logger.Debug("adding endpoint", zap.String("route", endp.Route))
 			if err := g.tree.addRoute(endp.Route, &e); err != nil {
 				return err
 			}
@@ -291,7 +219,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
 	for _, field := range pipeline.QueryFields {
 		if field.Default != "" && field.Name == "" {
-			return nil, merry.New("Field default requires name")
+			return nil, merry.New("gateway: check invariants: field default requires name")
 		}
 	}
 
@@ -303,4 +231,99 @@ func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*ser
 	sort.Sort(byName(result.QueryFields))
 
 	return result, nil
+}
+
+func (g *Gateway) registerSafely(addr string) (err merry.Error) {
+	if g.Registrar == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic registering service")
+			return
+		}
+
+		err = merry.Errorf("panic registering service: \"%v\"", arg)
+	}()
+
+	return g.Registrar.Register(g.Name, addr)
+}
+
+func (g *Gateway) deregisterSafely() (err merry.Error) {
+	if g.Registrar == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic deregistering service")
+			return
+		}
+
+		err = merry.Errorf("panic deregistering service: \"%v\"", arg)
+	}()
+
+	return g.Registrar.Deregister(g.Name)
+}
+
+func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
+	if g.CheckURLHook == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic adding healthcheck")
+			return
+		}
+
+		err = merry.Errorf("panic adding healthcheck: \"%v\"", arg)
+	}()
+
+	url, err, exception := g.CheckURLHook.InvokeSafely()
+	if exception != nil {
+		return merry.Prepend(exception, "run CheckURLHook")
+	} else if err != nil {
+		return merry.Prepend(err, "run CheckURLHook")
+	}
+
+	return g.Registrar.AddCheck(g.Name, url)
+}
+
+func (g *Gateway) removeHealthcheckSafely() (err merry.Error) {
+	if g.CheckURLHook == nil {
+		return
+	}
+
+	defer func() {
+		arg := recover()
+		if arg == nil {
+			return
+		}
+
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic removing healthcheck")
+			return
+		}
+
+		err = merry.Errorf("panic removing healthcheck: \"%v\"", arg)
+	}()
+
+	return g.Registrar.RemoveChecks(g.Name)
 }

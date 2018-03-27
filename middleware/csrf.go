@@ -33,7 +33,7 @@ func (h CheckOrigin) InvokeSafely(expected, actual *url.URL) (ok bool, exception
 			return
 		}
 
-		exception = merry.New("panic in check origin hook").WithValue("context", arg)
+		exception = merry.Errorf("panic in check origin hook: \"%v\"", arg)
 	}()
 
 	return h(expected, actual), nil

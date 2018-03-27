@@ -31,7 +31,7 @@ func TestGatewayInit(t *testing.T) {
 	config := tls.Config{}
 	nextProto := map[string]func(*http.Server, *tls.Conn, http.Handler){}
 	cut := &Gateway{
-		Address:           ":9001",
+		Addr:              ":9001",
 		DisableKeepAlive:  true,
 		TLSConfig:         &config,
 		ReadTimeout:       time.Millisecond * 5,
@@ -43,7 +43,7 @@ func TestGatewayInit(t *testing.T) {
 	}
 	cut.init()
 
-	assert.Equal(t, cut.Address, cut.base.Addr)
+	assert.Equal(t, cut.Addr, cut.base.Addr)
 	assert.Equal(t, cut.TLSConfig, cut.base.TLSConfig)
 	assert.Equal(t, cut.ReadTimeout, cut.base.ReadTimeout)
 	assert.Equal(t, cut.ReadHeaderTimeout, cut.base.ReadHeaderTimeout)
@@ -54,12 +54,11 @@ func TestGatewayInit(t *testing.T) {
 	assert.NotNil(t, cut.base.ConnState)
 	assert.Equal(t, cut, cut.base.Handler)
 	assert.Equal(t, defaultRequestIDResponseHeader, cut.RequestIDHeaderName)
-	assert.NotNil(t, cut.Logger)
 }
 
 func TestGatewaySignal(t *testing.T) {
 	cut := &Gateway{
-		Address:         ":0",
+		Addr:            ":0",
 		HandleInterrupt: true,
 	}
 
@@ -69,7 +68,7 @@ func TestGatewaySignal(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		err := cut.Serve([]service.Service{svc})
+		err := cut.Serve(svc)
 		assert.NoError(t, err)
 		wg.Done()
 	}()
