@@ -91,3 +91,28 @@ func TestGatewaySignal(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestGatewaySignalNotFired(t *testing.T) {
+	cut := &Gateway{
+		Addr:            ":0",
+		HandleInterrupt: true,
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(250*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+	assert.NoError(t, err)
+
+	timer2 := time.AfterFunc(time.Second*2, func() {
+		t.Fatal("interrupt channel not closed!")
+	})
+	defer timer2.Stop()
+
+	select {
+	case <-cut.interrupt:
+	}
+}
