@@ -16,8 +16,8 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/service"
 	"github.com/percolate/shisa/sd"
+	"github.com/percolate/shisa/service"
 )
 
 func waitSig(t *testing.T, c <-chan os.Signal, sig os.Signal) {
@@ -125,13 +125,12 @@ func TestGatewayRepr(t *testing.T) {
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			return nil, nil
 		},
-		ErrorHook: func(context.Context, *httpx.Request, merry.Error) {},
+		ErrorHook:      func(context.Context, *httpx.Request, merry.Error) {},
 		CompletionHook: func(context.Context, *httpx.Request, httpx.ResponseSnapshot) {},
 	}
 	cut.init()
 
 	repr := gatewayExpvar.String()
-	t.Log(repr)
 	assert.NotEmpty(t, repr)
 }
 

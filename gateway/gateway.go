@@ -237,16 +237,16 @@ func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
 // String implements `expvar.Var.String`
 func (g *Gateway) String() string {
 	repr := map[string]interface{}{
-		"Name": g.Name,
-		"Addr": g.Address(),
-		"HandleInterrupt": g.HandleInterrupt,
-		"DisableKeepAlive": g.DisableKeepAlive,
-		"GracePeriod": g.GracePeriod.String(),
-		"ReadTimeout": g.ReadTimeout.String(),
+		"Name":              g.Name,
+		"Addr":              g.Address(),
+		"HandleInterrupt":   g.HandleInterrupt,
+		"DisableKeepAlive":  g.DisableKeepAlive,
+		"GracePeriod":       g.GracePeriod.String(),
+		"ReadTimeout":       g.ReadTimeout.String(),
 		"ReadHeaderTimeout": g.ReadHeaderTimeout.String(),
-		"WriteTimeout": g.WriteTimeout.String(),
-		"IdleTimeout": g.IdleTimeout.String(),
-		"MaxHeaderBytes": g.MaxHeaderBytes,
+		"WriteTimeout":      g.WriteTimeout.String(),
+		"IdleTimeout":       g.IdleTimeout.String(),
+		"MaxHeaderBytes":    g.MaxHeaderBytes,
 	}
 
 	if g.TLSConfig == nil {
