@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"os"
@@ -132,10 +133,80 @@ func TestGatewayRepr(t *testing.T) {
 
 	repr := gatewayExpvar.String()
 	assert.NotEmpty(t, repr)
+
+	var expvars map[string]interface{}
+	assert.NoError(t, json.Unmarshal([]byte(repr), &expvars))
+	assert.NotEmpty(t, expvars)
+
+	assert.Contains(t, expvars, "start-time")
+	assert.Contains(t, expvars, "uptime")
+	assert.Contains(t, expvars, "auxiliary")
+	assert.Contains(t, expvars, "settings")
+
+	settings, ok := expvars["settings"].(map[string]interface{})
+	assert.True(t, ok)
+
+	expectedSettings := map[string]interface{}{
+		"Name":                       defaultName,
+		"Addr":                       ":9001",
+		"HandleInterrupt":            false,
+		"DisableKeepAlive":           true,
+		"GracePeriod":                "0s",
+		"ReadTimeout":                "5ms",
+		"ReadHeaderTimeout":          "10ms",
+		"WriteTimeout":               "15ms",
+		"IdleTimeout":                "20ms",
+		"MaxHeaderBytes":             float64(1024),
+		"Handlers":                   float64(0),
+		"HandlersTimeout":            "0s",
+		"RequestIDHeaderName":        defaultRequestIDResponseHeader,
+		"TLSConfig":                  "configured",
+		"TLSNextProto":               "configured",
+		"RequestIDGenerator":         "configured",
+		"InternalServerErrorHandler": "configured",
+		"NotFoundHandler":            "configured",
+		"Registrar":                  "configured",
+		"CheckURLHook":               "configured",
+		"ErrorHook":                  "configured",
+		"CompletionHook":             "configured",
+	}
+	assert.Equal(t, expectedSettings, settings)
 }
 
 func TestGatewayReprEmpty(t *testing.T) {
 	cut := &Gateway{}
+	cut.init()
+
 	repr := cut.String()
 	assert.NotEmpty(t, repr)
+
+	var settings map[string]interface{}
+	assert.NoError(t, json.Unmarshal([]byte(repr), &settings))
+	assert.NotEmpty(t, settings)
+
+	expectedSettings := map[string]interface{}{
+		"Name":                       defaultName,
+		"Addr":                       "",
+		"HandleInterrupt":            false,
+		"DisableKeepAlive":           false,
+		"GracePeriod":                "0s",
+		"ReadTimeout":                "0s",
+		"ReadHeaderTimeout":          "0s",
+		"WriteTimeout":               "0s",
+		"IdleTimeout":                "0s",
+		"MaxHeaderBytes":             float64(0),
+		"Handlers":                   float64(0),
+		"HandlersTimeout":            "0s",
+		"RequestIDHeaderName":        defaultRequestIDResponseHeader,
+		"TLSConfig":                  "unset",
+		"TLSNextProto":               "unset",
+		"RequestIDGenerator":         "unset",
+		"InternalServerErrorHandler": "unset",
+		"NotFoundHandler":            "unset",
+		"Registrar":                  "unset",
+		"CheckURLHook":               "unset",
+		"ErrorHook":                  "unset",
+		"CompletionHook":             "unset",
+	}
+	assert.Equal(t, expectedSettings, settings)
 }
