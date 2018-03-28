@@ -153,7 +153,8 @@ type Gateway struct {
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
-	// If nil no action will be taken.
+	// If nil the request id and error are sent to the standard
+	// library `log.Println` function.
 	ErrorHook httpx.ErrorHook
 
 	// CompletionHook optionally customizes the behavior after
