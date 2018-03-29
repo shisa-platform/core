@@ -63,13 +63,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	go runAuxiliary(healthcheck, logger)
 
-	healthcheckURL := &url.URL{
-		Scheme:   "http",
-		Host:     healthcheck.Address(),
-		Path:     healthcheck.Path,
-		User:     url.UserPassword("Admin", "password"),
-		RawQuery: "interval=10s",
-	}
 	gw := &gateway.Gateway{
 		Name:            "example",
 		Addr:            addr,
@@ -78,6 +71,14 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Handlers:        []httpx.Handler{authN.Service},
 		Registrar:       res,
 		CheckURLHook: func() (*url.URL, merry.Error) {
+
+			healthcheckURL := &url.URL{
+				Scheme:   "http",
+				Host:     healthcheck.Address(),
+				Path:     healthcheck.Path,
+				User:     url.UserPassword("Admin", "password"),
+				RawQuery: "interval=10s",
+			}
 			return healthcheckURL, nil
 		},
 		CompletionHook: lh.completion,
