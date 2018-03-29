@@ -51,7 +51,17 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	service := &Goodbye{Logger: logger}
+
+	client, err := consul.NewClient(consul.DefaultConfig())
+	if err != nil {
+		logger.Fatal("consul client failed to initialize", zap.Error(err))
+	}
+	reg := sd.NewConsul(client)
+
+	service := &Goodbye{
+		Resolver: reg,
+		Logger: logger,
+	}
 	server := http.Server{
 		Handler: service,
 	}
@@ -66,13 +76,6 @@ func main() {
 	go func() {
 		errCh <- server.Serve(listener)
 	}()
-
-	client, err := consul.NewClient(consul.DefaultConfig())
-	if err != nil {
-		logger.Fatal("consul client failed to initialize", zap.Error(err))
-	}
-
-	reg := sd.NewConsul(client)
 
 	if err := reg.Register(name, listener.Addr().String()); err != nil {
 		logger.Fatal("service failed to register", zap.Error(err))

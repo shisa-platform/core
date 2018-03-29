@@ -7,11 +7,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/idp/service"
+	"github.com/percolate/shisa/sd"
 )
 
-const idpServiceAddrEnv = "IDP_SERVICE_ADDR"
+const idpServiceName = "idp"
 
 type Message struct {
 	RequestID string
@@ -21,6 +21,7 @@ type Message struct {
 }
 
 type Hello struct {
+	Resolver sd.Resolver
 	Logger *zap.Logger
 }
 
@@ -33,7 +34,7 @@ func (s *Hello) Greeting(message *Message, reply *string) (err error) {
 		s.Logger.Info("Greeting", zap.String("request-id", message.RequestID), zap.String("language", message.Language), zap.String("user-id", message.UserID), zap.String("reply", r), zap.Error(err))
 	}()
 
-	client, err := connect()
+	client, err := s.connect()
 	if err != nil {
 		return
 	}
@@ -70,7 +71,7 @@ func (s *Hello) Healthcheck(requestID string, reply *bool) (err error) {
 
 	*reply = false
 
-	client, err := connect()
+	client, err := s.connect()
 	if err != nil {
 		return
 	}
@@ -87,13 +88,13 @@ func (s *Hello) Healthcheck(requestID string, reply *bool) (err error) {
 	return
 }
 
-func connect() (*rpc.Client, error) {
-	addr, envErr := env.Get(idpServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr
+func (s *Hello) connect() (*rpc.Client, error) {
+	nodes, resErr := s.Resolver.Resolve(idpServiceName)
+	if resErr != nil {
+		return nil, resErr
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	client, rpcErr := rpc.DialHTTP("tcp", nodes[0])
 	if rpcErr != nil {
 		return nil, rpcErr
 	}

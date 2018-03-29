@@ -14,12 +14,12 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/env"
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/sd"
 )
 
-const idpServiceAddrEnv = "IDP_SERVICE_ADDR"
+const idpServiceName = "idp"
 
 var hits = new(expvar.Map)
 
@@ -106,6 +106,7 @@ func (r SimpleResponse) Serialize(w io.Writer) merry.Error {
 }
 
 type Goodbye struct {
+	Resolver sd.Resolver
 	Logger *zap.Logger
 }
 
@@ -195,7 +196,7 @@ func (s *Goodbye) goodbye(ctx context.Context, request *httpx.Request) httpx.Res
 		return httpx.NewEmptyError(http.StatusBadRequest, merry.New("missing user id"))
 	}
 
-	client, err := connect()
+	client, err := s.connect()
 	if err != nil {
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
@@ -224,7 +225,7 @@ func (s *Goodbye) healthcheck(ctx context.Context, r *httpx.Request) httpx.Respo
 		Details: map[string]string{"idp": "OK"},
 	}
 
-	client, err := connect()
+	client, err := s.connect()
 	if err != nil {
 		response.Error = err
 		response.Ready = false
@@ -248,13 +249,13 @@ func (s *Goodbye) healthcheck(ctx context.Context, r *httpx.Request) httpx.Respo
 	return response
 }
 
-func connect() (*rpc.Client, error) {
-	addr, envErr := env.Get(idpServiceAddrEnv)
-	if envErr != nil {
-		return nil, envErr
+func (s *Goodbye) connect() (*rpc.Client, error) {
+	nodes, resErr := s.Resolver.Resolve(idpServiceName)
+	if resErr != nil {
+		return nil, resErr
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", addr)
+	client, rpcErr := rpc.DialHTTP("tcp", nodes[0])
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
