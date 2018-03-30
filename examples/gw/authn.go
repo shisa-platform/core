@@ -37,7 +37,7 @@ func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials 
 	var userID string
 	rpcErr := client.Call("Idp.AuthenticateToken", &message, &userID)
 	if rpcErr != nil {
-		return nil, merry.Prepend("authenticate", rpcErr)
+		return nil, merry.Prepend(rpcErr, "authenticate")
 	}
 	if userID == "" {
 		return nil, nil
@@ -60,7 +60,7 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 	arg := ctx.RequestID()
 	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
 	if rpcErr != nil {
-		return merry.Prepend("healthcheck", rpcErr)
+		return merry.Prepend(rpcErr, "healthcheck")
 	}
 	if !ready {
 		return merry.New("not ready")
@@ -81,7 +81,7 @@ func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
 
 	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
 	if rpcErr != nil {
-		return nil, merry.Prepend("connect", rpcErr)
+		return nil, merry.Prepend(rpcErr, "connect")
 	}
 
 	return client, nil

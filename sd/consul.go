@@ -56,17 +56,17 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 		Address: address,
 	}
 
-	e := r.agent.ServiceRegister(servreg)
-	if e != nil {
-		return merry.Prepend(e, "consul sd: register").Append(addr)
+	err = r.agent.ServiceRegister(servreg)
+	if err != nil {
+		return merry.Prepend(err, "consul sd: register").Append(addr)
 	}
 	return nil
 }
 
 func (r *consulSD) Deregister(serviceID string) merry.Error {
-	e := r.agent.ServiceDeregister(serviceID)
-	if e != nil {
-		return merry.Prepend(e, "consul sd: deregister").Append(serviceID)
+	err := r.agent.ServiceDeregister(serviceID)
+	if err != nil {
+		return merry.Prepend(err, "consul sd: deregister").Append(serviceID)
 	}
 	return nil
 }

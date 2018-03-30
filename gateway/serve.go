@@ -71,26 +71,26 @@ func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) 
 
 	g.listener, err = httpx.HTTPListenerForAddress(g.Addr)
 	if err != nil {
-		return merry.Prepend(err, "gateway: serve")
+		return err.Prepend("gateway: serve")
 	}
 
 	if err1 := g.registerSafely(g.listener.Addr().String()); err1 != nil {
 		g.listener.Close()
-		return merry.Prepend(err1, "gateway: serve: register gateway")
+		return err1.Prepend("gateway: serve: register gateway")
 	}
 	defer func() {
 		if err1 := g.deregisterSafely(); err1 != nil && err == nil {
-			err = merry.Prepend(err1, "gateway: serve: deregister gateway")
+			err = err1.Prepend("gateway: serve: deregister gateway")
 		}
 	}()
 
 	if err1 := g.addHealthcheckSafely(); err1 != nil {
 		g.listener.Close()
-		return merry.Prepend(err1, "gateway: serve: add healthcheck")
+		return err1.Prepend("gateway: serve: add healthcheck")
 	}
 	defer func() {
 		if err1 := g.removeHealthcheckSafely(); err1 != nil && err == nil {
-			err = merry.Prepend(err1, "gateway: serve: remove healthcheck")
+			err = err1.Prepend("gateway: serve: remove healthcheck")
 		}
 	}()
 
@@ -313,9 +313,9 @@ func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
 
 	url, err, exception := g.CheckURLHook.InvokeSafely()
 	if exception != nil {
-		return merry.Prepend(exception, "run CheckURLHook")
+		return exception.Prepend("run CheckURLHook")
 	} else if err != nil {
-		return merry.Prepend(err, "run CheckURLHook")
+		return err.Prepend("run CheckURLHook")
 	}
 
 	return g.Registrar.AddCheck(g.Name, url)

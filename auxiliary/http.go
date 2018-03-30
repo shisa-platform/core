@@ -260,9 +260,9 @@ finish:
 		s.invokeErrorHookSafely(ctx, request, idErr)
 	}
 
-	writeErr1 := merry.Prepend(writeErr, "auxiliary server: route: serialize response")
-	if writeErr1 != nil {
-		s.invokeErrorHookSafely(ctx, request, writeErr1)
+	writeErr = merry.Prepend(writeErr, "auxiliary server: route: serialize response")
+	if writeErr != nil {
+		s.invokeErrorHookSafely(ctx, request, writeErr)
 	}
 
 	respErr := response.Err()
@@ -331,7 +331,7 @@ func (s *HTTPServer) invokeErrorHookSafely(ctx context.Context, request *httpx.R
 
 func (s *HTTPServer) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
 	if ex := s.CompletionHook.InvokeSafely(ctx, request, snapshot); ex != nil {
-		exception := merry.Prepend(ex, "auxiliary server: route: run CompletionHook")
+		exception := ex.Prepend("auxiliary server: route: run CompletionHook")
 		s.invokeErrorHookSafely(ctx, request, exception)
 	}
 }

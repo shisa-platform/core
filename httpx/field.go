@@ -79,16 +79,14 @@ type FixedStringValidator struct {
 	Target string
 }
 
-func (v FixedStringValidator) Validate(values []string) (err merry.Error) {
+func (v FixedStringValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		if v.Target != value {
-			err = UnexpectedValue.Appendf("must match %q", v.Target)
-			break
+			return UnexpectedValue.Append(value)
 		}
 	}
 
-	err = merry.Prepend(err, "fixed string validator")
-	return
+	return nil
 }
 
 // StringSliceValidator enforces that all input values match at
@@ -113,7 +111,7 @@ func (v StringSliceValidator) Validate(values []string) merry.Error {
 		}
 	}
 
-	return merry.Prepend(err, "string slice validator")
+	return merry.Wrap(err)
 }
 
 // StringValidator enforces that all input values have a certain
@@ -137,7 +135,7 @@ func (v StringValidator) Validate(values []string) merry.Error {
 		}
 	}
 
-	return merry.Prepend(err, "string validator")
+	return merry.Wrap(err)
 }
 
 // IntValidator enforces that all input values are parsable as
@@ -168,7 +166,7 @@ func (v IntValidator) Validate(values []string) merry.Error {
 		}
 	}
 
-	return merry.Prepend(err, "int validator")
+	return merry.Wrap(err)
 }
 
 // BoolValidator enforces that all input values are parsable as a
@@ -182,7 +180,7 @@ func BoolValidator(values []string) merry.Error {
 		}
 	}
 
-	return merry.Prepend(err, "bool validator")
+	return merry.Wrap(err)
 }
 
 // TimestampValidator enforces that all input values are parsable
@@ -214,7 +212,7 @@ func (v TimestampValidator) Validate(values []string) merry.Error {
 		}
 	}
 
-	return merry.Prepend(err, "timestamp validator")
+	return merry.Wrap(err)
 }
 
 // RegexValidator enforces that all input values match the given
@@ -232,5 +230,5 @@ func (v RegexValidator) Validate(values []string) merry.Error {
 		}
 	}
 
-	return merry.Prepend(err, "regex validator")
+	return merry.Wrap(err)
 }

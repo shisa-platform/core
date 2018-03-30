@@ -47,7 +47,7 @@ type basicAuthenticator struct {
 func (m *basicAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := BasicAuthTokenExtractor(ctx, r)
 	if err != nil {
-		return nil, merry.Prepend(err, "basic auth: authenticate")
+		return nil, err.Prepend("basic auth: authenticate")
 	}
 
 	return m.idp.Authenticate(ctx, credentials)
