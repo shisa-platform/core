@@ -124,7 +124,7 @@ func (s *HelloService) connect() (*rpc.Client, merry.Error) {
 
 	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
 	if rpcErr != nil {
-		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
+		return nil, merry.Prepend("connect", rpcErr)
 	}
 
 	return client, nil

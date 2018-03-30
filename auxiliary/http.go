@@ -265,10 +265,10 @@ finish:
 		s.invokeErrorHookSafely(ctx, request, writeErr1)
 	}
 
-	respErr := merry.Wrap(response.Err())
+	respErr := response.Err()
 	if respErr != nil {
-		respErr = merry.Prepend(respErr, "auxiliary server: route: handler failed")
-		s.invokeErrorHookSafely(ctx, request, respErr)
+		respErr1 := merry.Prepend(respErr, "auxiliary server: route: handler failed")
+		s.invokeErrorHookSafely(ctx, request, respErr1)
 	}
 }
 

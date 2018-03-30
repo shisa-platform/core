@@ -37,7 +37,7 @@ func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials 
 	var userID string
 	rpcErr := client.Call("Idp.AuthenticateToken", &message, &userID)
 	if rpcErr != nil {
-		return nil, merry.Wrap(rpcErr)
+		return nil, merry.Prepend("authenticate", rpcErr)
 	}
 	if userID == "" {
 		return nil, nil
@@ -60,10 +60,10 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 	arg := ctx.RequestID()
 	rpcErr := client.Call("Idp.Healthcheck", &arg, &ready)
 	if rpcErr != nil {
-		return merry.Wrap(rpcErr).WithUserMessage("unable to complete request")
+		return merry.Prepend("healthcheck", rpcErr)
 	}
 	if !ready {
-		return merry.New("not ready").WithUserMessage("not ready")
+		return merry.New("not ready")
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
 	addrs, err := p.Resolver.Resolve(p.Name())
 	if err != nil {
-		return nil, err.WithUserMessage("address service not found")
+		return nil, err.Prepend("connect")
 	}
 
 	if len(addrs) < 1 {
@@ -81,7 +81,7 @@ func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
 
 	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
 	if rpcErr != nil {
-		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
+		return nil, merry.Prepend("connect", rpcErr)
 	}
 
 	return client, nil

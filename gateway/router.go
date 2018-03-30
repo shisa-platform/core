@@ -310,10 +310,10 @@ finish:
 		g.invokeErrorHookSafely(ctx, request, writeErr)
 	}
 
-	respErr := merry.Wrap(response.Err())
+	respErr := response.Err()
 	if respErr != nil && respErr != err {
-		respErr = merry.Prepend(respErr, "gateway: route: handler failed")
-		g.invokeErrorHookSafely(ctx, request, respErr)
+		respErr1 := merry.Prepend(respErr, "gateway: route: handler failed")
+		g.invokeErrorHookSafely(ctx, request, respErr1)
 	}
 }
 
