@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/percolate/shisa/sd"
 )
 
 func TestRRCache(t *testing.T) {
@@ -47,4 +49,27 @@ func TestRRCacheAdditon(t *testing.T) {
 
 	assert.Equal(t, testAddrs[0], res1)
 	assert.Equal(t, testAddrs[1], res2)
+}
+
+type fakeCache struct{}
+
+func (c fakeCache) Next(string, []string) string {
+	return ""
+}
+
+func TestInvariants(t *testing.T) {
+	cut := new(CacheBalancer)
+
+	_, err := cut.Balance("test")
+	assert.Error(t, err)
+
+	cut = &CacheBalancer{Cache: fakeCache{}}
+
+	_, err = cut.Balance("test")
+	assert.Error(t, err)
+
+	cut = &CacheBalancer{Resolver: sd.NewFakeResolverDefaultFatal(t)}
+
+	_, err = cut.Balance("test")
+	assert.Error(t, err)
 }
