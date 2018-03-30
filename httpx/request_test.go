@@ -253,3 +253,61 @@ func TestRequestValidateQueryParameters(t *testing.T) {
 	assert.NoError(t, cut.QueryParams[0].Err)
 	assert.NoError(t, cut.QueryParams[1].Err)
 }
+
+func TestRequestValidateQueryParametersNoFields(t *testing.T) {
+	url := "http://example.com/test?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, url, nil)
+	cut := &Request{Request: request}
+
+	assert.True(t, cut.ParseQueryParameters())
+	assert.Len(t, cut.QueryParams, 2)
+
+	malformed, unknown, exception := cut.ValidateQueryParameters([]Field{})
+	assert.False(t, malformed)
+	assert.False(t, unknown)
+	assert.NoError(t, exception)
+}
+
+func TestQueryParamExists(t *testing.T) {
+	url := "http://example.com/test?zalgo=he:comes"
+	request := httptest.NewRequest(http.MethodGet, url, nil)
+	cut := &Request{Request: request}
+
+	assert.True(t, cut.ParseQueryParameters())
+	assert.Len(t, cut.QueryParams, 1)
+
+	assert.True(t, cut.QueryParamExists("zalgo"))
+	assert.False(t, cut.QueryParamExists("foo"))
+}
+
+func TestPathParamExists(t *testing.T) {
+	url := "http://example.com/test/thing?zalgo=he:comes"
+	request := httptest.NewRequest(http.MethodGet, url, nil)
+	cut := &Request{Request: request}
+
+	cut.PathParams = []PathParameter{{Name: "location", Value: "test"}}
+
+	assert.True(t, cut.PathParamExists("location"))
+	assert.False(t, cut.PathParamExists("foo"))
+}
+
+func TestRequestID(t *testing.T) {
+	url := "http://example.com/test?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, url, nil)
+	cut := &Request{Request: request}
+
+	id := cut.ID()
+	assert.NotEmpty(t, id)
+	assert.Equal(t, id, cut.ID())
+}
+
+func TestRequestClientIP(t *testing.T) {
+	url := "http://example.com/test?zalgo=he:comes&waits=behind%20the%20walls"
+	request := httptest.NewRequest(http.MethodGet, url, nil)
+	cut := &Request{Request: request}
+	cut.RemoteAddr = "192.168.1.1:65666"
+
+	ip := cut.ClientIP()
+	assert.Equal(t, ip, "192.168.1.1")
+	assert.Equal(t, ip, cut.ClientIP())
+}
