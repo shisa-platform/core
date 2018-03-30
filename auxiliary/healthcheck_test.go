@@ -561,7 +561,7 @@ func TestHealthcheckServerServeHTTPCustomCompletionHook(t *testing.T) {
 func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
 	userMessage := "help me I'm trapped in a software bug factory!"
 	msg := "i blewed up!"
-	err := merry.New(msg).WithUserMessage(userMessage)
+	err := merry.New(msg)
 	ng := stubHealthchecker{name: "fail", err: err}
 	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
