@@ -5,6 +5,7 @@
 package gateway
 
 import (
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -423,7 +424,7 @@ walk: // Outer loop for walking the tree
 					return
 
 				default:
-					err = merry.New("internal error").WithUserMessage("invalid node type").WithValue("node", n)
+					err = merry.New("gateway: route: internal error: invalid node type").Append(strconv.Itoa(int(n.nType)))
 					return
 				}
 			}
