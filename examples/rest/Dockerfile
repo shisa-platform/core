@@ -1,8 +1,8 @@
-FROM shisa-examples/base:demo
+FROM shisa/examples/base
 
 WORKDIR /root/go/src/github.com/percolate/shisa/examples/rest
 
-RUN go build -o /root/go/bin/rest github.com/percolate/shisa/examples/rest
+RUN go build -ldflags '-linkmode external -extldflags "-static" -s' -o /root/go/bin/rest github.com/percolate/shisa/examples/rest
 
 FROM alpine:3.7
 

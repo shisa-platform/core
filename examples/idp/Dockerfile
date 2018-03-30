@@ -1,8 +1,8 @@
-FROM shisa-examples/base:demo
+FROM shisa/examples/base
 
 WORKDIR /root/go/src/github.com/percolate/shisa/examples/idp
 
-RUN go build -o /root/go/bin/idp github.com/percolate/shisa/examples/idp
+RUN go build -ldflags '-linkmode external -extldflags "-static" -s' -o /root/go/bin/idp github.com/percolate/shisa/examples/idp
 
 FROM alpine:3.7
 
