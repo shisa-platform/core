@@ -50,7 +50,7 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 	}
 
 	servreg := &consul.AgentServiceRegistration{
-		ID:      serviceID,
+		ID:      fmt.Sprintf("%s|%s", serviceID, address),
 		Name:    serviceID,
 		Port:    port,
 		Address: address,
@@ -96,7 +96,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		ID:        popQueryString(q, "id"),
 		Name:      fmt.Sprintf("%s-healthcheck", serviceID),
 		Notes:     popQueryString(q, "notes"),
-		ServiceID: serviceID,
+		ServiceID: fmt.Sprintf("%s|%s", serviceID, u.Hostname()),
 		AgentServiceCheck: consul.AgentServiceCheck{
 			CheckID:       popQueryString(q, "checkid"),
 			Timeout:       popQueryString(q, "timeout"),
