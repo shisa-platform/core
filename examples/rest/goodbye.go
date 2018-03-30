@@ -107,7 +107,7 @@ func (r SimpleResponse) Serialize(w io.Writer) merry.Error {
 
 type Goodbye struct {
 	Resolver sd.Resolver
-	Logger *zap.Logger
+	Logger   *zap.Logger
 }
 
 func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {

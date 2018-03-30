@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"time"
 
@@ -71,13 +72,12 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		Handlers:        []httpx.Handler{authN.Service},
 		Registrar:       res,
 		CheckURLHook: func() (*url.URL, merry.Error) {
-
 			healthcheckURL := &url.URL{
 				Scheme:   "http",
 				Host:     healthcheck.Address(),
 				Path:     healthcheck.Path,
 				User:     url.UserPassword("Admin", "password"),
-				RawQuery: "interval=10s",
+				RawQuery: fmt.Sprintf("interval=10s&id=example-%s", healthcheck.Address()),
 			}
 			return healthcheckURL, nil
 		},

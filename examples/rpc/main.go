@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -62,7 +63,7 @@ func main() {
 
 	service := &hello.Hello{
 		Resolver: reg,
-		Logger: logger,
+		Logger:   logger,
 	}
 	rpc.Register(service)
 	rpc.HandleHTTP()
@@ -89,7 +90,7 @@ func main() {
 		Scheme:   "tcp",
 		Host:     listener.Addr().String(),
 		Path:     rpc.DefaultRPCPath,
-		RawQuery: "interval=5s",
+		RawQuery: fmt.Sprintf("interval=5s&id=hello-%s", listener.Addr().String()),
 	}
 
 	if err := reg.AddCheck(name, u); err != nil {

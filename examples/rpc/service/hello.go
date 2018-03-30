@@ -22,7 +22,7 @@ type Message struct {
 
 type Hello struct {
 	Resolver sd.Resolver
-	Logger *zap.Logger
+	Logger   *zap.Logger
 }
 
 func (s *Hello) Greeting(message *Message, reply *string) (err error) {

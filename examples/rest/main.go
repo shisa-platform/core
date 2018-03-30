@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -51,7 +52,6 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-
 	client, err := consul.NewClient(consul.DefaultConfig())
 	if err != nil {
 		logger.Fatal("consul client failed to initialize", zap.Error(err))
@@ -60,7 +60,7 @@ func main() {
 
 	service := &Goodbye{
 		Resolver: reg,
-		Logger: logger,
+		Logger:   logger,
 	}
 	server := http.Server{
 		Handler: service,
@@ -86,7 +86,7 @@ func main() {
 		Scheme:   "http",
 		Host:     listener.Addr().String(),
 		Path:     "/healthcheck",
-		RawQuery: "interval=5s",
+		RawQuery: fmt.Sprintf("interval=5s&id=goodbye-%s", listener.Addr().String()),
 	}
 
 	if err := reg.AddCheck(name, u); err != nil {

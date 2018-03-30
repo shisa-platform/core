@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -86,7 +87,7 @@ func main() {
 		Scheme:   "tcp",
 		Host:     listener.Addr().String(),
 		Path:     rpc.DefaultRPCPath,
-		RawQuery: "interval=5s",
+		RawQuery: fmt.Sprintf("interval=5s&id=idp-%s", listener.Addr().String()),
 	}
 
 	if err := reg.AddCheck(name, u); err != nil {
