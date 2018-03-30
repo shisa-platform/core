@@ -16,12 +16,12 @@ import (
 func AuthenticationHeaderTokenExtractor(ctx context.Context, r *httpx.Request, scheme string) (token string, err merry.Error) {
 	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
 	if challenge == "" {
-		err = merry.New("auth: extract header token: no challenge provided")
+		err = merry.New("extract header token: no challenge provided")
 		return
 	}
 
 	if !strings.HasPrefix(challenge, scheme+" ") {
-		err = merry.New("auth: extract header token: unsupported").Append(scheme)
+		err = merry.New("extract header token: unsupported scheme").Append(scheme)
 		return
 	}
 
@@ -38,6 +38,6 @@ func URLTokenExtractor(ctx context.Context, r *httpx.Request) (token string, err
 		return
 	}
 
-	err = merry.New("auth: extract url token: no user info found")
+	err = merry.New("extract url token: no user info found")
 	return
 }

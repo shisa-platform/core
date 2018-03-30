@@ -21,22 +21,22 @@ type CacheBalancer struct {
 
 func (r *CacheBalancer) Balance(service string) (string, merry.Error) {
 	if r.Cache == nil {
-		return "", merry.New("cache must not be nil")
+		return "", merry.New("load balancer: check invariants: cache nil")
 	}
 
 	if r.Resolver == nil {
-		return "", merry.New("resolver must not be nil")
+		return "", merry.New("load balancer: check invariants: resolver nil")
 	}
 
 	nodes, err := r.Resolver.Resolve(service)
 	if err != nil {
-		return "", err.Prepend("balance")
+		return "", err.Prepend("load balancer: balance")
 	}
 
 	next := r.Cache.Next(service, nodes)
 
 	if next == "" {
-		return "", merry.New("no nodes available")
+		return "", merry.New("load balancer: balance: no nodes available")
 	}
 
 	return next, nil

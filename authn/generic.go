@@ -21,7 +21,7 @@ type genericAuthenticator struct {
 func (m *genericAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := m.extractor(ctx, r)
 	if err != nil {
-		return nil, err
+		return nil, err.Prepend("auth: authenticate")
 	}
 
 	return m.idp.Authenticate(ctx, credentials)
@@ -41,10 +41,10 @@ func (m *genericAuthenticator) Challenge() string {
 // parameters are nil.
 func NewAuthenticator(extractor httpx.StringExtractor, idp IdentityProvider, scheme, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
-		return nil, merry.New("Identity provider must be non-nil")
+		return nil, merry.New("auth: check invariants: identity provider nil")
 	}
 	if extractor == nil {
-		return nil, merry.New("Token extractor must be non-nil")
+		return nil, merry.New("auth: check invariants: token extractor nil")
 	}
 
 	return &genericAuthenticator{

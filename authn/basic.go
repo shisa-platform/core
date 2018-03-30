@@ -19,19 +19,19 @@ import (
 func BasicAuthTokenExtractor(ctx context.Context, r *httpx.Request) (token string, err merry.Error) {
 	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
 	if challenge == "" {
-		err = merry.New("basic auth: extract token: no challenge provided")
+		err = merry.New("extract basic auth token: no challenge provided")
 		return
 	}
 
 	const prefix = "Basic "
 	if !strings.HasPrefix(challenge, prefix) {
-		err = merry.New("basic auth: extract token: unsupported authn scheme")
+		err = merry.New("extract basic auth token: unsupported scheme")
 		return
 	}
 
 	credentials, b64err := base64.StdEncoding.DecodeString(challenge[len(prefix):])
 	if b64err != nil {
-		err = merry.Prepend(b64err, "basic auth: extract token")
+		err = merry.Prepend(b64err, "extract basic auth token")
 		return
 	}
 
