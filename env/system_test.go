@@ -1,13 +1,10 @@
 package env
 
 import (
-	stdctx "context"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/percolate/shisa/context"
 )
 
 func setEnv(t *testing.T, name, value string) {
@@ -95,15 +92,6 @@ func TestGetBool(t *testing.T) {
 
 	assert.Empty(t, value)
 	assert.Error(t, err)
-}
-
-func TestHealthcheck(t *testing.T) {
-	cut := NewSystem()
-	assert.NotNil(t, cut)
-
-	ctx := context.New(stdctx.Background())
-	err := cut.Healthcheck(ctx)
-	assert.NoError(t, err)
 }
 
 func TestMonitor(t *testing.T) {
