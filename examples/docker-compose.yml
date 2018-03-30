@@ -1,61 +1,138 @@
 version: "3.6"
+
+x-gw-service: &gw-service
+  image: shisa/examples/gw
+  build:
+    context: ../
+    dockerfile: examples/gw/Dockerfile
+  depends_on:
+    - "consul"
+  environment:
+    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+
+x-rest-service: &rest-service
+  image: shisa/examples/rest
+  build:
+    context: ../
+    dockerfile: examples/rest/Dockerfile
+  depends_on:
+    - "consul"
+  environment:
+    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+
+x-rpc-service: &rpc-service
+  image: shisa/examples/rpc
+  build:
+    context: ../
+    dockerfile: examples/rpc/Dockerfile
+  depends_on:
+    - "consul"
+  environment:
+    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+
+x-idp-service: &idp-service
+  image: shisa/examples/idp
+  build:
+    context: ../
+    dockerfile: examples/idp/Dockerfile
+  depends_on:
+    - "consul"
+  environment:
+    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+
 services:
   consul:
     container_name: consul
     image: consul:1.0.6
-    deploy:
-      replicas: 1
-    network_mode: "host"
-  gw:
-    container_name: gw
-    image: shisa-example/gw:demo
-    build:
-      context: ../
-      dockerfile: examples/gw/Dockerfile
-    deploy:
-      replicas: 3
-    network_mode: "host"
-    depends_on:
-      - "consul"
-      - "idp"
-      - "rest"
-      - "rpc"
-  rest:
-    container_name: rest
-    image: shisa-example/rest:demo
-    build:
-      context: ../
-      dockerfile: examples/rest/Dockerfile
-    deploy:
-      replicas: 3
-    environment:
-      IDP_SERVICE_ADDR: "127.0.0.1:9601"
-    network_mode: "host"
-    depends_on:
-      - "consul"
-      - "idp"
-  rpc:
-    container_name: rpc
-    image: shisa-example/rpc:demo
-    build:
-      context: ../
-      dockerfile: examples/rpc/Dockerfile
-    deploy:
-      replicas: 3
-    environment:
-      IDP_SERVICE_ADDR: "127.0.0.1:9601"
-    network_mode: "host"
-    depends_on:
-      - "consul"
-      - "idp"
-  idp:
-    container_name: idp
-    image: shisa-example/idp:demo
-    build:
-      context: ../
-      dockerfile: examples/idp/Dockerfile
-    deploy:
-      replicas: 3
-    network_mode: "host"
-    depends_on:
-      - "consul"
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.22
+    ports:
+      - 8500:8500
+  gw-1:
+    <<: *gw-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.23
+    command: ./gw --addr="172.18.0.23:9001" --healthcheckaddr="172.18.0.23:9003"
+    ports:
+      - 8001:9001
+  gw-2:
+    <<: *gw-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.24
+    command: ./gw --addr="172.18.0.24:9001" --healthcheckaddr="172.18.0.24:9003"
+    ports:
+      - 8002:9001
+  gw-3:
+    <<: *gw-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.25
+    command: ./gw --addr="172.18.0.25:9001" --healthcheckaddr="172.18.0.25:9003"
+    ports:
+      - 8003:9001
+  rest-1:
+    <<: *rest-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.26
+    command: ./rest --addr="172.18.0.26:9501"
+  rest-2:
+    <<: *rest-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.27
+    command: ./rest --addr="172.18.0.27:9501"
+  rest-3:
+    <<: *rest-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.28
+    command: ./rest --addr="172.18.0.28:9501"
+  rpc-1:
+    <<: *rpc-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.29
+    command: ./rpc --addr="172.18.0.29:9401"
+  rpc-2:
+    <<: *rpc-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.30
+    command: ./rpc --addr="172.18.0.30:9401"
+  rpc-3:
+    <<: *rpc-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.31
+    command: ./rpc --addr="172.18.0.31:9401"
+  idp-1:
+    <<: *idp-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.32
+    command: ./idp --addr="172.18.0.32:9601"
+  idp-2:
+    <<: *idp-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.33
+    command: ./idp --addr="172.18.0.33:9601"
+  idp-3:
+    <<: *idp-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.34
+    command: ./idp --addr="172.18.0.34:9601"
+
+
+networks:
+  shisa_examples:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/16
