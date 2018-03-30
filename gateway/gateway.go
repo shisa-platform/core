@@ -162,11 +162,11 @@ type Gateway struct {
 	// If nil no action will be taken.
 	CompletionHook httpx.CompletionHook
 
-	base     http.Server
-	listener net.Listener
-	tree     *node
-
-	started bool
+	base      http.Server
+	listener  net.Listener
+	tree      *node
+	started   bool
+	interrupt chan os.Signal
 }
 
 func (g *Gateway) init() {
@@ -198,13 +198,6 @@ func (g *Gateway) init() {
 		g.base.SetKeepAlivesEnabled(false)
 	}
 
-	// xxx - need to handle early shutdown before startup is completed
-	if g.HandleInterrupt {
-		interrupt := make(chan os.Signal, 1)
-		go g.handleInterrupt(interrupt)
-		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	}
-
 	if g.RequestIDHeaderName == "" {
 		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
@@ -214,7 +207,12 @@ func (g *Gateway) init() {
 	}
 
 	g.tree = new(node)
-	g.started = true
+
+	if g.HandleInterrupt {
+		g.interrupt = make(chan os.Signal, 1)
+		go g.handleInterrupt()
+		signal.Notify(g.interrupt, syscall.SIGINT, syscall.SIGTERM)
+	}
 }
 
 func connstate(con net.Conn, state http.ConnState) {
@@ -227,10 +225,13 @@ func connstate(con net.Conn, state http.ConnState) {
 	}
 }
 
-func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
+func (g *Gateway) handleInterrupt() {
 	select {
-	case <-interrupt:
-		signal.Stop(interrupt)
+	case sig := <-g.interrupt:
+		if sig != syscall.SIGINT && sig != syscall.SIGTERM {
+			return
+		}
+		signal.Stop(g.interrupt)
 		g.Shutdown()
 	}
 }

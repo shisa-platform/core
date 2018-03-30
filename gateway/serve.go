@@ -4,6 +4,7 @@ import (
 	stdctx "context"
 	"expvar"
 	"net/http"
+	"os/signal"
 	"sort"
 
 	"github.com/ansel1/merry"
@@ -35,18 +36,30 @@ func (g *Gateway) ServeTLS(services ...service.Service) merry.Error {
 }
 
 func (g *Gateway) Shutdown() (err error) {
+	if !g.started {
+		return
+	}
+
 	ctx, cancel := stdctx.WithTimeout(stdctx.Background(), g.GracePeriod)
 	defer cancel()
 
 	err = merry.Prepend(g.base.Shutdown(ctx), "gateway: shutdown")
 
+	if g.HandleInterrupt && g.interrupt != nil {
+		signal.Stop(g.interrupt)
+		close(g.interrupt)
+	}
 	g.started = false
+
 	return
 }
 
 func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) {
 	if len(services) == 0 {
 		return merry.New("gateway: check invariants: services empty")
+	}
+	if g.started {
+		return merry.New("gateway: check invariants: already running")
 	}
 
 	g.init()
@@ -80,6 +93,7 @@ func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) 
 		}
 	}()
 
+	g.started = true
 	var err1 error
 	if tls {
 		err1 = g.base.ServeTLS(g.listener, "", "")

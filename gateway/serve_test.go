@@ -3,6 +3,7 @@ package gateway
 import (
 	"net/http"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
 
@@ -427,6 +428,40 @@ func TestGatewayServeWithCheckURLHookParseError(t *testing.T) {
 	assert.Error(t, err)
 	registrar.AssertRegisterCalledOnce(t)
 	registrar.AssertAddCheckNotCalled(t)
+}
+
+func TestGatewayRedundantStart(t *testing.T) {
+	cut := &Gateway{
+		Name: "test",
+		Addr: "127.0.0.1:0",
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(250*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		assert.NoError(t, cut.Serve(svc))
+	}()
+
+	time.Sleep(time.Millisecond * 200)
+
+	wg.Wait()
+	assert.Error(t, cut.Serve(svc))
+}
+
+func TestGatewayRedundantStop(t *testing.T) {
+	cut := &Gateway{
+		Name: "test",
+		Addr: "127.0.0.1:0",
+	}
+
+	assert.NoError(t, cut.Shutdown())
 }
 
 func TestGatewayServeWithCheckURLHookPanic(t *testing.T) {

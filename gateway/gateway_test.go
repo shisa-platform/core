@@ -98,6 +98,50 @@ func TestGatewaySignal(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGatewaySignalNotFired(t *testing.T) {
+	cut := &Gateway{
+		Addr:            ":0",
+		HandleInterrupt: true,
+	}
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(250*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+	assert.NoError(t, err)
+
+	timer2 := time.AfterFunc(time.Second*2, func() {
+		t.Fatal("interrupt channel not closed!")
+	})
+	defer timer2.Stop()
+
+	select {
+	case <-cut.interrupt:
+	}
+}
+
+func TestGatewayAddress(t *testing.T) {
+	cut := &Gateway{
+		Addr: ":0",
+	}
+	assert.Equal(t, ":0", cut.Address())
+
+	endpoint := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint})
+
+	timer := time.AfterFunc(200*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	go cut.Serve(svc)
+
+	time.Sleep(time.Millisecond * 100)
+
+	assert.NotEqual(t, ":0", cut.Address())
+}
+
 func TestGatewayRepr(t *testing.T) {
 	config := tls.Config{}
 	nextProto := map[string]func(*http.Server, *tls.Conn, http.Handler){
