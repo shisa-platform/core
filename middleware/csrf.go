@@ -9,6 +9,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -28,12 +29,7 @@ func (h CheckOrigin) InvokeSafely(expected, actual *url.URL) (ok bool, exception
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in check origin hook")
-			return
-		}
-
-		exception = merry.Errorf("panic in check origin hook: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in check origin hook")
 	}()
 
 	return h(expected, actual), nil

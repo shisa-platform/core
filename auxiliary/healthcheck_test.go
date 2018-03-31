@@ -619,7 +619,7 @@ func TestHealthcheckServerServeHTTPHealthcheckerPanic(t *testing.T) {
 
 	expectedJson := `{
   "pass": "OK",
-  "fail": "panic in healthcheck"
+  "fail": "panic in healthcheck: i blewed up!"
 }`
 	assert.JSONEq(t, expectedJson, w.Body.String())
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -35,12 +36,7 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (out *
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in router")
-			return
-		}
-
-		exception = merry.Errorf("panic in router: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in router")
 	}()
 
 	out, err = r(ctx, request)
@@ -58,12 +54,7 @@ func (i Invoker) InvokeSafely(ctx context.Context, request *httpx.Request) (resp
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in invoker")
-			return
-		}
-
-		exception = merry.Errorf("panic in invoker: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in invoker")
 	}()
 
 	response, err = i(ctx, request)
@@ -81,12 +72,7 @@ func (r Responder) InvokeSafely(ctx context.Context, request *httpx.Request, in 
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in responder")
-			return
-		}
-
-		exception = merry.Errorf("panic in responder: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in responder")
 	}()
 
 	out, err = r(ctx, request, in)

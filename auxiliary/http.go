@@ -11,6 +11,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 )
@@ -173,13 +174,7 @@ func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (res
 			return
 		}
 
-		var err merry.Error
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in auxiliary authorizer")
-		} else {
-			err = merry.Errorf("panic in auxiliary authorizer: \"%v\"", arg)
-		}
-
+		err := errorx.Panic(arg, "panic in auxiliary authorizer")
 		err = err.WithHTTPCode(http.StatusForbidden)
 		response = httpx.NewEmptyError(http.StatusForbidden, err)
 	}()

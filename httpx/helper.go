@@ -4,6 +4,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 )
 
 // StringExtractor is a function type that extracts a string from
@@ -18,12 +19,7 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in request extractor")
-			return
-		}
-
-		exception = merry.Errorf("panic in request extractor: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in request extractor")
 	}()
 
 	str, err = h(ctx, request)
@@ -42,12 +38,7 @@ func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (_
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in request predicate")
-			return
-		}
-
-		exception = merry.Errorf("panic in request predicate: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in request predicate")
 	}()
 
 	return h(ctx, request), nil

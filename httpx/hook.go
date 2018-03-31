@@ -4,6 +4,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 )
 
 type ErrorHook func(context.Context, *Request, merry.Error)
@@ -38,10 +39,5 @@ func hookRecovery(exception *merry.Error) {
 		return
 	}
 
-	if err, ok := arg.(error); ok {
-		*exception = merry.Prepend(err, "panic in hook")
-		return
-	}
-
-	*exception = merry.Errorf("panic in hook: \"%v\"", arg)
+	*exception = errorx.Panic(arg, "panic in hook")
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 )
 
 // Handler is a block of logic to apply to a request.
@@ -30,10 +31,5 @@ func handlerRecovery(exception *merry.Error) {
 		return
 	}
 
-	if err, ok := arg.(error); ok {
-		*exception = merry.Prepend(err, "panic in handler")
-		return
-	}
-
-	*exception = merry.Errorf("panic in handler: \"%v\"", arg)
+	*exception = errorx.Panic(arg, "panic in handler")
 }

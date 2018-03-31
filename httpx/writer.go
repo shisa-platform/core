@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/ansel1/merry"
+
+	"github.com/percolate/shisa/errorx"
 )
 
 // WriteResponse serializes a response instance to the
@@ -19,12 +21,7 @@ func WriteResponse(w http.ResponseWriter, response Response) (err merry.Error) {
 			return
 		}
 
-		if e1, ok := arg.(error); ok {
-			err = merry.WithMessage(e1, "panic in response")
-			return
-		}
-
-		err = merry.Errorf("panic in response: \"%v\"", arg)
+		err = errorx.Panic(arg, "panic in response serializer")
 	}()
 
 	for k, vs := range response.Headers() {

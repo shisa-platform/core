@@ -7,6 +7,7 @@ import (
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/models"
 )
@@ -66,12 +67,7 @@ func (m *Authentication) authenticate(ctx context.Context, request *httpx.Reques
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in authenticator")
-			return
-		}
-
-		exception = merry.Errorf("panic in authenticator: \"%v\"", arg)
+		exception = errorx.Panic(arg, "panic in authenticator")
 	}()
 
 	user, err = m.Authenticator.Authenticate(ctx, request)
@@ -142,13 +138,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 			return
 		}
 
-		var err merry.Error
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "passive authentication middleware: authenticate: panic in authenticator")
-		} else {
-			err = merry.Errorf("passive authentication middleware: authenticate: panic in authenticator: \"%v\"", arg)
-		}
-
+		err := errorx.Panic(arg, "passive authentication middleware: authenticate: panic in authenticator")
 		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}()
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -137,12 +138,7 @@ func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Er
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.WithMessage(err1, "panic in healthcheck")
-			return
-		}
-
-		err = merry.Errorf("panic in healthcheck: \"%v\"", arg)
+		err = errorx.Panic(arg, "panic in healthcheck")
 	}()
 
 	return h.Healthcheck(ctx)
