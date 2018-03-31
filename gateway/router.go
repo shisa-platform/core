@@ -10,6 +10,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/metrics"
 	"github.com/percolate/shisa/service"
@@ -377,13 +378,20 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
 	if g.ErrorHook == nil {
-		log.Println(ctx.RequestID(), err.Error())
+		g.fallbackErrorHook(ctx, err)
 	}
 
 	if exception := g.ErrorHook.InvokeSafely(ctx, request, err); exception != nil {
-		log.Println(ctx.RequestID(), err.Error())
+		g.fallbackErrorHook(ctx, err)
 		exception = exception.Prepend("gateway: route: run ErrorHook")
-		log.Println(ctx.RequestID(), exception.Error())
+		g.fallbackErrorHook(ctx, exception)
+	}
+}
+
+func (g *Gateway) fallbackErrorHook(ctx context.Context, err merry.Error) {
+	log.Println(ctx.RequestID(), err.Error())
+	if errorx.IsPanic(err) {
+		log.Print(ctx.RequestID(), " stack trace\n", merry.Stacktrace(err))
 	}
 }
 
