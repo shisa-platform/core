@@ -37,7 +37,7 @@ The `healthcheck` and `debug` endpoints require authentication by the
 "admin" user: `Admin:password`.  The `api/greeting` and `api/farewell`
 endpoints can be accessed by the "admin" user or `Boss:password`.
 
-- Healthcheck - <http://localhost:8003/healthcheck>
-- Debug Vars - <http://localhost:8002/debug/vars>
-- Greeting Endpoint - <http://localhost:8001/api/greeting>
-- Farewell Endpoint - <http://localhost:8001/api/farewell>
+- Healthcheck - <http://localhost:9003/healthcheck>
+- Debug Vars - <http://localhost:9002/debug/vars>
+- Greeting Endpoint - <http://localhost:9001/api/greeting>
+- Farewell Endpoint - <http://localhost:9001/api/farewell>
