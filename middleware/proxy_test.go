@@ -525,6 +525,32 @@ func TestReverseProxyNilResponderResponse(t *testing.T) {
 	assert.Equal(t, 0, buf.Len())
 }
 
+func TestReverseProxyResponderError(t *testing.T) {
+	var routerInvoked bool
+	var responderInvoked bool
+	cut := ReverseProxy{
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
+			routerInvoked = true
+			return r, nil
+		},
+		Responder: func(c context.Context, req *httpx.Request, res httpx.Response) (httpx.Response, merry.Error) {
+			responderInvoked = true
+			return nil, merry.New("i blewed up!")
+		},
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	request := &httpx.Request{Request: r}
+	ctx := context.New(r.Context())
+
+	response := cut.Service(ctx, request)
+
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.True(t, routerInvoked)
+	assert.True(t, responderInvoked)
+}
+
 func TestReverseProxyResponderPanic(t *testing.T) {
 	var routerInvoked bool
 	var responderInvoked bool

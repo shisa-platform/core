@@ -16,6 +16,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/auxiliary"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/sd"
 )
@@ -39,12 +40,7 @@ func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception mer
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in check url hook")
-			return
-		}
-
-		exception = merry.Errorf("panic in check url hook: \"%v\"", arg)
+		exception = errorx.CapturePanic(arg, "panic in check url hook")
 	}()
 
 	u, err = h()

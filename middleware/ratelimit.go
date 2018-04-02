@@ -8,6 +8,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/ratelimit"
 )
@@ -25,12 +26,7 @@ func (h RateLimitHandler) InvokeSafely(ctx context.Context, request *httpx.Reque
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in rate limit handler")
-			return
-		}
-
-		exception = merry.Errorf("panic in rate limit handler: \"%v\"", arg)
+		exception = errorx.CapturePanic(arg, "panic in rate limit handler")
 	}()
 
 	return h(ctx, request, cooldown), nil
@@ -143,12 +139,7 @@ func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in option")
-			return
-		}
-
-		err = merry.Errorf("panic in option: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "panic in option")
 	}()
 
 	for _, opt := range opts {
@@ -185,12 +176,7 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "proxy middleware: run provider: panic in provider")
-			return
-		}
-
-		err = merry.Errorf("proxy middleware: run provider: panic in provider: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "proxy middleware: run provider: panic in provider")
 	}()
 
 	actor, err, exception := m.extractor.InvokeSafely(ctx, request)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/ansel1/merry"
 
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/service"
 )
@@ -259,12 +260,7 @@ func (g *Gateway) registerSafely(addr string) (err merry.Error) {
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic registering service")
-			return
-		}
-
-		err = merry.Errorf("panic registering service: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "panic registering service")
 	}()
 
 	return g.Registrar.Register(g.Name, addr)
@@ -281,12 +277,7 @@ func (g *Gateway) deregisterSafely() (err merry.Error) {
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic deregistering service")
-			return
-		}
-
-		err = merry.Errorf("panic deregistering service: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "panic deregistering service")
 	}()
 
 	return g.Registrar.Deregister(g.Name)
@@ -303,12 +294,7 @@ func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic adding healthcheck")
-			return
-		}
-
-		err = merry.Errorf("panic adding healthcheck: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "panic adding healthcheck")
 	}()
 
 	url, err, exception := g.CheckURLHook.InvokeSafely()
@@ -332,12 +318,7 @@ func (g *Gateway) removeHealthcheckSafely() (err merry.Error) {
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic removing healthcheck")
-			return
-		}
-
-		err = merry.Errorf("panic removing healthcheck: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "panic removing healthcheck")
 	}()
 
 	return g.Registrar.RemoveChecks(g.Name)
