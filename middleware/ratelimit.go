@@ -184,7 +184,7 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 		err = exception.Prepend("proxy middleware: run extractor")
 		return
 	} else if err != nil {
-		err = merry.Prepend(err, "proxy middleware: run extractor")
+		err = err.Prepend("proxy middleware: run extractor")
 		return
 	}
 

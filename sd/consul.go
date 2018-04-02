@@ -41,12 +41,12 @@ func NewConsul(client *consul.Client) *consulSD {
 func (r *consulSD) Register(serviceID, addr string) merry.Error {
 	address, sport, err := net.SplitHostPort(addr)
 	if err != nil {
-		return merry.Prepend(err, "registration failed").WithValue("addr", addr)
+		return merry.Prepend(err, "consul sd: register").Append(addr)
 	}
 
 	port, err := strconv.Atoi(sport)
 	if err != nil {
-		return merry.Prepend(err, "registration failed").WithValue("addr", addr)
+		return merry.Prepend(err, "consul sd: register").Append(addr)
 	}
 
 	servreg := &consul.AgentServiceRegistration{
@@ -56,17 +56,17 @@ func (r *consulSD) Register(serviceID, addr string) merry.Error {
 		Address: address,
 	}
 
-	e := r.agent.ServiceRegister(servreg)
-	if e != nil {
-		return merry.Prepend(e, "registration failed").WithValue("addr", addr)
+	err = r.agent.ServiceRegister(servreg)
+	if err != nil {
+		return merry.Prepend(err, "consul sd: register").Append(addr)
 	}
 	return nil
 }
 
 func (r *consulSD) Deregister(serviceID string) merry.Error {
-	e := r.agent.ServiceDeregister(serviceID)
-	if e != nil {
-		return merry.Prepend(e, "service deregister failed").WithValue("service", serviceID)
+	err := r.agent.ServiceDeregister(serviceID)
+	if err != nil {
+		return merry.Prepend(err, "consul sd: deregister").Append(serviceID)
 	}
 	return nil
 }
@@ -74,7 +74,7 @@ func (r *consulSD) Deregister(serviceID string) merry.Error {
 func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
 	ses, _, err := r.health.Service(name, "", true, nil)
 	if err != nil {
-		merr = merry.Prepend(err, "service resolve failed").WithValue("service", name)
+		merr = merry.Prepend(err, "consul sd: resolve").Append(name)
 		return
 	}
 
@@ -110,17 +110,17 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 	// to get released before handling GRPC
 	case "grpc":
 		if len(u.Host) == 0 {
-			return merry.New("url Host field required for gRPC check")
+			return merry.New("consul sd: add check: grpc scheme requres host")
 		}
 		if err := validateKeysExist(q, "interval"); err != nil {
-			return err
+			return err.Prepend("consul sd: add check: grpc scheme")
 		}
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
 		// acr.AgentServiceCheck.GRPC = u.Host
 		// acr.AgentServiceCheck.GRPCUseTLS = popQueryBool(q, "grpcusetls")
 	case "docker":
 		if err := validateKeysExist(q, "dockercontainerid", "args", "interval"); err != nil {
-			return err
+			return err.Prepend("consul sd: add check: docker scheme")
 		}
 		acr.AgentServiceCheck.DockerContainerID = popQueryString(q, "dockercontainerid")
 		acr.AgentServiceCheck.Args = popQuerySlice(q, "args")
@@ -128,7 +128,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		acr.AgentServiceCheck.Shell = popQueryString(q, "shell")
 	case "script":
 		if err := validateKeysExist(q, "args", "interval"); err != nil {
-			return err
+			return err.Prepend("consul sd: add check: script scheme")
 		}
 		acr.AgentServiceCheck.Args = popQuerySlice(q, "args")
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
@@ -136,20 +136,20 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		acr.AgentServiceCheck.TTL = popQueryString(q, "ttl")
 	case "tcp":
 		if len(u.Host) == 0 {
-			return merry.New("url Host field required for TCP check")
+			return merry.New("consul sd: add check: tcp schema requires host")
 		}
 		if err := validateKeysExist(q, "interval"); err != nil {
-			return err
+			return err.Prepend("consul sd: add check: tcp scheme")
 		}
 		acr.AgentServiceCheck.TCP = u.Host
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
 	case "http", "https":
 		urlstr := u.String()
 		if len(u.Host) == 0 {
-			return merry.New("url Host field required for HTTP(S) check")
+			return merry.New("consul sd: add check: http(s) scheme requries host")
 		}
 		if err := validateKeysExist(q, "interval"); err != nil {
-			return err
+			return err.Prepend("consul sd: add check: http(s) scheme")
 		}
 		u.RawQuery = ""
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
@@ -160,7 +160,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 
 	err := r.agent.CheckRegister(acr)
 	if err != nil {
-		return merry.Prepend(err, "check register")
+		return merry.Prepend(err, "consul sd: add check")
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 func (r *consulSD) RemoveChecks(serviceID string) merry.Error {
 	err := r.agent.CheckDeregister(fmt.Sprintf("%s-healthcheck", serviceID))
 	if err != nil {
-		return merry.Prepend(err, "check deregister")
+		return merry.Prepend(err, "consul sd: remove checks")
 	}
 	return nil
 }
@@ -204,9 +204,9 @@ func popQuerySlice(v url.Values, key string) (re []string) {
 
 func validateKeysExist(v url.Values, keys ...string) (err merry.Error) {
 	err = nil
-	for _, k := range keys {
-		if _, ok := v[k]; !ok {
-			return merry.New("key/value pair not found in params").WithValue("key", k)
+	for _, key := range keys {
+		if _, ok := v[key]; !ok {
+			return merry.New("required query parameter missing").Append(key)
 		}
 	}
 	return

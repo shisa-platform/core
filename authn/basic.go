@@ -19,22 +19,19 @@ import (
 func BasicAuthTokenExtractor(ctx context.Context, r *httpx.Request) (token string, err merry.Error) {
 	challenge := strings.TrimSpace(r.Header.Get(AuthnHeaderKey))
 	if challenge == "" {
-		err = merry.New("no challenge provided")
-		err = err.WithUserMessage("Authentication challenge was missing")
+		err = merry.New("extract basic auth token: no challenge provided")
 		return
 	}
 
 	const prefix = "Basic "
 	if !strings.HasPrefix(challenge, prefix) {
-		err = merry.New("unsupported authn scheme")
-		err = err.WithUserMessage("Unsupported authentication scheme was specified")
+		err = merry.New("extract basic auth token: unsupported scheme")
 		return
 	}
 
 	credentials, b64err := base64.StdEncoding.DecodeString(challenge[len(prefix):])
 	if b64err != nil {
-		err = merry.Wrap(b64err)
-		err = err.WithUserMessage("Malformed authentication credentials were provided")
+		err = merry.Prepend(b64err, "extract basic auth token")
 		return
 	}
 
@@ -50,7 +47,7 @@ type basicAuthenticator struct {
 func (m *basicAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := BasicAuthTokenExtractor(ctx, r)
 	if err != nil {
-		return nil, err
+		return nil, err.Prepend("basic auth: authenticate")
 	}
 
 	return m.idp.Authenticate(ctx, credentials)
@@ -65,7 +62,7 @@ func (m *basicAuthenticator) Challenge() string {
 // An error will be returned if the `idp` parameter is nil.
 func NewBasicAuthenticator(idp IdentityProvider, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
-		return nil, merry.New("Identity provider must be non-nil")
+		return nil, merry.New("basic auth: check invariants: identity provider nil")
 	}
 
 	return &basicAuthenticator{idp: idp, challenge: fmt.Sprintf("Basic realm=%q", realm)}, nil

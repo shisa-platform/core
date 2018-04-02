@@ -73,7 +73,7 @@ func (r Healthcheck) Serialize(w io.Writer) merry.Error {
 	}
 	_, err = w.Write(p)
 done:
-	return merry.WithMessage(err, "marshaling healthcheck")
+	return merry.Prepend(err, "marshaling healthcheck")
 }
 
 type SimpleResponse string
@@ -102,7 +102,7 @@ func (r SimpleResponse) Err() error {
 
 func (r SimpleResponse) Serialize(w io.Writer) merry.Error {
 	_, err := fmt.Fprint(w, string(r))
-	return merry.WithMessage(err, "writing response")
+	return merry.Prepend(err, "writing response")
 }
 
 type Goodbye struct {

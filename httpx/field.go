@@ -79,7 +79,7 @@ type FixedStringValidator struct {
 func (v FixedStringValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		if v.Target != value {
-			return UnexpectedValue.Appendf("must match %q", v.Target)
+			return UnexpectedValue.Append(value)
 		}
 	}
 

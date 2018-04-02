@@ -107,11 +107,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timing.Start(RunGatewayHandlersMetricKey)
-	for i, handler := range g.Handlers {
+	for _, handler := range g.Handlers {
 		go func() {
 			response, exception := handler.InvokeSafely(subCtx, request)
 			if exception != nil {
-				err = exception.Prepend("gateway: route: run gateway handler").WithValue("index", i)
+				err = exception.Prepend("gateway: route: run gateway handler")
 				response = g.handleError(subCtx, request, err)
 			}
 
@@ -243,11 +243,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 endpointHandlers:
-	for i, handler := range pipeline.Handlers {
+	for _, handler := range pipeline.Handlers {
 		go func() {
 			response, exception := handler.InvokeSafely(ctx, request)
 			if exception != nil {
-				err = exception.Prepend("gateway: route: run endpoint handler").WithValue("index", i)
+				err = exception.Prepend("gateway: route: run endpoint handler")
 				response = g.handleEndpointError(endpoint, ctx, request, err)
 			}
 
@@ -311,10 +311,10 @@ finish:
 		g.invokeErrorHookSafely(ctx, request, writeErr)
 	}
 
-	respErr := merry.Wrap(response.Err())
+	respErr := response.Err()
 	if respErr != nil && respErr != err {
-		respErr = merry.Prepend(respErr, "gateway: route: handler failed")
-		g.invokeErrorHookSafely(ctx, request, respErr)
+		respErr1 := merry.Prepend(respErr, "gateway: route: handler failed")
+		g.invokeErrorHookSafely(ctx, request, respErr1)
 	}
 }
 

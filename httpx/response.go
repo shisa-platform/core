@@ -77,7 +77,7 @@ func (r *JsonResponse) Serialize(w io.Writer) merry.Error {
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	return merry.WithMessage(encoder.Encode(r.Payload), "serializing json")
+	return merry.Prepend(encoder.Encode(r.Payload), "json response: serialize")
 }
 
 func NewEmpty(code int) Response {
@@ -153,7 +153,7 @@ func (r ResponseAdapter) Serialize(w io.Writer) merry.Error {
 	_, err := io.CopyBuffer(w, r.Body, buf)
 	r.Body.Close()
 
-	return merry.WithMessage(err, "copying response buffer")
+	return merry.Prepend(err, "response adapter: serialize")
 }
 
 func getBuffer() []byte {

@@ -114,7 +114,7 @@ func (s *HealthcheckServer) Service(ctx context.Context, request *httpx.Request)
 		if err := invokeHealthcheckSafely(ctx, check); err != nil {
 			status[check.Name()] = err.Error()
 			code = http.StatusServiceUnavailable
-			err1 := merry.WithMessage(err, "health check failed").WithValue("name", check.Name())
+			err1 := err.Prepend(check.Name()).Prepend("healthcheck")
 			s.invokeErrorHookSafely(ctx, request, err1)
 			continue
 		}
