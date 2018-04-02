@@ -67,7 +67,7 @@ func (m *Authentication) authenticate(ctx context.Context, request *httpx.Reques
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in authenticator")
+		exception = errorx.CapturePanic(arg, "panic in authenticator")
 	}()
 
 	user, err = m.Authenticator.Authenticate(ctx, request)
@@ -138,7 +138,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 			return
 		}
 
-		err := errorx.Panic(arg, "passive authentication middleware: authenticate: panic in authenticator")
+		err := errorx.CapturePanic(arg, "passive authentication middleware: authenticate: panic in authenticator")
 		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}()
 

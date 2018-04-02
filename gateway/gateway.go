@@ -40,7 +40,7 @@ func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception mer
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in check url hook")
+		exception = errorx.CapturePanic(arg, "panic in check url hook")
 	}()
 
 	u, err = h()

@@ -17,7 +17,7 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (_ htt
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in router")
+		exception = errorx.CapturePanic(arg, "panic in router")
 	}()
 
 	return r(ctx, request), nil

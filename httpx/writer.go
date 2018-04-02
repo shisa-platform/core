@@ -21,7 +21,7 @@ func WriteResponse(w http.ResponseWriter, response Response) (err merry.Error) {
 			return
 		}
 
-		err = errorx.Panic(arg, "panic in response serializer")
+		err = errorx.CapturePanic(arg, "panic in response serializer")
 	}()
 
 	for k, vs := range response.Headers() {

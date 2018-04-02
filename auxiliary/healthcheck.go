@@ -138,7 +138,7 @@ func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Er
 			return
 		}
 
-		err = errorx.Panic(arg, "panic in healthcheck")
+		err = errorx.CapturePanic(arg, "panic in healthcheck")
 	}()
 
 	return h.Healthcheck(ctx)

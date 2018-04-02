@@ -26,7 +26,7 @@ func (v Validator) InvokeSafely(values []string) (_ merry.Error, exception merry
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in validator")
+		exception = errorx.CapturePanic(arg, "panic in validator")
 	}()
 
 	return v(values), nil

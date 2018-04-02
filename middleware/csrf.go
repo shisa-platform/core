@@ -29,7 +29,7 @@ func (h CheckOrigin) InvokeSafely(expected, actual *url.URL) (ok bool, exception
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in check origin hook")
+		exception = errorx.CapturePanic(arg, "panic in check origin hook")
 	}()
 
 	return h(expected, actual), nil

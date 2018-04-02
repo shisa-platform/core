@@ -174,7 +174,7 @@ func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (res
 			return
 		}
 
-		err := errorx.Panic(arg, "panic in auxiliary authorizer")
+		err := errorx.CapturePanic(arg, "panic in auxiliary authorizer")
 		err = err.WithHTTPCode(http.StatusForbidden)
 		response = httpx.NewEmptyError(http.StatusForbidden, err)
 	}()

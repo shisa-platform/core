@@ -19,7 +19,7 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in request extractor")
+		exception = errorx.CapturePanic(arg, "panic in request extractor")
 	}()
 
 	str, err = h(ctx, request)
@@ -38,7 +38,7 @@ func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (_
 			return
 		}
 
-		exception = errorx.Panic(arg, "panic in request predicate")
+		exception = errorx.CapturePanic(arg, "panic in request predicate")
 	}()
 
 	return h(ctx, request), nil

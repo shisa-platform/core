@@ -260,7 +260,7 @@ func (g *Gateway) registerSafely(addr string) (err merry.Error) {
 			return
 		}
 
-		err = errorx.Panic(arg, "panic registering service")
+		err = errorx.CapturePanic(arg, "panic registering service")
 	}()
 
 	return g.Registrar.Register(g.Name, addr)
@@ -277,7 +277,7 @@ func (g *Gateway) deregisterSafely() (err merry.Error) {
 			return
 		}
 
-		err = errorx.Panic(arg, "panic deregistering service")
+		err = errorx.CapturePanic(arg, "panic deregistering service")
 	}()
 
 	return g.Registrar.Deregister(g.Name)
@@ -294,7 +294,7 @@ func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
 			return
 		}
 
-		err = errorx.Panic(arg, "panic adding healthcheck")
+		err = errorx.CapturePanic(arg, "panic adding healthcheck")
 	}()
 
 	url, err, exception := g.CheckURLHook.InvokeSafely()
@@ -318,7 +318,7 @@ func (g *Gateway) removeHealthcheckSafely() (err merry.Error) {
 			return
 		}
 
-		err = errorx.Panic(arg, "panic removing healthcheck")
+		err = errorx.CapturePanic(arg, "panic removing healthcheck")
 	}()
 
 	return g.Registrar.RemoveChecks(g.Name)

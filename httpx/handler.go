@@ -31,5 +31,5 @@ func handlerRecovery(exception *merry.Error) {
 		return
 	}
 
-	*exception = errorx.Panic(arg, "panic in handler")
+	*exception = errorx.CapturePanic(arg, "panic in handler")
 }

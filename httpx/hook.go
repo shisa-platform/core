@@ -39,5 +39,5 @@ func hookRecovery(exception *merry.Error) {
 		return
 	}
 
-	*exception = errorx.Panic(arg, "panic in hook")
+	*exception = errorx.CapturePanic(arg, "panic in hook")
 }

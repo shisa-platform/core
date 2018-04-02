@@ -10,7 +10,7 @@ const (
 	sentinel = "panic"
 )
 
-func Panic(arg interface{}, message string) (err merry.Error) {
+func CapturePanic(arg interface{}, message string) (err merry.Error) {
 	if err1, ok := arg.(error); ok {
 		err = merry.Prepend(err1, message)
 	} else {
@@ -22,8 +22,8 @@ func Panic(arg interface{}, message string) (err merry.Error) {
 	return
 }
 
-func Panicf(arg interface{}, format string, args ...interface{}) merry.Error {
-	return Panic(arg, fmt.Sprintf(format, args...))
+func CapturePanicf(arg interface{}, format string, args ...interface{}) merry.Error {
+	return CapturePanic(arg, fmt.Sprintf(format, args...))
 }
 
 func IsPanic(err merry.Error) bool {
