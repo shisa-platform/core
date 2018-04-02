@@ -32,7 +32,7 @@ func IsPanic(err merry.Error) bool {
 		return false
 	}
 
-	if panic, ok := value.(bool); ok && panic {
+	if b, ok := value.(bool); ok && b {
 		return true
 	}
 
