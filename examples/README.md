@@ -21,14 +21,15 @@ following from the project root (requires docker + docker-compose):
 
     make docker
 
-## Running With Docker-Compose
+## Running
 
 Run the following command at the project root:
 
     docker-compose -f examples/docker-compose.yml up
 
 There are now 3 `gw` service instances bound to host ports `8001`, `8002` and
-`8003`. Consul is bound to port `8500`
+`8003`. Consul is bound to port `8500` and its UI is available via web browser
+at `127.0.0.1:8500/ui/`.
 
 ### API Gateway
 
@@ -36,7 +37,7 @@ The `healthcheck` and `debug` endpoints require authentication by the
 "admin" user: `Admin:password`.  The `api/greeting` and `api/farewell`
 endpoints can be accessed by the "admin" user or `Boss:password`.
 
-- Healthcheck - <http://localhost:8001/healthcheck>
-- Debug Vars - <http://localhost:8001/debug/vars>
+- Healthcheck - <http://localhost:8003/healthcheck>
+- Debug Vars - <http://localhost:8002/debug/vars>
 - Greeting Endpoint - <http://localhost:8001/api/greeting>
 - Farewell Endpoint - <http://localhost:8001/api/farewell>
