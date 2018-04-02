@@ -16,7 +16,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/examples/idp/service"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/sd"
+	"github.com/percolate/shisa/lb"
 )
 
 const idpServiceName = "idp"
@@ -106,7 +106,7 @@ func (r SimpleResponse) Serialize(w io.Writer) merry.Error {
 }
 
 type Goodbye struct {
-	Resolver sd.Resolver
+	Balancer lb.Balancer
 	Logger   *zap.Logger
 }
 
@@ -250,12 +250,12 @@ func (s *Goodbye) healthcheck(ctx context.Context, r *httpx.Request) httpx.Respo
 }
 
 func (s *Goodbye) connect() (*rpc.Client, error) {
-	nodes, resErr := s.Resolver.Resolve(idpServiceName)
+	node, resErr := s.Balancer.Balance(idpServiceName)
 	if resErr != nil {
 		return nil, resErr
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", nodes[0])
+	client, rpcErr := rpc.DialHTTP("tcp", node)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}

@@ -20,6 +20,7 @@ import (
 
 	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/sd"
 )
 
@@ -60,9 +61,10 @@ func main() {
 	}
 
 	reg := sd.NewConsul(client)
+	bal := lb.NewLeastN(reg, 2)
 
 	service := &hello.Hello{
-		Resolver: reg,
+		Balancer: bal,
 		Logger:   logger,
 	}
 	rpc.Register(service)

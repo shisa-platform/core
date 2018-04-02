@@ -15,6 +15,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
 )
@@ -26,8 +27,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 
 	res := sd.NewConsul(client)
+	bal := lb.NewLeastN(res, 2)
 
-	idp := &ExampleIdentityProvider{Resolver: res}
+	idp := &ExampleIdentityProvider{Balancer: bal}
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
@@ -49,8 +51,8 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	go runAuxiliary(debug, logger)
 
-	hello := NewHelloService(res)
-	goodbye := NewGoodbyeService(res)
+	hello := NewHelloService(bal)
+	goodbye := NewGoodbyeService(bal)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{

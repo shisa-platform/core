@@ -11,7 +11,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/sd"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/service"
 )
 
@@ -35,17 +35,17 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 type HelloService struct {
 	service.ServiceAdapter
 	endpoints []service.Endpoint
-	resolver  sd.Resolver
+	balancer  lb.Balancer
 }
 
-func NewHelloService(res sd.Resolver) *HelloService {
+func NewHelloService(bal lb.Balancer) *HelloService {
 	policy := service.Policy{
-		TimeBudget:                  time.Millisecond * 5,
+		TimeBudget:                  time.Millisecond * 15,
 		AllowTrailingSlashRedirects: true,
 	}
 
 	svc := &HelloService{
-		resolver: res,
+		balancer: bal,
 	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
@@ -100,29 +100,22 @@ func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Res
 }
 
 func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
-	addrs, err := s.resolver.Resolve(s.Name())
+	_, err := s.balancer.Balance(s.Name())
 	if err != nil {
 		return err.Prepend("healthcheck")
 	}
-
-	if len(addrs) < 1 {
-		return merry.New("no healthy hosts")
-	}
-
 	return nil
 }
 
 func (s *HelloService) connect() (*rpc.Client, merry.Error) {
-	addrs, err := s.resolver.Resolve(s.Name())
+	addr, err := s.balancer.Balance(s.Name())
 	if err != nil {
 		return nil, err.Prepend("connect")
 	}
 
-	if len(addrs) < 1 {
-		return nil, merry.New("no healthy hosts")
-	}
+	fmt.Println(addr)
 
-	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
+	client, rpcErr := rpc.DialHTTP("tcp", addr)
 	if rpcErr != nil {
 		return nil, merry.Wrap(rpcErr).WithUserMessage("unable to connect")
 	}

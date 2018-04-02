@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/sd"
 )
 
@@ -57,9 +58,10 @@ func main() {
 		logger.Fatal("consul client failed to initialize", zap.Error(err))
 	}
 	reg := sd.NewConsul(client)
+	bal := lb.NewLeastN(reg, 2)
 
 	service := &Goodbye{
-		Resolver: reg,
+		Balancer: bal,
 		Logger:   logger,
 	}
 	server := http.Server{

@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/examples/idp/service"
-	"github.com/percolate/shisa/sd"
+	"github.com/percolate/shisa/lb"
 )
 
 const idpServiceName = "idp"
@@ -21,7 +21,7 @@ type Message struct {
 }
 
 type Hello struct {
-	Resolver sd.Resolver
+	Balancer lb.Balancer
 	Logger   *zap.Logger
 }
 
@@ -89,12 +89,12 @@ func (s *Hello) Healthcheck(requestID string, reply *bool) (err error) {
 }
 
 func (s *Hello) connect() (*rpc.Client, error) {
-	nodes, resErr := s.Resolver.Resolve(idpServiceName)
+	node, resErr := s.Balancer.Balance(idpServiceName)
 	if resErr != nil {
 		return nil, resErr
 	}
 
-	client, rpcErr := rpc.DialHTTP("tcp", nodes[0])
+	client, rpcErr := rpc.DialHTTP("tcp", node)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
