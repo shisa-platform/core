@@ -14,7 +14,7 @@ func Panic(arg interface{}, message string) (err merry.Error) {
 	if err1, ok := arg.(error); ok {
 		err = merry.Prepend(err1, message)
 	} else {
-		err = merry.Errorf("%s: \"%v\"", message, arg)
+		err = merry.Errorf("%s: %v", message, arg)
 	}
 
 	err = err.WithValue(sentinel, true)
