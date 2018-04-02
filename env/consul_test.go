@@ -107,6 +107,26 @@ func TestConsulProviderGetEmpty(t *testing.T) {
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
 }
 
+func TestConsulProviderGetMissing(t *testing.T) {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			return nil, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	r, err := c.Get(defaultKey)
+
+	assert.Equal(t, "", r)
+	assert.Error(t, err)
+	assert.True(t, merry.Is(err, NameNotSet))
+	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
 func TestConsulProviderGetInt(t *testing.T) {
 	s := &Fakeselfer{}
 	kvg := &FakekvGetter{
@@ -164,6 +184,26 @@ func TestConsulProviderGetIntParseFailure(t *testing.T) {
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
 }
 
+func TestConsulProviderGetIntMissing(t *testing.T) {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			return nil, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	r, err := c.GetInt(defaultKey)
+
+	assert.Zero(t, r)
+	assert.Error(t, err)
+	assert.True(t, merry.Is(err, NameNotSet))
+	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
 func TestConsulProviderGetBool(t *testing.T) {
 	s := &Fakeselfer{}
 	kvg := &FakekvGetter{
@@ -218,6 +258,26 @@ func TestConsulProviderGetBoolParseFailure(t *testing.T) {
 
 	assert.False(t, r)
 	assert.Error(t, err)
+	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
+func TestConsulProviderGetBoolMissing(t *testing.T) {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			return nil, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	r, err := c.GetBool(defaultKey)
+
+	assert.False(t, r)
+	assert.Error(t, err)
+	assert.True(t, merry.Is(err, NameNotSet))
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
 }
 

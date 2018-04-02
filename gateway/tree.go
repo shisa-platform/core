@@ -126,7 +126,7 @@ func (n *node) addRoute(path string, endpoint *endpoint) merry.Error {
 						}
 					}
 
-					return merry.New("path expression conflict").WithUserMessagef(
+					return merry.Errorf(
 						"path segment %q conflicts with existing wildcard %q in path %q",
 						path, n.path, fullPath)
 				}
@@ -164,7 +164,7 @@ func (n *node) addRoute(path string, endpoint *endpoint) merry.Error {
 
 			} else if i == len(path) { // Make node a (in-path) leaf
 				if n.endpoint != nil {
-					return merry.New("path endpoint conflict").WithUserMessagef("endpoint already registered for path %q", fullPath)
+					return merry.Errorf("endpoint already registered for path %q", fullPath)
 				}
 				n.endpoint = endpoint
 			}
@@ -217,7 +217,7 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 			switch path[end] {
 			// the wildcard name must not contain ':' and '*'
 			case ':', '*':
-				return merry.New("path wildcard conflict").WithUserMessagef(
+				return merry.Errorf(
 					"only one wildcard per path segment is allowed, have: %q in path %q", path[i:], fullPath)
 			default:
 				end++
@@ -227,13 +227,13 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 		// check if this Node existing children which would be
 		// unreachable if we insert the wildcard here
 		if len(n.children) > 0 {
-			return merry.New("path wildcard conflict").WithUserMessagef(
+			return merry.Errorf(
 				"wildcard route %q conflicts with existing children in path %q", path[i:end], fullPath)
 		}
 
 		// check if the wildcard has a name
 		if end-i < 2 {
-			return merry.New("invalid path wildcard").WithUserMessagef(
+			return merry.Errorf(
 				"wildcards must be named with a non-empty name in path %q", fullPath)
 		}
 
@@ -270,19 +270,19 @@ func (n *node) insertChild(numParams uint8, path string, fullPath string, endpoi
 
 		} else { // catchAll
 			if end != max || numParams > 1 {
-				return merry.New("invalid path catch-all").WithUserMessagef(
+				return merry.Errorf(
 					"catch-all routes are only allowed at the end of the path in path %q", fullPath)
 			}
 
 			if len(n.path) > 0 && n.path[len(n.path)-1] == '/' {
-				return merry.New("catch-all conflict").WithUserMessagef(
+				return merry.Errorf(
 					"catch-all conflicts with existing endpoint for the path segment root in path %q", fullPath)
 			}
 
 			// currently fixed width 1 for '/'
 			i--
 			if path[i] != '/' {
-				return merry.New("invalid path catch-all").WithUserMessagef("no / before catch-all in path %q", fullPath)
+				return merry.Errorf("no / before catch-all in path %q", fullPath)
 			}
 
 			n.path = path[offset:i]
@@ -423,7 +423,7 @@ walk: // Outer loop for walking the tree
 					return
 
 				default:
-					err = merry.New("internal error").WithUserMessage("invalid node type").WithValue("node", n)
+					err = merry.Errorf("internal error: invalid node type: %d", n.nType)
 					return
 				}
 			}
@@ -545,7 +545,7 @@ func (n *node) findCaseInsensitivePath(path string, fixTrailingSlash bool) (ciPa
 				return append(ciPath, path...), true, nil
 
 			default:
-				err = merry.New("internal error").WithUserMessage("internal error: invalid node type")
+				err = merry.Errorf("internal error: invalid node type: %d", n.nType)
 				return
 			}
 		} else {

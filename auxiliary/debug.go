@@ -47,22 +47,22 @@ func (r expvarResponse) Err() error {
 }
 
 func (r expvarResponse) Serialize(w io.Writer) (err merry.Error) {
-	var e error
+	var err1 error
 	defer func() {
-		if e != nil {
-			err = merry.WithMessage(e, "serializing expavars")
+		if err1 != nil {
+			err = merry.Prepend(err1, "debug: serialize")
 		}
 	}()
-	_, e = fmt.Fprintf(w, "{\n")
+	_, err1 = fmt.Fprintf(w, "{\n")
 	first := true
 	expvar.Do(func(kv expvar.KeyValue) {
 		if !first {
-			_, e = fmt.Fprintf(w, ",\n")
+			_, err1 = fmt.Fprintf(w, ",\n")
 		}
 		first = false
-		_, e = fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
+		_, err1 = fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
 	})
-	_, e = fmt.Fprintf(w, "\n}\n")
+	_, err1 = fmt.Fprintf(w, "\n}\n")
 
 	return
 }

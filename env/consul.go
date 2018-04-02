@@ -91,12 +91,15 @@ func NewConsul(c *consul.Client) *ConsulProvider {
 func (p *ConsulProvider) Get(name string) (string, merry.Error) {
 	kvp, _, err := p.kv.Get(name, nil)
 	if err != nil {
-		return "", merry.Wrap(err).WithValue("name", name)
+		return "", merry.Prepend(err, "consul env provider: get").Append(name)
+	}
+	if kvp == nil {
+		return "", NameNotSet.Prepend("consul env provider: get").Append(name)
 	}
 
 	r := string(kvp.Value)
 	if r == "" {
-		return "", NameEmpty.Here().WithValue("name", name)
+		return "", NameEmpty.Prepend("consul env provider: get").Append(name)
 	}
 
 	return r, nil
@@ -105,12 +108,15 @@ func (p *ConsulProvider) Get(name string) (string, merry.Error) {
 func (p *ConsulProvider) GetInt(name string) (int, merry.Error) {
 	kvp, _, err := p.kv.Get(name, nil)
 	if err != nil {
-		return 0, merry.Wrap(err).WithValue("name", name)
+		return 0, merry.Prepend(err, "consul env provider: get int").Append(name)
+	}
+	if kvp == nil {
+		return 0, NameNotSet.Prepend("consul env provider: get int").Append(name)
 	}
 
 	r, err := strconv.Atoi(string(kvp.Value))
 	if err != nil {
-		return 0, merry.Wrap(err).WithValue("name", name)
+		return 0, merry.Prepend(err, "consul env provider: get int").Append(name)
 	}
 
 	return r, nil
@@ -119,12 +125,15 @@ func (p *ConsulProvider) GetInt(name string) (int, merry.Error) {
 func (p *ConsulProvider) GetBool(name string) (bool, merry.Error) {
 	kvp, _, err := p.kv.Get(name, nil)
 	if err != nil {
-		return false, merry.Wrap(err).WithValue("name", name)
+		return false, merry.Prepend(err, "consul env provider: get bool").Append(name)
+	}
+	if kvp == nil {
+		return false, NameNotSet.Prepend("consul env provider: get bool").Append(name)
 	}
 
 	r, err := strconv.ParseBool(string(kvp.Value))
 	if err != nil {
-		return false, merry.Wrap(err).WithValue("name", name)
+		return false, merry.Prepend(err, "consul env provider: get bool").Append(name)
 	}
 
 	return r, nil
@@ -169,26 +178,26 @@ func (p *ConsulProvider) Shutdown() {
 func (p *ConsulProvider) Healthcheck(context.Context) merry.Error {
 	s, err := p.status()
 	if err != nil {
-		return err
+		return merry.Prepend(err, "consul env provider: healthcheck")
 	}
 
 	if s == statusAlive {
 		return nil
 	}
 
-	return merry.New("consul agent not alive").WithValue("status", s.String())
+	return merry.New("consul env provider: healthcheck: agent down").Append(s.String())
 }
 
 func (p *ConsulProvider) status() (status memberStatus, merr merry.Error) {
 	s, err := p.agent.Self()
 	if err != nil {
-		merr = merry.Wrap(err)
+		merr = merry.Prepend(err, "consul env provider: healthcheck")
 		return
 	}
 
 	status, ok := s["Member"]["Status"].(memberStatus)
 	if !ok {
-		merr = merry.New("invalid member status for call to agent.Self")
+		merr = merry.New("consul env provider: healthcheck: invalid member status")
 	}
 
 	return

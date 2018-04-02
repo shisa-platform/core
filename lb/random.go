@@ -26,12 +26,12 @@ func NewRandom(res sd.Resolver) Balancer {
 func (r *randomLB) Balance(service string) (string, merry.Error) {
 	nodes, err := r.res.Resolve(service)
 	if err != nil {
-		return "", err.Prepend("randomLB balance")
+		return "", err.Prepend("random balancer: balance")
 	}
 
 	switch len(nodes) {
 	case 0:
-		return "", merry.New("no nodes available")
+		return "", merry.New("random balancer: balance: no nodes available")
 	case 1:
 		return nodes[0], nil
 	}

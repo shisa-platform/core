@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os/signal"
 	"sort"
+	"strconv"
 
 	"github.com/ansel1/merry"
 
@@ -70,26 +71,26 @@ func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) 
 
 	g.listener, err = httpx.HTTPListenerForAddress(g.Addr)
 	if err != nil {
-		return merry.Prepend(err, "gateway: serve")
+		return err.Prepend("gateway: serve")
 	}
 
 	if err1 := g.registerSafely(g.listener.Addr().String()); err1 != nil {
 		g.listener.Close()
-		return merry.Prepend(err1, "gateway: serve: register gateway")
+		return err1.Prepend("gateway: serve: register gateway")
 	}
 	defer func() {
 		if err1 := g.deregisterSafely(); err1 != nil && err == nil {
-			err = merry.Prepend(err1, "gateway: serve: deregister gateway")
+			err = err1.Prepend("gateway: serve: deregister gateway")
 		}
 	}()
 
 	if err1 := g.addHealthcheckSafely(); err1 != nil {
 		g.listener.Close()
-		return merry.Prepend(err1, "gateway: serve: add healthcheck")
+		return err1.Prepend("gateway: serve: add healthcheck")
 	}
 	defer func() {
 		if err1 := g.removeHealthcheckSafely(); err1 != nil && err == nil {
-			err = merry.Prepend(err1, "gateway: serve: remove healthcheck")
+			err = err1.Prepend("gateway: serve: remove healthcheck")
 		}
 	}()
 
@@ -116,7 +117,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 			return merry.New("gateway: check invariants: service name empty")
 		}
 		if len(svc.Endpoints()) == 0 {
-			return merry.New("gateway: check invariants: service endpoints empty").WithValue("service", svc.Name())
+			return merry.New("gateway: check invariants: service endpoints empty").Append(svc.Name())
 		}
 
 		serviceVar := new(expvar.Map)
@@ -124,10 +125,10 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 
 		for i, endp := range svc.Endpoints() {
 			if endp.Route == "" {
-				return merry.New("gateway: check invariants: endpoint route emtpy").WithValue("service", svc.Name()).WithValue("index", i)
+				return merry.New("gateway: check invariants: endpoint route emtpy").Append(svc.Name()).Append(strconv.Itoa(i))
 			}
 			if endp.Route[0] != '/' {
-				return merry.New("gateway: check invariants: endpoint route must begin with '/'").WithValue("service", svc.Name()).WithValue("route", endp.Route)
+				return merry.New("gateway: check invariants: endpoint route must begin with '/'").Append(svc.Name()).Append(endp.Route)
 			}
 
 			e := endpoint{
@@ -146,7 +147,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Head)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodHead)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodHead)
 				}
 				e.Head = pipeline
 			}
@@ -154,7 +155,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Get)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodGet)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodGet)
 				}
 				e.Get = pipeline
 			}
@@ -162,7 +163,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Put)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodPut)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodPut)
 				}
 				e.Put = pipeline
 			}
@@ -170,7 +171,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Post)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodPost)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodPost)
 				}
 				e.Post = pipeline
 			}
@@ -178,7 +179,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Patch)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodPatch)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodPatch)
 				}
 				e.Patch = pipeline
 			}
@@ -186,7 +187,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Delete)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodDelete)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodDelete)
 				}
 				e.Delete = pipeline
 			}
@@ -194,7 +195,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Connect)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodConnect)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodConnect)
 				}
 				e.Connect = pipeline
 			}
@@ -202,7 +203,7 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Options)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodOptions)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodOptions)
 				}
 				e.Options = pipeline
 			}
@@ -210,13 +211,13 @@ func (g *Gateway) installServices(services []service.Service) merry.Error {
 				foundMethod = true
 				pipeline, err := installPipeline(svc.Handlers(), endp.Trace)
 				if err != nil {
-					return err.WithValue("service", svc.Name()).WithValue("route", endp.Route).WithValue("method", http.MethodTrace)
+					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodTrace)
 				}
 				e.Trace = pipeline
 			}
 
 			if !foundMethod {
-				return merry.New("gateway: check invariants: endpoint requires least one method").WithValue("service", svc.Name()).WithValue("index", i)
+				return merry.New("gateway: check invariants: endpoint requires least one method").Append(svc.Name()).Append(strconv.Itoa(i))
 			}
 
 			if err := g.tree.addRoute(endp.Route, &e); err != nil {
@@ -312,9 +313,9 @@ func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
 
 	url, err, exception := g.CheckURLHook.InvokeSafely()
 	if exception != nil {
-		return merry.Prepend(exception, "run CheckURLHook")
+		return exception.Prepend("run CheckURLHook")
 	} else if err != nil {
-		return merry.Prepend(err, "run CheckURLHook")
+		return err.Prepend("run CheckURLHook")
 	}
 
 	return g.Registrar.AddCheck(g.Name, url)

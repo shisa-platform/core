@@ -19,8 +19,8 @@ func WriteResponse(w http.ResponseWriter, response Response) (err merry.Error) {
 			return
 		}
 
-		if e1, ok := arg.(error); ok {
-			err = merry.WithMessage(e1, "panic in response")
+		if err1, ok := arg.(error); ok {
+			err = merry.Prepend(err1, "panic in response")
 			return
 		}
 

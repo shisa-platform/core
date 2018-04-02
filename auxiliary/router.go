@@ -17,7 +17,7 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (_ htt
 		}
 
 		if err, ok := arg.(error); ok {
-			exception = merry.WithMessage(err, "panic in router")
+			exception = merry.Prepend(err, "panic in router")
 			return
 		}
 
