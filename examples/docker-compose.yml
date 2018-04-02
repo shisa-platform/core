@@ -49,84 +49,88 @@ services:
         ipv4_address: 172.18.0.22
     ports:
       - 8500:8500
-  gw-1:
+  gw:
     <<: *gw-service
     networks:
       shisa_examples:
         ipv4_address: 172.18.0.23
-    command: ./gw --addr="172.18.0.23:9001" --healthcheckaddr="172.18.0.23:9003"
+    command: ./gw --addr="172.18.0.23:9001" --debugaddr="172.18.0.23:9002" --healthcheckaddr="172.18.0.23:9003"
     ports:
-      - 8001:9001
-  gw-2:
-    <<: *gw-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.24
-    command: ./gw --addr="172.18.0.24:9001" --healthcheckaddr="172.18.0.24:9003"
-    ports:
-      - 8002:9001
-  gw-3:
-    <<: *gw-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.25
-    command: ./gw --addr="172.18.0.25:9001" --healthcheckaddr="172.18.0.25:9003"
-    ports:
-      - 8003:9001
+      - 9001:9001
+      - 9002:9002
+      - 9003:9003
   rest-1:
     <<: *rest-service
     networks:
       shisa_examples:
-        ipv4_address: 172.18.0.26
-    command: ./rest --addr="172.18.0.26:9501"
+        ipv4_address: 172.18.0.24
+    command: ./rest --addr="172.18.0.24:9001"
   rest-2:
     <<: *rest-service
     networks:
       shisa_examples:
-        ipv4_address: 172.18.0.27
-    command: ./rest --addr="172.18.0.27:9501"
+        ipv4_address: 172.18.0.25
+    command: ./rest --addr="172.18.0.25:9001"
   rest-3:
     <<: *rest-service
     networks:
       shisa_examples:
-        ipv4_address: 172.18.0.28
-    command: ./rest --addr="172.18.0.28:9501"
+        ipv4_address: 172.18.0.26
+    command: ./rest --addr="172.18.0.26:9001"
+  rest-4:
+    <<: *rest-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.27
+    command: ./rest --addr="172.18.0.27:9001"
   rpc-1:
     <<: *rpc-service
     networks:
       shisa_examples:
-        ipv4_address: 172.18.0.29
-    command: ./rpc --addr="172.18.0.29:9401"
+        ipv4_address: 172.18.0.28
+    command: ./rpc --addr="172.18.0.28:9001"
   rpc-2:
     <<: *rpc-service
     networks:
       shisa_examples:
-        ipv4_address: 172.18.0.30
-    command: ./rpc --addr="172.18.0.30:9401"
+        ipv4_address: 172.18.0.29
+    command: ./rpc --addr="172.18.0.29:9001"
   rpc-3:
     <<: *rpc-service
     networks:
       shisa_examples:
+        ipv4_address: 172.18.0.30
+    command: ./rpc --addr="172.18.0.30:9001"
+  rpc-4:
+    <<: *rpc-service
+    networks:
+      shisa_examples:
         ipv4_address: 172.18.0.31
-    command: ./rpc --addr="172.18.0.31:9401"
+    command: ./rpc --addr="172.18.0.31:9001"
   idp-1:
     <<: *idp-service
     networks:
       shisa_examples:
         ipv4_address: 172.18.0.32
-    command: ./idp --addr="172.18.0.32:9601"
+    command: ./idp --addr="172.18.0.32:9001"
   idp-2:
     <<: *idp-service
     networks:
       shisa_examples:
         ipv4_address: 172.18.0.33
-    command: ./idp --addr="172.18.0.33:9601"
+    command: ./idp --addr="172.18.0.33:9001"
   idp-3:
     <<: *idp-service
     networks:
       shisa_examples:
         ipv4_address: 172.18.0.34
-    command: ./idp --addr="172.18.0.34:9601"
+    command: ./idp --addr="172.18.0.34:9001"
+  idp-4:
+    <<: *idp-service
+    networks:
+      shisa_examples:
+        ipv4_address: 172.18.0.35
+    command: ./idp --addr="172.18.0.35:9001"
 
 
 networks:

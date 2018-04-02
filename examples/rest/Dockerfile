@@ -8,6 +8,6 @@ FROM alpine:3.7
 
 COPY --from=0 /root/go/bin/rest rest
 
-EXPOSE 9501
+EXPOSE 9001
 
-CMD ["./rest", "-addr=127.0.0.1:9501"]
+CMD ["./rest", "-addr=127.0.0.1:9001"]

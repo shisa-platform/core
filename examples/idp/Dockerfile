@@ -8,6 +8,6 @@ FROM alpine:3.7
 
 COPY --from=0 /root/go/bin/idp idp
 
-EXPOSE 9601
+EXPOSE 9001
 
-CMD ["./idp", "-addr=127.0.0.1:9601"]
+CMD ["./idp", "-addr=127.0.0.1:9001"]

@@ -8,6 +8,6 @@ FROM alpine:3.7
 
 COPY --from=0 /root/go/bin/rpc rpc
 
-EXPOSE 9401
+EXPOSE 9001
 
-CMD ["./rpc", "-addr=127.0.0.1:9401"]
+CMD ["./rpc", "-addr=127.0.0.1:9001"]
