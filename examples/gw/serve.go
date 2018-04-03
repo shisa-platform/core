@@ -86,7 +86,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 
 	ch := make(chan merry.Error, 1)
 	go func() {
-		ch <- gw.Serve(hello, goodbye)
+		ch <- gw.Serve(&hello.Service, &goodbye.Service)
 	}()
 
 	logger.Info("gateway started", zap.String("addr", gw.Address()))

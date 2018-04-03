@@ -39,8 +39,8 @@ func failingResponse(status int) httpx.Response {
 	}
 }
 
-func installService(t *testing.T, g *Gateway, svc service.Service) {
-	if err := g.installServices([]service.Service{svc}); err != nil {
+func installService(t *testing.T, g *Gateway, svc *service.Service) {
+	if err := g.installServices([]*service.Service{svc}); err != nil {
 		t.Fatalf("install services failed: %v", err)
 	}
 }
@@ -822,11 +822,9 @@ func TestRouterBadMethodCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
-	svc.MethodNotAllowedHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			return httpx.NewEmpty(http.StatusForbidden)
-		}
+	svc.MethodNotAllowedHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusForbidden)
 	}
 	installService(t, cut, svc)
 
@@ -849,11 +847,9 @@ func TestRouterBadMethodCustomHandlerPanic(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
-	svc.MethodNotAllowedHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			panic(merry.New("new allowed handler blewed up!"))
-		}
+	svc.MethodNotAllowedHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		panic(merry.New("new allowed handler blewed up!"))
 	}
 	installService(t, cut, svc)
 
@@ -890,7 +886,7 @@ func TestRouterBadMethodRedirectCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+		NotFoundHandler: func(context.Context, *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return httpx.NewEmpty(http.StatusForbidden)
 		},
@@ -915,7 +911,7 @@ func TestRouterBadMethodRedirectCustomHandlerPanic(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+		NotFoundHandler: func(context.Context, *httpx.Request) httpx.Response {
 			handlerCalled = true
 			panic(merry.New("not found handler blewed up!"))
 		},
@@ -959,7 +955,7 @@ func TestRouterExtraSlashRedirectForbiddenCustomNotFoundHandler(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+		NotFoundHandler: func(context.Context, *httpx.Request) httpx.Response {
 			handlerCalled = true
 			return httpx.NewEmpty(http.StatusForbidden)
 		},
@@ -984,7 +980,7 @@ func TestRouterExtraSlashRedirecCustomNotFoundHandlerPanic(t *testing.T) {
 	var handlerCalled bool
 	errHook := new(mockErrorHook)
 	cut := &Gateway{
-		NotFoundHandler: func(ctx context.Context, r *httpx.Request) httpx.Response {
+		NotFoundHandler: func(context.Context, *httpx.Request) httpx.Response {
 			handlerCalled = true
 			panic("not found handler blewed up!")
 		},
@@ -1035,11 +1031,9 @@ func TestRouterExtraSlashRedirectForbiddenCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(dummyHandler))
-	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			return httpx.NewEmpty(http.StatusForbidden)
-		}
+	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusForbidden)
 	}
 	installService(t, cut, svc)
 
@@ -1064,11 +1058,9 @@ func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
-	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			return httpx.NewEmpty(http.StatusForbidden)
-		}
+	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusForbidden)
 	}
 	installService(t, cut, svc)
 
@@ -1093,11 +1085,9 @@ func TestRouterExtraSlashRedirectAllowedCustomHandlerPanic(t *testing.T) {
 	var handlerCalled bool
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
-	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			panic(merry.New("redirect handler blewed up!"))
-		}
+	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		panic(merry.New("redirect handler blewed up!"))
 	}
 	installService(t, cut, svc)
 
@@ -1213,11 +1203,9 @@ func TestRouterMissingSlashRedirectForbiddenCustomHandler(t *testing.T) {
 	var handlerCalled bool
 	endpoint := service.GetEndpoint(expectedRoute+"/", dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			return httpx.NewEmpty(http.StatusForbidden)
-		}
+	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusForbidden)
 	}
 	installService(t, cut, svc)
 
@@ -1242,11 +1230,9 @@ func TestRouterMissingSlashRedirectAllowedCustomHandler(t *testing.T) {
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute+"/", policy, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			return httpx.NewEmpty(http.StatusForbidden)
-		}
+	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusForbidden)
 	}
 	installService(t, cut, svc)
 
@@ -1271,11 +1257,9 @@ func TestRouterMissingSlashRedirectAllowedCustomHandlerPanic(t *testing.T) {
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute+"/", policy, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.RedirectHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			panic(merry.New("redirect handler blewed up!"))
-		}
+	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		panic(merry.New("redirect handler blewed up!"))
 	}
 	installService(t, cut, svc)
 
@@ -1362,7 +1346,7 @@ func TestRouterQueryParametersForbidMalformed(t *testing.T) {
 	cut.init()
 
 	var handlerCalled bool
-	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
+	handler := func(context.Context, *httpx.Request) httpx.Response {
 		handlerCalled = true
 
 		return httpx.NewEmpty(http.StatusOK)
@@ -1397,11 +1381,9 @@ func TestRouterQueryParametersForbidMalformedCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.MalformedRequestHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			return httpx.NewEmpty(http.StatusForbidden)
-		}
+	svc.MalformedRequestHandler = func(context.Context, *httpx.Request) httpx.Response {
+		handlerCalled = true
+		return httpx.NewEmpty(http.StatusForbidden)
 	}
 	installService(t, cut, svc)
 
@@ -1433,11 +1415,9 @@ func TestRouterQueryParametersForbidMalformedCustomHandlerPanic(t *testing.T) {
 
 	var handlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.MalformedRequestHandlerHook = func() httpx.Handler {
-		return func(ctx context.Context, r *httpx.Request) httpx.Response {
-			handlerCalled = true
-			panic(merry.New("malformed request handler blewed up!"))
-		}
+	svc.MalformedRequestHandler = func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handlerCalled = true
+		panic(merry.New("malformed request handler blewed up!"))
 	}
 	installService(t, cut, svc)
 
@@ -1666,11 +1646,9 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 
 	var queryHandlerCalled bool
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.MalformedRequestHandlerHook = func() httpx.Handler {
-		return func(context.Context, *httpx.Request) httpx.Response {
-			queryHandlerCalled = true
-			return httpx.NewEmpty(http.StatusPaymentRequired)
-		}
+	svc.MalformedRequestHandler = func(context.Context, *httpx.Request) httpx.Response {
+		queryHandlerCalled = true
+		return httpx.NewEmpty(http.StatusPaymentRequired)
 	}
 	installService(t, cut, svc)
 
@@ -1920,11 +1898,9 @@ func TestRouterQueryParametersFieldValidationPanicErrorHandlerPanic(t *testing.T
 
 	var iseHandlerCalled bool
 	svc := newFakeService([]service.Endpoint{endpoint})
-	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
-			iseHandlerCalled = true
-			panic(merry.New("i blewed up!"))
-		}
+	svc.InternalServerErrorHandler = func(context.Context, *httpx.Request, merry.Error) httpx.Response {
+		iseHandlerCalled = true
+		panic(merry.New("i blewed up!"))
 	}
 	installService(t, cut, svc)
 
@@ -2244,12 +2220,10 @@ func TestRouterHandlerPanicCustomISEHandle(t *testing.T) {
 
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
-			iseHandlerCalled = true
-			assert.True(t, merry.Is(err, explosion))
-			return httpx.NewEmpty(http.StatusServiceUnavailable)
-		}
+	svc.InternalServerErrorHandler = func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
+		iseHandlerCalled = true
+		assert.True(t, merry.Is(err, explosion))
+		return httpx.NewEmpty(http.StatusServiceUnavailable)
 	}
 	installService(t, cut, svc)
 
@@ -2295,13 +2269,11 @@ func TestRouterHandlerPanicCustomISEHandleWithPanic(t *testing.T) {
 
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
-			iseHandlerCalled = true
-			assert.True(t, merry.Is(err, explosion))
+	svc.InternalServerErrorHandler = func(_ context.Context, _ *httpx.Request, err merry.Error) httpx.Response {
+		iseHandlerCalled = true
+		assert.True(t, merry.Is(err, explosion))
 
-			panic(merry.New("ise handler blewed up!"))
-		}
+		panic(merry.New("ise handler blewed up!"))
 	}
 	installService(t, cut, svc)
 
@@ -2378,11 +2350,9 @@ func TestRouterHandlersNoResultCustomISEHandler(t *testing.T) {
 
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			iseHandlerCalled = true
-			return httpx.NewEmpty(http.StatusServiceUnavailable)
-		}
+	svc.InternalServerErrorHandler = func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+		iseHandlerCalled = true
+		return httpx.NewEmpty(http.StatusServiceUnavailable)
 	}
 	installService(t, cut, svc)
 
@@ -2428,11 +2398,9 @@ func TestRouterHandlersNoResultCustomISEHandlerWithPanic(t *testing.T) {
 
 	var iseHandlerCalled bool
 	svc := newFakeService(newEndpoints(handler))
-	svc.InternalServerErrorHandlerHook = func() httpx.ErrorHandler {
-		return func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
-			iseHandlerCalled = true
-			panic(merry.New("ise handler blewed up!"))
-		}
+	svc.InternalServerErrorHandler = func(ctx context.Context, r *httpx.Request, err merry.Error) httpx.Response {
+		iseHandlerCalled = true
+		panic(merry.New("ise handler blewed up!"))
 	}
 	installService(t, cut, svc)
 

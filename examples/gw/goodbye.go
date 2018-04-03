@@ -24,9 +24,8 @@ func (g Farewell) MarshalJSON() ([]byte, error) {
 }
 
 type GoodbyeService struct {
-	service.ServiceAdapter
-	endpoints []service.Endpoint
-	resolver  sd.Resolver
+	service.Service
+	resolver sd.Resolver
 }
 
 func NewGoodbyeService(res sd.Resolver) *GoodbyeService {
@@ -36,6 +35,9 @@ func NewGoodbyeService(res sd.Resolver) *GoodbyeService {
 	}
 
 	svc := &GoodbyeService{
+		Service: service.Service{
+			Name: "goodbye",
+		},
 		resolver: res,
 	}
 
@@ -46,21 +48,17 @@ func NewGoodbyeService(res sd.Resolver) *GoodbyeService {
 	farewell := service.GetEndpointWithPolicy("/api/farewell", policy, proxy.Service)
 	farewell.Get.QueryFields = []httpx.Field{{Name: "name", Multiplicity: 1}}
 
-	svc.endpoints = []service.Endpoint{farewell}
+	svc.Endpoints = []service.Endpoint{farewell}
 
 	return svc
 }
 
 func (s *GoodbyeService) Name() string {
-	return "goodbye"
-}
-
-func (s *GoodbyeService) Endpoints() []service.Endpoint {
-	return s.endpoints
+	return s.Service.Name
 }
 
 func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
-	addrs, err := s.resolver.Resolve(s.Name())
+	addrs, err := s.resolver.Resolve(s.Service.Name)
 	if err != nil {
 		return err.Prepend("healthcheck")
 	}
@@ -73,7 +71,7 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
-	addrs, err := s.resolver.Resolve(s.Name())
+	addrs, err := s.resolver.Resolve(s.Service.Name)
 	if err != nil {
 		return nil, err.Prepend("router")
 	}

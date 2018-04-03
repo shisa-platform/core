@@ -10,7 +10,7 @@ import (
 // interface instead of a struct so that implementations can
 // store dependencies in the struct.
 type Service struct {
-	Name string          // Service name.  Required.
+	Name      string     // Service name.  Required.
 	Endpoints []Endpoint // Service endpoints. Requried.
 
 	// Handlers are optional handlers that should be invoked for
