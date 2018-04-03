@@ -1,4 +1,8 @@
-FROM shisa/examples/base
+FROM alpine:3.7
+
+RUN apk --no-cache --update add go musl-dev
+
+COPY ./ /root/go/src/github.com/percolate/shisa
 
 WORKDIR /root/go/src/github.com/percolate/shisa/examples/gw
 
