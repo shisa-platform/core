@@ -92,6 +92,10 @@ func (f *FakeIdentityProvider) Reset() {
 }
 
 func (_f1 *FakeIdentityProvider) Authenticate(ident1 context.Context, ident2 string) (ident3 models.User, ident4 merry.Error) {
+	if _f1.AuthenticateHook == nil {
+		panic("IdentityProvider.Authenticate() called but FakeIdentityProvider.AuthenticateHook is nil")
+	}
+
 	invocation := new(IdentityProviderAuthenticateInvocation)
 	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 

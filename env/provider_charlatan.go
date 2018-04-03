@@ -186,6 +186,10 @@ func (f *FakeProvider) Reset() {
 }
 
 func (_f1 *FakeProvider) Get(ident1 string) (ident2 string, ident3 merry.Error) {
+	if _f1.GetHook == nil {
+		panic("Provider.Get() called but FakeProvider.GetHook is nil")
+	}
+
 	invocation := new(ProviderGetInvocation)
 	_f1.GetCalls = append(_f1.GetCalls, invocation)
 
@@ -321,6 +325,10 @@ func (_f6 *FakeProvider) GetResultsForCall(ident1 string) (ident2 string, ident3
 }
 
 func (_f7 *FakeProvider) GetInt(ident1 string) (ident2 int, ident3 merry.Error) {
+	if _f7.GetIntHook == nil {
+		panic("Provider.GetInt() called but FakeProvider.GetIntHook is nil")
+	}
+
 	invocation := new(ProviderGetIntInvocation)
 	_f7.GetIntCalls = append(_f7.GetIntCalls, invocation)
 
@@ -456,6 +464,10 @@ func (_f12 *FakeProvider) GetIntResultsForCall(ident1 string) (ident2 int, ident
 }
 
 func (_f13 *FakeProvider) GetBool(ident1 string) (ident2 bool, ident3 merry.Error) {
+	if _f13.GetBoolHook == nil {
+		panic("Provider.GetBool() called but FakeProvider.GetBoolHook is nil")
+	}
+
 	invocation := new(ProviderGetBoolInvocation)
 	_f13.GetBoolCalls = append(_f13.GetBoolCalls, invocation)
 
@@ -591,6 +603,10 @@ func (_f18 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ide
 }
 
 func (_f19 *FakeProvider) Monitor(ident1 string, ident2 chan<- Value) {
+	if _f19.MonitorHook == nil {
+		panic("Provider.Monitor() called but FakeProvider.MonitorHook is nil")
+	}
+
 	invocation := new(ProviderMonitorInvocation)
 	_f19.MonitorCalls = append(_f19.MonitorCalls, invocation)
 
@@ -710,6 +726,10 @@ func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1
 }
 
 func (_f24 *FakeProvider) Healthcheck(ident1 context.Context) (ident2 merry.Error) {
+	if _f24.HealthcheckHook == nil {
+		panic("Provider.Healthcheck() called but FakeProvider.HealthcheckHook is nil")
+	}
+
 	invocation := new(ProviderHealthcheckInvocation)
 	_f24.HealthcheckCalls = append(_f24.HealthcheckCalls, invocation)
 

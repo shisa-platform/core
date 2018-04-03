@@ -209,6 +209,10 @@ func (f *FakeService) Reset() {
 }
 
 func (_f1 *FakeService) Name() (ident1 string) {
+	if _f1.NameHook == nil {
+		panic("Service.Name() called but FakeService.NameHook is nil")
+	}
+
 	invocation := new(ServiceNameInvocation)
 	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
@@ -272,6 +276,10 @@ func (f *FakeService) AssertNameCalledN(t ServiceTestingT, n int) {
 }
 
 func (_f2 *FakeService) Endpoints() (ident1 []Endpoint) {
+	if _f2.EndpointsHook == nil {
+		panic("Service.Endpoints() called but FakeService.EndpointsHook is nil")
+	}
+
 	invocation := new(ServiceEndpointsInvocation)
 	_f2.EndpointsCalls = append(_f2.EndpointsCalls, invocation)
 
@@ -335,6 +343,10 @@ func (f *FakeService) AssertEndpointsCalledN(t ServiceTestingT, n int) {
 }
 
 func (_f3 *FakeService) Handlers() (ident1 []httpx.Handler) {
+	if _f3.HandlersHook == nil {
+		panic("Service.Handlers() called but FakeService.HandlersHook is nil")
+	}
+
 	invocation := new(ServiceHandlersInvocation)
 	_f3.HandlersCalls = append(_f3.HandlersCalls, invocation)
 
@@ -398,6 +410,10 @@ func (f *FakeService) AssertHandlersCalledN(t ServiceTestingT, n int) {
 }
 
 func (_f4 *FakeService) MalformedRequestHandler() (ident1 httpx.Handler) {
+	if _f4.MalformedRequestHandlerHook == nil {
+		panic("Service.MalformedRequestHandler() called but FakeService.MalformedRequestHandlerHook is nil")
+	}
+
 	invocation := new(ServiceMalformedRequestHandlerInvocation)
 	_f4.MalformedRequestHandlerCalls = append(_f4.MalformedRequestHandlerCalls, invocation)
 
@@ -461,6 +477,10 @@ func (f *FakeService) AssertMalformedRequestHandlerCalledN(t ServiceTestingT, n 
 }
 
 func (_f5 *FakeService) MethodNotAllowedHandler() (ident1 httpx.Handler) {
+	if _f5.MethodNotAllowedHandlerHook == nil {
+		panic("Service.MethodNotAllowedHandler() called but FakeService.MethodNotAllowedHandlerHook is nil")
+	}
+
 	invocation := new(ServiceMethodNotAllowedHandlerInvocation)
 	_f5.MethodNotAllowedHandlerCalls = append(_f5.MethodNotAllowedHandlerCalls, invocation)
 
@@ -524,6 +544,10 @@ func (f *FakeService) AssertMethodNotAllowedHandlerCalledN(t ServiceTestingT, n 
 }
 
 func (_f6 *FakeService) RedirectHandler() (ident1 httpx.Handler) {
+	if _f6.RedirectHandlerHook == nil {
+		panic("Service.RedirectHandler() called but FakeService.RedirectHandlerHook is nil")
+	}
+
 	invocation := new(ServiceRedirectHandlerInvocation)
 	_f6.RedirectHandlerCalls = append(_f6.RedirectHandlerCalls, invocation)
 
@@ -587,6 +611,10 @@ func (f *FakeService) AssertRedirectHandlerCalledN(t ServiceTestingT, n int) {
 }
 
 func (_f7 *FakeService) InternalServerErrorHandler() (ident1 httpx.ErrorHandler) {
+	if _f7.InternalServerErrorHandlerHook == nil {
+		panic("Service.InternalServerErrorHandler() called but FakeService.InternalServerErrorHandlerHook is nil")
+	}
+
 	invocation := new(ServiceInternalServerErrorHandlerInvocation)
 	_f7.InternalServerErrorHandlerCalls = append(_f7.InternalServerErrorHandlerCalls, invocation)
 

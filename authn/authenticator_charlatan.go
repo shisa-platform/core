@@ -113,6 +113,10 @@ func (f *FakeAuthenticator) Reset() {
 }
 
 func (_f1 *FakeAuthenticator) Authenticate(ident1 context.Context, ident2 *httpx.Request) (ident3 models.User, ident4 merry.Error) {
+	if _f1.AuthenticateHook == nil {
+		panic("Authenticator.Authenticate() called but FakeAuthenticator.AuthenticateHook is nil")
+	}
+
 	invocation := new(AuthenticatorAuthenticateInvocation)
 	_f1.AuthenticateCalls = append(_f1.AuthenticateCalls, invocation)
 
@@ -249,6 +253,10 @@ func (_f6 *FakeAuthenticator) AuthenticateResultsForCall(ident1 context.Context,
 }
 
 func (_f7 *FakeAuthenticator) Challenge() (ident1 string) {
+	if _f7.ChallengeHook == nil {
+		panic("Authenticator.Challenge() called but FakeAuthenticator.ChallengeHook is nil")
+	}
+
 	invocation := new(AuthenticatorChallengeInvocation)
 	_f7.ChallengeCalls = append(_f7.ChallengeCalls, invocation)
 

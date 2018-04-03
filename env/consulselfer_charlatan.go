@@ -82,6 +82,10 @@ func (f *FakeSelfer) Reset() {
 }
 
 func (_f1 *FakeSelfer) Self() (ident1 map[string]map[string]interface{}, ident2 error) {
+	if _f1.SelfHook == nil {
+		panic("Selfer.Self() called but FakeSelfer.SelfHook is nil")
+	}
+
 	invocation := new(SelferSelfInvocation)
 	_f1.SelfCalls = append(_f1.SelfCalls, invocation)
 

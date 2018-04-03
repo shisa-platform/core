@@ -102,6 +102,10 @@ func (f *FakeUser) Reset() {
 }
 
 func (_f1 *FakeUser) String() (ident5 string) {
+	if _f1.StringHook == nil {
+		panic("User.String() called but FakeUser.StringHook is nil")
+	}
+
 	invocation := new(UserStringInvocation)
 	_f1.StringCalls = append(_f1.StringCalls, invocation)
 
@@ -165,6 +169,10 @@ func (f *FakeUser) AssertStringCalledN(t UserTestingT, n int) {
 }
 
 func (_f2 *FakeUser) ID() (ident1 string) {
+	if _f2.IDHook == nil {
+		panic("User.ID() called but FakeUser.IDHook is nil")
+	}
+
 	invocation := new(UserIDInvocation)
 	_f2.IDCalls = append(_f2.IDCalls, invocation)
 

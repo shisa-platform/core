@@ -118,6 +118,10 @@ func (f *FakeKVGetter) Reset() {
 }
 
 func (_f1 *FakeKVGetter) Get(ident1 string, ident2 *consul.QueryOptions) (ident3 *consul.KVPair, ident4 *consul.QueryMeta, ident5 error) {
+	if _f1.GetHook == nil {
+		panic("KVGetter.Get() called but FakeKVGetter.GetHook is nil")
+	}
+
 	invocation := new(KVGetterGetInvocation)
 	_f1.GetCalls = append(_f1.GetCalls, invocation)
 
@@ -256,6 +260,10 @@ func (_f6 *FakeKVGetter) GetResultsForCall(ident1 string, ident2 *consul.QueryOp
 }
 
 func (_f7 *FakeKVGetter) List(ident1 string, ident2 *consul.QueryOptions) (ident3 consul.KVPairs, ident4 *consul.QueryMeta, ident5 error) {
+	if _f7.ListHook == nil {
+		panic("KVGetter.List() called but FakeKVGetter.ListHook is nil")
+	}
+
 	invocation := new(KVGetterListInvocation)
 	_f7.ListCalls = append(_f7.ListCalls, invocation)
 

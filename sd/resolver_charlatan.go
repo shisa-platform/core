@@ -89,7 +89,12 @@ func (f *FakeResolver) Reset() {
 }
 
 func (_f1 *FakeResolver) Resolve(name string) (ident1 []string, ident2 merry.Error) {
+	if _f1.ResolveHook == nil {
+		panic("Resolver.Resolve() called but FakeResolver.ResolveHook is nil")
+	}
+
 	invocation := new(ResolverResolveInvocation)
+	_f1.ResolveCalls = append(_f1.ResolveCalls, invocation)
 
 	invocation.Parameters.Name = name
 
@@ -97,8 +102,6 @@ func (_f1 *FakeResolver) Resolve(name string) (ident1 []string, ident2 merry.Err
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
-
-	_f1.ResolveCalls = append(_f1.ResolveCalls, invocation)
 
 	return
 }

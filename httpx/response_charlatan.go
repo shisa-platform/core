@@ -176,6 +176,10 @@ func (f *FakeResponse) Reset() {
 }
 
 func (_f1 *FakeResponse) StatusCode() (ident1 int) {
+	if _f1.StatusCodeHook == nil {
+		panic("Response.StatusCode() called but FakeResponse.StatusCodeHook is nil")
+	}
+
 	invocation := new(ResponseStatusCodeInvocation)
 	_f1.StatusCodeCalls = append(_f1.StatusCodeCalls, invocation)
 
@@ -239,6 +243,10 @@ func (f *FakeResponse) AssertStatusCodeCalledN(t ResponseTestingT, n int) {
 }
 
 func (_f2 *FakeResponse) Headers() (ident1 http.Header) {
+	if _f2.HeadersHook == nil {
+		panic("Response.Headers() called but FakeResponse.HeadersHook is nil")
+	}
+
 	invocation := new(ResponseHeadersInvocation)
 	_f2.HeadersCalls = append(_f2.HeadersCalls, invocation)
 
@@ -302,6 +310,10 @@ func (f *FakeResponse) AssertHeadersCalledN(t ResponseTestingT, n int) {
 }
 
 func (_f3 *FakeResponse) Trailers() (ident1 http.Header) {
+	if _f3.TrailersHook == nil {
+		panic("Response.Trailers() called but FakeResponse.TrailersHook is nil")
+	}
+
 	invocation := new(ResponseTrailersInvocation)
 	_f3.TrailersCalls = append(_f3.TrailersCalls, invocation)
 
@@ -365,6 +377,10 @@ func (f *FakeResponse) AssertTrailersCalledN(t ResponseTestingT, n int) {
 }
 
 func (_f4 *FakeResponse) Err() (ident1 error) {
+	if _f4.ErrHook == nil {
+		panic("Response.Err() called but FakeResponse.ErrHook is nil")
+	}
+
 	invocation := new(ResponseErrInvocation)
 	_f4.ErrCalls = append(_f4.ErrCalls, invocation)
 
@@ -428,6 +444,10 @@ func (f *FakeResponse) AssertErrCalledN(t ResponseTestingT, n int) {
 }
 
 func (_f5 *FakeResponse) Serialize(ident1 io.Writer) (ident2 merry.Error) {
+	if _f5.SerializeHook == nil {
+		panic("Response.Serialize() called but FakeResponse.SerializeHook is nil")
+	}
+
 	invocation := new(ResponseSerializeInvocation)
 	_f5.SerializeCalls = append(_f5.SerializeCalls, invocation)
 

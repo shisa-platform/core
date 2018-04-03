@@ -11,7 +11,7 @@ import "reflect"
 type RegistrarRegisterInvocation struct {
 	Parameters struct {
 		ServiceID string
-		Addr      string
+		Url       *url.URL
 	}
 	Results struct {
 		Ident1 merry.Error
@@ -65,7 +65,7 @@ Use it in your tests as in this example:
 
 	func TestWithRegistrar(t *testing.T) {
 		f := &sd.FakeRegistrar{
-			RegisterHook: func(serviceID string, addr string) (ident1 merry.Error) {
+			RegisterHook: func(serviceID string, url *url.URL) (ident1 merry.Error) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -82,7 +82,7 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeRegister.
 */
 type FakeRegistrar struct {
-	RegisterHook     func(string, string) merry.Error
+	RegisterHook     func(string, *url.URL) merry.Error
 	DeregisterHook   func(string) merry.Error
 	AddCheckHook     func(string, *url.URL) merry.Error
 	RemoveChecksHook func(string) merry.Error
@@ -96,7 +96,7 @@ type FakeRegistrar struct {
 // NewFakeRegistrarDefaultPanic returns an instance of FakeRegistrar with all hooks configured to panic
 func NewFakeRegistrarDefaultPanic() *FakeRegistrar {
 	return &FakeRegistrar{
-		RegisterHook: func(string, string) (ident1 merry.Error) {
+		RegisterHook: func(string, *url.URL) (ident1 merry.Error) {
 			panic("Unexpected call to Registrar.Register")
 		},
 		DeregisterHook: func(string) (ident1 merry.Error) {
@@ -114,7 +114,7 @@ func NewFakeRegistrarDefaultPanic() *FakeRegistrar {
 // NewFakeRegistrarDefaultFatal returns an instance of FakeRegistrar with all hooks configured to call t.Fatal
 func NewFakeRegistrarDefaultFatal(t RegistrarTestingT) *FakeRegistrar {
 	return &FakeRegistrar{
-		RegisterHook: func(string, string) (ident1 merry.Error) {
+		RegisterHook: func(string, *url.URL) (ident1 merry.Error) {
 			t.Fatal("Unexpected call to Registrar.Register")
 			return
 		},
@@ -136,7 +136,7 @@ func NewFakeRegistrarDefaultFatal(t RegistrarTestingT) *FakeRegistrar {
 // NewFakeRegistrarDefaultError returns an instance of FakeRegistrar with all hooks configured to call t.Error
 func NewFakeRegistrarDefaultError(t RegistrarTestingT) *FakeRegistrar {
 	return &FakeRegistrar{
-		RegisterHook: func(string, string) (ident1 merry.Error) {
+		RegisterHook: func(string, *url.URL) (ident1 merry.Error) {
 			t.Error("Unexpected call to Registrar.Register")
 			return
 		},
@@ -162,14 +162,18 @@ func (f *FakeRegistrar) Reset() {
 	f.RemoveChecksCalls = []*RegistrarRemoveChecksInvocation{}
 }
 
-func (_f1 *FakeRegistrar) Register(serviceID string, addr string) (ident1 merry.Error) {
+func (_f1 *FakeRegistrar) Register(serviceID string, url *url.URL) (ident1 merry.Error) {
+	if _f1.RegisterHook == nil {
+		panic("Registrar.Register() called but FakeRegistrar.RegisterHook is nil")
+	}
+
 	invocation := new(RegistrarRegisterInvocation)
 	_f1.RegisterCalls = append(_f1.RegisterCalls, invocation)
 
 	invocation.Parameters.ServiceID = serviceID
-	invocation.Parameters.Addr = addr
+	invocation.Parameters.Url = url
 
-	ident1 = _f1.RegisterHook(serviceID, addr)
+	ident1 = _f1.RegisterHook(serviceID, url)
 
 	invocation.Results.Ident1 = ident1
 
@@ -229,9 +233,9 @@ func (f *FakeRegistrar) AssertRegisterCalledN(t RegistrarTestingT, n int) {
 }
 
 // RegisterCalledWith returns true if FakeRegistrar.Register was called with the given values
-func (_f2 *FakeRegistrar) RegisterCalledWith(serviceID string, addr string) (found bool) {
+func (_f2 *FakeRegistrar) RegisterCalledWith(serviceID string, url *url.URL) (found bool) {
 	for _, call := range _f2.RegisterCalls {
-		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Addr, addr) {
+		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			found = true
 			break
 		}
@@ -241,11 +245,11 @@ func (_f2 *FakeRegistrar) RegisterCalledWith(serviceID string, addr string) (fou
 }
 
 // AssertRegisterCalledWith calls t.Error if FakeRegistrar.Register was not called with the given values
-func (_f3 *FakeRegistrar) AssertRegisterCalledWith(t RegistrarTestingT, serviceID string, addr string) {
+func (_f3 *FakeRegistrar) AssertRegisterCalledWith(t RegistrarTestingT, serviceID string, url *url.URL) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.RegisterCalls {
-		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Addr, addr) {
+		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			found = true
 			break
 		}
@@ -257,10 +261,10 @@ func (_f3 *FakeRegistrar) AssertRegisterCalledWith(t RegistrarTestingT, serviceI
 }
 
 // RegisterCalledOnceWith returns true if FakeRegistrar.Register was called exactly once with the given values
-func (_f4 *FakeRegistrar) RegisterCalledOnceWith(serviceID string, addr string) bool {
+func (_f4 *FakeRegistrar) RegisterCalledOnceWith(serviceID string, url *url.URL) bool {
 	var count int
 	for _, call := range _f4.RegisterCalls {
-		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Addr, addr) {
+		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			count++
 		}
 	}
@@ -269,11 +273,11 @@ func (_f4 *FakeRegistrar) RegisterCalledOnceWith(serviceID string, addr string) 
 }
 
 // AssertRegisterCalledOnceWith calls t.Error if FakeRegistrar.Register was not called exactly once with the given values
-func (_f5 *FakeRegistrar) AssertRegisterCalledOnceWith(t RegistrarTestingT, serviceID string, addr string) {
+func (_f5 *FakeRegistrar) AssertRegisterCalledOnceWith(t RegistrarTestingT, serviceID string, url *url.URL) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.RegisterCalls {
-		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Addr, addr) {
+		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			count++
 		}
 	}
@@ -284,9 +288,9 @@ func (_f5 *FakeRegistrar) AssertRegisterCalledOnceWith(t RegistrarTestingT, serv
 }
 
 // RegisterResultsForCall returns the result values for the first call to FakeRegistrar.Register with the given values
-func (_f6 *FakeRegistrar) RegisterResultsForCall(serviceID string, addr string) (ident1 merry.Error, found bool) {
+func (_f6 *FakeRegistrar) RegisterResultsForCall(serviceID string, url *url.URL) (ident1 merry.Error, found bool) {
 	for _, call := range _f6.RegisterCalls {
-		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Addr, addr) {
+		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			ident1 = call.Results.Ident1
 			found = true
 			break
@@ -297,6 +301,10 @@ func (_f6 *FakeRegistrar) RegisterResultsForCall(serviceID string, addr string) 
 }
 
 func (_f7 *FakeRegistrar) Deregister(serviceID string) (ident1 merry.Error) {
+	if _f7.DeregisterHook == nil {
+		panic("Registrar.Deregister() called but FakeRegistrar.DeregisterHook is nil")
+	}
+
 	invocation := new(RegistrarDeregisterInvocation)
 	_f7.DeregisterCalls = append(_f7.DeregisterCalls, invocation)
 
@@ -430,6 +438,10 @@ func (_f12 *FakeRegistrar) DeregisterResultsForCall(serviceID string) (ident1 me
 }
 
 func (_f13 *FakeRegistrar) AddCheck(service string, url *url.URL) (ident1 merry.Error) {
+	if _f13.AddCheckHook == nil {
+		panic("Registrar.AddCheck() called but FakeRegistrar.AddCheckHook is nil")
+	}
+
 	invocation := new(RegistrarAddCheckInvocation)
 	_f13.AddCheckCalls = append(_f13.AddCheckCalls, invocation)
 
@@ -564,6 +576,10 @@ func (_f18 *FakeRegistrar) AddCheckResultsForCall(service string, url *url.URL) 
 }
 
 func (_f19 *FakeRegistrar) RemoveChecks(service string) (ident1 merry.Error) {
+	if _f19.RemoveChecksHook == nil {
+		panic("Registrar.RemoveChecks() called but FakeRegistrar.RemoveChecksHook is nil")
+	}
+
 	invocation := new(RegistrarRemoveChecksInvocation)
 	_f19.RemoveChecksCalls = append(_f19.RemoveChecksCalls, invocation)
 
