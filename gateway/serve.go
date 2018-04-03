@@ -3,7 +3,9 @@ package gateway
 import (
 	stdctx "context"
 	"expvar"
+	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 
 	"github.com/ansel1/merry"
@@ -60,7 +62,12 @@ func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) 
 		return merry.Prepend(err, "gateway: serve")
 	}
 
-	if err1 := g.registerSafely(g.listener.Addr().String()); err1 != nil {
+	u := &url.URL{
+		Host:     g.listener.Addr().String(),
+		RawQuery: fmt.Sprintf("id=%s", g.listener.Addr().String()),
+	}
+
+	if err1 := g.registerSafely(u); err1 != nil {
 		g.listener.Close()
 		return merry.Prepend(err1, "gateway: serve: register gateway")
 	}
@@ -233,7 +240,7 @@ func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*ser
 	return result, nil
 }
 
-func (g *Gateway) registerSafely(addr string) (err merry.Error) {
+func (g *Gateway) registerSafely(u *url.URL) (err merry.Error) {
 	if g.Registrar == nil {
 		return
 	}
@@ -252,7 +259,7 @@ func (g *Gateway) registerSafely(addr string) (err merry.Error) {
 		err = merry.Errorf("panic registering service: \"%v\"", arg)
 	}()
 
-	return g.Registrar.Register(g.Name, addr)
+	return g.Registrar.Register(g.Name, u)
 }
 
 func (g *Gateway) deregisterSafely() (err merry.Error) {

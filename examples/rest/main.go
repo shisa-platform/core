@@ -79,19 +79,24 @@ func main() {
 		errCh <- server.Serve(listener)
 	}()
 
-	if err := reg.Register(name, listener.Addr().String()); err != nil {
+	saddr := listener.Addr().String()
+	ru := &url.URL{
+		Host:     saddr,
+		RawQuery: fmt.Sprintf("id=%s", saddr),
+	}
+	if err := reg.Register(name, ru); err != nil {
 		logger.Fatal("service failed to register", zap.Error(err))
 	}
 	defer reg.Deregister(name)
 
-	u := &url.URL{
+	cu := &url.URL{
 		Scheme:   "http",
-		Host:     listener.Addr().String(),
+		Host:     saddr,
 		Path:     "/healthcheck",
-		RawQuery: fmt.Sprintf("interval=5s&id=goodbye-%s", listener.Addr().String()),
+		RawQuery: fmt.Sprintf("interval=5s&id=%s&serviceid=%s", saddr, saddr),
 	}
 
-	if err := reg.AddCheck(name, u); err != nil {
+	if err := reg.AddCheck(name, cu); err != nil {
 		logger.Fatal("healthcheck failed to register", zap.Error(err))
 	}
 	defer reg.RemoveChecks(name)

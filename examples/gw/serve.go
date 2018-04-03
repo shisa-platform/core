@@ -79,7 +79,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 				Host:     healthcheck.Address(),
 				Path:     healthcheck.Path,
 				User:     url.UserPassword("Admin", "password"),
-				RawQuery: fmt.Sprintf("interval=10s&id=example-%s", healthcheck.Address()),
+				RawQuery: fmt.Sprintf("interval=10s&id=%s&serviceid=%s", healthcheck.Address(), addr),
 			}
 			return healthcheckURL, nil
 		},
