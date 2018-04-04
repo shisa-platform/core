@@ -1,142 +1,89 @@
 version: "3.6"
 
-x-gw-service: &gw-service
-  image: shisa/examples/gw
-  build:
-    context: ../
-    dockerfile: examples/gw/Dockerfile
-  depends_on:
-    - "consul"
-  environment:
-    CONSUL_HTTP_ADDR: 172.18.0.22:8500
-
 x-rest-service: &rest-service
   image: shisa/examples/rest
-  build:
-    context: ../
-    dockerfile: examples/rest/Dockerfile
   depends_on:
     - "consul"
   environment:
-    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+    CONSUL_HTTP_ADDR: consul:8500
 
 x-rpc-service: &rpc-service
   image: shisa/examples/rpc
-  build:
-    context: ../
-    dockerfile: examples/rpc/Dockerfile
   depends_on:
     - "consul"
   environment:
-    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+    CONSUL_HTTP_ADDR: consul:8500
 
 x-idp-service: &idp-service
   image: shisa/examples/idp
-  build:
-    context: ../
-    dockerfile: examples/idp/Dockerfile
   depends_on:
     - "consul"
   environment:
-    CONSUL_HTTP_ADDR: 172.18.0.22:8500
+    CONSUL_HTTP_ADDR: consul:8500
 
 services:
   consul:
     container_name: consul
     image: consul:1.0.6
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.22
     ports:
       - 8500:8500
   gw:
-    <<: *gw-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.23
-    command: ./gw --addr="172.18.0.23:9001" --debugaddr="172.18.0.23:9002" --healthcheckaddr="172.18.0.23:9003"
+    container_name: gw
+    image: shisa/examples/gw
+    depends_on:
+      - "consul"
     ports:
       - 9001:9001
       - 9002:9002
       - 9003:9003
+    environment:
+      CONSUL_HTTP_ADDR: consul:8500
+    command: ./gw --addr="gw:9001" --debugaddr="gw:9002" --healthcheckaddr="gw:9003"
   rest-1:
+    container_name: rest-1
+    command: ./rest --addr="rest-1:9001"
     <<: *rest-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.24
-    command: ./rest --addr="172.18.0.24:9001"
   rest-2:
+    container_name: rest-2
+    command: ./rest --addr="rest-2:9001"
     <<: *rest-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.25
-    command: ./rest --addr="172.18.0.25:9001"
   rest-3:
+    container_name: rest-3
+    command: ./rest --addr="rest-3:9001"
     <<: *rest-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.26
-    command: ./rest --addr="172.18.0.26:9001"
   rest-4:
+    container_name: rest-4
+    command: ./rest --addr="rest-4:9001"
     <<: *rest-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.27
-    command: ./rest --addr="172.18.0.27:9001"
   rpc-1:
+    container_name: rpc-1
+    command: ./rpc --addr="rpc-1:9001"
     <<: *rpc-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.28
-    command: ./rpc --addr="172.18.0.28:9001"
   rpc-2:
+    container_name: rpc-2
+    command: ./rpc --addr="rpc-2:9001"
     <<: *rpc-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.29
-    command: ./rpc --addr="172.18.0.29:9001"
   rpc-3:
+    container_name: rpc-3
+    command: ./rpc --addr="rpc-3:9001"
     <<: *rpc-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.30
-    command: ./rpc --addr="172.18.0.30:9001"
   rpc-4:
+    container_name: rpc-4
+    command: ./rpc --addr="rpc-4:9001"
     <<: *rpc-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.31
-    command: ./rpc --addr="172.18.0.31:9001"
   idp-1:
+    container_name: idp-1
+    command: ./idp --addr="idp-1:9001"
     <<: *idp-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.32
-    command: ./idp --addr="172.18.0.32:9001"
   idp-2:
+    container_name: idp-2
+    command: ./idp --addr="idp-2:9001"
     <<: *idp-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.33
-    command: ./idp --addr="172.18.0.33:9001"
   idp-3:
+    container_name: idp-3
+    command: ./idp --addr="idp-3:9001"
     <<: *idp-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.34
-    command: ./idp --addr="172.18.0.34:9001"
   idp-4:
+    container_name: idp-4
+    command: ./idp --addr="idp-4:9001"
     <<: *idp-service
-    networks:
-      shisa_examples:
-        ipv4_address: 172.18.0.35
-    command: ./idp --addr="172.18.0.35:9001"
-
-
-networks:
-  shisa_examples:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.18.0.0/16
