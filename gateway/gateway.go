@@ -30,9 +30,9 @@ var (
 	gatewayExpvar = expvar.NewMap(defaultName)
 )
 
-type CheckURLHook func() (*url.URL, merry.Error)
+type URLHook func() (*url.URL, merry.Error)
 
-func (h CheckURLHook) InvokeSafely() (u *url.URL, err merry.Error, exception merry.Error) {
+func (h URLHook) InvokeSafely() (u *url.URL, err merry.Error, exception merry.Error) {
 	defer func() {
 		arg := recover()
 		if arg == nil {
@@ -145,11 +145,17 @@ type Gateway struct {
 	// `Name` field. If nil, no registration occurs.
 	Registrar sd.Registrar
 
+	// RegistrationURLHook provides the *url.URL to be used in
+	// the Registrar's `Register` method. If `Registrar` is nil,
+	// this hook is not called. If this hook is nil, no service is registered
+	// via `Register`.
+	RegistrationURLHook URLHook
+
 	// CheckURLHook provides the *url.URL to be used in
 	// the Registrar's `AddCheck` method. If `Registrar` is nil,
 	// this hook is not called. If this hook is nil, no check is registered
 	// via `AddCheck`.
-	CheckURLHook CheckURLHook
+	CheckURLHook URLHook
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
