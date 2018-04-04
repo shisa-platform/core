@@ -73,18 +73,26 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		GracePeriod:     2 * time.Second,
 		Handlers:        []httpx.Handler{authN.Service},
 		Registrar:       res,
-		CheckURLHook: func() (*url.URL, merry.Error) {
-			healthcheckURL := &url.URL{
-				Scheme:   "http",
-				Host:     healthcheck.Address(),
-				Path:     healthcheck.Path,
-				User:     url.UserPassword("Admin", "password"),
-				RawQuery: fmt.Sprintf("interval=10s&id=%s&serviceid=%s", healthcheck.Address(), addr),
-			}
-			return healthcheckURL, nil
-		},
-		CompletionHook: lh.completion,
-		ErrorHook:      lh.error,
+		CompletionHook:  lh.completion,
+		ErrorHook:       lh.error,
+	}
+
+	gw.RegistrationURLHook = func() (u *url.URL, err merry.Error) {
+		u = &url.URL{
+			Host:     gw.Address(),
+			RawQuery: fmt.Sprintf("id=%s", gw.Name),
+		}
+		return
+	}
+	gw.CheckURLHook = func() (u *url.URL, err merry.Error) {
+		u = &url.URL{
+			Scheme:   "http",
+			Host:     healthcheck.Address(),
+			Path:     healthcheck.Path,
+			User:     url.UserPassword("Admin", "password"),
+			RawQuery: fmt.Sprintf("interval=10s&serviceid=%s", gw.Name),
+		}
+		return
 	}
 
 	ch := make(chan merry.Error, 1)
