@@ -32,9 +32,7 @@ func TestGatewayServiceWithNoName(t *testing.T) {
 		Addr: ":0",
 	}
 
-	svc := &service.FakeService{
-		NameHook: func() string { return "" },
-	}
+	svc := &service.Service{}
 	err := cut.Serve(svc)
 	assert.Error(t, err)
 }
@@ -45,10 +43,7 @@ func TestGatewayServiceWithNoEndpoints(t *testing.T) {
 		Addr: ":0",
 	}
 
-	svc := &service.FakeService{
-		NameHook:      func() string { return "test" },
-		EndpointsHook: func() []service.Endpoint { return nil },
-	}
+	svc := &service.Service{Name: "test"}
 
 	err := cut.Serve(svc)
 	assert.Error(t, err)
@@ -201,7 +196,7 @@ func TestGatewayFullyLoadedEndpoint(t *testing.T) {
 	assert.NotNil(t, e.Connect)
 	assert.NotNil(t, e.Options)
 	assert.NotNil(t, e.Trace)
-	assert.Equal(t, svc.Name(), e.serviceName)
+	assert.Equal(t, svc.Name, e.serviceName)
 }
 
 func teapotHandler(context.Context, *httpx.Request) httpx.Response {

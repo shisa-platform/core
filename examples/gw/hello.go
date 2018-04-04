@@ -33,9 +33,8 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 }
 
 type HelloService struct {
-	service.ServiceAdapter
-	endpoints []service.Endpoint
-	resolver  sd.Resolver
+	service.Service
+	resolver sd.Resolver
 }
 
 func NewHelloService(res sd.Resolver) *HelloService {
@@ -45,6 +44,9 @@ func NewHelloService(res sd.Resolver) *HelloService {
 	}
 
 	svc := &HelloService{
+		Service: service.Service{
+			Name: "hello",
+		},
 		resolver: res,
 	}
 
@@ -54,17 +56,13 @@ func NewHelloService(res sd.Resolver) *HelloService {
 		{Name: "name", Multiplicity: 1},
 	}
 
-	svc.endpoints = []service.Endpoint{greeting}
+	svc.Endpoints = []service.Endpoint{greeting}
 
 	return svc
 }
 
 func (s *HelloService) Name() string {
-	return "hello"
-}
-
-func (s *HelloService) Endpoints() []service.Endpoint {
-	return s.endpoints
+	return s.Service.Name
 }
 
 func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Response {
@@ -100,7 +98,7 @@ func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Res
 }
 
 func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
-	addrs, err := s.resolver.Resolve(s.Name())
+	addrs, err := s.resolver.Resolve(s.Service.Name)
 	if err != nil {
 		return err.Prepend("healthcheck")
 	}
@@ -113,7 +111,7 @@ func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (s *HelloService) connect() (*rpc.Client, merry.Error) {
-	addrs, err := s.resolver.Resolve(s.Name())
+	addrs, err := s.resolver.Resolve(s.Service.Name)
 	if err != nil {
 		return nil, err.Prepend("connect")
 	}

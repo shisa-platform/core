@@ -29,11 +29,11 @@ func (g *Gateway) Address() string {
 	return g.Addr
 }
 
-func (g *Gateway) Serve(services ...service.Service) merry.Error {
+func (g *Gateway) Serve(services ...*service.Service) merry.Error {
 	return g.serve(services, false)
 }
 
-func (g *Gateway) ServeTLS(services ...service.Service) merry.Error {
+func (g *Gateway) ServeTLS(services ...*service.Service) merry.Error {
 	return g.serve(services, true)
 }
 
@@ -56,7 +56,7 @@ func (g *Gateway) Shutdown() (err error) {
 	return
 }
 
-func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) {
+func (g *Gateway) serve(services []*service.Service, tls bool) (err merry.Error) {
 	if len(services) == 0 {
 		return merry.New("gateway: check invariants: services empty")
 	}
@@ -110,115 +110,115 @@ func (g *Gateway) serve(services []service.Service, tls bool) (err merry.Error) 
 	return merry.Prepend(err1, "gateway: serve: abnormal termination")
 }
 
-func (g *Gateway) installServices(services []service.Service) merry.Error {
+func (g *Gateway) installServices(services []*service.Service) merry.Error {
 	servicesExpvar := new(expvar.Map)
 	gatewayExpvar.Set("services", servicesExpvar)
 	for _, svc := range services {
-		if svc.Name() == "" {
+		if svc.Name == "" {
 			return merry.New("gateway: check invariants: service name empty")
 		}
-		if len(svc.Endpoints()) == 0 {
-			return merry.New("gateway: check invariants: service endpoints empty").Append(svc.Name())
+		if len(svc.Endpoints) == 0 {
+			return merry.New("gateway: check invariants: service endpoints empty").Append(svc.Name)
 		}
 
 		serviceVar := new(expvar.Map)
-		servicesExpvar.Set(svc.Name(), serviceVar)
+		servicesExpvar.Set(svc.Name, serviceVar)
 
-		for i, endp := range svc.Endpoints() {
+		for i, endp := range svc.Endpoints {
 			if endp.Route == "" {
-				return merry.New("gateway: check invariants: endpoint route emtpy").Append(svc.Name()).Append(strconv.Itoa(i))
+				return merry.New("gateway: check invariants: endpoint route emtpy").Append(svc.Name).Append(strconv.Itoa(i))
 			}
 			if endp.Route[0] != '/' {
-				return merry.New("gateway: check invariants: endpoint route must begin with '/'").Append(svc.Name()).Append(endp.Route)
+				return merry.New("gateway: check invariants: endpoint route must begin with '/'").Append(svc.Name).Append(endp.Route)
 			}
 
 			e := endpoint{
 				Endpoint: service.Endpoint{
 					Route: endp.Route,
 				},
-				serviceName:       svc.Name(),
-				badQueryHandler:   svc.MalformedRequestHandler(),
-				notAllowedHandler: svc.MethodNotAllowedHandler(),
-				redirectHandler:   svc.RedirectHandler(),
-				iseHandler:        svc.InternalServerErrorHandler(),
+				serviceName:       svc.Name,
+				badQueryHandler:   svc.MalformedRequestHandler,
+				notAllowedHandler: svc.MethodNotAllowedHandler,
+				redirectHandler:   svc.RedirectHandler,
+				iseHandler:        svc.InternalServerErrorHandler,
 			}
 
 			foundMethod := false
 			if endp.Head != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Head)
+				pipeline, err := installPipeline(svc.Handlers, endp.Head)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodHead)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodHead)
 				}
 				e.Head = pipeline
 			}
 			if endp.Get != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Get)
+				pipeline, err := installPipeline(svc.Handlers, endp.Get)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodGet)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodGet)
 				}
 				e.Get = pipeline
 			}
 			if endp.Put != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Put)
+				pipeline, err := installPipeline(svc.Handlers, endp.Put)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodPut)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodPut)
 				}
 				e.Put = pipeline
 			}
 			if endp.Post != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Post)
+				pipeline, err := installPipeline(svc.Handlers, endp.Post)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodPost)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodPost)
 				}
 				e.Post = pipeline
 			}
 			if endp.Patch != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Patch)
+				pipeline, err := installPipeline(svc.Handlers, endp.Patch)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodPatch)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodPatch)
 				}
 				e.Patch = pipeline
 			}
 			if endp.Delete != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Delete)
+				pipeline, err := installPipeline(svc.Handlers, endp.Delete)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodDelete)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodDelete)
 				}
 				e.Delete = pipeline
 			}
 			if endp.Connect != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Connect)
+				pipeline, err := installPipeline(svc.Handlers, endp.Connect)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodConnect)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodConnect)
 				}
 				e.Connect = pipeline
 			}
 			if endp.Options != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Options)
+				pipeline, err := installPipeline(svc.Handlers, endp.Options)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodOptions)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodOptions)
 				}
 				e.Options = pipeline
 			}
 			if endp.Trace != nil {
 				foundMethod = true
-				pipeline, err := installPipeline(svc.Handlers(), endp.Trace)
+				pipeline, err := installPipeline(svc.Handlers, endp.Trace)
 				if err != nil {
-					return err.Append(svc.Name()).Append(endp.Route).Append(http.MethodTrace)
+					return err.Append(svc.Name).Append(endp.Route).Append(http.MethodTrace)
 				}
 				e.Trace = pipeline
 			}
 
 			if !foundMethod {
-				return merry.New("gateway: check invariants: endpoint requires least one method").Append(svc.Name()).Append(strconv.Itoa(i))
+				return merry.New("gateway: check invariants: endpoint requires least one method").Append(svc.Name).Append(strconv.Itoa(i))
 			}
 
 			if err := g.tree.addRoute(endp.Route, &e); err != nil {
