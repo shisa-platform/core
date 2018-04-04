@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/percolate/shisa/models"
 )
 
@@ -18,13 +20,14 @@ type Context interface {
 	context.Context
 	RequestID() string
 	Actor() models.User
-	WithParent(value context.Context) Context
-	WithActor(value models.User) Context
-	WithRequestID(value string) Context
+	WithParent(context.Context) Context
+	WithActor(models.User) Context
+	WithRequestID(string) Context
+	WithSpan(opentracing.Span) Context
 	WithValue(key, value interface{}) Context
 	WithCancel() (Context, context.CancelFunc)
-	WithDeadline(deadline time.Time) (Context, context.CancelFunc)
-	WithTimeout(timeout time.Duration) (Context, context.CancelFunc)
+	WithDeadline(time.Time) (Context, context.CancelFunc)
+	WithTimeout(time.Duration) (Context, context.CancelFunc)
 }
 
 type ctx struct {
@@ -76,6 +79,11 @@ func (c *ctx) WithActor(value models.User) Context {
 
 func (c *ctx) WithRequestID(value string) Context {
 	c.requestID = value
+	return c
+}
+
+func (c *ctx) WithSpan(value opentracing.Span) Context {
+	c.Context = opentracing.ContextWithSpan(c.Context, value)
 	return c
 }
 

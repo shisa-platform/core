@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/percolate/shisa/models"
 
 	"github.com/stretchr/testify/assert"
@@ -146,6 +148,20 @@ func TestWithRequestID(t *testing.T) {
 	assert.Equal(t, expectedRequestID, c.RequestID())
 	assert.Equal(t, expectedRequestID, new.RequestID())
 	assert.Equal(t, c, new)
+}
+
+func TestWithSpan(t *testing.T) {
+	c := New(context.Background())
+	tracer := opentracing.NoopTracer{}
+	parent := tracer.StartSpan("test")
+	ctx := c.WithSpan(parent)
+
+	assert.Equal(t, parent, opentracing.SpanFromContext(ctx))
+
+	child := tracer.StartSpan("sub", opentracing.ChildOf(parent.Context()))
+	sub := ctx.WithSpan(child)
+
+	assert.Equal(t, child, opentracing.SpanFromContext(sub))
 }
 
 func TestWithValue(t *testing.T) {
