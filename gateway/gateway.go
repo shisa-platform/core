@@ -16,6 +16,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/auxiliary"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/sd"
 )
@@ -39,12 +40,7 @@ func (h URLHook) InvokeSafely() (u *url.URL, err merry.Error, exception merry.Er
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in check url hook")
-			return
-		}
-
-		exception = merry.Errorf("panic in check url hook: \"%v\"", arg)
+		exception = errorx.CapturePanic(arg, "panic in check url hook")
 	}()
 
 	u, err = h()
@@ -58,7 +54,7 @@ type Gateway struct {
 	HandleInterrupt  bool          // Should SIGINT and SIGTERM interrupts be handled?
 	DisableKeepAlive bool          // Should TCP keep alive be disabled?
 	GracePeriod      time.Duration // Timeout for graceful shutdown of open connections
-	TLSConfig        *tls.Config   `json:"-"` // optional TLS config, used by ServeTLS
+	TLSConfig        *tls.Config   // optional TLS config, used by ServeTLS
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// request, including the body.
@@ -103,7 +99,7 @@ type Gateway struct {
 	// automatically closed when the function returns.
 	// If TLSNextProto is not nil, HTTP/2 support is not enabled
 	// automatically.
-	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler) `json:"-"`
+	TLSNextProto map[string]func(*http.Server, *tls.Conn, http.Handler)
 
 	// RequestIDHeaderName optionally customizes the name of the
 	// response header for the request id.
@@ -113,12 +109,12 @@ type Gateway struct {
 	// RequestIDGenerator optionally customizes how request ids
 	// are generated.
 	// If nil then `httpx.Request.GenerateID` will be used.
-	RequestIDGenerator httpx.StringExtractor `json:"-"`
+	RequestIDGenerator httpx.StringExtractor
 
 	// Handlers define handlers to run on all request before
 	// any other dispatch or validation.
 	// Example uses would be rate limiting or authentication.
-	Handlers []httpx.Handler `json:"-"`
+	Handlers []httpx.Handler
 
 	// HandlersTimeout is the maximum amount of time to wait for
 	// all gateway-level handlers to complete.
@@ -131,14 +127,14 @@ type Gateway struct {
 	// the corresponding endpoint has been determined.
 	// If nil the default handler will return a 500 status code
 	// with an empty body.
-	InternalServerErrorHandler httpx.ErrorHandler `json:"-"`
+	InternalServerErrorHandler httpx.ErrorHandler
 
 	// NotFoundHandler optionally customizes the response
 	// returned to the user agent when no endpoint is configured
 	// service a request path.
 	// If nil the default handler will return a 404 status code
 	// with an empty body.
-	NotFoundHandler httpx.Handler `json:"-"`
+	NotFoundHandler httpx.Handler
 
 	// Registrar implements sd.Registrar and registers
 	// the gateway service with a service registry, using the Gateway's
@@ -159,19 +155,20 @@ type Gateway struct {
 
 	// ErrorHook optionally customizes how errors encountered
 	// servicing a request are disposed.
-	// If nil no action will be taken.
-	ErrorHook httpx.ErrorHook `json:"-"`
+	// If nil the request id and error are sent to the standard
+	// library `log.Println` function.
+	ErrorHook httpx.ErrorHook
 
 	// CompletionHook optionally customizes the behavior after
 	// a request has been serviced.
 	// If nil no action will be taken.
-	CompletionHook httpx.CompletionHook `json:"-"`
+	CompletionHook httpx.CompletionHook
 
-	base     http.Server
-	listener net.Listener
-	tree     *node
-
-	started bool
+	base      http.Server
+	listener  net.Listener
+	tree      *node
+	started   bool
+	interrupt chan os.Signal
 }
 
 func (g *Gateway) init() {
@@ -203,13 +200,6 @@ func (g *Gateway) init() {
 		g.base.SetKeepAlivesEnabled(false)
 	}
 
-	// xxx - need to handle early shutdown before startup is completed
-	if g.HandleInterrupt {
-		interrupt := make(chan os.Signal, 1)
-		go g.handleInterrupt(interrupt)
-		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	}
-
 	if g.RequestIDHeaderName == "" {
 		g.RequestIDHeaderName = defaultRequestIDResponseHeader
 	}
@@ -219,7 +209,12 @@ func (g *Gateway) init() {
 	}
 
 	g.tree = new(node)
-	g.started = true
+
+	if g.HandleInterrupt {
+		g.interrupt = make(chan os.Signal, 1)
+		go g.handleInterrupt()
+		signal.Notify(g.interrupt, syscall.SIGINT, syscall.SIGTERM)
+	}
 }
 
 func connstate(con net.Conn, state http.ConnState) {
@@ -232,18 +227,86 @@ func connstate(con net.Conn, state http.ConnState) {
 	}
 }
 
-func (g *Gateway) handleInterrupt(interrupt chan os.Signal) {
+func (g *Gateway) handleInterrupt() {
 	select {
-	case <-interrupt:
-		signal.Stop(interrupt)
+	case sig := <-g.interrupt:
+		if sig != syscall.SIGINT && sig != syscall.SIGTERM {
+			return
+		}
+		signal.Stop(g.interrupt)
 		g.Shutdown()
 	}
 }
 
 // String implements `expvar.Var.String`
 func (g *Gateway) String() string {
+	repr := map[string]interface{}{
+		"Name":              g.Name,
+		"Addr":              g.Address(),
+		"HandleInterrupt":   g.HandleInterrupt,
+		"DisableKeepAlive":  g.DisableKeepAlive,
+		"GracePeriod":       g.GracePeriod.String(),
+		"ReadTimeout":       g.ReadTimeout.String(),
+		"ReadHeaderTimeout": g.ReadHeaderTimeout.String(),
+		"WriteTimeout":      g.WriteTimeout.String(),
+		"IdleTimeout":       g.IdleTimeout.String(),
+		"MaxHeaderBytes":    g.MaxHeaderBytes,
+	}
+
+	if g.TLSConfig == nil {
+		repr["TLSConfig"] = "unset"
+	} else {
+		repr["TLSConfig"] = "configured"
+	}
+	if len(g.TLSNextProto) == 0 {
+		repr["TLSNextProto"] = "unset"
+	} else {
+		repr["TLSNextProto"] = "configured"
+	}
+
+	repr["RequestIDHeaderName"] = g.RequestIDHeaderName
+	if g.RequestIDGenerator == nil {
+		repr["RequestIDGenerator"] = "unset"
+	} else {
+		repr["RequestIDGenerator"] = "configured"
+	}
+
+	repr["Handlers"] = len(g.Handlers)
+	repr["HandlersTimeout"] = g.HandlersTimeout.String()
+
+	if g.InternalServerErrorHandler == nil {
+		repr["InternalServerErrorHandler"] = "unset"
+	} else {
+		repr["InternalServerErrorHandler"] = "configured"
+	}
+	if g.NotFoundHandler == nil {
+		repr["NotFoundHandler"] = "unset"
+	} else {
+		repr["NotFoundHandler"] = "configured"
+	}
+	if g.Registrar == nil {
+		repr["Registrar"] = "unset"
+	} else {
+		repr["Registrar"] = "configured"
+	}
+	if g.CheckURLHook == nil {
+		repr["CheckURLHook"] = "unset"
+	} else {
+		repr["CheckURLHook"] = "configured"
+	}
+	if g.ErrorHook == nil {
+		repr["ErrorHook"] = "unset"
+	} else {
+		repr["ErrorHook"] = "configured"
+	}
+	if g.CompletionHook == nil {
+		repr["CompletionHook"] = "unset"
+	} else {
+		repr["CompletionHook"] = "configured"
+	}
+
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
-	enc.Encode(g)
+	enc.Encode(repr)
 	return buf.String()
 }

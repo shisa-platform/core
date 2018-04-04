@@ -559,9 +559,8 @@ func TestHealthcheckServerServeHTTPCustomCompletionHook(t *testing.T) {
 }
 
 func TestHealthcheckServerServeHTTPFailingCheck(t *testing.T) {
-	userMessage := "help me I'm trapped in a software bug factory!"
 	msg := "i blewed up!"
-	err := merry.New(msg).WithUserMessage(userMessage)
+	err := merry.New(msg)
 	ng := stubHealthchecker{name: "fail", err: err}
 	errHandler := new(mockErrorHook)
 	cut := HealthcheckServer{
@@ -619,7 +618,7 @@ func TestHealthcheckServerServeHTTPHealthcheckerPanic(t *testing.T) {
 
 	expectedJson := `{
   "pass": "OK",
-  "fail": "panic in healthcheck"
+  "fail": "panic in healthcheck: i blewed up!"
 }`
 	assert.JSONEq(t, expectedJson, w.Body.String())
 }
@@ -651,7 +650,7 @@ func TestHealthcheckServerServeHTTPHealthcheckerPanicString(t *testing.T) {
 
 	expectedJson := `{
   "pass": "OK",
-  "fail": "panic in healthcheck: \"i blewed up!\""
+  "fail": "panic in healthcheck: i blewed up!"
 }`
 	assert.JSONEq(t, expectedJson, w.Body.String())
 }

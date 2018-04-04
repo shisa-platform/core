@@ -11,20 +11,22 @@ import (
 	"github.com/percolate/shisa/context"
 )
 
-//go:generate charlatan -output=./consulselfer_charlatan.go Selfer
-type Selfer interface {
+//go:generate charlatan -output=./consulselfer_charlatan.go selfer
+
+type selfer interface {
 	Self() (map[string]map[string]interface{}, error)
 }
 
-//go:generate charlatan -output=./consulkvgetter_charlatan.go KVGetter
-type KVGetter interface {
+//go:generate charlatan -output=./consulkvgetter_charlatan.go kvGetter
+
+type kvGetter interface {
 	Get(string, *consul.QueryOptions) (*consul.KVPair, *consul.QueryMeta, error)
 	List(string, *consul.QueryOptions) (consul.KVPairs, *consul.QueryMeta, error)
 }
 
-var _ Selfer = (*consul.Agent)(nil)
-var _ KVGetter = (*consul.KV)(nil)
-var _ Provider = (*consulProvider)(nil)
+var _ selfer = (*consul.Agent)(nil)
+var _ kvGetter = (*consul.KV)(nil)
+var _ Provider = (*ConsulProvider)(nil)
 
 type kvMonitor struct {
 	ch         chan<- Value
@@ -34,38 +36,38 @@ type kvMonitor struct {
 	del        bool
 }
 
-type MemberStatus int
+type memberStatus int
 
 type ErrorHandler func(error)
 
 const (
-	StatusNone MemberStatus = iota
-	StatusAlive
-	StatusLeaving
-	StatusLeft
-	StatusFailed
+	statusNone memberStatus = iota
+	statusAlive
+	statusLeaving
+	statusLeft
+	statusFailed
 )
 
-func (s MemberStatus) String() string {
+func (s memberStatus) String() string {
 	switch s {
-	case StatusNone:
+	case statusNone:
 		return "none"
-	case StatusAlive:
+	case statusAlive:
 		return "alive"
-	case StatusLeaving:
+	case statusLeaving:
 		return "leaving"
-	case StatusLeft:
+	case statusLeft:
 		return "left"
-	case StatusFailed:
+	case statusFailed:
 		return "failed"
 	default:
 		return "unknown"
 	}
 }
 
-type consulProvider struct {
-	agent Selfer
-	kv    KVGetter
+type ConsulProvider struct {
+	agent selfer
+	kv    kvGetter
 
 	mux   sync.Mutex
 	once  sync.Once
@@ -79,56 +81,65 @@ type consulProvider struct {
 	ErrorHandler ErrorHandler
 }
 
-func NewConsul(c *consul.Client) *consulProvider {
-	return &consulProvider{
+func NewConsul(c *consul.Client) *ConsulProvider {
+	return &ConsulProvider{
 		agent: c.Agent(),
 		kv:    c.KV(),
 	}
 }
 
-func (p *consulProvider) Get(name string) (string, merry.Error) {
+func (p *ConsulProvider) Get(name string) (string, merry.Error) {
 	kvp, _, err := p.kv.Get(name, nil)
 	if err != nil {
-		return "", merry.Wrap(err).WithValue("name", name)
+		return "", merry.Prepend(err, "consul env provider: get").Append(name)
+	}
+	if kvp == nil {
+		return "", NameNotSet.Prepend("consul env provider: get").Append(name)
 	}
 
 	r := string(kvp.Value)
 	if r == "" {
-		return "", NameEmpty.Here().WithValue("name", name)
+		return "", NameEmpty.Prepend("consul env provider: get").Append(name)
 	}
 
 	return r, nil
 }
 
-func (p *consulProvider) GetInt(name string) (int, merry.Error) {
+func (p *ConsulProvider) GetInt(name string) (int, merry.Error) {
 	kvp, _, err := p.kv.Get(name, nil)
 	if err != nil {
-		return 0, merry.Wrap(err).WithValue("name", name)
+		return 0, merry.Prepend(err, "consul env provider: get int").Append(name)
+	}
+	if kvp == nil {
+		return 0, NameNotSet.Prepend("consul env provider: get int").Append(name)
 	}
 
 	r, err := strconv.Atoi(string(kvp.Value))
 	if err != nil {
-		return 0, merry.Wrap(err).WithValue("name", name)
+		return 0, merry.Prepend(err, "consul env provider: get int").Append(name)
 	}
 
 	return r, nil
 }
 
-func (p *consulProvider) GetBool(name string) (bool, merry.Error) {
+func (p *ConsulProvider) GetBool(name string) (bool, merry.Error) {
 	kvp, _, err := p.kv.Get(name, nil)
 	if err != nil {
-		return false, merry.Wrap(err).WithValue("name", name)
+		return false, merry.Prepend(err, "consul env provider: get bool").Append(name)
+	}
+	if kvp == nil {
+		return false, NameNotSet.Prepend("consul env provider: get bool").Append(name)
 	}
 
 	r, err := strconv.ParseBool(string(kvp.Value))
 	if err != nil {
-		return false, merry.Wrap(err).WithValue("name", name)
+		return false, merry.Prepend(err, "consul env provider: get bool").Append(name)
 	}
 
 	return r, nil
 }
 
-func (p *consulProvider) Monitor(key string, v chan<- Value) {
+func (p *ConsulProvider) Monitor(key string, v chan<- Value) {
 	p.once.Do(func() {
 		p.kvMap = make(map[string]*kvMonitor)
 		p.stopCh = make(chan struct{})
@@ -142,7 +153,7 @@ func (p *consulProvider) Monitor(key string, v chan<- Value) {
 	return
 }
 
-func (p *consulProvider) Shutdown() {
+func (p *ConsulProvider) Shutdown() {
 	if p.stopCh == nil {
 		return
 	}
@@ -164,35 +175,35 @@ func (p *consulProvider) Shutdown() {
 	return
 }
 
-func (p *consulProvider) Healthcheck(context.Context) merry.Error {
+func (p *ConsulProvider) Healthcheck(context.Context) merry.Error {
 	s, err := p.status()
 	if err != nil {
-		return err
+		return merry.Prepend(err, "consul env provider: healthcheck")
 	}
 
-	if s == StatusAlive {
+	if s == statusAlive {
 		return nil
 	}
 
-	return merry.New("consul agent not alive").WithValue("status", s.String())
+	return merry.New("consul env provider: healthcheck: agent down").Append(s.String())
 }
 
-func (p *consulProvider) status() (status MemberStatus, merr merry.Error) {
+func (p *ConsulProvider) status() (status memberStatus, merr merry.Error) {
 	s, err := p.agent.Self()
 	if err != nil {
-		merr = merry.Wrap(err)
+		merr = merry.Prepend(err, "consul env provider: healthcheck")
 		return
 	}
 
-	status, ok := s["Member"]["Status"].(MemberStatus)
+	status, ok := s["Member"]["Status"].(memberStatus)
 	if !ok {
-		merr = merry.New("invalid member status for call to agent.Self")
+		merr = merry.New("consul env provider: healthcheck: invalid member status")
 	}
 
 	return
 }
 
-func (p *consulProvider) monitorLoop() {
+func (p *ConsulProvider) monitorLoop() {
 	lastIndex := uint64(0)
 
 	ctx, cancel := stdctx.WithCancel(stdctx.Background())
@@ -271,7 +282,7 @@ func (p *consulProvider) monitorLoop() {
 	return
 }
 
-func (p *consulProvider) shouldStop() bool {
+func (p *ConsulProvider) shouldStop() bool {
 	select {
 	case <-p.stopCh:
 		return true
@@ -280,7 +291,7 @@ func (p *consulProvider) shouldStop() bool {
 	}
 }
 
-func (p *consulProvider) IsMonitoring() bool {
+func (p *ConsulProvider) IsMonitoring() bool {
 	if p.stopCh == nil {
 		return false
 	}

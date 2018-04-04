@@ -10,6 +10,7 @@ import (
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 )
 
@@ -113,7 +114,7 @@ func (s *HealthcheckServer) Service(ctx context.Context, request *httpx.Request)
 		if err := invokeHealthcheckSafely(ctx, check); err != nil {
 			status[check.Name()] = err.Error()
 			code = http.StatusServiceUnavailable
-			err1 := merry.WithMessage(err, "health check failed").WithValue("name", check.Name())
+			err1 := err.Prepend(check.Name()).Prepend("healthcheck")
 			s.invokeErrorHookSafely(ctx, request, err1)
 			continue
 		}
@@ -137,12 +138,7 @@ func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Er
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			err = merry.WithMessage(err1, "panic in healthcheck")
-			return
-		}
-
-		err = merry.Errorf("panic in healthcheck: \"%v\"", arg)
+		err = errorx.CapturePanic(arg, "panic in healthcheck")
 	}()
 
 	return h.Healthcheck(ctx)

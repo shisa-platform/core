@@ -11,6 +11,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/middleware"
 )
@@ -173,13 +174,7 @@ func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (res
 			return
 		}
 
-		var err merry.Error
-		if err1, ok := arg.(error); ok {
-			err = merry.Prepend(err1, "panic in auxiliary authorizer")
-		} else {
-			err = merry.Errorf("panic in auxiliary authorizer: \"%v\"", arg)
-		}
-
+		err := errorx.CapturePanic(arg, "panic in auxiliary authorizer")
 		err = err.WithHTTPCode(http.StatusForbidden)
 		response = httpx.NewEmptyError(http.StatusForbidden, err)
 	}()
@@ -260,15 +255,15 @@ finish:
 		s.invokeErrorHookSafely(ctx, request, idErr)
 	}
 
-	writeErr1 := merry.Prepend(writeErr, "auxiliary server: route: serialize response")
-	if writeErr1 != nil {
-		s.invokeErrorHookSafely(ctx, request, writeErr1)
+	writeErr = merry.Prepend(writeErr, "auxiliary server: route: serialize response")
+	if writeErr != nil {
+		s.invokeErrorHookSafely(ctx, request, writeErr)
 	}
 
-	respErr := merry.Wrap(response.Err())
+	respErr := response.Err()
 	if respErr != nil {
-		respErr = merry.Prepend(respErr, "auxiliary server: route: handler failed")
-		s.invokeErrorHookSafely(ctx, request, respErr)
+		respErr1 := merry.Prepend(respErr, "auxiliary server: route: handler failed")
+		s.invokeErrorHookSafely(ctx, request, respErr1)
 	}
 }
 
@@ -331,7 +326,7 @@ func (s *HTTPServer) invokeErrorHookSafely(ctx context.Context, request *httpx.R
 
 func (s *HTTPServer) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
 	if ex := s.CompletionHook.InvokeSafely(ctx, request, snapshot); ex != nil {
-		exception := merry.Prepend(ex, "auxiliary server: route: run CompletionHook")
+		exception := ex.Prepend("auxiliary server: route: run CompletionHook")
 		s.invokeErrorHookSafely(ctx, request, exception)
 	}
 }

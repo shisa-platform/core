@@ -23,14 +23,14 @@ var (
 
 func TestMemberStatusString(t *testing.T) {
 	tests := []struct {
-		status MemberStatus
+		status memberStatus
 		str    string
 	}{
-		{StatusNone, "none"},
-		{StatusAlive, "alive"},
-		{StatusLeaving, "leaving"},
-		{StatusLeft, "left"},
-		{StatusFailed, "failed"},
+		{statusNone, "none"},
+		{statusAlive, "alive"},
+		{statusLeaving, "leaving"},
+		{statusLeft, "left"},
+		{statusFailed, "failed"},
 		{999999, "unknown"},
 	}
 	for _, test := range tests {
@@ -51,13 +51,13 @@ func TestNewConsul(t *testing.T) {
 }
 
 func TestConsulProviderGet(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return &consulapi.KVPair{Value: defaultVal}, nil, nil
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -70,13 +70,13 @@ func TestConsulProviderGet(t *testing.T) {
 }
 
 func TestConsulProviderGetError(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return nil, nil, merry.New("get error")
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -89,13 +89,13 @@ func TestConsulProviderGetError(t *testing.T) {
 }
 
 func TestConsulProviderGetEmpty(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return &consulapi.KVPair{Value: []byte("")}, nil, nil
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -107,14 +107,34 @@ func TestConsulProviderGetEmpty(t *testing.T) {
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
 }
 
+func TestConsulProviderGetMissing(t *testing.T) {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			return nil, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	r, err := c.Get(defaultKey)
+
+	assert.Equal(t, "", r)
+	assert.Error(t, err)
+	assert.True(t, merry.Is(err, NameNotSet))
+	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
 func TestConsulProviderGetInt(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return &consulapi.KVPair{Value: defaultIntVal}, nil, nil
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -127,13 +147,13 @@ func TestConsulProviderGetInt(t *testing.T) {
 }
 
 func TestConsulProviderGetIntError(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return nil, nil, merry.New("get error")
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -146,13 +166,13 @@ func TestConsulProviderGetIntError(t *testing.T) {
 }
 
 func TestConsulProviderGetIntParseFailure(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return &consulapi.KVPair{Value: defaultVal}, nil, nil
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -164,14 +184,34 @@ func TestConsulProviderGetIntParseFailure(t *testing.T) {
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
 }
 
+func TestConsulProviderGetIntMissing(t *testing.T) {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			return nil, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	r, err := c.GetInt(defaultKey)
+
+	assert.Zero(t, r)
+	assert.Error(t, err)
+	assert.True(t, merry.Is(err, NameNotSet))
+	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
 func TestConsulProviderGetBool(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return &consulapi.KVPair{Value: defaultBoolVal}, nil, nil
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -184,13 +224,13 @@ func TestConsulProviderGetBool(t *testing.T) {
 }
 
 func TestConsulProviderGetBoolError(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return nil, nil, merry.New("get error")
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -203,13 +243,13 @@ func TestConsulProviderGetBoolError(t *testing.T) {
 }
 
 func TestConsulProviderGetBoolParseFailure(t *testing.T) {
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
 			return &consulapi.KVPair{Value: defaultVal}, nil, nil
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -221,11 +261,31 @@ func TestConsulProviderGetBoolParseFailure(t *testing.T) {
 	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
 }
 
+func TestConsulProviderGetBoolMissing(t *testing.T) {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			return nil, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+
+	r, err := c.GetBool(defaultKey)
+
+	assert.False(t, r)
+	assert.Error(t, err)
+	assert.True(t, merry.Is(err, NameNotSet))
+	kvg.AssertGetCalledOnceWith(t, defaultKey, nil)
+}
+
 func TestConsulProviderMonitorNoChange(t *testing.T) {
 	i := uint64(10)
 	z := 0
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { z++ }()
 			if z < 3 {
@@ -235,7 +295,7 @@ func TestConsulProviderMonitorNoChange(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -248,8 +308,8 @@ func TestConsulProviderMonitorNoChange(t *testing.T) {
 
 func TestConsulProviderMonitorIndexChange(t *testing.T) {
 	i := uint64(10)
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 			if i < 13 {
@@ -259,7 +319,7 @@ func TestConsulProviderMonitorIndexChange(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 		mux:   sync.Mutex{},
@@ -275,8 +335,8 @@ func TestConsulProviderMonitorIndexChange(t *testing.T) {
 func TestConsulProviderMonitorChange(t *testing.T) {
 	i := uint64(10)
 	newVal := "NEW_VAL"
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 			switch i {
@@ -292,7 +352,7 @@ func TestConsulProviderMonitorChange(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 		mux:   sync.Mutex{},
@@ -315,10 +375,10 @@ func TestConsulProviderMonitorChange(t *testing.T) {
 func TestConsulProviderMonitorIndexReset(t *testing.T) {
 	i := uint64(10)
 	newVal := "NEW_VAL"
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
 	swap := true
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 
@@ -340,7 +400,7 @@ func TestConsulProviderMonitorIndexReset(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -366,8 +426,8 @@ func TestConsulProviderMonitorMultipleKeys(t *testing.T) {
 	i := uint64(10)
 	anyKey := "ANY"
 	newVal := "NEW_VAL"
-	s := &FakeSelfer{}
-	kvg := &FakeKVGetter{
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 			switch i {
@@ -383,7 +443,7 @@ func TestConsulProviderMonitorMultipleKeys(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -405,9 +465,9 @@ func TestConsulProviderMonitorMultipleMonitor(t *testing.T) {
 	i := uint64(10)
 	anyKey := "ANY"
 	newVal := "NEW_VAL"
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 
@@ -424,7 +484,7 @@ func TestConsulProviderMonitorMultipleMonitor(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 		mux:   sync.Mutex{},
@@ -451,9 +511,9 @@ func TestConsulProviderMonitorMultipleMonitor(t *testing.T) {
 
 func TestConsulProviderMonitorDeletedKey(t *testing.T) {
 	i := uint64(10)
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 
@@ -470,7 +530,7 @@ func TestConsulProviderMonitorDeletedKey(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -486,9 +546,9 @@ func TestConsulProviderMonitorDeletedKey(t *testing.T) {
 
 func TestConsulProviderMonitorRevenant(t *testing.T) {
 	i := uint64(10)
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 
@@ -507,7 +567,7 @@ func TestConsulProviderMonitorRevenant(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 		mux:   sync.Mutex{},
@@ -537,14 +597,14 @@ func TestConsulProviderMonitorErrorHandler(t *testing.T) {
 		return
 	}
 
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			return nil, nil, e
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		ErrorHandler: errorHandler,
 
 		agent: s,
@@ -561,9 +621,9 @@ func TestConsulProviderMonitorErrorHandler(t *testing.T) {
 
 func TestConsulProviderShutdown(t *testing.T) {
 	i := uint64(10)
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 
@@ -575,7 +635,7 @@ func TestConsulProviderShutdown(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -595,10 +655,10 @@ func TestConsulProviderShutdown(t *testing.T) {
 }
 
 func TestConsulProviderShutdownNotMonitoring(t *testing.T) {
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{}
-	c := &consulProvider{
+	kvg := &FakekvGetter{}
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -610,9 +670,9 @@ func TestConsulProviderShutdownNotMonitoring(t *testing.T) {
 
 func TestConsulProviderIsMonitoring(t *testing.T) {
 	i := uint64(10)
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 
-	kvg := &FakeKVGetter{
+	kvg := &FakekvGetter{
 		ListHook: func(s string, options *consulapi.QueryOptions) (consulapi.KVPairs, *consulapi.QueryMeta, error) {
 			defer func() { i++ }()
 
@@ -624,7 +684,7 @@ func TestConsulProviderIsMonitoring(t *testing.T) {
 			}
 		},
 	}
-	c := &consulProvider{
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -649,11 +709,11 @@ func TestConsulProviderIsMonitoring(t *testing.T) {
 
 func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
 	i := uint64(10)
-	s := &FakeSelfer{}
+	s := &Fakeselfer{}
 	shut := make(chan struct{})
 
-	kvg := &FakeKVGetter{}
-	c := &consulProvider{
+	kvg := &FakekvGetter{}
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -677,16 +737,16 @@ func TestConsulProviderShutdownAfterListCalled(t *testing.T) {
 }
 
 func TestConsulProviderHealthcheck(t *testing.T) {
-	s := &FakeSelfer{
+	s := &Fakeselfer{
 		SelfHook: func() (map[string]map[string]interface{}, error) {
 			m := make(map[string]map[string]interface{})
 			m["Member"] = make(map[string]interface{})
-			m["Member"]["Status"] = StatusAlive
+			m["Member"]["Status"] = statusAlive
 			return m, nil
 		},
 	}
-	kvg := &FakeKVGetter{}
-	c := &consulProvider{
+	kvg := &FakekvGetter{}
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -699,13 +759,13 @@ func TestConsulProviderHealthcheck(t *testing.T) {
 }
 
 func TestConsulProviderHealthcheckStatusError(t *testing.T) {
-	s := &FakeSelfer{
+	s := &Fakeselfer{
 		SelfHook: func() (map[string]map[string]interface{}, error) {
 			return nil, merry.New("self failure")
 		},
 	}
-	kvg := &FakeKVGetter{}
-	c := &consulProvider{
+	kvg := &FakekvGetter{}
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -718,16 +778,16 @@ func TestConsulProviderHealthcheckStatusError(t *testing.T) {
 }
 
 func TestConsulProviderHealthcheckNotAlive(t *testing.T) {
-	s := &FakeSelfer{
+	s := &Fakeselfer{
 		SelfHook: func() (map[string]map[string]interface{}, error) {
 			m := make(map[string]map[string]interface{})
 			m["Member"] = make(map[string]interface{})
-			m["Member"]["Status"] = StatusFailed
+			m["Member"]["Status"] = statusFailed
 			return m, nil
 		},
 	}
-	kvg := &FakeKVGetter{}
-	c := &consulProvider{
+	kvg := &FakekvGetter{}
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}
@@ -740,7 +800,7 @@ func TestConsulProviderHealthcheckNotAlive(t *testing.T) {
 }
 
 func TestConsulProviderStatusUnparseable(t *testing.T) {
-	s := &FakeSelfer{
+	s := &Fakeselfer{
 		SelfHook: func() (map[string]map[string]interface{}, error) {
 			m := make(map[string]map[string]interface{})
 			m["Member"] = make(map[string]interface{})
@@ -748,8 +808,8 @@ func TestConsulProviderStatusUnparseable(t *testing.T) {
 			return m, nil
 		},
 	}
-	kvg := &FakeKVGetter{}
-	c := &consulProvider{
+	kvg := &FakekvGetter{}
+	c := &ConsulProvider{
 		agent: s,
 		kv:    kvg,
 	}

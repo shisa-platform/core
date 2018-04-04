@@ -2,6 +2,7 @@ package gateway
 
 import (
 	stdctx "context"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/ansel1/merry"
 
 	"github.com/percolate/shisa/context"
+	"github.com/percolate/shisa/errorx"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/metrics"
 	"github.com/percolate/shisa/service"
@@ -105,11 +107,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timing.Start(RunGatewayHandlersMetricKey)
-	for i, handler := range g.Handlers {
+	for _, handler := range g.Handlers {
 		go func() {
 			response, exception := handler.InvokeSafely(subCtx, request)
 			if exception != nil {
-				err = exception.Prepend("gateway: route: run gateway handler").WithValue("index", i)
+				err = exception.Prepend("gateway: route: run gateway handler")
 				response = g.handleError(subCtx, request, err)
 			}
 
@@ -241,11 +243,11 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 endpointHandlers:
-	for i, handler := range pipeline.Handlers {
+	for _, handler := range pipeline.Handlers {
 		go func() {
 			response, exception := handler.InvokeSafely(ctx, request)
 			if exception != nil {
-				err = exception.Prepend("gateway: route: run endpoint handler").WithValue("index", i)
+				err = exception.Prepend("gateway: route: run endpoint handler")
 				response = g.handleEndpointError(endpoint, ctx, request, err)
 			}
 
@@ -309,10 +311,10 @@ finish:
 		g.invokeErrorHookSafely(ctx, request, writeErr)
 	}
 
-	respErr := merry.Wrap(response.Err())
+	respErr := response.Err()
 	if respErr != nil && respErr != err {
-		respErr = merry.Prepend(respErr, "gateway: route: handler failed")
-		g.invokeErrorHookSafely(ctx, request, respErr)
+		respErr1 := merry.Prepend(respErr, "gateway: route: handler failed")
+		g.invokeErrorHookSafely(ctx, request, respErr1)
 	}
 }
 
@@ -375,11 +377,25 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 }
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
-	g.ErrorHook.InvokeSafely(ctx, request, err)
+	if g.ErrorHook == nil {
+		g.fallbackErrorHook(ctx, err)
+	}
+
+	if exception := g.ErrorHook.InvokeSafely(ctx, request, err); exception != nil {
+		g.fallbackErrorHook(ctx, err)
+		exception = exception.Prepend("gateway: route: run ErrorHook")
+		g.fallbackErrorHook(ctx, exception)
+	}
+}
+
+func (g *Gateway) fallbackErrorHook(ctx context.Context, err merry.Error) {
+	log.Println(ctx.RequestID(), err.Error())
+	if errorx.IsPanic(err) {
+		log.Print(ctx.RequestID(), " stack trace\n", merry.Stacktrace(err))
+	}
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
-
 	if exception := g.CompletionHook.InvokeSafely(ctx, request, snapshot); exception != nil {
 		exception = exception.Prepend("gateway: route: run CompletionHook")
 		g.invokeErrorHookSafely(ctx, request, exception)

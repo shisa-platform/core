@@ -7,6 +7,8 @@ import (
 
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
+
+	"github.com/percolate/shisa/errorx"
 )
 
 var (
@@ -24,12 +26,7 @@ func (v Validator) InvokeSafely(values []string) (_ merry.Error, exception merry
 			return
 		}
 
-		if err1, ok := arg.(error); ok {
-			exception = merry.Prepend(err1, "panic in validator")
-			return
-		}
-
-		exception = merry.Errorf("panic in validator: \"%v\"", arg)
+		exception = errorx.CapturePanic(arg, "panic in validator")
 	}()
 
 	return v(values), nil
@@ -82,7 +79,7 @@ type FixedStringValidator struct {
 func (v FixedStringValidator) Validate(values []string) merry.Error {
 	for _, value := range values {
 		if v.Target != value {
-			return UnexpectedValue.Appendf("must match %q", v.Target)
+			return UnexpectedValue.Append(value)
 		}
 	}
 

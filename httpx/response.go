@@ -38,6 +38,7 @@ type BasicResponse struct {
 	Code     int
 	headers  http.Header
 	trailers http.Header
+	Error    error
 }
 
 func (r *BasicResponse) StatusCode() int {
@@ -59,7 +60,7 @@ func (r *BasicResponse) Trailers() http.Header {
 }
 
 func (r *BasicResponse) Err() error {
-	return nil
+	return r.Error
 }
 
 func (r *BasicResponse) Serialize(io.Writer) merry.Error {
@@ -76,7 +77,7 @@ func (r *JsonResponse) Serialize(w io.Writer) merry.Error {
 	encoder.SetIndent("", "")
 	encoder.SetEscapeHTML(true)
 
-	return merry.WithMessage(encoder.Encode(r.Payload), "serializing json")
+	return merry.Prepend(encoder.Encode(r.Payload), "json response: serialize")
 }
 
 func NewEmpty(code int) Response {
@@ -85,20 +86,9 @@ func NewEmpty(code int) Response {
 	}
 }
 
-type ErrorResponse struct {
-	BasicResponse
-	Error error
-}
-
-func (r *ErrorResponse) Err() error {
-	return r.Error
-}
-
 func NewEmptyError(code int, err error) Response {
-	return &ErrorResponse{
-		BasicResponse: BasicResponse{
-			Code: code,
-		},
+	return &BasicResponse{
+		Code:  code,
 		Error: err,
 	}
 }
@@ -109,9 +99,8 @@ func NewOK(body json.Marshaler) Response {
 
 	return &JsonResponse{
 		BasicResponse: BasicResponse{
-			Code:     http.StatusOK,
-			headers:  headers,
-			trailers: make(http.Header),
+			Code:    http.StatusOK,
+			headers: headers,
 		},
 		Payload: body,
 	}
@@ -121,9 +110,8 @@ func NewSeeOther(location string) Response {
 	headers := make(http.Header)
 	headers.Set(LocationHeaderKey, location)
 	return &BasicResponse{
-		Code:     http.StatusSeeOther,
-		headers:  headers,
-		trailers: make(http.Header),
+		Code:    http.StatusSeeOther,
+		headers: headers,
 	}
 }
 
@@ -131,9 +119,8 @@ func NewTemporaryRedirect(location string) Response {
 	headers := make(http.Header)
 	headers.Set(LocationHeaderKey, location)
 	return &BasicResponse{
-		Code:     http.StatusTemporaryRedirect,
-		headers:  headers,
-		trailers: make(http.Header),
+		Code:    http.StatusTemporaryRedirect,
+		headers: headers,
 	}
 }
 
@@ -166,7 +153,7 @@ func (r ResponseAdapter) Serialize(w io.Writer) merry.Error {
 	_, err := io.CopyBuffer(w, r.Body, buf)
 	r.Body.Close()
 
-	return merry.WithMessage(err, "copying response buffer")
+	return merry.Prepend(err, "response adapter: serialize")
 }
 
 func getBuffer() []byte {

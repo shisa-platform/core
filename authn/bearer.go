@@ -19,7 +19,7 @@ type bearerAuthenticator struct {
 func (m *bearerAuthenticator) Authenticate(ctx context.Context, r *httpx.Request) (models.User, merry.Error) {
 	credentials, err := AuthenticationHeaderTokenExtractor(ctx, r, "Bearer")
 	if err != nil {
-		return nil, err
+		return nil, err.Prepend("bearer auth: authenticate")
 	}
 
 	return m.idp.Authenticate(ctx, credentials)
@@ -38,7 +38,7 @@ func (m *bearerAuthenticator) Challenge() string {
 // An error will be returned if the `idp` parameter is nil.
 func NewBearerAuthenticator(idp IdentityProvider, realm string) (Authenticator, merry.Error) {
 	if idp == nil {
-		return nil, merry.New("Identity provider must be non-nil")
+		return nil, merry.New("bearer auth: check invariants: identity provider nil")
 	}
 
 	return &bearerAuthenticator{idp: idp, realm: realm}, nil
