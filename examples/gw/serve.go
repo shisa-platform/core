@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/gateway"
 	"github.com/percolate/shisa/httpx"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/middleware"
 	"github.com/percolate/shisa/sd"
 )
@@ -25,8 +27,9 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 
 	res := sd.NewConsul(client)
+	bal := lb.NewLeastN(res, 2)
 
-	idp := &ExampleIdentityProvider{Resolver: res}
+	idp := &ExampleIdentityProvider{Balancer: bal}
 
 	authenticator, err := authn.NewBasicAuthenticator(idp, "example")
 	if err != nil {
@@ -48,8 +51,8 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	go runAuxiliary(debug, logger)
 
-	hello := NewHelloService(res)
-	goodbye := NewGoodbyeService(res)
+	hello := NewHelloService(bal)
+	goodbye := NewGoodbyeService(bal)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
@@ -63,13 +66,6 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	go runAuxiliary(healthcheck, logger)
 
-	healthcheckURL := &url.URL{
-		Scheme:   "http",
-		Host:     healthcheck.Address(),
-		Path:     healthcheck.Path,
-		User:     url.UserPassword("Admin", "password"),
-		RawQuery: "interval=10s",
-	}
 	gw := &gateway.Gateway{
 		Name:            "example",
 		Addr:            addr,
@@ -77,11 +73,26 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 		GracePeriod:     2 * time.Second,
 		Handlers:        []httpx.Handler{authN.Service},
 		Registrar:       res,
-		CheckURLHook: func() (*url.URL, merry.Error) {
-			return healthcheckURL, nil
-		},
-		CompletionHook: lh.completion,
-		ErrorHook:      lh.error,
+		CompletionHook:  lh.completion,
+		ErrorHook:       lh.error,
+	}
+
+	gw.RegistrationURLHook = func() (u *url.URL, err merry.Error) {
+		u = &url.URL{
+			Host:     gw.Address(),
+			RawQuery: fmt.Sprintf("id=%s", gw.Name),
+		}
+		return
+	}
+	gw.CheckURLHook = func() (u *url.URL, err merry.Error) {
+		u = &url.URL{
+			Scheme:   "http",
+			Host:     healthcheck.Address(),
+			Path:     healthcheck.Path,
+			User:     url.UserPassword("Admin", "password"),
+			RawQuery: fmt.Sprintf("interval=10s&serviceid=%s", gw.Name),
+		}
+		return
 	}
 
 	ch := make(chan merry.Error, 1)

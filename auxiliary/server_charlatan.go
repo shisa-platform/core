@@ -172,6 +172,10 @@ func (f *FakeServer) Reset() {
 }
 
 func (_f1 *FakeServer) Name() (ident1 string) {
+	if _f1.NameHook == nil {
+		panic("Server.Name() called but FakeServer.NameHook is nil")
+	}
+
 	invocation := new(ServerNameInvocation)
 	_f1.NameCalls = append(_f1.NameCalls, invocation)
 
@@ -235,6 +239,10 @@ func (f *FakeServer) AssertNameCalledN(t ServerTestingT, n int) {
 }
 
 func (_f2 *FakeServer) Address() (ident1 string) {
+	if _f2.AddressHook == nil {
+		panic("Server.Address() called but FakeServer.AddressHook is nil")
+	}
+
 	invocation := new(ServerAddressInvocation)
 	_f2.AddressCalls = append(_f2.AddressCalls, invocation)
 
@@ -298,6 +306,10 @@ func (f *FakeServer) AssertAddressCalledN(t ServerTestingT, n int) {
 }
 
 func (_f3 *FakeServer) Listen() (ident1 error) {
+	if _f3.ListenHook == nil {
+		panic("Server.Listen() called but FakeServer.ListenHook is nil")
+	}
+
 	invocation := new(ServerListenInvocation)
 	_f3.ListenCalls = append(_f3.ListenCalls, invocation)
 
@@ -361,6 +373,10 @@ func (f *FakeServer) AssertListenCalledN(t ServerTestingT, n int) {
 }
 
 func (_f4 *FakeServer) Serve() (ident1 error) {
+	if _f4.ServeHook == nil {
+		panic("Server.Serve() called but FakeServer.ServeHook is nil")
+	}
+
 	invocation := new(ServerServeInvocation)
 	_f4.ServeCalls = append(_f4.ServeCalls, invocation)
 
@@ -424,6 +440,10 @@ func (f *FakeServer) AssertServeCalledN(t ServerTestingT, n int) {
 }
 
 func (_f5 *FakeServer) Shutdown(ident1 time.Duration) (ident2 error) {
+	if _f5.ShutdownHook == nil {
+		panic("Server.Shutdown() called but FakeServer.ShutdownHook is nil")
+	}
+
 	invocation := new(ServerShutdownInvocation)
 	_f5.ShutdownCalls = append(_f5.ShutdownCalls, invocation)
 

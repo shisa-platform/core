@@ -364,6 +364,10 @@ func (f *FakeContext) Reset() {
 }
 
 func (_f1 *FakeContext) Deadline() (deadline time.Time, ok bool) {
+	if _f1.DeadlineHook == nil {
+		panic("Context.Deadline() called but FakeContext.DeadlineHook is nil")
+	}
+
 	invocation := new(ContextDeadlineInvocation)
 	_f1.DeadlineCalls = append(_f1.DeadlineCalls, invocation)
 
@@ -428,6 +432,10 @@ func (f *FakeContext) AssertDeadlineCalledN(t ContextTestingT, n int) {
 }
 
 func (_f2 *FakeContext) Done() (ident1 <-chan struct{}) {
+	if _f2.DoneHook == nil {
+		panic("Context.Done() called but FakeContext.DoneHook is nil")
+	}
+
 	invocation := new(ContextDoneInvocation)
 	_f2.DoneCalls = append(_f2.DoneCalls, invocation)
 
@@ -491,6 +499,10 @@ func (f *FakeContext) AssertDoneCalledN(t ContextTestingT, n int) {
 }
 
 func (_f3 *FakeContext) Err() (ident2 error) {
+	if _f3.ErrHook == nil {
+		panic("Context.Err() called but FakeContext.ErrHook is nil")
+	}
+
 	invocation := new(ContextErrInvocation)
 	_f3.ErrCalls = append(_f3.ErrCalls, invocation)
 
@@ -554,6 +566,10 @@ func (f *FakeContext) AssertErrCalledN(t ContextTestingT, n int) {
 }
 
 func (_f4 *FakeContext) Value(key interface{}) (ident3 interface{}) {
+	if _f4.ValueHook == nil {
+		panic("Context.Value() called but FakeContext.ValueHook is nil")
+	}
+
 	invocation := new(ContextValueInvocation)
 	_f4.ValueCalls = append(_f4.ValueCalls, invocation)
 
@@ -687,6 +703,10 @@ func (_f9 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}
 }
 
 func (_f10 *FakeContext) RequestID() (ident1 string) {
+	if _f10.RequestIDHook == nil {
+		panic("Context.RequestID() called but FakeContext.RequestIDHook is nil")
+	}
+
 	invocation := new(ContextRequestIDInvocation)
 	_f10.RequestIDCalls = append(_f10.RequestIDCalls, invocation)
 
@@ -750,6 +770,10 @@ func (f *FakeContext) AssertRequestIDCalledN(t ContextTestingT, n int) {
 }
 
 func (_f11 *FakeContext) Actor() (ident1 models.User) {
+	if _f11.ActorHook == nil {
+		panic("Context.Actor() called but FakeContext.ActorHook is nil")
+	}
+
 	invocation := new(ContextActorInvocation)
 	_f11.ActorCalls = append(_f11.ActorCalls, invocation)
 
@@ -813,6 +837,10 @@ func (f *FakeContext) AssertActorCalledN(t ContextTestingT, n int) {
 }
 
 func (_f12 *FakeContext) WithParent(value context.Context) (ident1 Context) {
+	if _f12.WithParentHook == nil {
+		panic("Context.WithParent() called but FakeContext.WithParentHook is nil")
+	}
+
 	invocation := new(ContextWithParentInvocation)
 	_f12.WithParentCalls = append(_f12.WithParentCalls, invocation)
 
@@ -946,6 +974,10 @@ func (_f17 *FakeContext) WithParentResultsForCall(value context.Context) (ident1
 }
 
 func (_f18 *FakeContext) WithActor(value models.User) (ident1 Context) {
+	if _f18.WithActorHook == nil {
+		panic("Context.WithActor() called but FakeContext.WithActorHook is nil")
+	}
+
 	invocation := new(ContextWithActorInvocation)
 	_f18.WithActorCalls = append(_f18.WithActorCalls, invocation)
 
@@ -1079,6 +1111,10 @@ func (_f23 *FakeContext) WithActorResultsForCall(value models.User) (ident1 Cont
 }
 
 func (_f24 *FakeContext) WithRequestID(value string) (ident1 Context) {
+	if _f24.WithRequestIDHook == nil {
+		panic("Context.WithRequestID() called but FakeContext.WithRequestIDHook is nil")
+	}
+
 	invocation := new(ContextWithRequestIDInvocation)
 	_f24.WithRequestIDCalls = append(_f24.WithRequestIDCalls, invocation)
 
@@ -1212,6 +1248,10 @@ func (_f29 *FakeContext) WithRequestIDResultsForCall(value string) (ident1 Conte
 }
 
 func (_f30 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 Context) {
+	if _f30.WithValueHook == nil {
+		panic("Context.WithValue() called but FakeContext.WithValueHook is nil")
+	}
+
 	invocation := new(ContextWithValueInvocation)
 	_f30.WithValueCalls = append(_f30.WithValueCalls, invocation)
 
@@ -1346,6 +1386,10 @@ func (_f35 *FakeContext) WithValueResultsForCall(key interface{}, value interfac
 }
 
 func (_f36 *FakeContext) WithCancel() (ident1 Context, ident2 context.CancelFunc) {
+	if _f36.WithCancelHook == nil {
+		panic("Context.WithCancel() called but FakeContext.WithCancelHook is nil")
+	}
+
 	invocation := new(ContextWithCancelInvocation)
 	_f36.WithCancelCalls = append(_f36.WithCancelCalls, invocation)
 
@@ -1410,6 +1454,10 @@ func (f *FakeContext) AssertWithCancelCalledN(t ContextTestingT, n int) {
 }
 
 func (_f37 *FakeContext) WithDeadline(deadline time.Time) (ident1 Context, ident2 context.CancelFunc) {
+	if _f37.WithDeadlineHook == nil {
+		panic("Context.WithDeadline() called but FakeContext.WithDeadlineHook is nil")
+	}
+
 	invocation := new(ContextWithDeadlineInvocation)
 	_f37.WithDeadlineCalls = append(_f37.WithDeadlineCalls, invocation)
 
@@ -1545,6 +1593,10 @@ func (_f42 *FakeContext) WithDeadlineResultsForCall(deadline time.Time) (ident1 
 }
 
 func (_f43 *FakeContext) WithTimeout(timeout time.Duration) (ident1 Context, ident2 context.CancelFunc) {
+	if _f43.WithTimeoutHook == nil {
+		panic("Context.WithTimeout() called but FakeContext.WithTimeoutHook is nil")
+	}
+
 	invocation := new(ContextWithTimeoutInvocation)
 	_f43.WithTimeoutCalls = append(_f43.WithTimeoutCalls, invocation)
 

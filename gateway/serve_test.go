@@ -216,7 +216,7 @@ func TestInstallPipelineAppliesServiceHandlers(t *testing.T) {
 
 func TestGatewayServeWithRegistrar(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -224,9 +224,10 @@ func TestGatewayServeWithRegistrar(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 	}
 	pipline := &service.Pipeline{Handlers: []httpx.Handler{dummyHandler}}
 	endpoint := service.Endpoint{
@@ -246,14 +247,15 @@ func TestGatewayServeWithRegistrar(t *testing.T) {
 
 func TestGatewayServeWithRegistrarError(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return merry.New("error")
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint1})
@@ -269,14 +271,15 @@ func TestGatewayServeWithRegistrarError(t *testing.T) {
 
 func TestGatewayServeWithRegistrarPanic(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			panic(merry.New("i blewed up!"))
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint1})
@@ -292,8 +295,35 @@ func TestGatewayServeWithRegistrarPanic(t *testing.T) {
 
 func TestGatewayServeWithRegistrarPanicString(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			panic("i blewed up!")
+		},
+	}
+	cut := &Gateway{
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+
+	assert.Error(t, err)
+	registrar.AssertRegisterCalledOnce(t)
+}
+
+func TestGatewayServeWithNilRegistrationHook(t *testing.T) {
+	registrar := &sd.FakeRegistrar{
+		RegisterHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
 		},
 	}
 	cut := &Gateway{
@@ -309,13 +339,71 @@ func TestGatewayServeWithRegistrarPanicString(t *testing.T) {
 
 	err := cut.Serve(svc)
 
+	assert.NoError(t, err)
+	registrar.AssertRegisterNotCalled(t)
+}
+
+func TestGatewayServeWithRegistrationHookPanic(t *testing.T) {
+	registrar := &sd.FakeRegistrar{
+		RegisterHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Addr:      ":0",
+		Registrar: registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) {
+			panic("i blew up!")
+		},
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+
 	assert.Error(t, err)
-	registrar.AssertRegisterCalledOnce(t)
+	registrar.AssertRegisterNotCalled(t)
+}
+
+func TestGatewayServeWithRegistrationHookError(t *testing.T) {
+	registrar := &sd.FakeRegistrar{
+		RegisterHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Addr:      ":0",
+		Registrar: registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) {
+			return nil, merry.New("new error")
+		},
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+
+	assert.Error(t, err)
+	registrar.AssertRegisterNotCalled(t)
 }
 
 func TestGatewayServeWithDeregisterError(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -323,9 +411,10 @@ func TestGatewayServeWithDeregisterError(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint1})
@@ -342,7 +431,7 @@ func TestGatewayServeWithDeregisterError(t *testing.T) {
 
 func TestGatewayServeWithDeregisterPanic(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -350,9 +439,10 @@ func TestGatewayServeWithDeregisterPanic(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint1})
@@ -369,7 +459,7 @@ func TestGatewayServeWithDeregisterPanic(t *testing.T) {
 
 func TestGatewayServeWithDeregisterPanicString(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -377,9 +467,10 @@ func TestGatewayServeWithDeregisterPanicString(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 	}
 	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
 	svc := newFakeService([]service.Endpoint{endpoint1})
@@ -396,7 +487,7 @@ func TestGatewayServeWithDeregisterPanicString(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookParseError(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -404,9 +495,10 @@ func TestGatewayServeWithCheckURLHookParseError(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			return nil, merry.New("new error")
 		},
@@ -461,7 +553,7 @@ func TestGatewayRedundantStop(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookPanic(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -469,9 +561,10 @@ func TestGatewayServeWithCheckURLHookPanic(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			panic(merry.New("i blew up!"))
 		},
@@ -492,7 +585,7 @@ func TestGatewayServeWithCheckURLHookPanic(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookPanicString(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -500,9 +593,10 @@ func TestGatewayServeWithCheckURLHookPanicString(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			panic("i blew up!")
 		},
@@ -523,7 +617,7 @@ func TestGatewayServeWithCheckURLHookPanicString(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookAddCheckError(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -534,9 +628,10 @@ func TestGatewayServeWithCheckURLHookAddCheckError(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
 			return u, merry.Wrap(err)
@@ -558,7 +653,7 @@ func TestGatewayServeWithCheckURLHookAddCheckError(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookAddCheckPanic(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -569,9 +664,10 @@ func TestGatewayServeWithCheckURLHookAddCheckPanic(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
 			return u, merry.Wrap(err)
@@ -593,7 +689,7 @@ func TestGatewayServeWithCheckURLHookAddCheckPanic(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookAddCheckPanicString(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -604,9 +700,10 @@ func TestGatewayServeWithCheckURLHookAddCheckPanicString(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
 			return u, merry.Wrap(err)
@@ -628,7 +725,7 @@ func TestGatewayServeWithCheckURLHookAddCheckPanicString(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookRemoveChecksError(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -642,9 +739,10 @@ func TestGatewayServeWithCheckURLHookRemoveChecksError(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
 			return u, merry.Wrap(err)
@@ -670,7 +768,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksError(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookRemoveChecksPanic(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -684,9 +782,10 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanic(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
 			return u, merry.Wrap(err)
@@ -712,7 +811,7 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanic(t *testing.T) {
 
 func TestGatewayServeWithCheckURLHookRemoveChecksPanicString(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
-		RegisterHook: func(string, string) merry.Error {
+		RegisterHook: func(string, *url.URL) merry.Error {
 			return nil
 		},
 		DeregisterHook: func(string) merry.Error {
@@ -726,9 +825,10 @@ func TestGatewayServeWithCheckURLHookRemoveChecksPanicString(t *testing.T) {
 		},
 	}
 	cut := &Gateway{
-		Name:      "test",
-		Addr:      ":0",
-		Registrar: registrar,
+		Name:                "test",
+		Addr:                ":0",
+		Registrar:           registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) { return },
 		CheckURLHook: func() (*url.URL, merry.Error) {
 			u, err := url.Parse("http://localhost:5000")
 			return u, merry.Wrap(err)

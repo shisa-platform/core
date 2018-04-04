@@ -6,15 +6,6 @@ working mult-service configuration.
 
 ## Running
 
-This service needs to know the addresses of the other services as
-environment variables.  The value should be in the form of: `host:port`
-where `host` is optional.  If `host` is provided it must be a hostname
-or (v4 or v6) IP address.
-
-    export IDP_SERVICE_ADDR=":9601"
-    export GOODBYE_SERVICE_ADDR=":9501"
-    export HELLO_SERVICE_ADDR=":9401"
-
 See the [parent README.MD](../README.md) for instructions to run
 the example services together.
 

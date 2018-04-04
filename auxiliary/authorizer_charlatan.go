@@ -91,6 +91,10 @@ func (f *FakeAuthorizer) Reset() {
 }
 
 func (_f1 *FakeAuthorizer) Authorize(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error) {
+	if _f1.AuthorizeHook == nil {
+		panic("Authorizer.Authorize() called but FakeAuthorizer.AuthorizeHook is nil")
+	}
+
 	invocation := new(AuthorizerAuthorizeInvocation)
 	_f1.AuthorizeCalls = append(_f1.AuthorizeCalls, invocation)
 

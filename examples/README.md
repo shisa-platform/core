@@ -14,73 +14,42 @@ Shisa.
 - [`rpc`](rpc) - A "modern" RPC service implementing the "Hello" service
 - [`idp`](idp) - An Identity Provider service used by the other services.
 
+Consul is used for service discovery between the services so they do
+not need to be told a-priori about the existence of specific instances
+of another service.  There is only a single instance of consul, unlike
+a typical production deployment which would have an agent on each node
+and a cluster of servers.  This requires configuring instance ids in
+consule which is usually not required in a production enviroment.
+
+Each example service instance registers itself with consul and sets a
+healthcheck so consul can track the availability of all instances.
+
 ## Building
 
-To build all the service program files run the following from the
-project root:
+You can build the services as docker images by running the
+following from the project root (requires docker + docker-compose):
 
-    make examples
+    make docker
 
 ## Running
 
-Each service must run on a unique port or on a separate (virtual)
-machine.  To run on a single host, run the following commands from the
-project root.  Adjust the port numbers (or addreses) as needed to suit
-your environment.
+Run the following command at the project root:
 
-1. Start `idp`
+    docker-compose -f examples/docker-compose.yml up
 
-    ``` shell
-    bin/idp -addr ":9601"
-    ```
-
-1. Start `rest`
-
-    ``` shell
-    export IDP_SERVICE_ADDR=":9601"
-    bin/rest -addr ":9501"
-    ```
-
-1. Start `rpc`:
-
-    ``` shell
-    export IDP_SERVICE_ADDR=":9601"
-    bin/rpc -addr ":9401"
-    ```
-
-1. Start `gw`:
-
-    ``` shell
-    export IDP_SERVICE_ADDR=":9601"
-    export GOODBYE_SERVICE_ADDR=":9501"
-    export HELLO_SERVICE_ADDR=":9401"
-    bin/gw -addr ":9001"
-    ```
-
-You can now access these URLs for the services:
-
-### IdP
-
-- Debug Vars - <http://localhost:9601/debug/vars>
-- Debug RPC - <http://localhost:9601/debug/rpc>
-
-### Goodbye
-
-- Healthcheck - <http://localhost:9501/healthcheck>
-- Debug Vars - <http://localhost:9501/debug/vars>
-
-### Hello
-
-- Debug Vars - <http://localhost:9401/debug/vars>
-- Debug RPC - <http://localhost:9401/debug/rpc>
+There are now an instance of the `gw` service bound to the host port
+`9001`.  Consul is bound to host port `8500` and its UI is available
+via web browser at `127.0.0.1:8500/ui/`.
 
 ### API Gateway
 
 The `healthcheck` and `debug` endpoints require authentication by the
-"admin" user: `Admin:password`.  The `api/greeting` and `api/farewell`
-endpoints can be accessed by the "admin" user or `Boss:password`.
+user `Admin` with the password: `password`.  The `api/greeting` and
+`api/farewell` endpoints can be accessed by the `Admin` user or  the
+user `Boss` with password `password`.  Refer to the [RAML specification](examples/gw/README.md#endpoints)
+for details sabout the `api/greeting` and `api/farewell` endpoints.
 
-- Healthcheck - <http://localhost:9001/healthcheck>
-- Debug Vars - <http://localhost:9001/debug/vars>
+- Healthcheck - <http://localhost:9003/healthcheck>
+- Debug Vars - <http://localhost:9002/debug/vars>
 - Greeting Endpoint - <http://localhost:9001/api/greeting>
-- Farewall Endpoint - <http://localhost:9001/api/farewell>
+- Farewell Endpoint - <http://localhost:9001/api/farewell>

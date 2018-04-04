@@ -92,6 +92,10 @@ func (f *FakeconsulResolver) Reset() {
 }
 
 func (_f1 *FakeconsulResolver) Service(service string, tag string, passingOnly bool, q *consul.QueryOptions) (ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error) {
+	if _f1.ServiceHook == nil {
+		panic("consulResolver.Service() called but FakeconsulResolver.ServiceHook is nil")
+	}
+
 	invocation := new(consulResolverServiceInvocation)
 	_f1.ServiceCalls = append(_f1.ServiceCalls, invocation)
 

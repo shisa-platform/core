@@ -7,8 +7,8 @@ import (
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/examples/idp/service"
+	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/sd"
 )
 
 type simpleUser struct {
@@ -24,7 +24,7 @@ func (u simpleUser) String() string {
 }
 
 type ExampleIdentityProvider struct {
-	Resolver sd.Resolver
+	Balancer lb.Balancer
 }
 
 func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials string) (models.User, merry.Error) {
@@ -70,16 +70,12 @@ func (p *ExampleIdentityProvider) Healthcheck(ctx context.Context) merry.Error {
 }
 
 func (p *ExampleIdentityProvider) connect() (*rpc.Client, merry.Error) {
-	addrs, err := p.Resolver.Resolve(p.Name())
+	addr, err := p.Balancer.Balance(p.Name())
 	if err != nil {
 		return nil, err.Prepend("connect")
 	}
 
-	if len(addrs) < 1 {
-		return nil, merry.New("no healthy hosts")
-	}
-
-	client, rpcErr := rpc.DialHTTP("tcp", addrs[0])
+	client, rpcErr := rpc.DialHTTP("tcp", addr)
 	if rpcErr != nil {
 		return nil, merry.Prepend(rpcErr, "connect")
 	}

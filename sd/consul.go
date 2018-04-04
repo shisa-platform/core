@@ -38,35 +38,34 @@ func NewConsul(client *consul.Client) *consulSD {
 	}
 }
 
-func (r *consulSD) Register(serviceID, addr string) merry.Error {
-	address, sport, err := net.SplitHostPort(addr)
-	if err != nil {
-		return merry.Prepend(err, "consul sd: register").Append(addr)
-	}
+func (r *consulSD) Register(service string, u *url.URL) merry.Error {
+	q := u.Query()
 
-	port, err := strconv.Atoi(sport)
+	port, err := strconv.Atoi(u.Port())
 	if err != nil {
-		return merry.Prepend(err, "consul sd: register").Append(addr)
+		return merry.Prepend(err, "consul sd: register").Append(u.Host)
 	}
 
 	servreg := &consul.AgentServiceRegistration{
-		ID:      serviceID,
-		Name:    serviceID,
-		Port:    port,
-		Address: address,
+		ID:                popQueryString(q, "id"),
+		Name:              service,
+		Port:              port,
+		Address:           u.Hostname(),
+		Tags:              popQuerySlice(q, "tag"),
+		EnableTagOverride: popQueryBool(q, "enabletagoverride"),
 	}
 
 	err = r.agent.ServiceRegister(servreg)
 	if err != nil {
-		return merry.Prepend(err, "consul sd: register").Append(addr)
+		return merry.Prepend(err, "consul sd: register").Append(u.Host)
 	}
 	return nil
 }
 
-func (r *consulSD) Deregister(serviceID string) merry.Error {
-	err := r.agent.ServiceDeregister(serviceID)
+func (r *consulSD) Deregister(service string) merry.Error {
+	err := r.agent.ServiceDeregister(service)
 	if err != nil {
-		return merry.Prepend(err, "consul sd: deregister").Append(serviceID)
+		return merry.Prepend(err, "consul sd: deregister").Append(service)
 	}
 	return nil
 }
@@ -89,14 +88,14 @@ func (r *consulSD) Resolve(name string) (nodes []string, merr merry.Error) {
 	return
 }
 
-func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
+func (r *consulSD) AddCheck(service string, u *url.URL) merry.Error {
 	q := u.Query()
 
 	acr := &consul.AgentCheckRegistration{
 		ID:        popQueryString(q, "id"),
-		Name:      fmt.Sprintf("%s-healthcheck", serviceID),
+		Name:      fmt.Sprintf("%s-healthcheck", service),
 		Notes:     popQueryString(q, "notes"),
-		ServiceID: serviceID,
+		ServiceID: popQueryString(q, "serviceid"),
 		AgentServiceCheck: consul.AgentServiceCheck{
 			CheckID:       popQueryString(q, "checkid"),
 			Timeout:       popQueryString(q, "timeout"),
@@ -144,17 +143,20 @@ func (r *consulSD) AddCheck(serviceID string, u *url.URL) merry.Error {
 		acr.AgentServiceCheck.TCP = u.Host
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
 	case "http", "https":
-		urlstr := u.String()
 		if len(u.Host) == 0 {
 			return merry.New("consul sd: add check: http(s) scheme requries host")
 		}
 		if err := validateKeysExist(q, "interval"); err != nil {
 			return err.Prepend("consul sd: add check: http(s) scheme")
 		}
-		u.RawQuery = ""
+
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
 		acr.AgentServiceCheck.Method = popQueryString(q, "method")
 		acr.AgentServiceCheck.Header = q
+
+		u.RawQuery = ""
+		urlstr := u.String()
+
 		acr.AgentServiceCheck.HTTP = urlstr
 	}
 

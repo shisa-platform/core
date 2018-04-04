@@ -160,6 +160,10 @@ func (f *FakeconsulRegistry) Reset() {
 }
 
 func (_f1 *FakeconsulRegistry) ServiceRegister(ident1 *consul.AgentServiceRegistration) (ident2 error) {
+	if _f1.ServiceRegisterHook == nil {
+		panic("consulRegistry.ServiceRegister() called but FakeconsulRegistry.ServiceRegisterHook is nil")
+	}
+
 	invocation := new(consulRegistryServiceRegisterInvocation)
 	_f1.ServiceRegisterCalls = append(_f1.ServiceRegisterCalls, invocation)
 
@@ -293,6 +297,10 @@ func (_f6 *FakeconsulRegistry) ServiceRegisterResultsForCall(ident1 *consul.Agen
 }
 
 func (_f7 *FakeconsulRegistry) ServiceDeregister(ident1 string) (ident2 error) {
+	if _f7.ServiceDeregisterHook == nil {
+		panic("consulRegistry.ServiceDeregister() called but FakeconsulRegistry.ServiceDeregisterHook is nil")
+	}
+
 	invocation := new(consulRegistryServiceDeregisterInvocation)
 	_f7.ServiceDeregisterCalls = append(_f7.ServiceDeregisterCalls, invocation)
 
@@ -426,6 +434,10 @@ func (_f12 *FakeconsulRegistry) ServiceDeregisterResultsForCall(ident1 string) (
 }
 
 func (_f13 *FakeconsulRegistry) CheckRegister(ident1 *consul.AgentCheckRegistration) (ident2 error) {
+	if _f13.CheckRegisterHook == nil {
+		panic("consulRegistry.CheckRegister() called but FakeconsulRegistry.CheckRegisterHook is nil")
+	}
+
 	invocation := new(consulRegistryCheckRegisterInvocation)
 	_f13.CheckRegisterCalls = append(_f13.CheckRegisterCalls, invocation)
 
@@ -559,6 +571,10 @@ func (_f18 *FakeconsulRegistry) CheckRegisterResultsForCall(ident1 *consul.Agent
 }
 
 func (_f19 *FakeconsulRegistry) CheckDeregister(ident1 string) (ident2 error) {
+	if _f19.CheckDeregisterHook == nil {
+		panic("consulRegistry.CheckDeregister() called but FakeconsulRegistry.CheckDeregisterHook is nil")
+	}
+
 	invocation := new(consulRegistryCheckDeregisterInvocation)
 	_f19.CheckDeregisterCalls = append(_f19.CheckDeregisterCalls, invocation)
 

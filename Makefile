@@ -48,7 +48,13 @@ examples:
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/idp github.com/percolate/shisa/examples/idp
 	go build -o $(TOP_DIR)/$(BUILD_DIR)/gw github.com/percolate/shisa/examples/gw
 
+docker:
+	docker build --tag shisa/examples/gw -f examples/gw/Dockerfile .
+	docker build --tag shisa/examples/idp -f examples/idp/Dockerfile .
+	docker build --tag shisa/examples/rest -f examples/rest/Dockerfile .
+	docker build --tag shisa/examples/rpc -f examples/rpc/Dockerfile .
+
 coverage/%:
 	go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic github.com/percolate/shisa/$(@F)
 
-.PHONY: clean doc vet fmt test examples
+.PHONY: clean doc vet fmt test examples docker

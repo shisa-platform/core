@@ -75,7 +75,7 @@ func (g *Gateway) serve(services []*service.Service, tls bool) (err merry.Error)
 		return err.Prepend("gateway: serve")
 	}
 
-	if err1 := g.registerSafely(g.listener.Addr().String()); err1 != nil {
+	if err1 := g.registerSafely(); err1 != nil {
 		g.listener.Close()
 		return err1.Prepend("gateway: serve: register gateway")
 	}
@@ -249,8 +249,12 @@ func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*ser
 	return result, nil
 }
 
-func (g *Gateway) registerSafely(addr string) (err merry.Error) {
+func (g *Gateway) registerSafely() (err merry.Error) {
 	if g.Registrar == nil {
+		return
+	}
+
+	if g.RegistrationURLHook == nil {
 		return
 	}
 
@@ -263,7 +267,14 @@ func (g *Gateway) registerSafely(addr string) (err merry.Error) {
 		err = errorx.CapturePanic(arg, "panic registering service")
 	}()
 
-	return g.Registrar.Register(g.Name, addr)
+	u, err, exception := g.RegistrationURLHook.InvokeSafely()
+	if exception != nil {
+		return merry.Prepend(exception, "run RegistrationURLHook")
+	} else if err != nil {
+		return merry.Prepend(err, "run RegistrationURLHook")
+	}
+
+	return g.Registrar.Register(g.Name, u)
 }
 
 func (g *Gateway) deregisterSafely() (err merry.Error) {

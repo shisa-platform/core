@@ -8,7 +8,7 @@ import (
 
 //go:generate charlatan -output=./registrar_charlatan.go Registrar
 type Registrar interface {
-	Register(serviceID, addr string) merry.Error
+	Register(serviceID string, url *url.URL) merry.Error
 	Deregister(serviceID string) merry.Error
 	AddCheck(service string, url *url.URL) merry.Error
 	RemoveChecks(service string) merry.Error

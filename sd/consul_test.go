@@ -35,7 +35,7 @@ func TestConsulSDRegisterBadAddr(t *testing.T) {
 		health: fres,
 	}
 
-	e := c.Register(testServiceName, "bad addr")
+	e := c.Register(testServiceName, &url.URL{Host: "bad addr"})
 
 	assert.Error(t, e)
 	freg.AssertServiceRegisterNotCalled(t)
@@ -49,7 +49,7 @@ func TestConsulSDRegisterBadPort(t *testing.T) {
 		health: fres,
 	}
 
-	e := c.Register(testServiceName, "127.0.0.1:badport")
+	e := c.Register(testServiceName, &url.URL{Host: "127.0.0.1:badport"})
 
 	assert.Error(t, e)
 	freg.AssertServiceRegisterNotCalled(t)
@@ -68,7 +68,7 @@ func TestConsulSDRegisterServiceRegisterError(t *testing.T) {
 		health: fres,
 	}
 
-	e := c.Register(testServiceName, testAddr)
+	e := c.Register(testServiceName, &url.URL{Host: testAddr})
 
 	assert.Error(t, e)
 	freg.AssertServiceRegisterCalledOnce(t)
@@ -86,7 +86,7 @@ func TestConsulSDRegisterSuccess(t *testing.T) {
 		health: fres,
 	}
 
-	e := c.Register(testServiceName, testAddr)
+	e := c.Register(testServiceName, &url.URL{Host: testAddr})
 
 	assert.NoError(t, e)
 	freg.AssertServiceRegisterCalledOnce(t)
