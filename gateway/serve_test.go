@@ -317,6 +317,90 @@ func TestGatewayServeWithRegistrarPanicString(t *testing.T) {
 	registrar.AssertRegisterCalledOnce(t)
 }
 
+func TestGatewayServeWithNilRegistrationHook(t *testing.T) {
+	registrar := &sd.FakeRegistrar{
+		RegisterHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Addr:      ":0",
+		Registrar: registrar,
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+
+	assert.NoError(t, err)
+	registrar.AssertRegisterNotCalled(t)
+}
+
+func TestGatewayServeWithRegistrationHookPanic(t *testing.T) {
+	registrar := &sd.FakeRegistrar{
+		RegisterHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Addr:      ":0",
+		Registrar: registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) {
+			panic("i blew up!")
+		},
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+
+	assert.Error(t, err)
+	registrar.AssertRegisterNotCalled(t)
+}
+
+func TestGatewayServeWithRegistrationHookError(t *testing.T) {
+	registrar := &sd.FakeRegistrar{
+		RegisterHook: func(string, *url.URL) merry.Error {
+			return nil
+		},
+		DeregisterHook: func(string) merry.Error {
+			return nil
+		},
+	}
+	cut := &Gateway{
+		Name:      "test",
+		Addr:      ":0",
+		Registrar: registrar,
+		RegistrationURLHook: func() (u *url.URL, err merry.Error) {
+			return nil, merry.New("new error")
+		},
+	}
+	endpoint1 := service.GetEndpoint(expectedRoute, dummyHandler)
+	svc := newFakeService([]service.Endpoint{endpoint1})
+
+	timer := time.AfterFunc(50*time.Millisecond, func() { cut.Shutdown() })
+	defer timer.Stop()
+
+	err := cut.Serve(svc)
+
+	assert.Error(t, err)
+	registrar.AssertRegisterNotCalled(t)
+}
+
 func TestGatewayServeWithDeregisterError(t *testing.T) {
 	registrar := &sd.FakeRegistrar{
 		RegisterHook: func(string, *url.URL) merry.Error {
