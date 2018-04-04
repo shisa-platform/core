@@ -30,13 +30,14 @@ func TestInterceptor(t *testing.T) {
 	assert.True(t, rw.Flushed)
 	assert.Equal(t, 451, snapshot.StatusCode)
 	assert.Equal(t, len(body), snapshot.Size)
+	assert.Equal(t, cut.Start(), snapshot.Start)
 	assert.True(t, snapshot.Elapsed > 0)
 
 	dupeshot := cut.Snapshot()
 	assert.Equal(t, snapshot.StatusCode, dupeshot.StatusCode)
 	assert.Equal(t, snapshot.Size, dupeshot.Size)
-	assert.NotEqual(t, snapshot.Elapsed, dupeshot.Elapsed)
 	assert.Equal(t, snapshot.Start, dupeshot.Start)
+	assert.NotEqual(t, snapshot.Elapsed, dupeshot.Elapsed)
 }
 
 func TestInterceptorWriteResponse(t *testing.T) {
