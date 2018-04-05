@@ -18,7 +18,7 @@ import (
 )
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	parent := g.Tracer.StartSpan("ServiceRequest", opentracing.Tags{
+	parent := opentracing.StartSpan("ServiceRequest", opentracing.Tags{
 		string(ext.SpanKind):  "server",
 		string(ext.Component): "router",
 	})
@@ -44,7 +44,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ctx.WithRequestID(requestID)
 	ri.Header().Set(g.RequestIDHeaderName, requestID)
 
-	span := g.Tracer.StartSpan("ParseQueryParameters", opentracing.ChildOf(parent.Context()))
+	span := opentracing.StartSpan("ParseQueryParameters", opentracing.ChildOf(parent.Context()))
 	parseOK := request.ParseQueryParameters()
 	span.Finish()
 
@@ -71,7 +71,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		responseCh chan httpx.Response = make(chan httpx.Response, 1)
 	)
 
-	span = g.Tracer.StartSpan("RunGatewayHandlers", opentracing.ChildOf(parent.Context()))
+	span = opentracing.StartSpan("RunGatewayHandlers", opentracing.ChildOf(parent.Context()))
 	defer span.Finish()
 	subCtx := ctx.WithSpan(span)
 	if g.HandlersTimeout != 0 {
@@ -107,7 +107,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	span.Finish()
 
-	span = g.Tracer.StartSpan("FindEndpoint", opentracing.ChildOf(parent.Context()))
+	span = opentracing.StartSpan("FindEndpoint", opentracing.ChildOf(parent.Context()))
 	endpoint, request.PathParams, tsr, err = g.tree.getValue(path)
 	span.Finish()
 
@@ -166,7 +166,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	span = g.Tracer.StartSpan("ValidateQueryParameters", opentracing.ChildOf(parent.Context()))
+	span = opentracing.StartSpan("ValidateQueryParameters", opentracing.ChildOf(parent.Context()))
 	defer span.Finish()
 	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QueryFields); exception != nil {
 		response, exception = endpoint.handleError(ctx, request, exception)
@@ -191,7 +191,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	span = g.Tracer.StartSpan("RunGatewayHandlers", opentracing.ChildOf(parent.Context()))
+	span = opentracing.StartSpan("RunGatewayHandlers", opentracing.ChildOf(parent.Context()))
 	defer span.Finish()
 
 	if pipeline.Policy.TimeBudget != 0 {
@@ -252,7 +252,7 @@ finish:
 	if span != nil {
 		span.Finish()
 	}
-	span = g.Tracer.StartSpan("SerializeResponse", opentracing.ChildOf(parent.Context()))
+	span = opentracing.StartSpan("SerializeResponse", opentracing.ChildOf(parent.Context()))
 	var (
 		writeErr merry.Error
 		snapshot httpx.ResponseSnapshot
@@ -301,7 +301,7 @@ finish:
 
 func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request) (string, merry.Error) {
 	parent := opentracing.SpanFromContext(ctx)
-	span := g.Tracer.StartSpan("GenerateRequestID", opentracing.ChildOf(parent.Context()))
+	span := opentracing.StartSpan("GenerateRequestID", opentracing.ChildOf(parent.Context()))
 	defer span.Finish()
 
 	if g.RequestIDGenerator == nil {

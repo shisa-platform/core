@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
-	"github.com/opentracing/opentracing-go"
 
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/errorx"
@@ -137,11 +136,6 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler httpx.Handler
 
-	// Tracer optionaly allows the gateway to partcipate in a
-	// distrbuted tracing system that implements the Open
-	// Tracing interface.  If nil no tracing will be emitted.
-	Tracer opentracing.Tracer
-
 	// Registrar implements sd.Registrar and registers
 	// the gateway service with a service registry, using the
 	// Gateway's `Name` field. If nil, no registration occurs.
@@ -212,10 +206,6 @@ func (g *Gateway) init() {
 
 	if g.Name == "" {
 		g.Name = defaultName
-	}
-
-	if g.Tracer == nil {
-		g.Tracer = opentracing.NoopTracer{}
 	}
 
 	g.tree = new(node)
