@@ -69,7 +69,6 @@ func (i *ResponseInterceptor) Snapshot() ResponseSnapshot {
 		Size:       i.size,
 		Start:      i.start,
 		Elapsed:    time.Now().UTC().Sub(i.start),
-		Metrics:    make(map[string]time.Duration),
 	}
 }
 

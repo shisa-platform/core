@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/opentracing/opentracing-go"
@@ -24,7 +23,6 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		string(ext.Component): "router",
 	})
 	defer parent.Finish()
-	start := time.Now().UTC()
 
 	ri := httpx.NewInterceptor(w)
 
@@ -78,7 +76,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	subCtx := ctx.WithSpan(span)
 	if g.HandlersTimeout != 0 {
 		var subCancel stdctx.CancelFunc
-		subCtx, subCancel = subCtx.WithTimeout(g.HandlersTimeout - time.Now().UTC().Sub(start))
+		subCtx, subCancel = subCtx.WithTimeout(g.HandlersTimeout - ri.Elapsed())
 		defer subCancel()
 	}
 
@@ -198,7 +196,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if pipeline.Policy.TimeBudget != 0 {
 		var cancel stdctx.CancelFunc
-		ctx, cancel = ctx.WithTimeout(pipeline.Policy.TimeBudget - time.Now().UTC().Sub(start))
+		ctx, cancel = ctx.WithTimeout(pipeline.Policy.TimeBudget - ri.Elapsed())
 		defer cancel()
 	}
 

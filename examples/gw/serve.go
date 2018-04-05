@@ -131,7 +131,7 @@ type logHandler struct {
 }
 
 func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.ResponseSnapshot) {
-	fs := make([]zapcore.Field, 9, 10+len(s.Metrics))
+	fs := make([]zapcore.Field, 9, 10)
 	fs[0] = zap.String("request-id", c.RequestID())
 	fs[1] = zap.String("client-ip-address", r.ClientIP())
 	fs[2] = zap.String("method", r.Method)
@@ -143,9 +143,6 @@ func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.Resp
 	fs[8] = zap.Duration("elapsed", s.Elapsed)
 	if u := c.Actor(); u != nil {
 		fs = append(fs, zap.String("user-id", u.ID()))
-	}
-	for k, v := range s.Metrics {
-		fs = append(fs, zap.Duration(k, v))
 	}
 	l.logger.Info("request", fs...)
 }
