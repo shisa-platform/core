@@ -2,13 +2,15 @@
 
 package ratelimit
 
-import "reflect"
 import "github.com/ansel1/merry"
 import "time"
+import "github.com/percolate/shisa/context"
+import "reflect"
 
 // ProviderLimitInvocation represents a single call of FakeProvider.Limit
 type ProviderLimitInvocation struct {
 	Parameters struct {
+		Ctx    context.Context
 		Actor  string
 		Action string
 		Path   string
@@ -22,6 +24,7 @@ type ProviderLimitInvocation struct {
 // ProviderAllowInvocation represents a single call of FakeProvider.Allow
 type ProviderAllowInvocation struct {
 	Parameters struct {
+		Ctx    context.Context
 		Actor  string
 		Action string
 		Path   string
@@ -53,7 +56,7 @@ Use it in your tests as in this example:
 
 	func TestWithProvider(t *testing.T) {
 		f := &ratelimit.FakeProvider{
-			LimitHook: func(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
+			LimitHook: func(ctx context.Context, actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
 				// ensure parameters meet expections, signal errors using t, etc
 				return
 			},
@@ -70,8 +73,8 @@ should be called in the code under test.  This will force a panic if any
 unexpected calls are made to FakeLimit.
 */
 type FakeProvider struct {
-	LimitHook func(string, string, string) (RateLimit, merry.Error)
-	AllowHook func(string, string, string) (bool, time.Duration, merry.Error)
+	LimitHook func(context.Context, string, string, string) (RateLimit, merry.Error)
+	AllowHook func(context.Context, string, string, string) (bool, time.Duration, merry.Error)
 	CloseHook func()
 
 	LimitCalls []*ProviderLimitInvocation
@@ -82,10 +85,10 @@ type FakeProvider struct {
 // NewFakeProviderDefaultPanic returns an instance of FakeProvider with all hooks configured to panic
 func NewFakeProviderDefaultPanic() *FakeProvider {
 	return &FakeProvider{
-		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
+		LimitHook: func(context.Context, string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			panic("Unexpected call to Provider.Limit")
 		},
-		AllowHook: func(string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 			panic("Unexpected call to Provider.Allow")
 		},
 		CloseHook: func() {
@@ -97,11 +100,11 @@ func NewFakeProviderDefaultPanic() *FakeProvider {
 // NewFakeProviderDefaultFatal returns an instance of FakeProvider with all hooks configured to call t.Fatal
 func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 	return &FakeProvider{
-		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
+		LimitHook: func(context.Context, string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Limit")
 			return
 		},
-		AllowHook: func(string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 			t.Fatal("Unexpected call to Provider.Allow")
 			return
 		},
@@ -115,11 +118,11 @@ func NewFakeProviderDefaultFatal(t ProviderTestingT) *FakeProvider {
 // NewFakeProviderDefaultError returns an instance of FakeProvider with all hooks configured to call t.Error
 func NewFakeProviderDefaultError(t ProviderTestingT) *FakeProvider {
 	return &FakeProvider{
-		LimitHook: func(string, string, string) (ident1 RateLimit, ident2 merry.Error) {
+		LimitHook: func(context.Context, string, string, string) (ident1 RateLimit, ident2 merry.Error) {
 			t.Error("Unexpected call to Provider.Limit")
 			return
 		},
-		AllowHook: func(string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 			t.Error("Unexpected call to Provider.Allow")
 			return
 		},
@@ -136,7 +139,7 @@ func (f *FakeProvider) Reset() {
 	f.CloseCalls = []*ProviderCloseInvocation{}
 }
 
-func (_f1 *FakeProvider) Limit(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
+func (_f1 *FakeProvider) Limit(ctx context.Context, actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error) {
 	if _f1.LimitHook == nil {
 		panic("Provider.Limit() called but FakeProvider.LimitHook is nil")
 	}
@@ -144,11 +147,12 @@ func (_f1 *FakeProvider) Limit(actor string, action string, path string) (ident1
 	invocation := new(ProviderLimitInvocation)
 	_f1.LimitCalls = append(_f1.LimitCalls, invocation)
 
+	invocation.Parameters.Ctx = ctx
 	invocation.Parameters.Actor = actor
 	invocation.Parameters.Action = action
 	invocation.Parameters.Path = path
 
-	ident1, ident2 = _f1.LimitHook(actor, action, path)
+	ident1, ident2 = _f1.LimitHook(ctx, actor, action, path)
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
@@ -209,9 +213,9 @@ func (f *FakeProvider) AssertLimitCalledN(t ProviderTestingT, n int) {
 }
 
 // LimitCalledWith returns true if FakeProvider.Limit was called with the given values
-func (_f2 *FakeProvider) LimitCalledWith(actor string, action string, path string) (found bool) {
+func (_f2 *FakeProvider) LimitCalledWith(ctx context.Context, actor string, action string, path string) (found bool) {
 	for _, call := range _f2.LimitCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			found = true
 			break
 		}
@@ -221,11 +225,11 @@ func (_f2 *FakeProvider) LimitCalledWith(actor string, action string, path strin
 }
 
 // AssertLimitCalledWith calls t.Error if FakeProvider.Limit was not called with the given values
-func (_f3 *FakeProvider) AssertLimitCalledWith(t ProviderTestingT, actor string, action string, path string) {
+func (_f3 *FakeProvider) AssertLimitCalledWith(t ProviderTestingT, ctx context.Context, actor string, action string, path string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f3.LimitCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			found = true
 			break
 		}
@@ -237,10 +241,10 @@ func (_f3 *FakeProvider) AssertLimitCalledWith(t ProviderTestingT, actor string,
 }
 
 // LimitCalledOnceWith returns true if FakeProvider.Limit was called exactly once with the given values
-func (_f4 *FakeProvider) LimitCalledOnceWith(actor string, action string, path string) bool {
+func (_f4 *FakeProvider) LimitCalledOnceWith(ctx context.Context, actor string, action string, path string) bool {
 	var count int
 	for _, call := range _f4.LimitCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			count++
 		}
 	}
@@ -249,11 +253,11 @@ func (_f4 *FakeProvider) LimitCalledOnceWith(actor string, action string, path s
 }
 
 // AssertLimitCalledOnceWith calls t.Error if FakeProvider.Limit was not called exactly once with the given values
-func (_f5 *FakeProvider) AssertLimitCalledOnceWith(t ProviderTestingT, actor string, action string, path string) {
+func (_f5 *FakeProvider) AssertLimitCalledOnceWith(t ProviderTestingT, ctx context.Context, actor string, action string, path string) {
 	t.Helper()
 	var count int
 	for _, call := range _f5.LimitCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			count++
 		}
 	}
@@ -264,9 +268,9 @@ func (_f5 *FakeProvider) AssertLimitCalledOnceWith(t ProviderTestingT, actor str
 }
 
 // LimitResultsForCall returns the result values for the first call to FakeProvider.Limit with the given values
-func (_f6 *FakeProvider) LimitResultsForCall(actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error, found bool) {
+func (_f6 *FakeProvider) LimitResultsForCall(ctx context.Context, actor string, action string, path string) (ident1 RateLimit, ident2 merry.Error, found bool) {
 	for _, call := range _f6.LimitCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			ident1 = call.Results.Ident1
 			ident2 = call.Results.Ident2
 			found = true
@@ -277,7 +281,7 @@ func (_f6 *FakeProvider) LimitResultsForCall(actor string, action string, path s
 	return
 }
 
-func (_f7 *FakeProvider) Allow(actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
+func (_f7 *FakeProvider) Allow(ctx context.Context, actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error) {
 	if _f7.AllowHook == nil {
 		panic("Provider.Allow() called but FakeProvider.AllowHook is nil")
 	}
@@ -285,11 +289,12 @@ func (_f7 *FakeProvider) Allow(actor string, action string, path string) (ident1
 	invocation := new(ProviderAllowInvocation)
 	_f7.AllowCalls = append(_f7.AllowCalls, invocation)
 
+	invocation.Parameters.Ctx = ctx
 	invocation.Parameters.Actor = actor
 	invocation.Parameters.Action = action
 	invocation.Parameters.Path = path
 
-	ident1, ident2, ident3 = _f7.AllowHook(actor, action, path)
+	ident1, ident2, ident3 = _f7.AllowHook(ctx, actor, action, path)
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
@@ -351,9 +356,9 @@ func (f *FakeProvider) AssertAllowCalledN(t ProviderTestingT, n int) {
 }
 
 // AllowCalledWith returns true if FakeProvider.Allow was called with the given values
-func (_f8 *FakeProvider) AllowCalledWith(actor string, action string, path string) (found bool) {
+func (_f8 *FakeProvider) AllowCalledWith(ctx context.Context, actor string, action string, path string) (found bool) {
 	for _, call := range _f8.AllowCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			found = true
 			break
 		}
@@ -363,11 +368,11 @@ func (_f8 *FakeProvider) AllowCalledWith(actor string, action string, path strin
 }
 
 // AssertAllowCalledWith calls t.Error if FakeProvider.Allow was not called with the given values
-func (_f9 *FakeProvider) AssertAllowCalledWith(t ProviderTestingT, actor string, action string, path string) {
+func (_f9 *FakeProvider) AssertAllowCalledWith(t ProviderTestingT, ctx context.Context, actor string, action string, path string) {
 	t.Helper()
 	var found bool
 	for _, call := range _f9.AllowCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			found = true
 			break
 		}
@@ -379,10 +384,10 @@ func (_f9 *FakeProvider) AssertAllowCalledWith(t ProviderTestingT, actor string,
 }
 
 // AllowCalledOnceWith returns true if FakeProvider.Allow was called exactly once with the given values
-func (_f10 *FakeProvider) AllowCalledOnceWith(actor string, action string, path string) bool {
+func (_f10 *FakeProvider) AllowCalledOnceWith(ctx context.Context, actor string, action string, path string) bool {
 	var count int
 	for _, call := range _f10.AllowCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			count++
 		}
 	}
@@ -391,11 +396,11 @@ func (_f10 *FakeProvider) AllowCalledOnceWith(actor string, action string, path 
 }
 
 // AssertAllowCalledOnceWith calls t.Error if FakeProvider.Allow was not called exactly once with the given values
-func (_f11 *FakeProvider) AssertAllowCalledOnceWith(t ProviderTestingT, actor string, action string, path string) {
+func (_f11 *FakeProvider) AssertAllowCalledOnceWith(t ProviderTestingT, ctx context.Context, actor string, action string, path string) {
 	t.Helper()
 	var count int
 	for _, call := range _f11.AllowCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			count++
 		}
 	}
@@ -406,9 +411,9 @@ func (_f11 *FakeProvider) AssertAllowCalledOnceWith(t ProviderTestingT, actor st
 }
 
 // AllowResultsForCall returns the result values for the first call to FakeProvider.Allow with the given values
-func (_f12 *FakeProvider) AllowResultsForCall(actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error, found bool) {
+func (_f12 *FakeProvider) AllowResultsForCall(ctx context.Context, actor string, action string, path string) (ident1 bool, ident2 time.Duration, ident3 merry.Error, found bool) {
 	for _, call := range _f12.AllowCalls {
-		if reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
+		if reflect.DeepEqual(call.Parameters.Ctx, ctx) && reflect.DeepEqual(call.Parameters.Actor, actor) && reflect.DeepEqual(call.Parameters.Action, action) && reflect.DeepEqual(call.Parameters.Path, path) {
 			ident1 = call.Results.Ident1
 			ident2 = call.Results.Ident2
 			ident3 = call.Results.Ident3

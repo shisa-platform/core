@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -38,6 +40,11 @@ type Authentication struct {
 }
 
 func (m *Authentication) Service(ctx context.Context, request *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "Authenticate")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	if m.Authenticator == nil {
 		err := merry.New("authentication middleware: check invariants: authenticator is nil")
 		return m.HandleError(ctx, request, err)

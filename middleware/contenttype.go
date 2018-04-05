@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 
 	"github.com/percolate/shisa/contenttype"
 	"github.com/percolate/shisa/context"
@@ -28,7 +30,12 @@ type RestrictContentTypes struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *RestrictContentTypes) Service(c context.Context, r *httpx.Request) httpx.Response {
+func (m *RestrictContentTypes) Service(ctx context.Context, r *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "RestrictContentTypes")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	var err merry.Error
 
 	switch r.Method {
@@ -39,7 +46,7 @@ func (m *RestrictContentTypes) Service(c context.Context, r *httpx.Request) http
 	}
 
 	if err != nil {
-		return m.handleError(c, r, err)
+		return m.handleError(ctx, r, err)
 	}
 
 	return nil
@@ -122,7 +129,12 @@ type AllowContentTypes struct {
 	ErrorHandler httpx.ErrorHandler
 }
 
-func (m *AllowContentTypes) Service(c context.Context, r *httpx.Request) httpx.Response {
+func (m *AllowContentTypes) Service(ctx context.Context, r *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "AllowContentTypes")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	var err merry.Error
 
 	switch r.Method {
@@ -133,7 +145,7 @@ func (m *AllowContentTypes) Service(c context.Context, r *httpx.Request) httpx.R
 	}
 
 	if err != nil {
-		return m.handleError(c, r, err)
+		return m.handleError(ctx, r, err)
 	}
 
 	return nil
