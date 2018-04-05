@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/percolate/shisa/auxiliary"
 	"github.com/percolate/shisa/errorx"
@@ -136,21 +137,26 @@ type Gateway struct {
 	// with an empty body.
 	NotFoundHandler httpx.Handler
 
+	// Tracer optionaly allows the gateway to partcipate in a
+	// distrbuted tracing system that implements the Open
+	// Tracing interface.  If nil no tracing will be emitted.
+	Tracer opentracing.Tracer
+
 	// Registrar implements sd.Registrar and registers
-	// the gateway service with a service registry, using the Gateway's
-	// `Name` field. If nil, no registration occurs.
+	// the gateway service with a service registry, using the
+	// Gateway's `Name` field. If nil, no registration occurs.
 	Registrar sd.Registrar
 
 	// RegistrationURLHook provides the *url.URL to be used in
 	// the Registrar's `Register` method. If `Registrar` is nil,
-	// this hook is not called. If this hook is nil, no service is registered
-	// via `Register`.
+	// this hook is not called. If this hook is nil, no service is
+	// registered via `Register`.
 	RegistrationURLHook URLHook
 
 	// CheckURLHook provides the *url.URL to be used in
 	// the Registrar's `AddCheck` method. If `Registrar` is nil,
-	// this hook is not called. If this hook is nil, no check is registered
-	// via `AddCheck`.
+	// this hook is not called. If this hook is nil, no check is
+	// registered via `AddCheck`.
 	CheckURLHook URLHook
 
 	// ErrorHook optionally customizes how errors encountered
@@ -206,6 +212,10 @@ func (g *Gateway) init() {
 
 	if g.Name == "" {
 		g.Name = defaultName
+	}
+
+	if g.Tracer == nil {
+		g.Tracer = opentracing.NoopTracer{}
 	}
 
 	g.tree = new(node)

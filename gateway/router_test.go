@@ -307,12 +307,6 @@ func TestRouterHandlersPanic(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -350,12 +344,6 @@ func TestRouterHandlersPanicWithErrorHandlerPanic(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -390,12 +378,6 @@ func TestRouterHandlersAuthentictionNGResponse(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusUnauthorized, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -430,14 +412,6 @@ func TestRouterHandlersAuthentictionOKResponse(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
-			assert.Contains(t, s.Metrics, RunGatewayHandlersMetricKey)
-			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -2249,13 +2223,6 @@ func TestRouterHandlerPanicCustomISEHandleWithPanic(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
-			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -2378,13 +2345,6 @@ func TestRouterHandlersNoResultCustomISEHandlerWithPanic(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusInternalServerError, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
-			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -2541,13 +2501,6 @@ func TestRouter(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
-			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 		},
 	}
 	cut.init()
@@ -2594,13 +2547,6 @@ func TestRouterPanicCompletionHook(t *testing.T) {
 			completionHookCalled = true
 			assert.Equal(t, http.StatusOK, s.StatusCode)
 			assert.Equal(t, 0, s.Size)
-			assert.False(t, s.Start.IsZero())
-			assert.NotEqual(t, 0, s.Elapsed)
-			assert.NotEmpty(t, s.Metrics)
-			assert.Contains(t, s.Metrics, RequestIdGenerationMetricKey)
-			assert.Contains(t, s.Metrics, FindEndpointMetricKey)
-			assert.Contains(t, s.Metrics, RunEndpointPipelineMetricKey)
-			assert.Contains(t, s.Metrics, SerializeResponseMetricKey)
 			panic(merry.New("completion hook blewed up!"))
 		},
 	}
