@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	stdctx "context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,7 +33,7 @@ var (
 func (st contentTypeTest) check(t *testing.T) {
 	t.Parallel()
 	request := requestWithContentType(st.method, st.contentType)
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := st.handler(ctx, request)
 
@@ -85,7 +86,7 @@ func TestAllowContentTypesService(t *testing.T) {
 }
 
 func TestAllowContentTypesServiceServiceErrorHandlerHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	request := requestWithContentType(http.MethodGet, bad)
 
 	cut := AllowContentTypes{
@@ -103,7 +104,7 @@ func TestAllowContentTypesServiceServiceErrorHandlerHook(t *testing.T) {
 }
 
 func TestAllowContentTypesServiceErrorHandlerHookPanic(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	request := requestWithContentType(http.MethodGet, bad)
 
 	cut := AllowContentTypes{
@@ -144,7 +145,7 @@ func TestRestrictContentTypesService(t *testing.T) {
 }
 
 func TestRestrictContentTypesServiceServiceErrorHandlerHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	request := requestWithContentType(http.MethodGet, bad)
 
 	cut := RestrictContentTypes{
@@ -162,7 +163,7 @@ func TestRestrictContentTypesServiceServiceErrorHandlerHook(t *testing.T) {
 }
 
 func TestRestrictContentTypesServiceErrorHandlerHookPanic(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	request := requestWithContentType(http.MethodGet, bad)
 
 	cut := RestrictContentTypes{

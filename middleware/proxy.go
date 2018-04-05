@@ -6,6 +6,9 @@ import (
 	"strings"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/errorx"
@@ -107,6 +110,11 @@ type ReverseProxy struct {
 }
 
 func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "ReverseHTTPProxy")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	request := &httpx.Request{Request: r.WithContext(ctx)}
 
 	request.Header = cloneHeaders(r.Header)
@@ -174,6 +182,10 @@ func (m *ReverseProxy) Service(ctx context.Context, r *httpx.Request) httpx.Resp
 }
 
 func (m *ReverseProxy) route(ctx context.Context, request *httpx.Request) (*httpx.Request, httpx.Response) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "ReverseHTTPProxy.Route")
+	defer span.Finish()
+	ctx = ctx.WithSpan(span)
+
 	if m.Router == nil {
 		err := merry.New("proxy middleware: check invariants: router is nil")
 		return nil, m.handleError(ctx, request, err)
@@ -197,6 +209,10 @@ func (m *ReverseProxy) route(ctx context.Context, request *httpx.Request) (*http
 }
 
 func (m *ReverseProxy) invoke(ctx context.Context, request *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "ReverseHTTPProxy.Invoke")
+	defer span.Finish()
+	ctx = ctx.WithSpan(span)
+
 	if m.Invoker == nil {
 		response, err := http.DefaultTransport.RoundTrip(request.Request)
 		if err != nil {
@@ -206,6 +222,13 @@ func (m *ReverseProxy) invoke(ctx context.Context, request *httpx.Request) httpx
 		}
 
 		return httpx.ResponseAdapter{Response: response}
+	}
+
+	carrier := opentracing.HTTPHeadersCarrier(request.Header)
+	if err := span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier); err != nil {
+		err1 := merry.Prepend(err, "proxy middleware: inject open tracing headers")
+		err1 = err1.WithHTTPCode(http.StatusBadGateway)
+		return m.handleError(ctx, request, err1)
 	}
 
 	response, err, exception := m.Invoker.InvokeSafely(ctx, request)
@@ -226,6 +249,10 @@ func (m *ReverseProxy) invoke(ctx context.Context, request *httpx.Request) httpx
 }
 
 func (m *ReverseProxy) respond(ctx context.Context, request *httpx.Request, response httpx.Response) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "ReverseHTTPProxy.Respond")
+	defer span.Finish()
+	ctx = ctx.WithSpan(span)
+
 	if m.Responder == nil {
 		return response
 	}
@@ -248,6 +275,10 @@ func (m *ReverseProxy) respond(ctx context.Context, request *httpx.Request, resp
 }
 
 func (m *ReverseProxy) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	span := opentracing.SpanFromContext(ctx)
+	ext.Error.Set(span, true)
+	span.LogFields(otlog.String("error", err.Error()))
+
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
@@ -255,6 +286,7 @@ func (m *ReverseProxy) handleError(ctx context.Context, request *httpx.Request, 
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("proxy middleware: run ErrorHandler")
+		span.LogFields(otlog.String("exception", exception.Error()))
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
 	}

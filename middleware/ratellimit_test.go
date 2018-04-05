@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	stdctx "context"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -71,13 +72,13 @@ func (c rateLimitTestCase) check(t *testing.T) {
 		assert.NotEmpty(t, actor)
 		assert.NoError(t, err)
 		assert.NoError(t, exception)
-		c.Provider.AssertAllowCalledOnceWith(t, actor, request.Method, request.URL.Path)
+		c.Provider.AssertAllowCalledOnceWith(t, ctx, actor, request.Method, request.URL.Path)
 	}
 }
 
 func TestRateLimiterServiceCustomErrorHandler(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, 0, merry.New("found a teapot")
 		},
 	}
@@ -101,7 +102,7 @@ func TestRateLimiterServiceCustomErrorHandler(t *testing.T) {
 
 func TestRateLimiterServiceCustomRateLimitHandler(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
@@ -125,7 +126,7 @@ func TestRateLimiterServiceCustomRateLimitHandler(t *testing.T) {
 
 func TestRateLimiterServiceCustomRateLimitHandlerPanic(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
@@ -150,7 +151,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerPanic(t *testing.T) {
 
 func TestRateLimiterServiceCustomRateLimitHandlerPanicErrorHandler(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
@@ -180,7 +181,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerPanicErrorHandler(t *testing.T)
 
 func TestRateLimiterServiceCustomRateLimitHandlerAndErrorHandlerBoom(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
@@ -211,7 +212,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerAndErrorHandlerBoom(t *testing.
 
 func TestRateLimiterServiceCustomRateLimitHandlerPanicString(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
@@ -236,7 +237,7 @@ func TestRateLimiterServiceCustomRateLimitHandlerPanicString(t *testing.T) {
 
 func TestClientRateLimiterServiceAllowError(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, 0, merry.New("something broke")
 		},
 	}
@@ -256,7 +257,7 @@ func TestClientRateLimiterServiceAllowError(t *testing.T) {
 
 func TestClientRateLimiterServiceThrottled(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return false, time.Hour, nil
 		},
 	}
@@ -277,7 +278,7 @@ func TestClientRateLimiterServiceThrottled(t *testing.T) {
 
 func TestUserRateLimiterServiceMissingActor(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -297,7 +298,7 @@ func TestUserRateLimiterServiceMissingActor(t *testing.T) {
 
 func TestRateLimiterServiceRateLimitProviderPanic(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			panic(merry.New("i blewed up!"))
 		},
 	}
@@ -317,7 +318,7 @@ func TestRateLimiterServiceRateLimitProviderPanic(t *testing.T) {
 
 func TestRateLimiterServiceRateLimitProviderPanicString(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			panic("i blewed up!")
 		},
 	}
@@ -337,7 +338,7 @@ func TestRateLimiterServiceRateLimitProviderPanicString(t *testing.T) {
 
 func TestClientRateLimiterOK(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -355,7 +356,7 @@ func TestClientRateLimiterOK(t *testing.T) {
 
 func TestUserRateLimiterOK(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -373,7 +374,7 @@ func TestUserRateLimiterOK(t *testing.T) {
 
 func TestCustomRateLimiterOK(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -391,7 +392,7 @@ func TestCustomRateLimiterOK(t *testing.T) {
 
 func TestRateLimiterConstrctor(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -417,7 +418,7 @@ func TestRateLimiterConstrctor(t *testing.T) {
 
 func TestCustomRateLimiterExtractorPanic(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -442,7 +443,7 @@ func TestCustomRateLimiterExtractorPanic(t *testing.T) {
 
 func TestCustomRateLimiterExtractorPanicString(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -467,7 +468,7 @@ func TestCustomRateLimiterExtractorPanicString(t *testing.T) {
 
 func TestCustomRateLimiterExtractorError(t *testing.T) {
 	provider := &ratelimit.FakeProvider{
-		AllowHook: func(string, string, string) (bool, time.Duration, merry.Error) {
+		AllowHook: func(context.Context, string, string, string) (bool, time.Duration, merry.Error) {
 			return true, 0, nil
 		},
 	}
@@ -491,7 +492,7 @@ func TestCustomRateLimiterExtractorError(t *testing.T) {
 }
 
 func TestRateLimiterServiceEmpty(t *testing.T) {
-	ctx := context.New(nil)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{Request: httpReq}
@@ -504,7 +505,7 @@ func TestRateLimiterServiceEmpty(t *testing.T) {
 }
 
 func TestRateLimiterServiceNilLimiter(t *testing.T) {
-	ctx := context.New(nil)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{Request: httpReq}
@@ -517,7 +518,7 @@ func TestRateLimiterServiceNilLimiter(t *testing.T) {
 }
 
 func TestRateLimiterServiceNilExtractor(t *testing.T) {
-	ctx := context.New(nil)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{Request: httpReq}

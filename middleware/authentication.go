@@ -4,6 +4,9 @@ import (
 	"net/http"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -38,6 +41,11 @@ type Authentication struct {
 }
 
 func (m *Authentication) Service(ctx context.Context, request *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "Authenticate")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	if m.Authenticator == nil {
 		err := merry.New("authentication middleware: check invariants: authenticator is nil")
 		return m.HandleError(ctx, request, err)
@@ -96,6 +104,10 @@ func (m *Authentication) HandleUnauthorized(ctx context.Context, request *httpx.
 }
 
 func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	span := opentracing.SpanFromContext(ctx)
+	ext.Error.Set(span, true)
+	span.LogFields(otlog.String("error", err.Error()))
+
 	if m.ErrorHandler == nil {
 		response := httpx.NewEmptyError(merry.HTTPCode(err), err)
 		if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized {

@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"bytes"
+	stdctx "context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
@@ -20,7 +24,7 @@ func TestReverseProxyMissingRouter(t *testing.T) {
 	cut := ReverseProxy{}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -41,7 +45,7 @@ func TestReverseProxyMissingRouterCustomErrorHandler(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -59,7 +63,7 @@ func TestReverseProxyNilRouterResponse(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -82,7 +86,7 @@ func TestReverseProxyNilRouterResponseCustomErrorHandler(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -101,7 +105,7 @@ func TestReverseProxyErrorRouterResponse(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -124,7 +128,7 @@ func TestReverseProxyErrorRouterResponseCustomErrorHandler(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -148,7 +152,7 @@ func TestReverseProxyRouterErrorCustomErrorHandlerPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -167,7 +171,7 @@ func TestReverseProxyRouterPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -185,7 +189,7 @@ func TestReverseProxyRouterPanicString(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -210,7 +214,7 @@ func TestReverseProxyInvokerError(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -241,7 +245,7 @@ func TestReverseProxyInvokerErrorCustomErrorHandler(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -268,7 +272,7 @@ func TestReverseProxyNilInvokerResponse(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -299,7 +303,7 @@ func TestReverseProxyNilInvokerResponseCustomErrorHandler(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -324,7 +328,7 @@ func TestReverseProxyInvokerPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -348,13 +352,55 @@ func TestReverseProxyInvokerPanicString(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode())
 	assert.True(t, routerInvoked)
 	assert.True(t, invokerInvoked)
+}
+
+type failingPropigator struct {
+	called bool
+}
+
+func (p *failingPropigator) Inject(mocktracer.MockSpanContext, interface{}) error {
+	p.called = true
+	return errors.New("i blewed up!")
+}
+
+func TestReverseProxyInvokerTracerInjectError(t *testing.T) {
+	var routerInvoked bool
+	var invokerInvoked bool
+	cut := ReverseProxy{
+		Router: func(c context.Context, r *httpx.Request) (*httpx.Request, merry.Error) {
+			routerInvoked = true
+			return r, nil
+		},
+		Invoker: func(c context.Context, r *httpx.Request) (httpx.Response, merry.Error) {
+			invokerInvoked = true
+			return httpx.NewEmpty(http.StatusOK), nil
+		},
+	}
+
+	request := &httpx.Request{Request: fakeRequest}
+	ctx := context.New(stdctx.Background())
+	propigator := new(failingPropigator)
+	tracer := mocktracer.New()
+	tracer.RegisterInjector(opentracing.HTTPHeaders, propigator)
+
+	opentracing.SetGlobalTracer(tracer)
+
+	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
+
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusBadGateway, response.StatusCode())
+	assert.True(t, propigator.called)
+	assert.True(t, routerInvoked)
+	assert.False(t, invokerInvoked)
 }
 
 func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
@@ -389,7 +435,7 @@ func TestReverseProxySanitizeRequestHeaders(t *testing.T) {
 	request.Header.Set("Upgrade", "IRC/6.9, zalgo/666")
 	request.Header.Set("Transfer-Encoding", "bitrot")
 	request.Header.Set("X-Forwarded-For", "10.10.10.10")
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 
@@ -434,7 +480,7 @@ func TestReverseProxySanitizeResponseHeaders(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	request := &httpx.Request{Request: r}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 

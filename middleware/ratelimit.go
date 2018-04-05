@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/errorx"
@@ -150,6 +153,11 @@ func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
 }
 
 func (m *RateLimiter) Service(ctx context.Context, request *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "RateLimit")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	if m.limiter == nil {
 		err := merry.New("rate limit middleware: check invariants: provider is nil")
 		return m.handleError(ctx, request, err)
@@ -188,7 +196,7 @@ func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok 
 		return
 	}
 
-	return m.limiter.Allow(actor, request.Method, request.URL.Path)
+	return m.limiter.Allow(ctx, actor, request.Method, request.URL.Path)
 }
 
 func (m *RateLimiter) handleRateLimit(ctx context.Context, request *httpx.Request, cooldown time.Duration) httpx.Response {
@@ -214,6 +222,10 @@ func (m *RateLimiter) handleRateLimit(ctx context.Context, request *httpx.Reques
 }
 
 func (m *RateLimiter) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	span := opentracing.SpanFromContext(ctx)
+	ext.Error.Set(span, true)
+	span.LogFields(otlog.String("error", err.Error()))
+
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}

@@ -7,6 +7,9 @@ import (
 	"strings"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/errorx"
@@ -77,6 +80,11 @@ type CSRFProtector struct {
 }
 
 func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) httpx.Response {
+	span, _ := opentracing.StartSpanFromContext(ctx, "CSRFProtect")
+	defer span.Finish()
+	ext.Component.Set(span, "middleware")
+	ctx = ctx.WithSpan(span)
+
 	if m.SiteURL == nil {
 		err := merry.New("csrf middleware: check invariants: SiteURL is nil")
 		return m.handleError(ctx, request, err)
@@ -212,6 +220,10 @@ func (m *CSRFProtector) extractToken(ctx context.Context, request *httpx.Request
 }
 
 func (m *CSRFProtector) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	span := opentracing.SpanFromContext(ctx)
+	ext.Error.Set(span, true)
+	span.LogFields(otlog.String("error", err.Error()))
+
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
