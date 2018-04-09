@@ -43,3 +43,7 @@
 [[constraint]]
   name = "github.com/opentracing/opentracing-go"
   version = "v1.0.2"
+
+[[constraint]]
+  name = "github.com/uber/jaeger-client-go"
+  version = "v2.12.0"
