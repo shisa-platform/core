@@ -4,24 +4,35 @@ x-rest-service: &rest-service
   image: shisa/examples/rest
   depends_on:
     - "consul"
+    - "jaeger"
   environment:
     CONSUL_HTTP_ADDR: consul:8500
+    JAEGER_AGENT_HOST: jaeger
 
 x-rpc-service: &rpc-service
   image: shisa/examples/rpc
   depends_on:
     - "consul"
+    - "jaeger"
   environment:
     CONSUL_HTTP_ADDR: consul:8500
+    JAEGER_AGENT_HOST: jaeger
 
 x-idp-service: &idp-service
   image: shisa/examples/idp
   depends_on:
     - "consul"
+    - "jaeger"
   environment:
     CONSUL_HTTP_ADDR: consul:8500
+    JAEGER_AGENT_HOST: jaeger
 
 services:
+  jaeger:
+    container_name: jaeger
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - 16686:16686
   consul:
     container_name: consul
     image: consul:1.0.6
@@ -32,12 +43,14 @@ services:
     image: shisa/examples/gw
     depends_on:
       - "consul"
+      - "jaeger"
     ports:
       - 9001:9001
       - 9002:9002
       - 9003:9003
     environment:
       CONSUL_HTTP_ADDR: consul:8500
+      JAEGER_AGENT_HOST: jaeger
     command: ./gw --addr="gw:9001" --debugaddr="gw:9002" --healthcheckaddr="gw:9003"
   rest-1:
     container_name: rest-1
