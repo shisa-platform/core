@@ -102,8 +102,11 @@ func TestValue(t *testing.T) {
 	pval := true
 
 	parent := &FakeContext{
-		ValueHook: func(key interface{}) (ret0 interface{}) {
-			return pval
+		ValueHook: func(key interface{}) (value interface{}) {
+			if key == pkey {
+				return pval
+			}
+			return
 		},
 	}
 
@@ -121,6 +124,29 @@ func TestValue(t *testing.T) {
 	calledVal, found := parent.ValueResultsForCall(pkey)
 	assert.True(t, found)
 	assert.Equal(t, calledVal, parentVal)
+}
+
+func TestInheritedValue(t *testing.T) {
+	pkey := "ParentKey"
+	pval := true
+
+	parent := &FakeContext{
+		ValueHook: func(key interface{}) (value interface{}) {
+			if key == pkey {
+				return pval
+			}
+			return
+		},
+	}
+
+	c := getContextForParent(parent)
+
+	c = New(c)
+
+	assert.Equal(t, expectedUser, c.Actor())
+	assert.Equal(t, expectedUser, c.Value(ActorKey).(models.User))
+	assert.Equal(t, expectedRequestID, c.RequestID())
+	assert.Equal(t, expectedRequestID, c.Value(IDKey).(string))
 }
 
 func TestWithParent(t *testing.T) {
