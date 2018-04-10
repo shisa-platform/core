@@ -80,7 +80,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	gw.RegistrationURLHook = func() (u *url.URL, err merry.Error) {
 		u = &url.URL{
 			Host:     gw.Address(),
-			RawQuery: fmt.Sprintf("id=%s", gw.Name),
+			RawQuery: "id=" + gw.Name,
 		}
 		return
 	}
@@ -90,7 +90,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Host:     healthcheck.Address(),
 			Path:     healthcheck.Path,
 			User:     url.UserPassword("Admin", "password"),
-			RawQuery: fmt.Sprintf("interval=10s&serviceid=%s", gw.Name),
+			RawQuery: "interval=30s&serviceid=" + gw.Name,
 		}
 		return
 	}
