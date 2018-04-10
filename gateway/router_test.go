@@ -57,12 +57,12 @@ func installHandler(t *testing.T, g *Gateway, h httpx.Handler) {
 	installEndpoints(t, g, newEndpoints(h))
 }
 
-func newEndpointsWithPolicy(h httpx.Handler, p service.Policy) []service.Endpoint {
-	return []service.Endpoint{service.GetEndpointWithPolicy(expectedRoute, p, h)}
+func newEndpointsWithPolicy(p service.Policy, h ...httpx.Handler) []service.Endpoint {
+	return []service.Endpoint{service.GetEndpointWithPolicy(expectedRoute, p, h...)}
 }
 
-func installHandlerWithPolicy(t *testing.T, g *Gateway, h httpx.Handler, p service.Policy) {
-	installEndpoints(t, g, newEndpointsWithPolicy(h, p))
+func installHandlersWithPolicy(t *testing.T, g *Gateway, p service.Policy, h ...httpx.Handler) {
+	installEndpoints(t, g, newEndpointsWithPolicy(p, h...))
 }
 
 type mockErrorHook struct {
@@ -983,7 +983,7 @@ func TestRouterExtraSlashRedirectAllowed(t *testing.T) {
 	cut.init()
 
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
-	installHandlerWithPolicy(t, cut, dummyHandler, policy)
+	installHandlersWithPolicy(t, cut, policy, dummyHandler)
 
 	w := httptest.NewRecorder()
 	route := expectedRoute + "/"
@@ -1031,7 +1031,7 @@ func TestRouterExtraSlashRedirectAllowedCustomHandler(t *testing.T) {
 
 	var handlerCalled bool
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
-	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
+	svc := newFakeService(newEndpointsWithPolicy(policy, dummyHandler))
 	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
 		handlerCalled = true
 		return httpx.NewEmpty(http.StatusForbidden)
@@ -1058,7 +1058,7 @@ func TestRouterExtraSlashRedirectAllowedCustomHandlerPanic(t *testing.T) {
 
 	var handlerCalled bool
 	policy := service.Policy{AllowTrailingSlashRedirects: true}
-	svc := newFakeService(newEndpointsWithPolicy(dummyHandler, policy))
+	svc := newFakeService(newEndpointsWithPolicy(policy, dummyHandler))
 	svc.RedirectHandler = func(context.Context, *httpx.Request) httpx.Response {
 		handlerCalled = true
 		panic(merry.New("redirect handler blewed up!"))
@@ -2143,7 +2143,7 @@ func TestRouterContextDeadlineSet(t *testing.T) {
 	}
 
 	policy := service.Policy{TimeBudget: time.Millisecond * 30}
-	installHandlerWithPolicy(t, cut, handler, policy)
+	installHandlersWithPolicy(t, cut, policy, handler)
 
 	w := httptest.NewRecorder()
 	cut.ServeHTTP(w, fakeRequest)
@@ -2605,7 +2605,7 @@ func TestRouterEndpointHandlerTimeout(t *testing.T) {
 	}
 
 	policy := service.Policy{TimeBudget: time.Millisecond * 30}
-	installHandlerWithPolicy(t, cut, handler, policy)
+	installHandlersWithPolicy(t, cut, policy, handler)
 	w := httptest.NewRecorder()
 
 	start := time.Now().UTC()
@@ -2619,7 +2619,7 @@ func TestRouterEndpointHandlerTimeout(t *testing.T) {
 	assert.Equal(t, 0, w.Body.Len())
 }
 
-func TestRouterSlowGatewayHandlerDisruptsEndpointHandlers(t *testing.T) {
+func TestRouterSlowGatewayHandlerDisruptsEndpointPipeline(t *testing.T) {
 	var gatewayHandlerCalled bool
 	gatewayHandler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		gatewayHandlerCalled = true
@@ -2636,13 +2636,18 @@ func TestRouterSlowGatewayHandlerDisruptsEndpointHandlers(t *testing.T) {
 
 	policy := service.Policy{TimeBudget: time.Millisecond * 30}
 
-	var handlerCalled bool
-	handler := func(ctx context.Context, r *httpx.Request) httpx.Response {
-		handlerCalled = true
+	var handler1Called bool
+	handler1 := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handler1Called = true
+		return nil
+	}
+	var handler2Called bool
+	handler2 := func(ctx context.Context, r *httpx.Request) httpx.Response {
+		handler2Called = true
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	installHandlerWithPolicy(t, cut, handler, policy)
+	installHandlersWithPolicy(t, cut, policy, handler1, handler2)
 	w := httptest.NewRecorder()
 
 	start := time.Now().UTC()
@@ -2651,7 +2656,8 @@ func TestRouterSlowGatewayHandlerDisruptsEndpointHandlers(t *testing.T) {
 
 	assert.WithinDuration(t, start, end, time.Millisecond*1250)
 	assert.True(t, gatewayHandlerCalled, "gateway handler not called")
-	assert.False(t, handlerCalled, "handler called unexpectedly")
+	assert.True(t, handler1Called, "first handler not called")
+	assert.False(t, handler2Called, "second handler called unexpectedly")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
@@ -2681,7 +2687,7 @@ func TestRouterSlowGatewayHandlerWithTimeout(t *testing.T) {
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	installHandlerWithPolicy(t, cut, handler, policy)
+	installHandlersWithPolicy(t, cut, policy, handler)
 	w := httptest.NewRecorder()
 
 	start := time.Now().UTC()
@@ -2711,7 +2717,7 @@ func TestRouterEndpointHandlerClientDisconnect(t *testing.T) {
 	}
 
 	policy := service.Policy{TimeBudget: 5 * time.Second}
-	installHandlerWithPolicy(t, cut, handler, policy)
+	installHandlersWithPolicy(t, cut, policy, handler)
 	recorder := httptest.NewRecorder()
 	w := &closingResponseWriter{
 		ResponseWriter: recorder,

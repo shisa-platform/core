@@ -390,6 +390,9 @@ func TestReverseProxyInvokerTracerInjectError(t *testing.T) {
 	tracer := mocktracer.New()
 	tracer.RegisterInjector(opentracing.HTTPHeaders, propigator)
 
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
 	opentracing.SetGlobalTracer(tracer)
 
 	response := cut.Service(ctx, request)

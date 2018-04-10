@@ -153,25 +153,28 @@ func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
 }
 
 func (m *RateLimiter) Service(ctx context.Context, request *httpx.Request) httpx.Response {
-	span, _ := opentracing.StartSpanFromContext(ctx, "RateLimit")
-	defer span.Finish()
-	ext.Component.Set(span, "middleware")
-	ctx = ctx.WithSpan(span)
+	subCtx := ctx
+	if ctx.Span() != nil {
+		var span opentracing.Span
+		span, subCtx = context.StartSpan(ctx, "RateLimit")
+		defer span.Finish()
+		ext.Component.Set(span, "middleware")
+	}
 
 	if m.limiter == nil {
 		err := merry.New("rate limit middleware: check invariants: provider is nil")
-		return m.handleError(ctx, request, err)
+		return m.handleError(subCtx, request, err)
 	}
 	if m.extractor == nil {
 		err := merry.New("rate limit middleware: check invariants: extractor is nil")
-		return m.handleError(ctx, request, err)
+		return m.handleError(subCtx, request, err)
 	}
 
-	ok, cooldown, err := m.throttle(ctx, request)
+	ok, cooldown, err := m.throttle(subCtx, request)
 	if err != nil {
-		return m.handleError(ctx, request, err)
+		return m.handleError(subCtx, request, err)
 	} else if !ok {
-		return m.handleRateLimit(ctx, request, cooldown)
+		return m.handleRateLimit(subCtx, request, cooldown)
 	}
 
 	return nil
@@ -222,9 +225,12 @@ func (m *RateLimiter) handleRateLimit(ctx context.Context, request *httpx.Reques
 }
 
 func (m *RateLimiter) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
-	span := opentracing.SpanFromContext(ctx)
-	ext.Error.Set(span, true)
-	span.LogFields(otlog.String("error", err.Error()))
+	span := noopSpan
+	if ctxSpan := ctx.Span(); ctxSpan != nil {
+		span = ctxSpan
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+	}
 
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
@@ -233,6 +239,7 @@ func (m *RateLimiter) handleError(ctx context.Context, request *httpx.Request, e
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("proxy middleware: run ErrorHandler")
+		span.LogFields(otlog.String("exception", exception.Error()))
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
 	}

@@ -113,7 +113,9 @@ type Goodbye struct {
 func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ri := httpx.NewInterceptor(w)
 
-	ctx := context.New(req.Context())
+	ctx := context.Get(req.Context())
+	defer context.Put(ctx)
+
 	request := &httpx.Request{Request: req}
 	request.ParseQueryParameters()
 
@@ -125,7 +127,7 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		s.Logger.Warn("missing upstream request id", zap.String("request-id", requestID))
 	}
 
-	ctx = context.WithRequestID(ctx, requestID)
+	ctx = ctx.WithRequestID(requestID)
 
 	var response httpx.Response
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"time"
 
@@ -67,7 +66,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	go runAuxiliary(healthcheck, logger)
 
 	gw := &gateway.Gateway{
-		Name:            "example",
+		Name:            serviceName,
 		Addr:            addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,

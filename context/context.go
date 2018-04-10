@@ -9,12 +9,14 @@ import (
 	"github.com/percolate/shisa/models"
 )
 
-type idKey struct {}
-type actorKey struct {}
+type idKey struct{}
+type actorKey struct{}
+type spanKey struct{}
 
 var (
 	IDKey    = new(idKey)
 	ActorKey = new(actorKey)
+	SpanKey  = new(spanKey)
 )
 
 //go:generate charlatan -output=./context_charlatan.go Context
@@ -23,6 +25,8 @@ type Context interface {
 	context.Context
 	RequestID() string
 	Actor() models.User
+	Span() opentracing.Span
+	StartSpan(string, ...opentracing.StartSpanOption) opentracing.Span
 	WithParent(context.Context) Context
 	WithActor(models.User) Context
 	WithRequestID(string) Context
@@ -37,6 +41,7 @@ type shisaCtx struct {
 	context.Context
 	requestID string
 	actor     models.User
+	span      opentracing.Span
 }
 
 func (ctx *shisaCtx) Deadline() (deadline time.Time, ok bool) {
@@ -75,6 +80,28 @@ func (ctx *shisaCtx) Actor() models.User {
 	return nil
 }
 
+func (ctx *shisaCtx) Span() opentracing.Span {
+	if ctx.span != nil {
+		return ctx.span
+	}
+
+	if value := ctx.Context.Value(SpanKey); value != nil {
+		return value.(opentracing.Span)
+	}
+
+	return opentracing.SpanFromContext(ctx.Context)
+}
+
+func (ctx *shisaCtx) StartSpan(operationName string, opts ...opentracing.StartSpanOption) opentracing.Span {
+	tracer := opentracing.GlobalTracer()
+	if ctx.span != nil {
+		opts = append(opts, opentracing.ChildOf(ctx.span.Context()))
+		tracer = ctx.span.Tracer()
+	}
+
+	return tracer.StartSpan(operationName, opts...)
+}
+
 func (ctx *shisaCtx) Value(key interface{}) interface{} {
 	switch key {
 	case IDKey:
@@ -106,7 +133,7 @@ func (ctx *shisaCtx) WithRequestID(value string) Context {
 }
 
 func (ctx *shisaCtx) WithSpan(value opentracing.Span) Context {
-	ctx.Context = opentracing.ContextWithSpan(ctx.Context, value)
+	ctx.span = value
 	return ctx
 }
 
@@ -158,6 +185,19 @@ func WithRequestID(parent context.Context, value string) Context {
 	ctx := get(parent)
 	ctx.requestID = value
 	return ctx
+}
+
+func WithSpan(parent context.Context, value opentracing.Span) Context {
+	ctx := get(parent)
+	ctx.span = value
+	return ctx
+}
+
+func StartSpan(parent Context, operationName string, opts ...opentracing.StartSpanOption) (opentracing.Span, Context) {
+	ctx := get(parent)
+	ctx.span = parent.StartSpan(operationName, opts...)
+
+	return ctx.span, ctx
 }
 
 func WithValue(parent context.Context, key, value interface{}) Context {

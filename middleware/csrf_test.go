@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
@@ -36,8 +38,6 @@ type csrfTest struct {
 }
 
 func (st csrfTest) check(t *testing.T) {
-	t.Parallel()
-
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
 		Request: httpReq,
@@ -63,7 +63,15 @@ func (st csrfTest) check(t *testing.T) {
 		SiteURL: st.siteURL,
 	}
 
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
+	opentracing.SetGlobalTracer(tracer)
+
 	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
 
 	if response == nil {
 		assert.Zero(t, st.expectedStatus, "expected response")

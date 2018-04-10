@@ -32,10 +32,13 @@ type RestrictContentTypes struct {
 }
 
 func (m *RestrictContentTypes) Service(ctx context.Context, r *httpx.Request) httpx.Response {
-	span, _ := opentracing.StartSpanFromContext(ctx, "RestrictContentTypes")
-	defer span.Finish()
-	ext.Component.Set(span, "middleware")
-	ctx = ctx.WithSpan(span)
+	subCtx := ctx
+	if ctx.Span() != nil {
+		var span opentracing.Span
+		span, subCtx = context.StartSpan(ctx, "RestrictContentTypes")
+		defer span.Finish()
+		ext.Component.Set(span, "middleware")
+	}
 
 	var err merry.Error
 
@@ -47,7 +50,7 @@ func (m *RestrictContentTypes) Service(ctx context.Context, r *httpx.Request) ht
 	}
 
 	if err != nil {
-		return m.handleError(ctx, r, err)
+		return m.handleError(subCtx, r, err)
 	}
 
 	return nil
@@ -104,9 +107,12 @@ func (m *RestrictContentTypes) checkQuery(r *httpx.Request) (err merry.Error) {
 }
 
 func (m *RestrictContentTypes) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
-	span := opentracing.SpanFromContext(ctx)
-	ext.Error.Set(span, true)
-	span.LogFields(otlog.String("error", err.Error()))
+	span := noopSpan
+	if ctxSpan := ctx.Span(); ctxSpan != nil {
+		span = ctxSpan
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+	}
 
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
@@ -115,6 +121,7 @@ func (m *RestrictContentTypes) handleError(ctx context.Context, request *httpx.R
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("restrict content type middleware: run ErrorHandler")
+		span.LogFields(otlog.String("exception", exception.Error()))
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
 	}
@@ -135,10 +142,13 @@ type AllowContentTypes struct {
 }
 
 func (m *AllowContentTypes) Service(ctx context.Context, r *httpx.Request) httpx.Response {
-	span, _ := opentracing.StartSpanFromContext(ctx, "AllowContentTypes")
-	defer span.Finish()
-	ext.Component.Set(span, "middleware")
-	ctx = ctx.WithSpan(span)
+	subCtx := ctx
+	if ctx.Span() != nil {
+		var span opentracing.Span
+		span, subCtx = context.StartSpan(ctx, "AllowContentTypes")
+		defer span.Finish()
+		ext.Component.Set(span, "middleware")
+	}
 
 	var err merry.Error
 
@@ -150,7 +160,7 @@ func (m *AllowContentTypes) Service(ctx context.Context, r *httpx.Request) httpx
 	}
 
 	if err != nil {
-		return m.handleError(ctx, r, err)
+		return m.handleError(subCtx, r, err)
 	}
 
 	return nil
@@ -206,9 +216,12 @@ func (m *AllowContentTypes) checkQuery(r *httpx.Request) (err merry.Error) {
 }
 
 func (m *AllowContentTypes) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
-	span := opentracing.SpanFromContext(ctx)
-	ext.Error.Set(span, true)
-	span.LogFields(otlog.String("error", err.Error()))
+	span := noopSpan
+	if ctxSpan := ctx.Span(); ctxSpan != nil {
+		span = ctxSpan
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+	}
 
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
@@ -217,6 +230,7 @@ func (m *AllowContentTypes) handleError(ctx context.Context, request *httpx.Requ
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("allow content type middleware: run ErrorHandler")
+		span.LogFields(otlog.String("exception", exception.Error()))
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
 	}

@@ -17,26 +17,28 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	parent := opentracing.StartSpan("ServiceRequest", opentracing.Tags{
+var (
+	routerTags = opentracing.Tags{
 		string(ext.SpanKind):  "server",
 		string(ext.Component): "router",
-	})
+	}
+)
+
+func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	parent := opentracing.StartSpan("ServiceRequest", routerTags)
 	defer parent.Finish()
 
 	ri := httpx.NewInterceptor(w)
 
 	ctx := context.Get(r.Context())
 	defer context.Put(ctx)
+	ctx = ctx.WithSpan(parent)
 
 	request := httpx.GetRequest(r)
 	defer httpx.PutRequest(request)
 
-	path := request.URL.EscapedPath()
-	ext.HTTPUrl.Set(parent, path)
+	ext.HTTPUrl.Set(parent, request.URL.RequestURI())
 	ext.HTTPMethod.Set(parent, request.Method)
-
-	ctx = ctx.WithSpan(parent)
 
 	requestID, idErr := g.generateRequestID(ctx, request)
 
@@ -44,7 +46,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ctx.WithRequestID(requestID)
 	ri.Header().Set(g.RequestIDHeaderName, requestID)
 
-	span := opentracing.StartSpan("ParseQueryParameters", opentracing.ChildOf(parent.Context()))
+	span := ctx.StartSpan("ParseQueryParameters")
 	parseOK := request.ParseQueryParameters()
 	span.Finish()
 
@@ -63,6 +65,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
+		path       string = request.URL.EscapedPath()
 		endpoint   *endpoint
 		pipeline   *service.Pipeline
 		err        merry.Error
@@ -71,43 +74,47 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		responseCh chan httpx.Response = make(chan httpx.Response, 1)
 	)
 
-	span = opentracing.StartSpan("RunGatewayHandlers", opentracing.ChildOf(parent.Context()))
-	defer span.Finish()
-	subCtx := ctx.WithSpan(span)
+	span = ctx.StartSpan("RunGatewayHandlers")
+	pipelineCtx := ctx
+	pipelineCtx.WithSpan(span)
+
 	if g.HandlersTimeout != 0 {
 		var subCancel stdctx.CancelFunc
-		subCtx, subCancel = subCtx.WithTimeout(g.HandlersTimeout - ri.Elapsed())
+		pipelineCtx, subCancel = pipelineCtx.WithTimeout(g.HandlersTimeout - ri.Elapsed())
 		defer subCancel()
 	}
 
 	for _, handler := range g.Handlers {
 		go func() {
-			response, exception := handler.InvokeSafely(subCtx, request)
+			response, exception := handler.InvokeSafely(pipelineCtx, request)
 			if exception != nil {
 				err = exception.Prepend("gateway: route: run gateway handler")
-				response = g.handleError(subCtx, request, err)
+				response = g.handleError(pipelineCtx, request, err)
 			}
 
 			responseCh <- response
 		}()
 		select {
-		case <-subCtx.Done():
+		case <-pipelineCtx.Done():
 			cancel()
-			err = merry.Prepend(subCtx.Err(), "gateway: route: request aborted")
-			if merry.Is(subCtx.Err(), stdctx.DeadlineExceeded) {
+			err = merry.Prepend(pipelineCtx.Err(), "gateway: route: request aborted")
+			if merry.Is(pipelineCtx.Err(), stdctx.DeadlineExceeded) {
 				err = err.WithHTTPCode(http.StatusGatewayTimeout)
 			}
-			response = g.handleError(subCtx, request, err)
+			response = g.handleError(pipelineCtx, request, err)
+			span.Finish()
 			goto finish
 		case response = <-responseCh:
 			if response != nil {
+				span.Finish()
 				goto finish
 			}
 		}
 	}
 	span.Finish()
+	ctx = ctx.WithSpan(parent)
 
-	span = opentracing.StartSpan("FindEndpoint", opentracing.ChildOf(parent.Context()))
+	span = ctx.StartSpan("FindEndpoint")
 	endpoint, request.PathParams, tsr, err = g.tree.getValue(path)
 	span.Finish()
 
@@ -166,19 +173,21 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto finish
 	}
 
-	span = opentracing.StartSpan("ValidateQueryParameters", opentracing.ChildOf(parent.Context()))
-	defer span.Finish()
+	span = ctx.StartSpan("ValidateQueryParameters")
 	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QueryFields); exception != nil {
 		response, exception = endpoint.handleError(ctx, request, exception)
 		if exception != nil {
 			g.invokeErrorHookSafely(ctx, request, exception)
 		}
+		span.Finish()
 		goto finish
 	} else if malformed && !pipeline.Policy.AllowMalformedQueryParameters {
 		response, err = endpoint.handleBadQuery(ctx, request)
+		span.Finish()
 		goto finish
 	} else if unknown && !pipeline.Policy.AllowUnknownQueryParameters {
 		response, err = endpoint.handleBadQuery(ctx, request)
+		span.Finish()
 		goto finish
 	}
 	span.Finish()
@@ -191,45 +200,35 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	span = opentracing.StartSpan("RunGatewayHandlers", opentracing.ChildOf(parent.Context()))
-	defer span.Finish()
+	span = ctx.StartSpan("RunPipelineHandlers")
+	pipelineCtx = ctx
+	pipelineCtx.WithSpan(span)
 
 	if pipeline.Policy.TimeBudget != 0 {
-		var cancel stdctx.CancelFunc
-		ctx, cancel = ctx.WithTimeout(pipeline.Policy.TimeBudget - ri.Elapsed())
-		defer cancel()
+		var subCancel stdctx.CancelFunc
+		pipelineCtx, subCancel = pipelineCtx.WithTimeout(pipeline.Policy.TimeBudget - ri.Elapsed())
+		defer subCancel()
 	}
 
-	select {
-	case <-ctx.Done():
-		err = merry.Prepend(ctx.Err(), "gateway: route: request aborted")
-		if merry.Is(ctx.Err(), stdctx.DeadlineExceeded) {
-			err = err.WithHTTPCode(http.StatusGatewayTimeout)
-		}
-		response = g.handleEndpointError(endpoint, ctx, request, err)
-		goto finish
-	default:
-	}
-
-	subCtx = ctx.WithSpan(span)
 endpointHandlers:
 	for _, handler := range pipeline.Handlers {
 		go func() {
-			response, exception := handler.InvokeSafely(subCtx, request)
+			response, exception := handler.InvokeSafely(pipelineCtx, request)
 			if exception != nil {
 				err = exception.Prepend("gateway: route: run endpoint handler")
-				response = g.handleEndpointError(endpoint, subCtx, request, err)
+				response = g.handleEndpointError(endpoint, pipelineCtx, request, err)
 			}
 
 			responseCh <- response
 		}()
 		select {
-		case <-subCtx.Done():
-			err = merry.Prepend(subCtx.Err(), "gateway: route: request aborted")
-			if merry.Is(subCtx.Err(), stdctx.DeadlineExceeded) {
+		case <-pipelineCtx.Done():
+			err = merry.Prepend(pipelineCtx.Err(), "gateway: route: request aborted")
+			if merry.Is(pipelineCtx.Err(), stdctx.DeadlineExceeded) {
 				err = err.WithHTTPCode(http.StatusGatewayTimeout)
 			}
-			response = g.handleEndpointError(endpoint, subCtx, request, err)
+			response = g.handleEndpointError(endpoint, pipelineCtx, request, err)
+			span.Finish()
 			goto finish
 		case response = <-responseCh:
 			if response != nil {
@@ -242,17 +241,17 @@ endpointHandlers:
 		}
 	}
 	span.Finish()
+	ctx = ctx.WithSpan(parent)
 
 	if response == nil {
 		err = merry.New("gateway: route: no response from pipeline")
-		response = g.handleEndpointError(endpoint, subCtx, request, err)
+		response = g.handleEndpointError(endpoint, pipelineCtx, request, err)
 	}
 
 finish:
-	if span != nil {
-		span.Finish()
-	}
-	span = opentracing.StartSpan("SerializeResponse", opentracing.ChildOf(parent.Context()))
+	ctx = ctx.WithSpan(parent)
+
+	span = ctx.StartSpan("SerializeResponse")
 	var (
 		writeErr merry.Error
 		snapshot httpx.ResponseSnapshot
@@ -275,9 +274,7 @@ finish:
 
 	ext.HTTPStatusCode.Set(parent, uint16(snapshot.StatusCode))
 
-	if g.CompletionHook != nil {
-		g.invokeCompletionHookSafely(ctx, request, snapshot)
-	}
+	g.invokeCompletionHookSafely(ctx, request, snapshot)
 
 	if idErr != nil {
 		g.invokeErrorHookSafely(ctx, request, idErr)
@@ -300,8 +297,7 @@ finish:
 }
 
 func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request) (string, merry.Error) {
-	parent := opentracing.SpanFromContext(ctx)
-	span := opentracing.StartSpan("GenerateRequestID", opentracing.ChildOf(parent.Context()))
+	span := ctx.StartSpan("GenerateRequestID")
 	defer span.Finish()
 
 	if g.RequestIDGenerator == nil {
@@ -311,7 +307,7 @@ func (g *Gateway) generateRequestID(ctx context.Context, request *httpx.Request)
 	requestID, err, exception := g.RequestIDGenerator.InvokeSafely(ctx, request)
 	if exception != nil {
 		err = exception.Prepend("gateway: route: generate request id")
-		span.LogFields(otlog.String("error", err.Error()))
+		span.LogFields(otlog.String("exception", err.Error()))
 		requestID = request.ID()
 	} else if err != nil {
 		err = err.Prepend("gateway: route: generate request id")
@@ -365,6 +361,9 @@ func (g *Gateway) handleEndpointError(endpoint *endpoint, ctx context.Context, r
 }
 
 func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Request, err merry.Error) {
+	span := ctx.StartSpan("ErrorHook")
+	defer span.Finish()
+
 	if g.ErrorHook == nil {
 		g.fallbackErrorHook(ctx, err)
 	}
@@ -373,6 +372,8 @@ func (g *Gateway) invokeErrorHookSafely(ctx context.Context, request *httpx.Requ
 		g.fallbackErrorHook(ctx, err)
 		exception = exception.Prepend("gateway: route: run ErrorHook")
 		g.fallbackErrorHook(ctx, exception)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("exception", err.Error()))
 	}
 }
 
@@ -384,8 +385,17 @@ func (g *Gateway) fallbackErrorHook(ctx context.Context, err merry.Error) {
 }
 
 func (g *Gateway) invokeCompletionHookSafely(ctx context.Context, request *httpx.Request, snapshot httpx.ResponseSnapshot) {
+	if g.CompletionHook == nil {
+		return
+	}
+
+	span := ctx.StartSpan("CompletionHook")
+	defer span.Finish()
+
 	if exception := g.CompletionHook.InvokeSafely(ctx, request, snapshot); exception != nil {
 		exception = exception.Prepend("gateway: route: run CompletionHook")
 		g.invokeErrorHookSafely(ctx, request, exception)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("exception", exception.Error()))
 	}
 }

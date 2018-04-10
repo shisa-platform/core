@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/authn"
@@ -50,12 +52,21 @@ func TestAuthenticationAuthenticatorError(t *testing.T) {
 	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.New(stdctx.Background())
 
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
+	opentracing.SetGlobalTracer(tracer)
+
 	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
+
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
 	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 
-	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+	authn.AssertAuthenticateCalledOnce(t)
 }
 
 func TestAuthenticationAuthenticatorPanic(t *testing.T) {
@@ -412,10 +423,19 @@ func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
 	request := &httpx.Request{Request: fakeRequest}
 	ctx := context.New(stdctx.Background())
 
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
+	opentracing.SetGlobalTracer(tracer)
+
 	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
+
 	assert.Nil(t, response)
 
-	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+	authn.AssertAuthenticateCalledOnce(t)
 }
 
 func TestPassiveAuthenticationAuthenticatorPanic(t *testing.T) {
