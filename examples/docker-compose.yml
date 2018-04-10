@@ -38,6 +38,7 @@ services:
     image: consul:1.0.6
     ports:
       - 8500:8500
+    command: agent -dev -log-level warn -client "0.0.0.0"
   gw:
     container_name: gw
     image: shisa/examples/gw
