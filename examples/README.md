@@ -28,17 +28,17 @@ on each node and a cluster of consul servers elsewhere.  This requires
 configuring instance ids in Consul which is usually not necessary in a
 production environment.
 
-The Consul web application is available at: http://localhost:8500/ui/
+The Consul web application is available at: <http://localhost:8500/ui/>
 
 ### Distributed Tracing
 
 Shisa has built-in support for [OpenTracing](http://opentracing.io/)
-and the examples use [Jaeger](https://www.jaegertracing.io/) to 
+and the examples use [Jaeger](https://www.jaegertracing.io/) to
 capture spans emitted during each API request.  The examples configure
 the Jaeger agent to capture all spans rather that a the typical
 production setup of a sampling.
 
-The Jaeger web application is available at: http://localhost:16686/
+The Jaeger web application is available at: <http://localhost:16686/>
 
 ## Building
 
