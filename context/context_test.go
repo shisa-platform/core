@@ -178,16 +178,12 @@ func TestWithRequestID(t *testing.T) {
 
 func TestWithSpan(t *testing.T) {
 	c := New(context.Background())
+	assert.Nil(t, c.Span())
 	tracer := opentracing.NoopTracer{}
 	parent := tracer.StartSpan("test")
 	ctx := c.WithSpan(parent)
 
-	assert.Equal(t, parent, opentracing.SpanFromContext(ctx))
-
-	child := tracer.StartSpan("sub", opentracing.ChildOf(parent.Context()))
-	sub := ctx.WithSpan(child)
-
-	assert.Equal(t, child, opentracing.SpanFromContext(sub))
+	assert.Equal(t, parent, ctx.Span())
 }
 
 func TestWithValue(t *testing.T) {
