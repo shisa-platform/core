@@ -2,56 +2,23 @@ package main
 
 import (
 	"context"
-	"expvar"
-	"flag"
 	"fmt"
-	"log"
 	"net/http"
-	"net/rpc"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/ansel1/merry"
 	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/examples/rpc/service"
 	"github.com/percolate/shisa/httpx"
 	"github.com/percolate/shisa/lb"
 	"github.com/percolate/shisa/sd"
 )
 
-const (
-	timeFormat  = "2006-01-02T15:04:05+00:00"
-	serviceName = "rpc"
-)
-
-func main() {
-	start := time.Now().UTC()
-
-	startTime := new(expvar.String)
-	startTime.Set(start.Format(timeFormat))
-
-	helloVar := expvar.NewMap("hello")
-	helloVar.Set("start-time", startTime)
-	helloVar.Set("uptime", expvar.Func(func() interface{} {
-		now := time.Now().UTC()
-		return now.Sub(start).String()
-	}))
-
-	addr := flag.String("addr", ":0", "service address")
-	flag.Parse()
-
-	logger, err := zap.NewProduction()
-	if err != nil {
-		log.Fatalf("initializing logger: %v", err)
-	}
-
-	defer logger.Sync()
-
+func serve(logger *zap.Logger, addr string) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -59,24 +26,22 @@ func main() {
 	if err != nil {
 		logger.Fatal("consul client failed to initialize", zap.Error(err))
 	}
-
 	reg := sd.NewConsul(client)
 	bal := lb.NewLeastN(reg, 2)
 
-	service := &hello.Hello{
+	service := &Goodbye{
 		Balancer: bal,
 		Logger:   logger,
 	}
-	rpc.Register(service)
-	rpc.HandleHTTP()
+	server := http.Server{
+		Handler: service,
+	}
 
-	server := http.Server{}
-
-	listener, err := httpx.HTTPListenerForAddress(*addr)
+	listener, err := httpx.HTTPListenerForAddress(addr)
 	if err != nil {
 		logger.Fatal("opening listener", zap.Error(err))
 	}
-	logger.Info("starting rpc service", zap.String("addr", listener.Addr().String()))
+	logger.Info("starting rest service", zap.String("addr", listener.Addr().String()))
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -94,9 +59,9 @@ func main() {
 	defer reg.Deregister(serviceName)
 
 	cu := &url.URL{
-		Scheme:   "tcp",
+		Scheme:   "http",
 		Host:     saddr,
-		Path:     rpc.DefaultRPCPath,
+		Path:     "/healthcheck",
 		RawQuery: fmt.Sprintf("interval=5s&id=%s&serviceid=%s", saddr, saddr),
 	}
 

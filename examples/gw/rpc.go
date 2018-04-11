@@ -32,20 +32,20 @@ func (g Greeting) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("{\"greeting\": %q}", g.Message)), nil
 }
 
-type HelloService struct {
+type RpcService struct {
 	service.Service
 	balancer lb.Balancer
 }
 
-func NewHelloService(bal lb.Balancer) *HelloService {
+func NewRpcService(bal lb.Balancer) *RpcService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 15,
 		AllowTrailingSlashRedirects: true,
 	}
 
-	svc := &HelloService{
+	svc := &RpcService{
 		Service: service.Service{
-			Name: "hello",
+			Name: "rpc",
 		},
 		balancer: bal,
 	}
@@ -61,11 +61,11 @@ func NewHelloService(bal lb.Balancer) *HelloService {
 	return svc
 }
 
-func (s *HelloService) Name() string {
+func (s *RpcService) Name() string {
 	return s.Service.Name
 }
 
-func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Response {
+func (s *RpcService) Greeting(ctx context.Context, r *httpx.Request) httpx.Response {
 	client, err := s.connect()
 	if err != nil {
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
@@ -97,7 +97,7 @@ func (s *HelloService) Greeting(ctx context.Context, r *httpx.Request) httpx.Res
 	return response
 }
 
-func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
+func (s *RpcService) Healthcheck(ctx context.Context) merry.Error {
 	_, err := s.balancer.Balance(s.Service.Name)
 	if err != nil {
 		return err.Prepend("healthcheck")
@@ -105,7 +105,7 @@ func (s *HelloService) Healthcheck(ctx context.Context) merry.Error {
 	return nil
 }
 
-func (s *HelloService) connect() (*rpc.Client, merry.Error) {
+func (s *RpcService) connect() (*rpc.Client, merry.Error) {
 	addr, err := s.balancer.Balance(s.Service.Name)
 	if err != nil {
 		return nil, err.Prepend("connect")

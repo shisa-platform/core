@@ -23,20 +23,20 @@ func (g Farewell) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("{\"farewell\": %q}", g.Message)), nil
 }
 
-type GoodbyeService struct {
+type RestService struct {
 	service.Service
 	balancer lb.Balancer
 }
 
-func NewGoodbyeService(res lb.Balancer) *GoodbyeService {
+func NewRestService(res lb.Balancer) *RestService {
 	policy := service.Policy{
 		TimeBudget:                  time.Millisecond * 15,
 		AllowTrailingSlashRedirects: true,
 	}
 
-	svc := &GoodbyeService{
+	svc := &RestService{
 		Service: service.Service{
-			Name: "goodbye",
+			Name: "rest",
 		},
 		balancer: res,
 	}
@@ -53,11 +53,11 @@ func NewGoodbyeService(res lb.Balancer) *GoodbyeService {
 	return svc
 }
 
-func (s *GoodbyeService) Name() string {
+func (s *RestService) Name() string {
 	return s.Service.Name
 }
 
-func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
+func (s *RestService) Healthcheck(ctx context.Context) merry.Error {
 	_, err := s.balancer.Balance(s.Service.Name)
 	if err != nil {
 		return err.Prepend("healthcheck")
@@ -65,7 +65,7 @@ func (s *GoodbyeService) Healthcheck(ctx context.Context) merry.Error {
 	return nil
 }
 
-func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
+func (s *RestService) router(ctx context.Context, request *httpx.Request) (*httpx.Request, merry.Error) {
 	addr, err := s.balancer.Balance(s.Service.Name)
 	if err != nil {
 		return nil, err.Prepend("router")
@@ -81,7 +81,7 @@ func (s *GoodbyeService) router(ctx context.Context, request *httpx.Request) (*h
 	return request, nil
 }
 
-func (s *GoodbyeService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) (httpx.Response, merry.Error) {
+func (s *RestService) responder(_ context.Context, _ *httpx.Request, response httpx.Response) (httpx.Response, merry.Error) {
 	var buf bytes.Buffer
 	if err := response.Serialize(&buf); err != nil {
 		return nil, err.Prepend("serializing response")

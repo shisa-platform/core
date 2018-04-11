@@ -59,6 +59,5 @@ func (s *Idp) FindUser(message *Message, reply *User) error {
 func (s *Idp) Healthcheck(requestID string, reply *bool) error {
 	*reply = true
 
-	s.Logger.Info("Healthcheck", zap.String("request-id", requestID), zap.Bool("ready", true))
 	return nil
 }

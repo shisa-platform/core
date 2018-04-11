@@ -50,18 +50,17 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	go runAuxiliary(debug, logger)
 
-	hello := NewHelloService(bal)
-	goodbye := NewGoodbyeService(bal)
+	rpc := NewRpcService(bal)
+	rest := NewRestService(bal)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
 			Addr:           healthcheckAddr,
 			Authentication: authN,
 			Authorizer:     authZ,
-			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
-		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
+		Checkers: []auxiliary.Healthchecker{idp, rpc, rest},
 	}
 	go runAuxiliary(healthcheck, logger)
 
@@ -89,14 +88,14 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Host:     healthcheck.Address(),
 			Path:     healthcheck.Path,
 			User:     url.UserPassword("Admin", "password"),
-			RawQuery: "interval=30s&serviceid=" + gw.Name,
+			RawQuery: "interval=5s&serviceid=" + gw.Name,
 		}
 		return
 	}
 
 	ch := make(chan merry.Error, 1)
 	go func() {
-		ch <- gw.Serve(&hello.Service, &goodbye.Service)
+		ch <- gw.Serve(&rpc.Service, &rest.Service)
 	}()
 
 	logger.Info("gateway started", zap.String("addr", gw.Address()))

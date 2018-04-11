@@ -65,10 +65,6 @@ func (s *Hello) Greeting(message *Message, reply *string) (err error) {
 }
 
 func (s *Hello) Healthcheck(requestID string, reply *bool) (err error) {
-	defer func() {
-		s.Logger.Info("Healthcheck", zap.String("request-id", requestID), zap.Bool("ready", *reply), zap.Error(err))
-	}()
-
 	*reply = false
 
 	client, err := s.connect()

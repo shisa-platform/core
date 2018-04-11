@@ -92,7 +92,7 @@ func main() {
 		Scheme:   "tcp",
 		Host:     saddr,
 		Path:     rpc.DefaultRPCPath,
-		RawQuery: fmt.Sprintf("interval=30s&id=%s&serviceid=%s", saddr, saddr),
+		RawQuery: fmt.Sprintf("interval=5s&id=%s&serviceid=%s", saddr, saddr),
 	}
 
 	if err := reg.AddCheck(name, cu); err != nil {

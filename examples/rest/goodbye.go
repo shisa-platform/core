@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -124,12 +127,12 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		requestID = values[0]
 	} else {
 		requestID = request.ID()
-		s.Logger.Warn("missing upstream request id", zap.String("request-id", requestID))
 	}
 
 	ctx = ctx.WithRequestID(requestID)
 
 	var response httpx.Response
+	logRequest := false
 
 	if req.Method != http.MethodGet {
 		response = httpx.NewEmpty(http.StatusMethodNotAllowed)
@@ -141,12 +144,37 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		response = s.healthcheck(ctx, request)
 		hits.Add(req.URL.Path, 1)
 	case "/goodbye":
+		var span opentracing.Span
+		opts := []opentracing.StartSpanOption{opentracing.StartTime(ri.Start())}
+
+		carrier := opentracing.HTTPHeadersCarrier(request.Header)
+		s.Logger.Info("request header", zap.String("request-id", requestID), zap.String("values", fmt.Sprintf("%v", request.Header)))
+		if spanContext, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier); err == nil {
+			opts = append(opts, ext.RPCServerOption(spanContext))
+		} else {
+			s.Logger.Error("error extracting client trace", zap.String("request-id", requestID), zap.String("error", err.Error()))
+			opts = append(opts, opentracing.Tag{string(ext.SpanKind), "server"})
+		}
+
+		span = opentracing.StartSpan("Goodbye", opts...)
+		defer span.Finish()
+		span.SetTag("request_id", requestID)
+
+		ctx = ctx.WithSpan(span)
+
 		response = s.goodbye(ctx, request)
+
+		if err := response.Err(); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.String("error", err.Error()))
+		}
+
 		hits.Add(req.URL.Path, 1)
+		logRequest = true
 	case "/debug/vars":
 		expvar.Handler().ServeHTTP(ri, req)
 		hits.Add(req.URL.Path, 1)
-		goto finish
+		goto end
 	default:
 		response = httpx.NewEmpty(http.StatusNotFound)
 	}
@@ -156,38 +184,43 @@ respond:
 		s.Logger.Error("error serializing response", zap.String("request-id", requestID), zap.Error(err))
 	}
 
-finish:
-	snapshot := ri.Flush()
+	ri.Flush()
 
-	fs := make([]zapcore.Field, 9, 10)
-	fs[0] = zap.String("request-id", ctx.RequestID())
-	fs[1] = zap.String("client-ip-address", request.ClientIP())
-	fs[2] = zap.String("method", request.Method)
-	fs[3] = zap.String("uri", request.URL.RequestURI())
-	fs[4] = zap.Int("status-code", snapshot.StatusCode)
-	fs[5] = zap.Int("response-size", snapshot.Size)
-	fs[6] = zap.String("user-agent", request.UserAgent())
-	fs[7] = zap.Time("start", snapshot.Start)
-	fs[8] = zap.Duration("elapsed", snapshot.Elapsed)
-	if values, exists := request.Header["X-User-Id"]; exists {
-		fs = append(fs, zap.String("user-id", values[0]))
-	}
-	s.Logger.Info("request", fs...)
+	if logRequest {
+		snapshot := ri.Snapshot()
 
-	if response != nil && response.Err() != nil {
-		values := merry.Values(response.Err())
-		fs := make([]zapcore.Field, 0, len(values)+1)
-		fs = append(fs, zap.String("request-id", requestID))
-		for name, value := range values {
-			if key, ok := name.(string); ok {
-				if key == "stack" || key == "http status code" || key == "message" {
-					continue
-				}
-				fs = append(fs, zap.Reflect(key, value))
-			}
+		fs := make([]zapcore.Field, 9, 10)
+		fs[0] = zap.String("request-id", ctx.RequestID())
+		fs[1] = zap.String("client-ip-address", request.ClientIP())
+		fs[2] = zap.String("method", request.Method)
+		fs[3] = zap.String("uri", request.URL.RequestURI())
+		fs[4] = zap.Int("status-code", snapshot.StatusCode)
+		fs[5] = zap.Int("response-size", snapshot.Size)
+		fs[6] = zap.String("user-agent", request.UserAgent())
+		fs[7] = zap.Time("start", snapshot.Start)
+		fs[8] = zap.Duration("elapsed", snapshot.Elapsed)
+		if values, exists := request.Header["X-User-Id"]; exists {
+			fs = append(fs, zap.String("user-id", values[0]))
 		}
-		s.Logger.Error(response.Err().Error(), fs...)
+		s.Logger.Info("request", fs...)
+
+		if response != nil && response.Err() != nil {
+			values := merry.Values(response.Err())
+			fs := make([]zapcore.Field, 0, len(values)+1)
+			fs = append(fs, zap.String("request-id", requestID))
+			for name, value := range values {
+				if key, ok := name.(string); ok {
+					if key == "stack" || key == "http status code" || key == "message" {
+						continue
+					}
+					fs = append(fs, zap.Reflect(key, value))
+				}
+			}
+			s.Logger.Error(response.Err().Error(), fs...)
+		}
 	}
+
+end:
 }
 
 func (s *Goodbye) goodbye(ctx context.Context, request *httpx.Request) httpx.Response {

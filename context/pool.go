@@ -24,6 +24,7 @@ func get(parent context.Context) *shisaCtx {
 	ctx.Context = parent
 	ctx.requestID = ""
 	ctx.actor = nil
+	ctx.span = nil
 
 	return ctx
 }

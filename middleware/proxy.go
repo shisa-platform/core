@@ -222,6 +222,13 @@ func (m *ReverseProxy) invoke(ctx context.Context, request *httpx.Request) httpx
 		defer span.Finish()
 	}
 
+	carrier := opentracing.HTTPHeadersCarrier(request.Header)
+	if err := span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier); err != nil {
+		err1 := merry.Prepend(err, "proxy middleware: inject open tracing headers")
+		err1 = err1.WithHTTPCode(http.StatusBadGateway)
+		return m.handleError(subCtx, request, err1)
+	}
+
 	if m.Invoker == nil {
 		response, err := http.DefaultTransport.RoundTrip(request.Request)
 		if err != nil {
@@ -231,13 +238,6 @@ func (m *ReverseProxy) invoke(ctx context.Context, request *httpx.Request) httpx
 		}
 
 		return httpx.ResponseAdapter{Response: response}
-	}
-
-	carrier := opentracing.HTTPHeadersCarrier(request.Header)
-	if err := span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier); err != nil {
-		err1 := merry.Prepend(err, "proxy middleware: inject open tracing headers")
-		err1 = err1.WithHTTPCode(http.StatusBadGateway)
-		return m.handleError(subCtx, request, err1)
 	}
 
 	response, err, exception := m.Invoker.InvokeSafely(subCtx, request)
