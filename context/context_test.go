@@ -22,23 +22,23 @@ var (
 )
 
 func getContextForParent(parent context.Context) Context {
-	c := New(parent)
-	c = c.WithRequestID(expectedRequestID)
-	c = c.WithActor(expectedUser)
+	ctx := New(parent)
+	ctx = ctx.WithRequestID(expectedRequestID)
+	ctx = ctx.WithActor(expectedUser)
 
-	return c
+	return ctx
 }
 
 func TestNew(t *testing.T) {
 	actor := &models.FakeUser{}
 	id := "555"
 
-	c := New(context.Background())
-	c = c.WithRequestID(id)
-	c = c.WithActor(actor)
+	cut := New(context.Background())
+	cut = cut.WithRequestID(id)
+	cut = cut.WithActor(actor)
 
-	assert.Equal(t, id, c.RequestID())
-	assert.Equal(t, actor, c.Actor())
+	assert.Equal(t, id, cut.RequestID())
+	assert.Equal(t, actor, cut.Actor())
 }
 
 func TestDeadline(t *testing.T) {
@@ -50,9 +50,9 @@ func TestDeadline(t *testing.T) {
 			return deadline, ok
 		},
 	}
-	c := getContextForParent(parent)
+	cut := getContextForParent(parent)
 
-	d, y := c.Deadline()
+	d, y := cut.Deadline()
 
 	parent.AssertDeadlineCalledOnce(t)
 
@@ -73,9 +73,9 @@ func TestDone(t *testing.T) {
 			return d
 		},
 	}
-	c := getContextForParent(parent)
+	cut := getContextForParent(parent)
 
-	result := <-c.Done()
+	result := <-cut.Done()
 
 	parent.AssertDoneCalledOnce(t)
 	assert.Equal(t, result, channelval)
@@ -89,9 +89,9 @@ func TestErr(t *testing.T) {
 			return err
 		},
 	}
-	c := getContextForParent(parent)
+	cut := getContextForParent(parent)
 
-	result := c.Err()
+	result := cut.Err()
 
 	parent.AssertErrCalledOnce(t)
 	assert.Equal(t, result, err)
@@ -110,14 +110,14 @@ func TestValue(t *testing.T) {
 		},
 	}
 
-	c := getContextForParent(parent)
+	cut := getContextForParent(parent)
 
-	idVal := c.Value(IDKey)
-	actorVal := c.Value(ActorKey)
-	parentVal := c.Value(pkey)
+	idVal := cut.Value(IDKey)
+	actorVal := cut.Value(ActorKey)
+	parentVal := cut.Value(pkey)
 
-	assert.Equal(t, idVal, c.RequestID())
-	assert.Equal(t, actorVal, c.Actor())
+	assert.Equal(t, idVal, cut.RequestID())
+	assert.Equal(t, actorVal, cut.Actor())
 
 	parent.AssertValueCalledOnceWith(t, pkey)
 
@@ -139,14 +139,14 @@ func TestInheritedValue(t *testing.T) {
 		},
 	}
 
-	c := getContextForParent(parent)
+	cut := getContextForParent(parent)
 
-	c = New(c)
+	cut = New(cut)
 
-	assert.Equal(t, expectedUser, c.Actor())
-	assert.Equal(t, expectedUser, c.Value(ActorKey).(models.User))
-	assert.Equal(t, expectedRequestID, c.RequestID())
-	assert.Equal(t, expectedRequestID, c.Value(IDKey).(string))
+	assert.Equal(t, expectedUser, cut.Actor())
+	assert.Equal(t, expectedUser, cut.Value(ActorKey).(models.User))
+	assert.Equal(t, expectedRequestID, cut.RequestID())
+	assert.Equal(t, expectedRequestID, cut.Value(IDKey).(string))
 }
 
 func TestWithParent(t *testing.T) {
@@ -159,31 +159,64 @@ func TestWithParent(t *testing.T) {
 }
 
 func TestWithActor(t *testing.T) {
-	c := New(context.Background())
-	new := c.WithActor(expectedUser)
+	cut := New(context.Background())
+	new := cut.WithActor(expectedUser)
 
-	assert.Equal(t, expectedUser, c.Actor())
+	assert.Equal(t, expectedUser, cut.Actor())
 	assert.Equal(t, expectedUser, new.Actor())
-	assert.Equal(t, c, new)
+	assert.Equal(t, cut, new)
 }
 
 func TestWithRequestID(t *testing.T) {
-	c := New(context.Background())
-	new := c.WithRequestID(expectedRequestID)
+	cut := New(context.Background())
+	new := cut.WithRequestID(expectedRequestID)
 
-	assert.Equal(t, expectedRequestID, c.RequestID())
+	assert.Equal(t, expectedRequestID, cut.RequestID())
 	assert.Equal(t, expectedRequestID, new.RequestID())
-	assert.Equal(t, c, new)
+	assert.Equal(t, cut, new)
 }
 
 func TestWithSpan(t *testing.T) {
-	c := New(context.Background())
-	assert.Nil(t, c.Span())
+	cut := New(context.Background())
+	assert.Nil(t, cut.Span())
+
 	tracer := opentracing.NoopTracer{}
 	parent := tracer.StartSpan("test")
-	ctx := c.WithSpan(parent)
+	defer parent.Finish()
+
+	ctx := cut.WithSpan(parent)
 
 	assert.Equal(t, parent, ctx.Span())
+}
+
+func TestInheritedSpan(t *testing.T) {
+	span, ctx := opentracing.StartSpanFromContext(context.Background(), "test")
+	defer span.Finish()
+
+	cut := New(ctx)
+
+	assert.Equal(t, span, cut.Span())
+
+	cut = WithSpan(context.Background(), span)
+	cut = New(cut)
+
+	assert.Equal(t, span, cut.Span())
+}
+
+func TestStartSpan(t *testing.T) {
+	cut := New(context.Background())
+	span := cut.StartSpan("test")
+	assert.NotNil(t, span)
+	defer span.Finish()
+	assert.Nil(t, cut.Span())
+
+	cut.WithSpan(span)
+	assert.True(t, span == cut.Span())
+
+	span2 := cut.StartSpan("test2")
+	defer span2.Finish()
+
+	assert.NotNil(t, span2)
 }
 
 func TestWithValue(t *testing.T) {
@@ -201,79 +234,101 @@ func TestWithValue(t *testing.T) {
 	assert.Equal(t, expectedRequestID, new2.RequestID())
 	assert.Equal(t, c2, new2)
 
+	span := opentracing.StartSpan("test")
 	c3 := New(context.Background())
-	new3 := c3.WithValue("mnky", "fnky")
+	new3 := c3.WithValue(SpanKey, span)
 
-	assert.Equal(t, "fnky", c3.Value("mnky"))
-	assert.Equal(t, "fnky", new3.Value("mnky"))
+	assert.Equal(t, span, c3.Span())
+	assert.Equal(t, span, new3.Span())
 	assert.Equal(t, c3, new3)
+
+	c4 := New(context.Background())
+	new4 := c4.WithValue("mnky", "fnky")
+
+	assert.Equal(t, "fnky", c4.Value("mnky"))
+	assert.Equal(t, "fnky", new4.Value("mnky"))
+	assert.Equal(t, c4, new4)
 }
 
 func TestWithCancel(t *testing.T) {
-	c := New(context.Background())
-	new, cancel := c.WithCancel()
+	cut := New(context.Background())
+	new, cancel := cut.WithCancel()
 	assert.NotNil(t, new)
 	assert.NotNil(t, cancel)
 	defer cancel()
 
-	assert.Equal(t, c, new)
+	assert.Equal(t, cut, new)
 }
 
 func TestWithDeadline(t *testing.T) {
-	c := New(context.Background())
-	new, cancel := c.WithDeadline(time.Time{})
+	cut := New(context.Background())
+	new, cancel := cut.WithDeadline(time.Time{})
 	assert.NotNil(t, new)
 	assert.NotNil(t, cancel)
 	defer cancel()
 
-	assert.Equal(t, c, new)
+	assert.Equal(t, cut, new)
 }
 
 func TestWithTimeout(t *testing.T) {
-	c := New(context.Background())
-	new, cancel := c.WithTimeout(time.Second * 5)
+	cut := New(context.Background())
+	new, cancel := cut.WithTimeout(time.Second * 5)
 	assert.NotNil(t, new)
 	assert.NotNil(t, cancel)
 	defer cancel()
 
-	assert.Equal(t, c, new)
+	assert.Equal(t, cut, new)
 }
 
 func TestWithCancelConstructor(t *testing.T) {
-	c, cancel := WithCancel(context.WithValue(context.Background(), "mnky", "fnky"))
+	cut, cancel := WithCancel(context.WithValue(context.Background(), "mnky", "fnky"))
 	defer cancel()
 
-	assert.NotNil(t, c)
+	assert.NotNil(t, cut)
 	assert.NotNil(t, cancel)
-	assert.Equal(t, "fnky", c.Value("mnky"))
+	assert.Equal(t, "fnky", cut.Value("mnky"))
 }
 
 func TestWithDeadlineConstructor(t *testing.T) {
-	c, cancel := WithDeadline(context.WithValue(context.Background(), "mnky", "fnky"), time.Time{})
+	cut, cancel := WithDeadline(context.WithValue(context.Background(), "mnky", "fnky"), time.Time{})
 	defer cancel()
 
-	assert.NotNil(t, c)
+	assert.NotNil(t, cut)
 	assert.NotNil(t, cancel)
-	assert.Equal(t, "fnky", c.Value("mnky"))
+	assert.Equal(t, "fnky", cut.Value("mnky"))
 }
 
 func TestWithTimeoutConstructor(t *testing.T) {
-	c, cancel := WithTimeout(context.WithValue(context.Background(), "mnky", "fnky"), time.Second*5)
+	cut, cancel := WithTimeout(context.WithValue(context.Background(), "mnky", "fnky"), time.Second*5)
 	defer cancel()
 
-	assert.NotNil(t, c)
+	assert.NotNil(t, cut)
 	assert.NotNil(t, cancel)
-	assert.Equal(t, "fnky", c.Value("mnky"))
+	assert.Equal(t, "fnky", cut.Value("mnky"))
 }
 
 func TestWithActorConstructor(t *testing.T) {
-	c := WithActor(context.Background(), expectedUser)
-	assert.Equal(t, expectedUser, c.Actor())
+	cut := WithActor(context.Background(), expectedUser)
+	assert.Equal(t, expectedUser, cut.Actor())
 }
 
 func TestWithRequestIDConstructor(t *testing.T) {
-	c := WithRequestID(context.Background(), expectedRequestID)
-	assert.Equal(t, expectedRequestID, c.RequestID())
+	cut := WithRequestID(context.Background(), expectedRequestID)
+	assert.Equal(t, expectedRequestID, cut.RequestID())
+}
+
+func TestWithSpanConstructor(t *testing.T) {
+	span := opentracing.StartSpan("test")
+	cut := WithSpan(context.Background(), span)
+
+	assert.Equal(t, span, cut.Span())
+}
+
+func TestStartSpanConstructor(t *testing.T) {
+	parent := New(context.Background())
+	span, cut := StartSpan(parent, "test")
+
+	assert.Equal(t, span, cut.Span())
 }
 
 func TestWithValueConstructor(t *testing.T) {
@@ -283,6 +338,10 @@ func TestWithValueConstructor(t *testing.T) {
 	new2 := WithValue(context.Background(), IDKey, expectedRequestID)
 	assert.Equal(t, expectedRequestID, new2.RequestID())
 
-	new3 := WithValue(context.Background(), "mnky", "fnky")
-	assert.Equal(t, "fnky", new3.Value("mnky"))
+	span := opentracing.StartSpan("test")
+	new3 := WithValue(context.Background(), SpanKey, span)
+	assert.Equal(t, span, new3.Span())
+
+	new4 := WithValue(context.Background(), "mnky", "fnky")
+	assert.Equal(t, "fnky", new4.Value("mnky"))
 }

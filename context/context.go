@@ -112,6 +112,10 @@ func (ctx *shisaCtx) Value(key interface{}) interface{} {
 		if ctx.actor != nil {
 			return ctx.actor
 		}
+	case SpanKey:
+		if ctx.span != nil {
+			return ctx.span
+		}
 	}
 
 	return ctx.Context.Value(key)
@@ -208,6 +212,8 @@ func WithValue(parent context.Context, key, value interface{}) Context {
 		ctx.requestID = value.(string)
 	case ActorKey:
 		ctx.actor = value.(models.User)
+	case SpanKey:
+		ctx.span = value.(opentracing.Span)
 	default:
 		ctx.Context = context.WithValue(parent, key, value)
 	}
