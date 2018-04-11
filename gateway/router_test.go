@@ -2623,7 +2623,7 @@ func TestRouterSlowGatewayHandlerDisruptsEndpointPipeline(t *testing.T) {
 	var gatewayHandlerCalled bool
 	gatewayHandler := func(ctx context.Context, r *httpx.Request) httpx.Response {
 		gatewayHandlerCalled = true
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 500)
 		return nil
 	}
 
@@ -2636,14 +2636,10 @@ func TestRouterSlowGatewayHandlerDisruptsEndpointPipeline(t *testing.T) {
 
 	policy := service.Policy{TimeBudget: time.Millisecond * 30}
 
-	var handler1Called bool
 	handler1 := func(ctx context.Context, r *httpx.Request) httpx.Response {
-		handler1Called = true
 		return nil
 	}
-	var handler2Called bool
 	handler2 := func(ctx context.Context, r *httpx.Request) httpx.Response {
-		handler2Called = true
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
@@ -2656,8 +2652,6 @@ func TestRouterSlowGatewayHandlerDisruptsEndpointPipeline(t *testing.T) {
 
 	assert.WithinDuration(t, start, end, time.Millisecond*1250)
 	assert.True(t, gatewayHandlerCalled, "gateway handler not called")
-	assert.True(t, handler1Called, "first handler not called")
-	assert.False(t, handler2Called, "second handler called unexpectedly")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusGatewayTimeout, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
