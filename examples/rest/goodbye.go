@@ -144,23 +144,8 @@ func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		response = s.healthcheck(ctx, request)
 		hits.Add(req.URL.Path, 1)
 	case "/goodbye":
-		var span opentracing.Span
-		opts := []opentracing.StartSpanOption{opentracing.StartTime(ri.Start())}
-
-		carrier := opentracing.HTTPHeadersCarrier(request.Header)
-		s.Logger.Info("request header", zap.String("request-id", requestID), zap.String("values", fmt.Sprintf("%v", request.Header)))
-		if spanContext, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier); err == nil {
-			opts = append(opts, ext.RPCServerOption(spanContext))
-		} else {
-			s.Logger.Error("error extracting client trace", zap.String("request-id", requestID), zap.String("error", err.Error()))
-			opts = append(opts, opentracing.Tag{string(ext.SpanKind), "server"})
-		}
-
-		span = opentracing.StartSpan("Goodbye", opts...)
+		span := s.startSpan(ctx, request, ri.Start())
 		defer span.Finish()
-		span.SetTag("request_id", requestID)
-
-		ctx = ctx.WithSpan(span)
 
 		response = s.goodbye(ctx, request)
 
@@ -236,11 +221,23 @@ func (s *Goodbye) goodbye(ctx context.Context, request *httpx.Request) httpx.Res
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
-	message := idp.Message{RequestID: ctx.RequestID(), Value: userID}
+	message := idp.Message{
+		RequestID: ctx.RequestID(),
+		Value:     userID,
+		Metadata:  make(map[string]string),
+	}
+
+	span := ctx.Span()
+	carrier := opentracing.TextMapCarrier(message.Metadata)
+	if err = span.Tracer().Inject(span.Context(), opentracing.TextMap, carrier); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+		return httpx.NewEmptyError(http.StatusInternalServerError, err)
+	}
+
 	var user idp.User
-	rpcErr := client.Call("Idp.FindUser", &message, &user)
-	if rpcErr != nil {
-		return httpx.NewEmptyError(http.StatusInternalServerError, rpcErr)
+	if err := client.Call("Idp.FindUser", &message, &user); err != nil {
+		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 	if user.Ident == "" {
 		return httpx.NewEmpty(http.StatusUnauthorized)
@@ -296,4 +293,24 @@ func (s *Goodbye) connect() (*rpc.Client, error) {
 	}
 
 	return client, nil
+}
+
+func (s *Goodbye) startSpan(ctx context.Context, request *httpx.Request, start time.Time) opentracing.Span {
+	var span opentracing.Span
+	opts := []opentracing.StartSpanOption{opentracing.StartTime(start)}
+
+	carrier := opentracing.HTTPHeadersCarrier(request.Header)
+	if spanContext, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier); err == nil {
+		opts = append(opts, ext.RPCServerOption(spanContext))
+	} else {
+		s.Logger.Error("error extracting client trace", zap.String("request-id", ctx.RequestID()), zap.String("error", err.Error()))
+		opts = append(opts, opentracing.Tag{string(ext.SpanKind), "server"})
+	}
+
+	span = opentracing.StartSpan("Goodbye", opts...)
+	span.SetTag("request_id", ctx.RequestID())
+
+	ctx = ctx.WithSpan(span)
+
+	return span
 }
