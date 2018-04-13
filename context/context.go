@@ -23,17 +23,30 @@ var (
 
 type Context interface {
 	context.Context
+	// RequestID returns the configured request id or an empty string
 	RequestID() string
+	// Actor returns the configured actor or nil
 	Actor() models.User
+	// Span returns the configured OpenTracing span or nil
 	Span() opentracing.Span
+	// StartSpan creates a new span with the given operation name and options.  The new span is not added to the current instance.
+	// If the context instance contains a span it will be the parent of the new span and it's tracer will be used to create the span.  If no span is configured the global tracer will be used to create a new span.
 	StartSpan(string, ...opentracing.StartSpanOption) opentracing.Span
+	// WithSpan returns a copy of the current instance configured with the given parent
 	WithParent(context.Context) Context
+	// WithActor returns a copy of the current instance configured with the given actor
 	WithActor(models.User) Context
+	/// WithRequestID returns an copy of the current instance configured with the given request id
 	WithRequestID(string) Context
+	// WithSpan returns a copy of the current instance configured with the given span
 	WithSpan(opentracing.Span) Context
+	// WithValue returns a copy of the current instance configured with the given value
 	WithValue(key, value interface{}) Context
+	// WithCancel returns a copy of current instance with a new Done channel.
 	WithCancel() (Context, context.CancelFunc)
+	// WithDeadline returns a copy of the current instance with the deadline adjusted to be no later than the give time
 	WithDeadline(time.Time) (Context, context.CancelFunc)
+	// WithTimeout returns a copy of the current instance with the deadline adjusted to time.Now().Add(timeout)
 	WithTimeout(time.Duration) (Context, context.CancelFunc)
 }
 
@@ -42,18 +55,6 @@ type shisaCtx struct {
 	requestID string
 	actor     models.User
 	span      opentracing.Span
-}
-
-func (ctx *shisaCtx) Deadline() (deadline time.Time, ok bool) {
-	return ctx.Context.Deadline()
-}
-
-func (ctx *shisaCtx) Done() <-chan struct{} {
-	return ctx.Context.Done()
-}
-
-func (ctx *shisaCtx) Err() error {
-	return ctx.Context.Err()
 }
 
 func (ctx *shisaCtx) RequestID() string {
@@ -147,6 +148,8 @@ func (ctx *shisaCtx) WithValue(key, value interface{}) Context {
 		ctx.requestID = value.(string)
 	case ActorKey:
 		ctx.actor = value.(models.User)
+	case SpanKey:
+		ctx.span = value.(opentracing.Span)
 	default:
 		ctx.Context = context.WithValue(ctx.Context, key, value)
 	}
@@ -175,28 +178,33 @@ func (ctx *shisaCtx) WithTimeout(timeout time.Duration) (Context, context.Cancel
 	return ctx, cancel
 }
 
+// New returns a new instance with the given parent
 func New(parent context.Context) Context {
 	return get(parent)
 }
 
+// WithActor returns a new instance with the given parent and actor
 func WithActor(parent context.Context, value models.User) Context {
 	ctx := get(parent)
 	ctx.actor = value
 	return ctx
 }
 
+// WithRequestID returns a new instance with the given parent and request id
 func WithRequestID(parent context.Context, value string) Context {
 	ctx := get(parent)
 	ctx.requestID = value
 	return ctx
 }
 
+// WithSpan returns a new instance with the given parent and span
 func WithSpan(parent context.Context, value opentracing.Span) Context {
 	ctx := get(parent)
 	ctx.span = value
 	return ctx
 }
 
+// StartSpan returns a new instance with the given parent and a span created using the given operation name and options
 func StartSpan(parent Context, operationName string, opts ...opentracing.StartSpanOption) (opentracing.Span, Context) {
 	ctx := get(parent)
 	ctx.span = parent.StartSpan(operationName, opts...)
@@ -204,6 +212,7 @@ func StartSpan(parent Context, operationName string, opts ...opentracing.StartSp
 	return ctx.span, ctx
 }
 
+// WithValue returns a new instance with the given parent and value
 func WithValue(parent context.Context, key, value interface{}) Context {
 	ctx := get(parent)
 
@@ -221,18 +230,21 @@ func WithValue(parent context.Context, key, value interface{}) Context {
 	return ctx
 }
 
+// WithCancel returns a new instance and its cancel function with the given parent
 func WithCancel(grandParent context.Context) (Context, context.CancelFunc) {
 	parent, cancel := context.WithCancel(grandParent)
 	ctx := get(parent)
 	return ctx, cancel
 }
 
+// WithDeadline returns a new instance with the given deadline
 func WithDeadline(grandParent context.Context, deadline time.Time) (Context, context.CancelFunc) {
 	parent, cancel := context.WithDeadline(grandParent, deadline)
 	ctx := get(parent)
 	return ctx, cancel
 }
 
+// WithTimeout returns a new instance with the given timeout
 func WithTimeout(grandParent context.Context, timeout time.Duration) (Context, context.CancelFunc) {
 	parent, cancel := context.WithTimeout(grandParent, timeout)
 	ctx := get(parent)
