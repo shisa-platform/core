@@ -137,20 +137,20 @@ type Gateway struct {
 	NotFoundHandler httpx.Handler
 
 	// Registrar implements sd.Registrar and registers
-	// the gateway service with a service registry, using the Gateway's
-	// `Name` field. If nil, no registration occurs.
+	// the gateway service with a service registry, using the
+	// Gateway's `Name` field. If nil, no registration occurs.
 	Registrar sd.Registrar
 
 	// RegistrationURLHook provides the *url.URL to be used in
 	// the Registrar's `Register` method. If `Registrar` is nil,
-	// this hook is not called. If this hook is nil, no service is registered
-	// via `Register`.
+	// this hook is not called. If this hook is nil, no service is
+	// registered via `Register`.
 	RegistrationURLHook URLHook
 
 	// CheckURLHook provides the *url.URL to be used in
 	// the Registrar's `AddCheck` method. If `Registrar` is nil,
-	// this hook is not called. If this hook is nil, no check is registered
-	// via `AddCheck`.
+	// this hook is not called. If this hook is nil, no check is
+	// registered via `AddCheck`.
 	CheckURLHook URLHook
 
 	// ErrorHook optionally customizes how errors encountered

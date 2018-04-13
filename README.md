@@ -25,6 +25,19 @@ The project has these high-level goals:
 
 ![architecture](doc/diagram/architecture.png)
 
+### Service Discovery
+
+Shisa has built-in support for service discovery and load balancing,
+and provides an implementation using [Consul](https://www.consul.io/).
+
+### Distributed Tracing
+
+Shisa has built-in support for [OpenTracing](http://opentracing.io/)
+systems such as [Jaeger](https://www.jaegertracing.io/).  By default
+tracing is disabled so to have Shisa emit spans a compliant library
+must be initialized and set as the global tracer.  Please refer to the
+documentation of any compliant implementation for instructions.
+
 ## Contributing
 
 To propose a change please open a pull request.  To report a problem

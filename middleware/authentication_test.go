@@ -1,11 +1,14 @@
 package middleware
 
 import (
+	stdctx "context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/authn"
@@ -24,7 +27,7 @@ func TestAuthenticationNilAuthenticator(t *testing.T) {
 	cut := &Authentication{}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -47,14 +50,23 @@ func TestAuthenticationAuthenticatorError(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
+
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
+	opentracing.SetGlobalTracer(tracer)
 
 	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
+
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusUnauthorized, response.StatusCode())
 	assert.Equal(t, expectedChallenge, response.Headers().Get(WWWAuthenticateHeaderKey))
 
-	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+	authn.AssertAuthenticateCalledOnce(t)
 }
 
 func TestAuthenticationAuthenticatorPanic(t *testing.T) {
@@ -72,7 +84,7 @@ func TestAuthenticationAuthenticatorPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
@@ -96,7 +108,7 @@ func TestAuthenticationAuthenticatorPanicString(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
@@ -120,15 +132,13 @@ func TestAuthenticationOK(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
-	ctx.WithActorHook = func(value models.User) context.Context { return ctx }
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.Nil(t, response)
 	assert.Nil(t, cut.ErrorHandler)
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
-	ctx.AssertWithActorCalledOnceWith(t, expectedUser)
 }
 
 func TestAuthenticationUnauthorized(t *testing.T) {
@@ -146,7 +156,7 @@ func TestAuthenticationUnauthorized(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
@@ -167,7 +177,7 @@ func TestAuthenticationCustomHandler(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var handlerInvoked bool
 	cut := &Authentication{
@@ -202,7 +212,7 @@ func TestAuthenticationCustomHandlerWithoutSettingHeader(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var handlerInvoked bool
 	cut := &Authentication{
@@ -237,7 +247,7 @@ func TestAuthenticationCustomHandlerPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var handlerInvoked bool
 	cut := &Authentication{
@@ -267,7 +277,7 @@ func TestAuthenticationCustomHandlerPanicString(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var handlerInvoked bool
 	cut := &Authentication{
@@ -298,7 +308,7 @@ func TestAuthenticationCustomErrorHandler(t *testing.T) {
 
 	challenge := "Custom realm=\"secrets, inc\""
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var errorHandlerInvoked bool
 	cut := &Authentication{
@@ -336,7 +346,7 @@ func TestAuthenticationCustomErrorHandlerPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var errorHandlerInvoked bool
 	cut := &Authentication{
@@ -367,7 +377,7 @@ func TestAuthenticationCustomErrorHandlerPanicString(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	var errorHandlerInvoked bool
 	cut := &Authentication{
@@ -391,7 +401,7 @@ func TestPassiveAuthenticationNilAuthenticator(t *testing.T) {
 	cut := &PassiveAuthentication{}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 	response := cut.Service(ctx, request)
 
 	assert.NotNil(t, response)
@@ -411,12 +421,21 @@ func TestPassiveAuthenticationAuthenticatorError(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
+
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
+	opentracing.SetGlobalTracer(tracer)
 
 	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
+
 	assert.Nil(t, response)
 
-	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
+	authn.AssertAuthenticateCalledOnce(t)
 }
 
 func TestPassiveAuthenticationAuthenticatorPanic(t *testing.T) {
@@ -431,7 +450,7 @@ func TestPassiveAuthenticationAuthenticatorPanic(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
@@ -453,7 +472,7 @@ func TestPassiveAuthenticationAuthenticatorPanicString(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.NotNil(t, response)
@@ -479,7 +498,7 @@ func TestPassiveAuthenticationUnknownPrincipal(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.Nil(t, response)
@@ -503,12 +522,10 @@ func TestPassiveAuthenticationOK(t *testing.T) {
 	}
 
 	request := &httpx.Request{Request: fakeRequest}
-	ctx := context.NewFakeContextDefaultFatal(t)
-	ctx.WithActorHook = func(value models.User) context.Context { return ctx }
+	ctx := context.New(stdctx.Background())
 
 	response := cut.Service(ctx, request)
 	assert.Nil(t, response)
 
 	authn.AssertAuthenticateCalledOnceWith(t, ctx, request)
-	ctx.AssertWithActorCalledOnceWith(t, expectedUser)
 }

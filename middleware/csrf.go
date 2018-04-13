@@ -7,6 +7,9 @@ import (
 	"strings"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/errorx"
@@ -77,19 +80,27 @@ type CSRFProtector struct {
 }
 
 func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) httpx.Response {
-	if m.SiteURL == nil {
-		err := merry.New("csrf middleware: check invariants: SiteURL is nil")
-		return m.handleError(ctx, request, err)
-	} else if m.SiteURL.Host == "" {
-		err := merry.New("csrf middleware: check invariants: SiteURL host is empty")
-		return m.handleError(ctx, request, err)
-	} else if m.SiteURL.Scheme == "" {
-		err := merry.New("csrf middleware: check invariants: SiteURL scheme is empty")
-		return m.handleError(ctx, request, err)
+	subCtx := ctx
+	if ctx.Span() != nil {
+		var span opentracing.Span
+		span, subCtx = context.StartSpan(ctx, "CSRFProtect")
+		defer span.Finish()
+		ext.Component.Set(span, "middleware")
 	}
 
-	if ok, exception := m.isExempt(ctx, request); exception != nil {
-		return m.handleError(ctx, request, exception)
+	if m.SiteURL == nil {
+		err := merry.New("csrf middleware: check invariants: SiteURL is nil")
+		return m.handleError(subCtx, request, err)
+	} else if m.SiteURL.Host == "" {
+		err := merry.New("csrf middleware: check invariants: SiteURL host is empty")
+		return m.handleError(subCtx, request, err)
+	} else if m.SiteURL.Scheme == "" {
+		err := merry.New("csrf middleware: check invariants: SiteURL scheme is empty")
+		return m.handleError(subCtx, request, err)
+	}
+
+	if ok, exception := m.isExempt(subCtx, request); exception != nil {
+		return m.handleError(subCtx, request, exception)
 	} else if ok {
 		return nil
 	}
@@ -100,29 +111,29 @@ func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) htt
 	}
 	if !exists {
 		err := merry.New("csrf middleware: find header: missing Origin or Referer")
-		return m.handleError(ctx, request, err.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err.WithHTTPCode(http.StatusForbidden))
 	}
 	if len(values) != 1 {
 		err1 := merry.New("csrf middleware: validate header: too many values")
 		err1 = err1.WithValue("header", strings.Join(values, ", "))
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	actual, err := url.Parse(values[0])
 	if err != nil {
 		err1 := merry.Prepend(err, "csrf middleware: parse Origin/Referer URL")
 		err1 = err1.WithValue("url", values[0])
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	if ok, exception := m.checkOrigin(m.SiteURL, actual); exception != nil {
 		exception = exception.Prepend("csrf middleware: check origin")
-		return m.handleError(ctx, request, exception)
+		return m.handleError(subCtx, request, exception)
 	} else if !ok {
 		err1 := merry.New("csrf middleware: check origin: not equal")
 		err1 = err1.WithValue("expected", m.SiteURL.String())
 		err1 = err1.WithValue("actual", actual.String())
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	name := defaultCookieName
@@ -133,7 +144,7 @@ func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) htt
 	if err != nil {
 		err1 := merry.New("csrf middleware: find cookie: not found")
 		err1 = err1.WithValue("name", name)
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	length := defaultTokenLength
@@ -143,26 +154,26 @@ func (m *CSRFProtector) Service(ctx context.Context, request *httpx.Request) htt
 	if len(cookie.Value) != length {
 		err1 := merry.New("csrf middleware: vaidate cookie: invalid length")
 		err1 = err1.WithValue("cookie", cookie.Value)
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
-	token, err := m.extractToken(ctx, request)
+	token, err := m.extractToken(subCtx, request)
 	if err != nil {
 		err1 := merry.Prepend(err, "csrf middleware: extract token")
-		return m.handleError(ctx, request, err1)
+		return m.handleError(subCtx, request, err1)
 	}
 
 	if len(token) != length {
 		err1 := merry.New("csrf middleware: vaidate token: invalid length")
 		err1 = err1.WithValue("token", token)
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	if subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(token)) != 1 {
 		err1 := merry.New("csrf middleware: compare tokens: not equal")
 		err1 = err1.WithValue("cookie", cookie.Value)
 		err1 = err1.WithValue("token", token)
-		return m.handleError(ctx, request, err1.WithHTTPCode(http.StatusForbidden))
+		return m.handleError(subCtx, request, err1.WithHTTPCode(http.StatusForbidden))
 	}
 
 	return nil
@@ -212,6 +223,13 @@ func (m *CSRFProtector) extractToken(ctx context.Context, request *httpx.Request
 }
 
 func (m *CSRFProtector) handleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	span := noopSpan
+	if ctxSpan := ctx.Span(); ctxSpan != nil {
+		span = ctxSpan
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+	}
+
 	if m.ErrorHandler == nil {
 		return httpx.NewEmptyError(merry.HTTPCode(err), err)
 	}
@@ -219,6 +237,7 @@ func (m *CSRFProtector) handleError(ctx context.Context, request *httpx.Request,
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("csrf middleware: run ErrorHandler")
+		span.LogFields(otlog.String("exception", exception.Error()))
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
 	}

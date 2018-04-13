@@ -4,6 +4,9 @@ import (
 	"net/rpc"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/examples/idp/service"
@@ -28,16 +31,40 @@ type ExampleIdentityProvider struct {
 }
 
 func (p *ExampleIdentityProvider) Authenticate(ctx context.Context, credentials string) (models.User, merry.Error) {
+	var span opentracing.Span
+	if ctx.Span() != nil {
+		span = ctx.StartSpan("IdentityProvider.Authenticate")
+		defer span.Finish()
+	} else {
+		tracer := opentracing.NoopTracer{}
+		span = tracer.StartSpan("noop")
+	}
+
 	client, err := p.connect()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
 		return nil, err
 	}
 
-	message := idp.Message{RequestID: ctx.RequestID(), Value: credentials}
+	message := idp.Message{
+		RequestID: ctx.RequestID(),
+		Value:     credentials,
+		Metadata:  make(map[string]string),
+	}
+
+	carrier := opentracing.TextMapCarrier(message.Metadata)
+	if err := span.Tracer().Inject(span.Context(), opentracing.TextMap, carrier); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+		return nil, merry.Prepend(err, "authenticate")
+	}
+
 	var userID string
-	rpcErr := client.Call("Idp.AuthenticateToken", &message, &userID)
-	if rpcErr != nil {
-		return nil, merry.Prepend(rpcErr, "authenticate")
+	if err := client.Call("Idp.AuthenticateToken", &message, &userID); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+		return nil, merry.Prepend(err, "authenticate")
 	}
 	if userID == "" {
 		return nil, nil

@@ -16,6 +16,11 @@ type ResponseInterceptor struct {
 	size   int
 }
 
+// Start returns the time this instance was created.
+func (i *ResponseInterceptor) Start() time.Time {
+	return i.start
+}
+
 // Elapsed returns the amount of time since this instance was
 // created.
 func (i *ResponseInterceptor) Elapsed() time.Duration {
@@ -64,7 +69,6 @@ func (i *ResponseInterceptor) Snapshot() ResponseSnapshot {
 		Size:       i.size,
 		Start:      i.start,
 		Elapsed:    time.Now().UTC().Sub(i.start),
-		Metrics:    make(map[string]time.Duration),
 	}
 }
 

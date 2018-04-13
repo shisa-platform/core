@@ -4,6 +4,9 @@ import (
 	"net/http"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/authn"
 	"github.com/percolate/shisa/context"
@@ -38,21 +41,29 @@ type Authentication struct {
 }
 
 func (m *Authentication) Service(ctx context.Context, request *httpx.Request) httpx.Response {
-	if m.Authenticator == nil {
-		err := merry.New("authentication middleware: check invariants: authenticator is nil")
-		return m.HandleError(ctx, request, err)
+	subCtx := ctx
+	if ctx.Span() != nil {
+		var span opentracing.Span
+		span, subCtx = context.StartSpan(ctx, "Authenticate")
+		defer span.Finish()
+		ext.Component.Set(span, "middleware")
 	}
 
-	user, err, exception := m.authenticate(ctx, request)
+	if m.Authenticator == nil {
+		err := merry.New("authentication middleware: check invariants: authenticator is nil")
+		return m.HandleError(subCtx, request, err)
+	}
+
+	user, err, exception := m.authenticate(subCtx, request)
 	if exception != nil {
 		exception = exception.Prepend("authentication middleware: authenticate")
-		return m.HandleError(ctx, request, exception)
+		return m.HandleError(subCtx, request, exception)
 	} else if err != nil {
 		err = err.Prepend("authentication middleware: authenticate")
 		err = err.WithHTTPCode(http.StatusUnauthorized)
-		return m.HandleError(ctx, request, err)
+		return m.HandleError(subCtx, request, err)
 	} else if user == nil {
-		return m.HandleUnauthorized(ctx, request)
+		return m.HandleUnauthorized(subCtx, request)
 	}
 
 	ctx = ctx.WithActor(user)
@@ -96,6 +107,13 @@ func (m *Authentication) HandleUnauthorized(ctx context.Context, request *httpx.
 }
 
 func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request, err merry.Error) httpx.Response {
+	span := noopSpan
+	if ctxSpan := ctx.Span(); ctxSpan != nil {
+		span = ctxSpan
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+	}
+
 	if m.ErrorHandler == nil {
 		response := httpx.NewEmptyError(merry.HTTPCode(err), err)
 		if m.Authenticator != nil && merry.HTTPCode(err) == http.StatusUnauthorized {
@@ -108,6 +126,7 @@ func (m *Authentication) HandleError(ctx context.Context, request *httpx.Request
 	response, exception := m.ErrorHandler.InvokeSafely(ctx, request, err)
 	if exception != nil {
 		exception = exception.Prepend("authentication middleware: run ErrorHandler")
+		span.LogFields(otlog.String("exception", exception.Error()))
 		exception = exception.Append("original error").Append(err.Error())
 		response = httpx.NewEmptyError(merry.HTTPCode(err), exception)
 	}
@@ -132,6 +151,14 @@ type PassiveAuthentication struct {
 }
 
 func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Request) (response httpx.Response) {
+	subCtx := ctx
+	span := noopSpan
+	if ctx.Span() != nil {
+		span, subCtx = context.StartSpan(ctx, "PassiveAuthenticate")
+		defer span.Finish()
+		ext.Component.Set(span, "middleware")
+	}
+
 	defer func() {
 		arg := recover()
 		if arg == nil {
@@ -139,6 +166,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 		}
 
 		err := errorx.CapturePanic(arg, "passive authentication middleware: authenticate: panic in authenticator")
+		span.LogFields(otlog.String("exception", err.Error()))
 		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}()
 
@@ -147,7 +175,7 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
-	if user, _ := m.Authenticator.Authenticate(ctx, request); user != nil {
+	if user, _ := m.Authenticator.Authenticate(subCtx, request); user != nil {
 		ctx = ctx.WithActor(user)
 	}
 

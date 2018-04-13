@@ -235,7 +235,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestID, idErr := s.generateRequestID(ctx, request)
 
-	ctx = context.WithRequestID(ctx, requestID)
+	ctx = ctx.WithRequestID(requestID)
 	ri.Header().Set(s.RequestIDHeaderName, requestID)
 
 	var response httpx.Response

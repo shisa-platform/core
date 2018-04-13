@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	stdctx "context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -8,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
@@ -35,13 +38,11 @@ type csrfTest struct {
 }
 
 func (st csrfTest) check(t *testing.T) {
-	t.Parallel()
-
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
 		Request: httpReq,
 	}
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	if st.headerKey != "" {
 		vals := strings.Split(st.headerVal, ",")
@@ -62,7 +63,15 @@ func (st csrfTest) check(t *testing.T) {
 		SiteURL: st.siteURL,
 	}
 
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("test")
+	ctx = ctx.WithSpan(span)
+
+	opentracing.SetGlobalTracer(tracer)
+
 	response := cut.Service(ctx, request)
+
+	opentracing.SetGlobalTracer(opentracing.NoopTracer{})
 
 	if response == nil {
 		assert.Zero(t, st.expectedStatus, "expected response")
@@ -106,7 +115,7 @@ func TestCSRFProtectorService(t *testing.T) {
 }
 
 func TestCSRFProtectorIsExemptHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -125,7 +134,7 @@ func TestCSRFProtectorIsExemptHook(t *testing.T) {
 }
 
 func TestCSRFProtectorIsExemptHookPanic(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -145,7 +154,7 @@ func TestCSRFProtectorIsExemptHookPanic(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceCheckOriginHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -172,7 +181,7 @@ func TestCSRFProtectorServiceCheckOriginHook(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceCheckOriginHookPanic(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -199,7 +208,7 @@ func TestCSRFProtectorServiceCheckOriginHookPanic(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceCheckOriginHookPanicString(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -226,7 +235,7 @@ func TestCSRFProtectorServiceCheckOriginHookPanicString(t *testing.T) {
 }
 
 func TestCSRFProtectorTokenExtractorHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -252,7 +261,7 @@ func TestCSRFProtectorTokenExtractorHook(t *testing.T) {
 }
 
 func TestCSRFProtectorTokenExtractorHookError(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -279,7 +288,7 @@ func TestCSRFProtectorTokenExtractorHookError(t *testing.T) {
 }
 
 func TestCSRFProtectorTokenExtractorHookPanic(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -306,7 +315,7 @@ func TestCSRFProtectorTokenExtractorHookPanic(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceCookieNameHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -331,7 +340,7 @@ func TestCSRFProtectorServiceCookieNameHook(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceTokenLengthHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -356,7 +365,7 @@ func TestCSRFProtectorServiceTokenLengthHook(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceErrorHandlerHook(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{
@@ -379,7 +388,7 @@ func TestCSRFProtectorServiceErrorHandlerHook(t *testing.T) {
 }
 
 func TestCSRFProtectorServiceErrorHandlerHookPanic(t *testing.T) {
-	ctx := context.NewFakeContextDefaultFatal(t)
+	ctx := context.New(stdctx.Background())
 
 	httpReq := httptest.NewRequest(http.MethodPost, "http://10.0.0.1/", nil)
 	request := &httpx.Request{

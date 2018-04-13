@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"time"
 
@@ -51,23 +50,22 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	}
 	go runAuxiliary(debug, logger)
 
-	hello := NewHelloService(bal)
-	goodbye := NewGoodbyeService(bal)
+	rpc := NewRpcService(bal)
+	rest := NewRestService(bal)
 
 	healthcheck := &auxiliary.HealthcheckServer{
 		HTTPServer: auxiliary.HTTPServer{
 			Addr:           healthcheckAddr,
 			Authentication: authN,
 			Authorizer:     authZ,
-			CompletionHook: lh.completion,
 			ErrorHook:      lh.error,
 		},
-		Checkers: []auxiliary.Healthchecker{idp, hello, goodbye},
+		Checkers: []auxiliary.Healthchecker{idp, rpc, rest},
 	}
 	go runAuxiliary(healthcheck, logger)
 
 	gw := &gateway.Gateway{
-		Name:            "example",
+		Name:            serviceName,
 		Addr:            addr,
 		HandleInterrupt: true,
 		GracePeriod:     2 * time.Second,
@@ -80,7 +78,7 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 	gw.RegistrationURLHook = func() (u *url.URL, err merry.Error) {
 		u = &url.URL{
 			Host:     gw.Address(),
-			RawQuery: fmt.Sprintf("id=%s", gw.Name),
+			RawQuery: "id=" + gw.Name,
 		}
 		return
 	}
@@ -90,14 +88,14 @@ func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {
 			Host:     healthcheck.Address(),
 			Path:     healthcheck.Path,
 			User:     url.UserPassword("Admin", "password"),
-			RawQuery: fmt.Sprintf("interval=10s&serviceid=%s", gw.Name),
+			RawQuery: "interval=5s&serviceid=" + gw.Name,
 		}
 		return
 	}
 
 	ch := make(chan merry.Error, 1)
 	go func() {
-		ch <- gw.Serve(&hello.Service, &goodbye.Service)
+		ch <- gw.Serve(&rpc.Service, &rest.Service)
 	}()
 
 	logger.Info("gateway started", zap.String("addr", gw.Address()))
@@ -131,7 +129,7 @@ type logHandler struct {
 }
 
 func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.ResponseSnapshot) {
-	fs := make([]zapcore.Field, 9, 10+len(s.Metrics))
+	fs := make([]zapcore.Field, 9, 10)
 	fs[0] = zap.String("request-id", c.RequestID())
 	fs[1] = zap.String("client-ip-address", r.ClientIP())
 	fs[2] = zap.String("method", r.Method)
@@ -143,9 +141,6 @@ func (l logHandler) completion(c context.Context, r *httpx.Request, s httpx.Resp
 	fs[8] = zap.Duration("elapsed", s.Elapsed)
 	if u := c.Actor(); u != nil {
 		fs = append(fs, zap.String("user-id", u.ID()))
-	}
-	for k, v := range s.Metrics {
-		fs = append(fs, zap.Duration(k, v))
 	}
 	l.logger.Info("request", fs...)
 }

@@ -15,6 +15,4 @@ type ResponseSnapshot struct {
 	Start time.Time
 	// Duration of request servicing
 	Elapsed time.Duration
-	// Timing metrics captured during request servicing
-	Metrics map[string]time.Duration
 }
