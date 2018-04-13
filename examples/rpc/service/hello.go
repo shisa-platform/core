@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/rpc"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 	"go.uber.org/zap"
 
 	"github.com/percolate/shisa/examples/idp/service"
@@ -18,6 +21,7 @@ type Message struct {
 	UserID    string
 	Language  string
 	Name      string
+	Metadata  map[string]string
 }
 
 type Hello struct {
@@ -26,12 +30,20 @@ type Hello struct {
 }
 
 func (s *Hello) Greeting(message *Message, reply *string) (err error) {
+	span := s.startSpan(message)
+	defer span.Finish()
+
 	defer func() {
 		r := ""
 		if reply != nil {
 			r = *reply
 		}
-		s.Logger.Info("Greeting", zap.String("request-id", message.RequestID), zap.String("language", message.Language), zap.String("user-id", message.UserID), zap.String("reply", r), zap.Error(err))
+		s.Logger.Info("Greeting", zap.String("request-id", message.RequestID), zap.String("user-id", message.UserID), zap.String("language", message.Language), zap.String("reply", r))
+		if err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.String("error", err.Error()))
+			s.Logger.Error("Greeting", zap.String("request-id", message.RequestID), zap.String("error", err.Error()))
+		}
 	}()
 
 	client, err := s.connect()
@@ -42,10 +54,22 @@ func (s *Hello) Greeting(message *Message, reply *string) (err error) {
 	who := message.Name
 
 	if who == "" {
-		request := idp.Message{RequestID: message.RequestID, Value: message.UserID}
+		request := idp.Message{
+			RequestID: message.RequestID,
+			Value:     message.UserID,
+			Metadata:  make(map[string]string),
+		}
+
+		carrier := opentracing.TextMapCarrier(request.Metadata)
+		if err = span.Tracer().Inject(span.Context(), opentracing.TextMap, carrier); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.String("error", err.Error()))
+			return
+		}
+
 		var user idp.User
-		err = client.Call("Idp.FindUser", &request, &user)
-		if err != nil {
+
+		if err = client.Call("Idp.FindUser", &request, &user); err != nil {
 			return
 		}
 		if user.Ident == "" {
@@ -96,4 +120,18 @@ func (s *Hello) connect() (*rpc.Client, error) {
 	}
 
 	return client, nil
+}
+
+func (s *Hello) startSpan(message *Message) opentracing.Span {
+	var span opentracing.Span
+	carrier := opentracing.TextMapCarrier(message.Metadata)
+	if spanContext, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, carrier); err == nil {
+		span = opentracing.StartSpan("Greeting", ext.RPCServerOption(spanContext))
+	} else {
+		s.Logger.Error("error extracting client trace", zap.String("request-id", message.RequestID), zap.String("error", err.Error()))
+		span = opentracing.StartSpan("Greeting", opentracing.Tag{string(ext.SpanKind), "server"})
+	}
+	span.SetTag("request_id", message.RequestID)
+
+	return span
 }

@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/ansel1/merry"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 
 	"github.com/percolate/shisa/context"
 	"github.com/percolate/shisa/examples/rpc/service"
@@ -66,14 +69,20 @@ func (s *RpcService) Name() string {
 }
 
 func (s *RpcService) Greeting(ctx context.Context, r *httpx.Request) httpx.Response {
+	span := ctx.StartSpan("RpcService.GreetingEndpoint")
+	defer span.Finish()
+
 	client, err := s.connect()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
 	message := hello.Message{
 		RequestID: ctx.RequestID(),
 		UserID:    ctx.Actor().ID(),
+		Metadata:  make(map[string]string),
 	}
 
 	for _, param := range r.QueryParams {
@@ -85,10 +94,18 @@ func (s *RpcService) Greeting(ctx context.Context, r *httpx.Request) httpx.Respo
 		}
 	}
 
+	carrier := opentracing.TextMapCarrier(message.Metadata)
+	if err := span.Tracer().Inject(span.Context(), opentracing.TextMap, carrier); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+		return httpx.NewEmptyError(http.StatusBadGateway, err)
+	}
+
 	var reply string
-	rpcErr := client.Call("Hello.Greeting", &message, &reply)
-	if rpcErr != nil {
-		return httpx.NewEmptyError(http.StatusInternalServerError, rpcErr)
+	if err := client.Call("Hello.Greeting", &message, &reply); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.String("error", err.Error()))
+		return httpx.NewEmptyError(http.StatusBadGateway, err)
 	}
 
 	response := httpx.NewOK(Greeting{reply})
