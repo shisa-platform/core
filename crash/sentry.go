@@ -39,7 +39,7 @@ func (s *SentryReporter) Report(ctx context.Context, r *httpx.Request, err merry
 	sentryInterfaces := []raven.Interface{exception, user, raven.NewHttp(r.Request)}
 
 	packet := raven.NewPacket(err.Error(), sentryInterfaces...)
-	tags := map[string]string{"x-perc-id": ctx.RequestID()}
+	tags := map[string]string{"request-id": ctx.RequestID()}
 
 	s.client.Capture(packet, tags)
 }
