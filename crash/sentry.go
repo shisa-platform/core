@@ -10,9 +10,17 @@ import (
 	"github.com/percolate/shisa/httpx"
 )
 
+var _ capturer = &raven.Client{}
+
+//go:generate charlatan -output=./sentrycapturer_charlatan.go capturer
+type capturer interface {
+	Capture(*raven.Packet, map[string]string) (string, chan error)
+	Close()
+}
+
 // SentryReporter reports errors to an external Sentry service
 type SentryReporter struct {
-	client *raven.Client
+	client capturer
 }
 
 // NewSentryReporter instantiates a *raven.Client and *SentryReporter
