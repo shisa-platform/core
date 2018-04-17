@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
-	"github.com/getsentry/raven-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/percolate/shisa/context"
@@ -30,11 +29,9 @@ func TestNewSentryReporterError(t *testing.T) {
 }
 
 func TestSentryReport(t *testing.T) {
-	client := &Fakecapturer{
-		CaptureHook: func(*raven.Packet, map[string]string) (s string, ech chan error) {
-			return
-		},
-	}
+	client := &Fakecapturer{}
+	client.SetCaptureStub("", nil)
+
 	sr := &SentryReporter{client}
 	ctx := context.New(nil)
 	r := httpx.GetRequest(httptest.NewRequest("GET", "/", nil))
@@ -45,17 +42,13 @@ func TestSentryReport(t *testing.T) {
 }
 
 func TestSentryReportPanic(t *testing.T) {
-	client := &Fakecapturer{
-		CaptureHook: func(*raven.Packet, map[string]string) (s string, ech chan error) {
-			return
-		},
-	}
+	client := &Fakecapturer{}
+	client.SetCaptureStub("", nil)
+
 	sr := &SentryReporter{client}
-	u := &models.FakeUser{
-		IDHook: func() string {
-			return "user_id"
-		},
-	}
+
+	u := &models.FakeUser{}
+	u.SetIDStub("user_id")
 	ctx := context.WithActor(nil, u).WithRequestID("req_id")
 	r := httpx.GetRequest(httptest.NewRequest("GET", "/", nil))
 
