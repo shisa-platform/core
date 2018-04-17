@@ -23,14 +23,7 @@ const (
 type RateLimitHandler func(context.Context, *httpx.Request, time.Duration) httpx.Response
 
 func (h RateLimitHandler) InvokeSafely(ctx context.Context, request *httpx.Request, cooldown time.Duration) (response httpx.Response, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in rate limit handler")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in rate limit handler")
 
 	return h(ctx, request, cooldown), nil
 }
@@ -136,14 +129,7 @@ func NewRateLimiter(provider ratelimit.Provider, extractor httpx.StringExtractor
 }
 
 func (m *RateLimiter) applyOptions(opts []RateLimiterOption) (err merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic in option")
-	}()
+	defer errorx.CapturePanic(&err, "panic in option")
 
 	for _, opt := range opts {
 		opt(m)
@@ -181,14 +167,7 @@ func (m *RateLimiter) Service(ctx context.Context, request *httpx.Request) httpx
 }
 
 func (m *RateLimiter) throttle(ctx context.Context, request *httpx.Request) (ok bool, cd time.Duration, err merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "proxy middleware: run provider: panic in provider")
-	}()
+	defer errorx.CapturePanic(&err, "proxy middleware: run provider: panic in provider")
 
 	actor, err, exception := m.extractor.InvokeSafely(ctx, request)
 	if exception != nil {

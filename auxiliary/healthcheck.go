@@ -132,14 +132,7 @@ func (s *HealthcheckServer) Service(ctx context.Context, request *httpx.Request)
 }
 
 func invokeHealthcheckSafely(ctx context.Context, h Healthchecker) (err merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic in healthcheck")
-	}()
+	defer errorx.CapturePanic(&err, "panic in healthcheck")
 
 	return h.Healthcheck(ctx)
 }

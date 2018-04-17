@@ -11,14 +11,7 @@ import (
 type Router func(context.Context, *httpx.Request) httpx.Handler
 
 func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (_ httpx.Handler, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in router")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in router")
 
 	return r(ctx, request), nil
 }

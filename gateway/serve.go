@@ -258,14 +258,7 @@ func (g *Gateway) registerSafely() (err merry.Error) {
 		return
 	}
 
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic registering service")
-	}()
+	defer errorx.CapturePanic(&err, "panic registering service")
 
 	u, err, exception := g.RegistrationURLHook.InvokeSafely()
 	if exception != nil {
@@ -282,14 +275,7 @@ func (g *Gateway) deregisterSafely() (err merry.Error) {
 		return
 	}
 
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic deregistering service")
-	}()
+	defer errorx.CapturePanic(&err, "panic deregistering service")
 
 	return g.Registrar.Deregister(g.Name)
 }
@@ -299,14 +285,7 @@ func (g *Gateway) addHealthcheckSafely() (err merry.Error) {
 		return
 	}
 
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic adding healthcheck")
-	}()
+	defer errorx.CapturePanic(&err, "panic adding healthcheck")
 
 	url, err, exception := g.CheckURLHook.InvokeSafely()
 	if exception != nil {
@@ -323,14 +302,7 @@ func (g *Gateway) removeHealthcheckSafely() (err merry.Error) {
 		return
 	}
 
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic removing healthcheck")
-	}()
+	defer errorx.CapturePanic(&err, "panic removing healthcheck")
 
 	return g.Registrar.RemoveChecks(g.Name)
 }

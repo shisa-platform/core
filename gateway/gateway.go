@@ -34,14 +34,7 @@ var (
 type URLHook func() (*url.URL, merry.Error)
 
 func (h URLHook) InvokeSafely() (u *url.URL, err merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in check url hook")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in check url hook")
 
 	u, err = h()
 

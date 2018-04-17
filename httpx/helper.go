@@ -13,14 +13,7 @@ import (
 type StringExtractor func(context.Context, *Request) (string, merry.Error)
 
 func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (str string, err merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in request extractor")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in request extractor")
 
 	str, err = h(ctx, request)
 
@@ -32,14 +25,7 @@ func (h StringExtractor) InvokeSafely(ctx context.Context, request *Request) (st
 type RequestPredicate func(context.Context, *Request) bool
 
 func (h RequestPredicate) InvokeSafely(ctx context.Context, request *Request) (_ bool, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in request predicate")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in request predicate")
 
 	return h(ctx, request), nil
 }

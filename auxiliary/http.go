@@ -168,18 +168,7 @@ func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (res
 		return
 	}
 
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err := errorx.CapturePanic(arg, "panic in auxiliary authorizer")
-		err = err.WithHTTPCode(http.StatusForbidden)
-		response = httpx.NewEmptyError(http.StatusForbidden, err)
-	}()
-
-	if ok, err := s.Authorizer.Authorize(ctx, request); err != nil {
+	if ok, err := s.authn(ctx, request); err != nil {
 		err = err.WithHTTPCode(http.StatusForbidden)
 		response = s.Authentication.HandleError(ctx, request, err)
 	} else if !ok {
@@ -187,6 +176,12 @@ func (s *HTTPServer) Authorize(ctx context.Context, request *httpx.Request) (res
 	}
 
 	return
+}
+
+func (s *HTTPServer) authn(ctx context.Context, request *httpx.Request) (ok bool, err merry.Error) {
+	defer errorx.CapturePanic(&err, "panic in auxiliary authorizer")
+
+	return s.Authorizer.Authorize(ctx, request)
 }
 
 func (s *HTTPServer) Listen() (err error) {
