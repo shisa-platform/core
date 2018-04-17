@@ -17,6 +17,18 @@ type ResolverResolveInvocation struct {
 	}
 }
 
+// NewResolverResolveInvocation creates a new instance of ResolverResolveInvocation
+func NewResolverResolveInvocation(name string, ident1 []string, ident2 merry.Error) *ResolverResolveInvocation {
+	invocation := new(ResolverResolveInvocation)
+
+	invocation.Parameters.Name = name
+
+	invocation.Results.Ident1 = ident1
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // ResolverTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
 type ResolverTestingT interface {
 	Error(...interface{})
@@ -106,6 +118,30 @@ func (_f1 *FakeResolver) Resolve(name string) (ident1 []string, ident2 merry.Err
 	return
 }
 
+// SetResolveStub configures Resolver.Resolve to always return the given values
+func (_f2 *FakeResolver) SetResolveStub(ident1 []string, ident2 merry.Error) {
+	_f2.ResolveHook = func(string) ([]string, merry.Error) {
+		return ident1, ident2
+	}
+}
+
+// SetResolveInvocation configures Resolver.Resolve to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeResolver) SetResolveInvocation(calls_f4 []*ResolverResolveInvocation, fallback_f5 func() ([]string, merry.Error)) {
+	_f3.ResolveHook = func(name string) (ident1 []string, ident2 merry.Error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Name, name) {
+				ident1 = call.Results.Ident1
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // ResolveCalled returns true if FakeResolver.Resolve was called
 func (f *FakeResolver) ResolveCalled() bool {
 	return len(f.ResolveCalls) != 0
@@ -159,8 +195,8 @@ func (f *FakeResolver) AssertResolveCalledN(t ResolverTestingT, n int) {
 }
 
 // ResolveCalledWith returns true if FakeResolver.Resolve was called with the given values
-func (_f2 *FakeResolver) ResolveCalledWith(name string) (found bool) {
-	for _, call := range _f2.ResolveCalls {
+func (_f6 *FakeResolver) ResolveCalledWith(name string) (found bool) {
+	for _, call := range _f6.ResolveCalls {
 		if reflect.DeepEqual(call.Parameters.Name, name) {
 			found = true
 			break
@@ -171,10 +207,10 @@ func (_f2 *FakeResolver) ResolveCalledWith(name string) (found bool) {
 }
 
 // AssertResolveCalledWith calls t.Error if FakeResolver.Resolve was not called with the given values
-func (_f3 *FakeResolver) AssertResolveCalledWith(t ResolverTestingT, name string) {
+func (_f7 *FakeResolver) AssertResolveCalledWith(t ResolverTestingT, name string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.ResolveCalls {
+	for _, call := range _f7.ResolveCalls {
 		if reflect.DeepEqual(call.Parameters.Name, name) {
 			found = true
 			break
@@ -187,9 +223,9 @@ func (_f3 *FakeResolver) AssertResolveCalledWith(t ResolverTestingT, name string
 }
 
 // ResolveCalledOnceWith returns true if FakeResolver.Resolve was called exactly once with the given values
-func (_f4 *FakeResolver) ResolveCalledOnceWith(name string) bool {
+func (_f8 *FakeResolver) ResolveCalledOnceWith(name string) bool {
 	var count int
-	for _, call := range _f4.ResolveCalls {
+	for _, call := range _f8.ResolveCalls {
 		if reflect.DeepEqual(call.Parameters.Name, name) {
 			count++
 		}
@@ -199,10 +235,10 @@ func (_f4 *FakeResolver) ResolveCalledOnceWith(name string) bool {
 }
 
 // AssertResolveCalledOnceWith calls t.Error if FakeResolver.Resolve was not called exactly once with the given values
-func (_f5 *FakeResolver) AssertResolveCalledOnceWith(t ResolverTestingT, name string) {
+func (_f9 *FakeResolver) AssertResolveCalledOnceWith(t ResolverTestingT, name string) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.ResolveCalls {
+	for _, call := range _f9.ResolveCalls {
 		if reflect.DeepEqual(call.Parameters.Name, name) {
 			count++
 		}
@@ -214,8 +250,8 @@ func (_f5 *FakeResolver) AssertResolveCalledOnceWith(t ResolverTestingT, name st
 }
 
 // ResolveResultsForCall returns the result values for the first call to FakeResolver.Resolve with the given values
-func (_f6 *FakeResolver) ResolveResultsForCall(name string) (ident1 []string, ident2 merry.Error, found bool) {
-	for _, call := range _f6.ResolveCalls {
+func (_f10 *FakeResolver) ResolveResultsForCall(name string) (ident1 []string, ident2 merry.Error, found bool) {
+	for _, call := range _f10.ResolveCalls {
 		if reflect.DeepEqual(call.Parameters.Name, name) {
 			ident1 = call.Results.Ident1
 			ident2 = call.Results.Ident2

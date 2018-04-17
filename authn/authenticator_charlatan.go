@@ -20,6 +20,19 @@ type AuthenticatorAuthenticateInvocation struct {
 	}
 }
 
+// NewAuthenticatorAuthenticateInvocation creates a new instance of AuthenticatorAuthenticateInvocation
+func NewAuthenticatorAuthenticateInvocation(ident1 context.Context, ident2 *httpx.Request, ident3 models.User, ident4 merry.Error) *AuthenticatorAuthenticateInvocation {
+	invocation := new(AuthenticatorAuthenticateInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+	invocation.Parameters.Ident2 = ident2
+
+	invocation.Results.Ident3 = ident3
+	invocation.Results.Ident4 = ident4
+
+	return invocation
+}
+
 // AuthenticatorChallengeInvocation represents a single call of FakeAuthenticator.Challenge
 type AuthenticatorChallengeInvocation struct {
 	Results struct {
@@ -131,6 +144,30 @@ func (_f1 *FakeAuthenticator) Authenticate(ident1 context.Context, ident2 *httpx
 	return
 }
 
+// SetAuthenticateStub configures Authenticator.Authenticate to always return the given values
+func (_f2 *FakeAuthenticator) SetAuthenticateStub(ident3 models.User, ident4 merry.Error) {
+	_f2.AuthenticateHook = func(context.Context, *httpx.Request) (models.User, merry.Error) {
+		return ident3, ident4
+	}
+}
+
+// SetAuthenticateInvocation configures Authenticator.Authenticate to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeAuthenticator) SetAuthenticateInvocation(calls_f4 []*AuthenticatorAuthenticateInvocation, fallback_f5 func() (models.User, merry.Error)) {
+	_f3.AuthenticateHook = func(ident1 context.Context, ident2 *httpx.Request) (ident3 models.User, ident4 merry.Error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+				ident3 = call.Results.Ident3
+				ident4 = call.Results.Ident4
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // AuthenticateCalled returns true if FakeAuthenticator.Authenticate was called
 func (f *FakeAuthenticator) AuthenticateCalled() bool {
 	return len(f.AuthenticateCalls) != 0
@@ -184,8 +221,8 @@ func (f *FakeAuthenticator) AssertAuthenticateCalledN(t AuthenticatorTestingT, n
 }
 
 // AuthenticateCalledWith returns true if FakeAuthenticator.Authenticate was called with the given values
-func (_f2 *FakeAuthenticator) AuthenticateCalledWith(ident1 context.Context, ident2 *httpx.Request) (found bool) {
-	for _, call := range _f2.AuthenticateCalls {
+func (_f6 *FakeAuthenticator) AuthenticateCalledWith(ident1 context.Context, ident2 *httpx.Request) (found bool) {
+	for _, call := range _f6.AuthenticateCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -196,10 +233,10 @@ func (_f2 *FakeAuthenticator) AuthenticateCalledWith(ident1 context.Context, ide
 }
 
 // AssertAuthenticateCalledWith calls t.Error if FakeAuthenticator.Authenticate was not called with the given values
-func (_f3 *FakeAuthenticator) AssertAuthenticateCalledWith(t AuthenticatorTestingT, ident1 context.Context, ident2 *httpx.Request) {
+func (_f7 *FakeAuthenticator) AssertAuthenticateCalledWith(t AuthenticatorTestingT, ident1 context.Context, ident2 *httpx.Request) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.AuthenticateCalls {
+	for _, call := range _f7.AuthenticateCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -212,9 +249,9 @@ func (_f3 *FakeAuthenticator) AssertAuthenticateCalledWith(t AuthenticatorTestin
 }
 
 // AuthenticateCalledOnceWith returns true if FakeAuthenticator.Authenticate was called exactly once with the given values
-func (_f4 *FakeAuthenticator) AuthenticateCalledOnceWith(ident1 context.Context, ident2 *httpx.Request) bool {
+func (_f8 *FakeAuthenticator) AuthenticateCalledOnceWith(ident1 context.Context, ident2 *httpx.Request) bool {
 	var count int
-	for _, call := range _f4.AuthenticateCalls {
+	for _, call := range _f8.AuthenticateCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -224,10 +261,10 @@ func (_f4 *FakeAuthenticator) AuthenticateCalledOnceWith(ident1 context.Context,
 }
 
 // AssertAuthenticateCalledOnceWith calls t.Error if FakeAuthenticator.Authenticate was not called exactly once with the given values
-func (_f5 *FakeAuthenticator) AssertAuthenticateCalledOnceWith(t AuthenticatorTestingT, ident1 context.Context, ident2 *httpx.Request) {
+func (_f9 *FakeAuthenticator) AssertAuthenticateCalledOnceWith(t AuthenticatorTestingT, ident1 context.Context, ident2 *httpx.Request) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.AuthenticateCalls {
+	for _, call := range _f9.AuthenticateCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -239,8 +276,8 @@ func (_f5 *FakeAuthenticator) AssertAuthenticateCalledOnceWith(t AuthenticatorTe
 }
 
 // AuthenticateResultsForCall returns the result values for the first call to FakeAuthenticator.Authenticate with the given values
-func (_f6 *FakeAuthenticator) AuthenticateResultsForCall(ident1 context.Context, ident2 *httpx.Request) (ident3 models.User, ident4 merry.Error, found bool) {
-	for _, call := range _f6.AuthenticateCalls {
+func (_f10 *FakeAuthenticator) AuthenticateResultsForCall(ident1 context.Context, ident2 *httpx.Request) (ident3 models.User, ident4 merry.Error, found bool) {
+	for _, call := range _f10.AuthenticateCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3
 			ident4 = call.Results.Ident4
@@ -252,19 +289,26 @@ func (_f6 *FakeAuthenticator) AuthenticateResultsForCall(ident1 context.Context,
 	return
 }
 
-func (_f7 *FakeAuthenticator) Challenge() (ident1 string) {
-	if _f7.ChallengeHook == nil {
+func (_f11 *FakeAuthenticator) Challenge() (ident1 string) {
+	if _f11.ChallengeHook == nil {
 		panic("Authenticator.Challenge() called but FakeAuthenticator.ChallengeHook is nil")
 	}
 
 	invocation := new(AuthenticatorChallengeInvocation)
-	_f7.ChallengeCalls = append(_f7.ChallengeCalls, invocation)
+	_f11.ChallengeCalls = append(_f11.ChallengeCalls, invocation)
 
-	ident1 = _f7.ChallengeHook()
+	ident1 = _f11.ChallengeHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetChallengeStub configures Authenticator.Challenge to always return the given values
+func (_f12 *FakeAuthenticator) SetChallengeStub(ident1 string) {
+	_f12.ChallengeHook = func() string {
+		return ident1
+	}
 }
 
 // ChallengeCalled returns true if FakeAuthenticator.Challenge was called

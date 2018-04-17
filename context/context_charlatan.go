@@ -2,11 +2,11 @@
 
 package context
 
+import "reflect"
 import "context"
 import "time"
 import "github.com/opentracing/opentracing-go"
 import "github.com/percolate/shisa/models"
-import "reflect"
 
 // ContextDeadlineInvocation represents a single call of FakeContext.Deadline
 type ContextDeadlineInvocation struct {
@@ -38,6 +38,17 @@ type ContextValueInvocation struct {
 	Results struct {
 		Ident3 interface{}
 	}
+}
+
+// NewContextValueInvocation creates a new instance of ContextValueInvocation
+func NewContextValueInvocation(key interface{}, ident3 interface{}) *ContextValueInvocation {
+	invocation := new(ContextValueInvocation)
+
+	invocation.Parameters.Key = key
+
+	invocation.Results.Ident3 = ident3
+
+	return invocation
 }
 
 // ContextRequestIDInvocation represents a single call of FakeContext.RequestID
@@ -72,6 +83,18 @@ type ContextStartSpanInvocation struct {
 	}
 }
 
+// NewContextStartSpanInvocation creates a new instance of ContextStartSpanInvocation
+func NewContextStartSpanInvocation(ident1 string, ident2 []opentracing.StartSpanOption, ident3 opentracing.Span) *ContextStartSpanInvocation {
+	invocation := new(ContextStartSpanInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+	invocation.Parameters.Ident2 = ident2
+
+	invocation.Results.Ident3 = ident3
+
+	return invocation
+}
+
 // ContextWithParentInvocation represents a single call of FakeContext.WithParent
 type ContextWithParentInvocation struct {
 	Parameters struct {
@@ -80,6 +103,17 @@ type ContextWithParentInvocation struct {
 	Results struct {
 		Ident2 Context
 	}
+}
+
+// NewContextWithParentInvocation creates a new instance of ContextWithParentInvocation
+func NewContextWithParentInvocation(ident1 context.Context, ident2 Context) *ContextWithParentInvocation {
+	invocation := new(ContextWithParentInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
 }
 
 // ContextWithActorInvocation represents a single call of FakeContext.WithActor
@@ -92,6 +126,17 @@ type ContextWithActorInvocation struct {
 	}
 }
 
+// NewContextWithActorInvocation creates a new instance of ContextWithActorInvocation
+func NewContextWithActorInvocation(ident1 models.User, ident2 Context) *ContextWithActorInvocation {
+	invocation := new(ContextWithActorInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // ContextWithRequestIDInvocation represents a single call of FakeContext.WithRequestID
 type ContextWithRequestIDInvocation struct {
 	Parameters struct {
@@ -100,6 +145,17 @@ type ContextWithRequestIDInvocation struct {
 	Results struct {
 		Ident2 Context
 	}
+}
+
+// NewContextWithRequestIDInvocation creates a new instance of ContextWithRequestIDInvocation
+func NewContextWithRequestIDInvocation(ident1 string, ident2 Context) *ContextWithRequestIDInvocation {
+	invocation := new(ContextWithRequestIDInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
 }
 
 // ContextWithSpanInvocation represents a single call of FakeContext.WithSpan
@@ -112,6 +168,17 @@ type ContextWithSpanInvocation struct {
 	}
 }
 
+// NewContextWithSpanInvocation creates a new instance of ContextWithSpanInvocation
+func NewContextWithSpanInvocation(ident1 opentracing.Span, ident2 Context) *ContextWithSpanInvocation {
+	invocation := new(ContextWithSpanInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // ContextWithValueInvocation represents a single call of FakeContext.WithValue
 type ContextWithValueInvocation struct {
 	Parameters struct {
@@ -121,6 +188,18 @@ type ContextWithValueInvocation struct {
 	Results struct {
 		Ident1 Context
 	}
+}
+
+// NewContextWithValueInvocation creates a new instance of ContextWithValueInvocation
+func NewContextWithValueInvocation(key interface{}, value interface{}, ident1 Context) *ContextWithValueInvocation {
+	invocation := new(ContextWithValueInvocation)
+
+	invocation.Parameters.Key = key
+	invocation.Parameters.Value = value
+
+	invocation.Results.Ident1 = ident1
+
+	return invocation
 }
 
 // ContextWithCancelInvocation represents a single call of FakeContext.WithCancel
@@ -142,6 +221,18 @@ type ContextWithDeadlineInvocation struct {
 	}
 }
 
+// NewContextWithDeadlineInvocation creates a new instance of ContextWithDeadlineInvocation
+func NewContextWithDeadlineInvocation(ident1 time.Time, ident2 Context, ident3 context.CancelFunc) *ContextWithDeadlineInvocation {
+	invocation := new(ContextWithDeadlineInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
+
+	return invocation
+}
+
 // ContextWithTimeoutInvocation represents a single call of FakeContext.WithTimeout
 type ContextWithTimeoutInvocation struct {
 	Parameters struct {
@@ -151,6 +242,18 @@ type ContextWithTimeoutInvocation struct {
 		Ident2 Context
 		Ident3 context.CancelFunc
 	}
+}
+
+// NewContextWithTimeoutInvocation creates a new instance of ContextWithTimeoutInvocation
+func NewContextWithTimeoutInvocation(ident1 time.Duration, ident2 Context, ident3 context.CancelFunc) *ContextWithTimeoutInvocation {
+	invocation := new(ContextWithTimeoutInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
+
+	return invocation
 }
 
 // ContextTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
@@ -450,6 +553,13 @@ func (_f1 *FakeContext) Deadline() (deadline time.Time, ok bool) {
 	return
 }
 
+// SetDeadlineStub configures Context.Deadline to always return the given values
+func (_f2 *FakeContext) SetDeadlineStub(deadline time.Time, ok bool) {
+	_f2.DeadlineHook = func() (time.Time, bool) {
+		return deadline, ok
+	}
+}
+
 // DeadlineCalled returns true if FakeContext.Deadline was called
 func (f *FakeContext) DeadlineCalled() bool {
 	return len(f.DeadlineCalls) != 0
@@ -502,19 +612,26 @@ func (f *FakeContext) AssertDeadlineCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f2 *FakeContext) Done() (ident1 <-chan struct{}) {
-	if _f2.DoneHook == nil {
+func (_f3 *FakeContext) Done() (ident1 <-chan struct{}) {
+	if _f3.DoneHook == nil {
 		panic("Context.Done() called but FakeContext.DoneHook is nil")
 	}
 
 	invocation := new(ContextDoneInvocation)
-	_f2.DoneCalls = append(_f2.DoneCalls, invocation)
+	_f3.DoneCalls = append(_f3.DoneCalls, invocation)
 
-	ident1 = _f2.DoneHook()
+	ident1 = _f3.DoneHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetDoneStub configures Context.Done to always return the given values
+func (_f4 *FakeContext) SetDoneStub(ident1 <-chan struct{}) {
+	_f4.DoneHook = func() <-chan struct{} {
+		return ident1
+	}
 }
 
 // DoneCalled returns true if FakeContext.Done was called
@@ -569,19 +686,26 @@ func (f *FakeContext) AssertDoneCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f3 *FakeContext) Err() (ident2 error) {
-	if _f3.ErrHook == nil {
+func (_f5 *FakeContext) Err() (ident2 error) {
+	if _f5.ErrHook == nil {
 		panic("Context.Err() called but FakeContext.ErrHook is nil")
 	}
 
 	invocation := new(ContextErrInvocation)
-	_f3.ErrCalls = append(_f3.ErrCalls, invocation)
+	_f5.ErrCalls = append(_f5.ErrCalls, invocation)
 
-	ident2 = _f3.ErrHook()
+	ident2 = _f5.ErrHook()
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetErrStub configures Context.Err to always return the given values
+func (_f6 *FakeContext) SetErrStub(ident2 error) {
+	_f6.ErrHook = func() error {
+		return ident2
+	}
 }
 
 // ErrCalled returns true if FakeContext.Err was called
@@ -636,21 +760,44 @@ func (f *FakeContext) AssertErrCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f4 *FakeContext) Value(key interface{}) (ident3 interface{}) {
-	if _f4.ValueHook == nil {
+func (_f7 *FakeContext) Value(key interface{}) (ident3 interface{}) {
+	if _f7.ValueHook == nil {
 		panic("Context.Value() called but FakeContext.ValueHook is nil")
 	}
 
 	invocation := new(ContextValueInvocation)
-	_f4.ValueCalls = append(_f4.ValueCalls, invocation)
+	_f7.ValueCalls = append(_f7.ValueCalls, invocation)
 
 	invocation.Parameters.Key = key
 
-	ident3 = _f4.ValueHook(key)
+	ident3 = _f7.ValueHook(key)
 
 	invocation.Results.Ident3 = ident3
 
 	return
+}
+
+// SetValueStub configures Context.Value to always return the given values
+func (_f8 *FakeContext) SetValueStub(ident3 interface{}) {
+	_f8.ValueHook = func(interface{}) interface{} {
+		return ident3
+	}
+}
+
+// SetValueInvocation configures Context.Value to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f9 *FakeContext) SetValueInvocation(calls_f10 []*ContextValueInvocation, fallback_f11 func() interface{}) {
+	_f9.ValueHook = func(key interface{}) (ident3 interface{}) {
+		for _, call := range calls_f10 {
+			if reflect.DeepEqual(call.Parameters.Key, key) {
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f11()
+	}
 }
 
 // ValueCalled returns true if FakeContext.Value was called
@@ -706,8 +853,8 @@ func (f *FakeContext) AssertValueCalledN(t ContextTestingT, n int) {
 }
 
 // ValueCalledWith returns true if FakeContext.Value was called with the given values
-func (_f5 *FakeContext) ValueCalledWith(key interface{}) (found bool) {
-	for _, call := range _f5.ValueCalls {
+func (_f12 *FakeContext) ValueCalledWith(key interface{}) (found bool) {
+	for _, call := range _f12.ValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) {
 			found = true
 			break
@@ -718,10 +865,10 @@ func (_f5 *FakeContext) ValueCalledWith(key interface{}) (found bool) {
 }
 
 // AssertValueCalledWith calls t.Error if FakeContext.Value was not called with the given values
-func (_f6 *FakeContext) AssertValueCalledWith(t ContextTestingT, key interface{}) {
+func (_f13 *FakeContext) AssertValueCalledWith(t ContextTestingT, key interface{}) {
 	t.Helper()
 	var found bool
-	for _, call := range _f6.ValueCalls {
+	for _, call := range _f13.ValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) {
 			found = true
 			break
@@ -734,9 +881,9 @@ func (_f6 *FakeContext) AssertValueCalledWith(t ContextTestingT, key interface{}
 }
 
 // ValueCalledOnceWith returns true if FakeContext.Value was called exactly once with the given values
-func (_f7 *FakeContext) ValueCalledOnceWith(key interface{}) bool {
+func (_f14 *FakeContext) ValueCalledOnceWith(key interface{}) bool {
 	var count int
-	for _, call := range _f7.ValueCalls {
+	for _, call := range _f14.ValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) {
 			count++
 		}
@@ -746,10 +893,10 @@ func (_f7 *FakeContext) ValueCalledOnceWith(key interface{}) bool {
 }
 
 // AssertValueCalledOnceWith calls t.Error if FakeContext.Value was not called exactly once with the given values
-func (_f8 *FakeContext) AssertValueCalledOnceWith(t ContextTestingT, key interface{}) {
+func (_f15 *FakeContext) AssertValueCalledOnceWith(t ContextTestingT, key interface{}) {
 	t.Helper()
 	var count int
-	for _, call := range _f8.ValueCalls {
+	for _, call := range _f15.ValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) {
 			count++
 		}
@@ -761,8 +908,8 @@ func (_f8 *FakeContext) AssertValueCalledOnceWith(t ContextTestingT, key interfa
 }
 
 // ValueResultsForCall returns the result values for the first call to FakeContext.Value with the given values
-func (_f9 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}, found bool) {
-	for _, call := range _f9.ValueCalls {
+func (_f16 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}, found bool) {
+	for _, call := range _f16.ValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) {
 			ident3 = call.Results.Ident3
 			found = true
@@ -773,19 +920,26 @@ func (_f9 *FakeContext) ValueResultsForCall(key interface{}) (ident3 interface{}
 	return
 }
 
-func (_f10 *FakeContext) RequestID() (ident1 string) {
-	if _f10.RequestIDHook == nil {
+func (_f17 *FakeContext) RequestID() (ident1 string) {
+	if _f17.RequestIDHook == nil {
 		panic("Context.RequestID() called but FakeContext.RequestIDHook is nil")
 	}
 
 	invocation := new(ContextRequestIDInvocation)
-	_f10.RequestIDCalls = append(_f10.RequestIDCalls, invocation)
+	_f17.RequestIDCalls = append(_f17.RequestIDCalls, invocation)
 
-	ident1 = _f10.RequestIDHook()
+	ident1 = _f17.RequestIDHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetRequestIDStub configures Context.RequestID to always return the given values
+func (_f18 *FakeContext) SetRequestIDStub(ident1 string) {
+	_f18.RequestIDHook = func() string {
+		return ident1
+	}
 }
 
 // RequestIDCalled returns true if FakeContext.RequestID was called
@@ -840,19 +994,26 @@ func (f *FakeContext) AssertRequestIDCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f11 *FakeContext) Actor() (ident1 models.User) {
-	if _f11.ActorHook == nil {
+func (_f19 *FakeContext) Actor() (ident1 models.User) {
+	if _f19.ActorHook == nil {
 		panic("Context.Actor() called but FakeContext.ActorHook is nil")
 	}
 
 	invocation := new(ContextActorInvocation)
-	_f11.ActorCalls = append(_f11.ActorCalls, invocation)
+	_f19.ActorCalls = append(_f19.ActorCalls, invocation)
 
-	ident1 = _f11.ActorHook()
+	ident1 = _f19.ActorHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetActorStub configures Context.Actor to always return the given values
+func (_f20 *FakeContext) SetActorStub(ident1 models.User) {
+	_f20.ActorHook = func() models.User {
+		return ident1
+	}
 }
 
 // ActorCalled returns true if FakeContext.Actor was called
@@ -907,19 +1068,26 @@ func (f *FakeContext) AssertActorCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f12 *FakeContext) Span() (ident1 opentracing.Span) {
-	if _f12.SpanHook == nil {
+func (_f21 *FakeContext) Span() (ident1 opentracing.Span) {
+	if _f21.SpanHook == nil {
 		panic("Context.Span() called but FakeContext.SpanHook is nil")
 	}
 
 	invocation := new(ContextSpanInvocation)
-	_f12.SpanCalls = append(_f12.SpanCalls, invocation)
+	_f21.SpanCalls = append(_f21.SpanCalls, invocation)
 
-	ident1 = _f12.SpanHook()
+	ident1 = _f21.SpanHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetSpanStub configures Context.Span to always return the given values
+func (_f22 *FakeContext) SetSpanStub(ident1 opentracing.Span) {
+	_f22.SpanHook = func() opentracing.Span {
+		return ident1
+	}
 }
 
 // SpanCalled returns true if FakeContext.Span was called
@@ -974,22 +1142,45 @@ func (f *FakeContext) AssertSpanCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f13 *FakeContext) StartSpan(ident1 string, ident2 ...opentracing.StartSpanOption) (ident3 opentracing.Span) {
-	if _f13.StartSpanHook == nil {
+func (_f23 *FakeContext) StartSpan(ident1 string, ident2 ...opentracing.StartSpanOption) (ident3 opentracing.Span) {
+	if _f23.StartSpanHook == nil {
 		panic("Context.StartSpan() called but FakeContext.StartSpanHook is nil")
 	}
 
 	invocation := new(ContextStartSpanInvocation)
-	_f13.StartSpanCalls = append(_f13.StartSpanCalls, invocation)
+	_f23.StartSpanCalls = append(_f23.StartSpanCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
 
-	ident3 = _f13.StartSpanHook(ident1, ident2...)
+	ident3 = _f23.StartSpanHook(ident1, ident2...)
 
 	invocation.Results.Ident3 = ident3
 
 	return
+}
+
+// SetStartSpanStub configures Context.StartSpan to always return the given values
+func (_f24 *FakeContext) SetStartSpanStub(ident3 opentracing.Span) {
+	_f24.StartSpanHook = func(string, ...opentracing.StartSpanOption) opentracing.Span {
+		return ident3
+	}
+}
+
+// SetStartSpanInvocation configures Context.StartSpan to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f25 *FakeContext) SetStartSpanInvocation(calls_f26 []*ContextStartSpanInvocation, fallback_f27 func() opentracing.Span) {
+	_f25.StartSpanHook = func(ident1 string, ident2 ...opentracing.StartSpanOption) (ident3 opentracing.Span) {
+		for _, call := range calls_f26 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f27()
+	}
 }
 
 // StartSpanCalled returns true if FakeContext.StartSpan was called
@@ -1045,8 +1236,8 @@ func (f *FakeContext) AssertStartSpanCalledN(t ContextTestingT, n int) {
 }
 
 // StartSpanCalledWith returns true if FakeContext.StartSpan was called with the given values
-func (_f14 *FakeContext) StartSpanCalledWith(ident1 string, ident2 ...opentracing.StartSpanOption) (found bool) {
-	for _, call := range _f14.StartSpanCalls {
+func (_f28 *FakeContext) StartSpanCalledWith(ident1 string, ident2 ...opentracing.StartSpanOption) (found bool) {
+	for _, call := range _f28.StartSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -1057,10 +1248,10 @@ func (_f14 *FakeContext) StartSpanCalledWith(ident1 string, ident2 ...opentracin
 }
 
 // AssertStartSpanCalledWith calls t.Error if FakeContext.StartSpan was not called with the given values
-func (_f15 *FakeContext) AssertStartSpanCalledWith(t ContextTestingT, ident1 string, ident2 ...opentracing.StartSpanOption) {
+func (_f29 *FakeContext) AssertStartSpanCalledWith(t ContextTestingT, ident1 string, ident2 ...opentracing.StartSpanOption) {
 	t.Helper()
 	var found bool
-	for _, call := range _f15.StartSpanCalls {
+	for _, call := range _f29.StartSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -1073,9 +1264,9 @@ func (_f15 *FakeContext) AssertStartSpanCalledWith(t ContextTestingT, ident1 str
 }
 
 // StartSpanCalledOnceWith returns true if FakeContext.StartSpan was called exactly once with the given values
-func (_f16 *FakeContext) StartSpanCalledOnceWith(ident1 string, ident2 ...opentracing.StartSpanOption) bool {
+func (_f30 *FakeContext) StartSpanCalledOnceWith(ident1 string, ident2 ...opentracing.StartSpanOption) bool {
 	var count int
-	for _, call := range _f16.StartSpanCalls {
+	for _, call := range _f30.StartSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -1085,10 +1276,10 @@ func (_f16 *FakeContext) StartSpanCalledOnceWith(ident1 string, ident2 ...opentr
 }
 
 // AssertStartSpanCalledOnceWith calls t.Error if FakeContext.StartSpan was not called exactly once with the given values
-func (_f17 *FakeContext) AssertStartSpanCalledOnceWith(t ContextTestingT, ident1 string, ident2 ...opentracing.StartSpanOption) {
+func (_f31 *FakeContext) AssertStartSpanCalledOnceWith(t ContextTestingT, ident1 string, ident2 ...opentracing.StartSpanOption) {
 	t.Helper()
 	var count int
-	for _, call := range _f17.StartSpanCalls {
+	for _, call := range _f31.StartSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -1100,8 +1291,8 @@ func (_f17 *FakeContext) AssertStartSpanCalledOnceWith(t ContextTestingT, ident1
 }
 
 // StartSpanResultsForCall returns the result values for the first call to FakeContext.StartSpan with the given values
-func (_f18 *FakeContext) StartSpanResultsForCall(ident1 string, ident2 ...opentracing.StartSpanOption) (ident3 opentracing.Span, found bool) {
-	for _, call := range _f18.StartSpanCalls {
+func (_f32 *FakeContext) StartSpanResultsForCall(ident1 string, ident2 ...opentracing.StartSpanOption) (ident3 opentracing.Span, found bool) {
+	for _, call := range _f32.StartSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3
 			found = true
@@ -1112,21 +1303,44 @@ func (_f18 *FakeContext) StartSpanResultsForCall(ident1 string, ident2 ...opentr
 	return
 }
 
-func (_f19 *FakeContext) WithParent(ident1 context.Context) (ident2 Context) {
-	if _f19.WithParentHook == nil {
+func (_f33 *FakeContext) WithParent(ident1 context.Context) (ident2 Context) {
+	if _f33.WithParentHook == nil {
 		panic("Context.WithParent() called but FakeContext.WithParentHook is nil")
 	}
 
 	invocation := new(ContextWithParentInvocation)
-	_f19.WithParentCalls = append(_f19.WithParentCalls, invocation)
+	_f33.WithParentCalls = append(_f33.WithParentCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f19.WithParentHook(ident1)
+	ident2 = _f33.WithParentHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetWithParentStub configures Context.WithParent to always return the given values
+func (_f34 *FakeContext) SetWithParentStub(ident2 Context) {
+	_f34.WithParentHook = func(context.Context) Context {
+		return ident2
+	}
+}
+
+// SetWithParentInvocation configures Context.WithParent to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f35 *FakeContext) SetWithParentInvocation(calls_f36 []*ContextWithParentInvocation, fallback_f37 func() Context) {
+	_f35.WithParentHook = func(ident1 context.Context) (ident2 Context) {
+		for _, call := range calls_f36 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f37()
+	}
 }
 
 // WithParentCalled returns true if FakeContext.WithParent was called
@@ -1182,8 +1396,8 @@ func (f *FakeContext) AssertWithParentCalledN(t ContextTestingT, n int) {
 }
 
 // WithParentCalledWith returns true if FakeContext.WithParent was called with the given values
-func (_f20 *FakeContext) WithParentCalledWith(ident1 context.Context) (found bool) {
-	for _, call := range _f20.WithParentCalls {
+func (_f38 *FakeContext) WithParentCalledWith(ident1 context.Context) (found bool) {
+	for _, call := range _f38.WithParentCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1194,10 +1408,10 @@ func (_f20 *FakeContext) WithParentCalledWith(ident1 context.Context) (found boo
 }
 
 // AssertWithParentCalledWith calls t.Error if FakeContext.WithParent was not called with the given values
-func (_f21 *FakeContext) AssertWithParentCalledWith(t ContextTestingT, ident1 context.Context) {
+func (_f39 *FakeContext) AssertWithParentCalledWith(t ContextTestingT, ident1 context.Context) {
 	t.Helper()
 	var found bool
-	for _, call := range _f21.WithParentCalls {
+	for _, call := range _f39.WithParentCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1210,9 +1424,9 @@ func (_f21 *FakeContext) AssertWithParentCalledWith(t ContextTestingT, ident1 co
 }
 
 // WithParentCalledOnceWith returns true if FakeContext.WithParent was called exactly once with the given values
-func (_f22 *FakeContext) WithParentCalledOnceWith(ident1 context.Context) bool {
+func (_f40 *FakeContext) WithParentCalledOnceWith(ident1 context.Context) bool {
 	var count int
-	for _, call := range _f22.WithParentCalls {
+	for _, call := range _f40.WithParentCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1222,10 +1436,10 @@ func (_f22 *FakeContext) WithParentCalledOnceWith(ident1 context.Context) bool {
 }
 
 // AssertWithParentCalledOnceWith calls t.Error if FakeContext.WithParent was not called exactly once with the given values
-func (_f23 *FakeContext) AssertWithParentCalledOnceWith(t ContextTestingT, ident1 context.Context) {
+func (_f41 *FakeContext) AssertWithParentCalledOnceWith(t ContextTestingT, ident1 context.Context) {
 	t.Helper()
 	var count int
-	for _, call := range _f23.WithParentCalls {
+	for _, call := range _f41.WithParentCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1237,8 +1451,8 @@ func (_f23 *FakeContext) AssertWithParentCalledOnceWith(t ContextTestingT, ident
 }
 
 // WithParentResultsForCall returns the result values for the first call to FakeContext.WithParent with the given values
-func (_f24 *FakeContext) WithParentResultsForCall(ident1 context.Context) (ident2 Context, found bool) {
-	for _, call := range _f24.WithParentCalls {
+func (_f42 *FakeContext) WithParentResultsForCall(ident1 context.Context) (ident2 Context, found bool) {
+	for _, call := range _f42.WithParentCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -1249,21 +1463,44 @@ func (_f24 *FakeContext) WithParentResultsForCall(ident1 context.Context) (ident
 	return
 }
 
-func (_f25 *FakeContext) WithActor(ident1 models.User) (ident2 Context) {
-	if _f25.WithActorHook == nil {
+func (_f43 *FakeContext) WithActor(ident1 models.User) (ident2 Context) {
+	if _f43.WithActorHook == nil {
 		panic("Context.WithActor() called but FakeContext.WithActorHook is nil")
 	}
 
 	invocation := new(ContextWithActorInvocation)
-	_f25.WithActorCalls = append(_f25.WithActorCalls, invocation)
+	_f43.WithActorCalls = append(_f43.WithActorCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f25.WithActorHook(ident1)
+	ident2 = _f43.WithActorHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetWithActorStub configures Context.WithActor to always return the given values
+func (_f44 *FakeContext) SetWithActorStub(ident2 Context) {
+	_f44.WithActorHook = func(models.User) Context {
+		return ident2
+	}
+}
+
+// SetWithActorInvocation configures Context.WithActor to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f45 *FakeContext) SetWithActorInvocation(calls_f46 []*ContextWithActorInvocation, fallback_f47 func() Context) {
+	_f45.WithActorHook = func(ident1 models.User) (ident2 Context) {
+		for _, call := range calls_f46 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f47()
+	}
 }
 
 // WithActorCalled returns true if FakeContext.WithActor was called
@@ -1319,8 +1556,8 @@ func (f *FakeContext) AssertWithActorCalledN(t ContextTestingT, n int) {
 }
 
 // WithActorCalledWith returns true if FakeContext.WithActor was called with the given values
-func (_f26 *FakeContext) WithActorCalledWith(ident1 models.User) (found bool) {
-	for _, call := range _f26.WithActorCalls {
+func (_f48 *FakeContext) WithActorCalledWith(ident1 models.User) (found bool) {
+	for _, call := range _f48.WithActorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1331,10 +1568,10 @@ func (_f26 *FakeContext) WithActorCalledWith(ident1 models.User) (found bool) {
 }
 
 // AssertWithActorCalledWith calls t.Error if FakeContext.WithActor was not called with the given values
-func (_f27 *FakeContext) AssertWithActorCalledWith(t ContextTestingT, ident1 models.User) {
+func (_f49 *FakeContext) AssertWithActorCalledWith(t ContextTestingT, ident1 models.User) {
 	t.Helper()
 	var found bool
-	for _, call := range _f27.WithActorCalls {
+	for _, call := range _f49.WithActorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1347,9 +1584,9 @@ func (_f27 *FakeContext) AssertWithActorCalledWith(t ContextTestingT, ident1 mod
 }
 
 // WithActorCalledOnceWith returns true if FakeContext.WithActor was called exactly once with the given values
-func (_f28 *FakeContext) WithActorCalledOnceWith(ident1 models.User) bool {
+func (_f50 *FakeContext) WithActorCalledOnceWith(ident1 models.User) bool {
 	var count int
-	for _, call := range _f28.WithActorCalls {
+	for _, call := range _f50.WithActorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1359,10 +1596,10 @@ func (_f28 *FakeContext) WithActorCalledOnceWith(ident1 models.User) bool {
 }
 
 // AssertWithActorCalledOnceWith calls t.Error if FakeContext.WithActor was not called exactly once with the given values
-func (_f29 *FakeContext) AssertWithActorCalledOnceWith(t ContextTestingT, ident1 models.User) {
+func (_f51 *FakeContext) AssertWithActorCalledOnceWith(t ContextTestingT, ident1 models.User) {
 	t.Helper()
 	var count int
-	for _, call := range _f29.WithActorCalls {
+	for _, call := range _f51.WithActorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1374,8 +1611,8 @@ func (_f29 *FakeContext) AssertWithActorCalledOnceWith(t ContextTestingT, ident1
 }
 
 // WithActorResultsForCall returns the result values for the first call to FakeContext.WithActor with the given values
-func (_f30 *FakeContext) WithActorResultsForCall(ident1 models.User) (ident2 Context, found bool) {
-	for _, call := range _f30.WithActorCalls {
+func (_f52 *FakeContext) WithActorResultsForCall(ident1 models.User) (ident2 Context, found bool) {
+	for _, call := range _f52.WithActorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -1386,21 +1623,44 @@ func (_f30 *FakeContext) WithActorResultsForCall(ident1 models.User) (ident2 Con
 	return
 }
 
-func (_f31 *FakeContext) WithRequestID(ident1 string) (ident2 Context) {
-	if _f31.WithRequestIDHook == nil {
+func (_f53 *FakeContext) WithRequestID(ident1 string) (ident2 Context) {
+	if _f53.WithRequestIDHook == nil {
 		panic("Context.WithRequestID() called but FakeContext.WithRequestIDHook is nil")
 	}
 
 	invocation := new(ContextWithRequestIDInvocation)
-	_f31.WithRequestIDCalls = append(_f31.WithRequestIDCalls, invocation)
+	_f53.WithRequestIDCalls = append(_f53.WithRequestIDCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f31.WithRequestIDHook(ident1)
+	ident2 = _f53.WithRequestIDHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetWithRequestIDStub configures Context.WithRequestID to always return the given values
+func (_f54 *FakeContext) SetWithRequestIDStub(ident2 Context) {
+	_f54.WithRequestIDHook = func(string) Context {
+		return ident2
+	}
+}
+
+// SetWithRequestIDInvocation configures Context.WithRequestID to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f55 *FakeContext) SetWithRequestIDInvocation(calls_f56 []*ContextWithRequestIDInvocation, fallback_f57 func() Context) {
+	_f55.WithRequestIDHook = func(ident1 string) (ident2 Context) {
+		for _, call := range calls_f56 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f57()
+	}
 }
 
 // WithRequestIDCalled returns true if FakeContext.WithRequestID was called
@@ -1456,8 +1716,8 @@ func (f *FakeContext) AssertWithRequestIDCalledN(t ContextTestingT, n int) {
 }
 
 // WithRequestIDCalledWith returns true if FakeContext.WithRequestID was called with the given values
-func (_f32 *FakeContext) WithRequestIDCalledWith(ident1 string) (found bool) {
-	for _, call := range _f32.WithRequestIDCalls {
+func (_f58 *FakeContext) WithRequestIDCalledWith(ident1 string) (found bool) {
+	for _, call := range _f58.WithRequestIDCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1468,10 +1728,10 @@ func (_f32 *FakeContext) WithRequestIDCalledWith(ident1 string) (found bool) {
 }
 
 // AssertWithRequestIDCalledWith calls t.Error if FakeContext.WithRequestID was not called with the given values
-func (_f33 *FakeContext) AssertWithRequestIDCalledWith(t ContextTestingT, ident1 string) {
+func (_f59 *FakeContext) AssertWithRequestIDCalledWith(t ContextTestingT, ident1 string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f33.WithRequestIDCalls {
+	for _, call := range _f59.WithRequestIDCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1484,9 +1744,9 @@ func (_f33 *FakeContext) AssertWithRequestIDCalledWith(t ContextTestingT, ident1
 }
 
 // WithRequestIDCalledOnceWith returns true if FakeContext.WithRequestID was called exactly once with the given values
-func (_f34 *FakeContext) WithRequestIDCalledOnceWith(ident1 string) bool {
+func (_f60 *FakeContext) WithRequestIDCalledOnceWith(ident1 string) bool {
 	var count int
-	for _, call := range _f34.WithRequestIDCalls {
+	for _, call := range _f60.WithRequestIDCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1496,10 +1756,10 @@ func (_f34 *FakeContext) WithRequestIDCalledOnceWith(ident1 string) bool {
 }
 
 // AssertWithRequestIDCalledOnceWith calls t.Error if FakeContext.WithRequestID was not called exactly once with the given values
-func (_f35 *FakeContext) AssertWithRequestIDCalledOnceWith(t ContextTestingT, ident1 string) {
+func (_f61 *FakeContext) AssertWithRequestIDCalledOnceWith(t ContextTestingT, ident1 string) {
 	t.Helper()
 	var count int
-	for _, call := range _f35.WithRequestIDCalls {
+	for _, call := range _f61.WithRequestIDCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1511,8 +1771,8 @@ func (_f35 *FakeContext) AssertWithRequestIDCalledOnceWith(t ContextTestingT, id
 }
 
 // WithRequestIDResultsForCall returns the result values for the first call to FakeContext.WithRequestID with the given values
-func (_f36 *FakeContext) WithRequestIDResultsForCall(ident1 string) (ident2 Context, found bool) {
-	for _, call := range _f36.WithRequestIDCalls {
+func (_f62 *FakeContext) WithRequestIDResultsForCall(ident1 string) (ident2 Context, found bool) {
+	for _, call := range _f62.WithRequestIDCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -1523,21 +1783,44 @@ func (_f36 *FakeContext) WithRequestIDResultsForCall(ident1 string) (ident2 Cont
 	return
 }
 
-func (_f37 *FakeContext) WithSpan(ident1 opentracing.Span) (ident2 Context) {
-	if _f37.WithSpanHook == nil {
+func (_f63 *FakeContext) WithSpan(ident1 opentracing.Span) (ident2 Context) {
+	if _f63.WithSpanHook == nil {
 		panic("Context.WithSpan() called but FakeContext.WithSpanHook is nil")
 	}
 
 	invocation := new(ContextWithSpanInvocation)
-	_f37.WithSpanCalls = append(_f37.WithSpanCalls, invocation)
+	_f63.WithSpanCalls = append(_f63.WithSpanCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f37.WithSpanHook(ident1)
+	ident2 = _f63.WithSpanHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetWithSpanStub configures Context.WithSpan to always return the given values
+func (_f64 *FakeContext) SetWithSpanStub(ident2 Context) {
+	_f64.WithSpanHook = func(opentracing.Span) Context {
+		return ident2
+	}
+}
+
+// SetWithSpanInvocation configures Context.WithSpan to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f65 *FakeContext) SetWithSpanInvocation(calls_f66 []*ContextWithSpanInvocation, fallback_f67 func() Context) {
+	_f65.WithSpanHook = func(ident1 opentracing.Span) (ident2 Context) {
+		for _, call := range calls_f66 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f67()
+	}
 }
 
 // WithSpanCalled returns true if FakeContext.WithSpan was called
@@ -1593,8 +1876,8 @@ func (f *FakeContext) AssertWithSpanCalledN(t ContextTestingT, n int) {
 }
 
 // WithSpanCalledWith returns true if FakeContext.WithSpan was called with the given values
-func (_f38 *FakeContext) WithSpanCalledWith(ident1 opentracing.Span) (found bool) {
-	for _, call := range _f38.WithSpanCalls {
+func (_f68 *FakeContext) WithSpanCalledWith(ident1 opentracing.Span) (found bool) {
+	for _, call := range _f68.WithSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1605,10 +1888,10 @@ func (_f38 *FakeContext) WithSpanCalledWith(ident1 opentracing.Span) (found bool
 }
 
 // AssertWithSpanCalledWith calls t.Error if FakeContext.WithSpan was not called with the given values
-func (_f39 *FakeContext) AssertWithSpanCalledWith(t ContextTestingT, ident1 opentracing.Span) {
+func (_f69 *FakeContext) AssertWithSpanCalledWith(t ContextTestingT, ident1 opentracing.Span) {
 	t.Helper()
 	var found bool
-	for _, call := range _f39.WithSpanCalls {
+	for _, call := range _f69.WithSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1621,9 +1904,9 @@ func (_f39 *FakeContext) AssertWithSpanCalledWith(t ContextTestingT, ident1 open
 }
 
 // WithSpanCalledOnceWith returns true if FakeContext.WithSpan was called exactly once with the given values
-func (_f40 *FakeContext) WithSpanCalledOnceWith(ident1 opentracing.Span) bool {
+func (_f70 *FakeContext) WithSpanCalledOnceWith(ident1 opentracing.Span) bool {
 	var count int
-	for _, call := range _f40.WithSpanCalls {
+	for _, call := range _f70.WithSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1633,10 +1916,10 @@ func (_f40 *FakeContext) WithSpanCalledOnceWith(ident1 opentracing.Span) bool {
 }
 
 // AssertWithSpanCalledOnceWith calls t.Error if FakeContext.WithSpan was not called exactly once with the given values
-func (_f41 *FakeContext) AssertWithSpanCalledOnceWith(t ContextTestingT, ident1 opentracing.Span) {
+func (_f71 *FakeContext) AssertWithSpanCalledOnceWith(t ContextTestingT, ident1 opentracing.Span) {
 	t.Helper()
 	var count int
-	for _, call := range _f41.WithSpanCalls {
+	for _, call := range _f71.WithSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1648,8 +1931,8 @@ func (_f41 *FakeContext) AssertWithSpanCalledOnceWith(t ContextTestingT, ident1 
 }
 
 // WithSpanResultsForCall returns the result values for the first call to FakeContext.WithSpan with the given values
-func (_f42 *FakeContext) WithSpanResultsForCall(ident1 opentracing.Span) (ident2 Context, found bool) {
-	for _, call := range _f42.WithSpanCalls {
+func (_f72 *FakeContext) WithSpanResultsForCall(ident1 opentracing.Span) (ident2 Context, found bool) {
+	for _, call := range _f72.WithSpanCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -1660,22 +1943,45 @@ func (_f42 *FakeContext) WithSpanResultsForCall(ident1 opentracing.Span) (ident2
 	return
 }
 
-func (_f43 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 Context) {
-	if _f43.WithValueHook == nil {
+func (_f73 *FakeContext) WithValue(key interface{}, value interface{}) (ident1 Context) {
+	if _f73.WithValueHook == nil {
 		panic("Context.WithValue() called but FakeContext.WithValueHook is nil")
 	}
 
 	invocation := new(ContextWithValueInvocation)
-	_f43.WithValueCalls = append(_f43.WithValueCalls, invocation)
+	_f73.WithValueCalls = append(_f73.WithValueCalls, invocation)
 
 	invocation.Parameters.Key = key
 	invocation.Parameters.Value = value
 
-	ident1 = _f43.WithValueHook(key, value)
+	ident1 = _f73.WithValueHook(key, value)
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetWithValueStub configures Context.WithValue to always return the given values
+func (_f74 *FakeContext) SetWithValueStub(ident1 Context) {
+	_f74.WithValueHook = func(interface{}, interface{}) Context {
+		return ident1
+	}
+}
+
+// SetWithValueInvocation configures Context.WithValue to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f75 *FakeContext) SetWithValueInvocation(calls_f76 []*ContextWithValueInvocation, fallback_f77 func() Context) {
+	_f75.WithValueHook = func(key interface{}, value interface{}) (ident1 Context) {
+		for _, call := range calls_f76 {
+			if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
+				ident1 = call.Results.Ident1
+
+				return
+			}
+		}
+
+		return fallback_f77()
+	}
 }
 
 // WithValueCalled returns true if FakeContext.WithValue was called
@@ -1731,8 +2037,8 @@ func (f *FakeContext) AssertWithValueCalledN(t ContextTestingT, n int) {
 }
 
 // WithValueCalledWith returns true if FakeContext.WithValue was called with the given values
-func (_f44 *FakeContext) WithValueCalledWith(key interface{}, value interface{}) (found bool) {
-	for _, call := range _f44.WithValueCalls {
+func (_f78 *FakeContext) WithValueCalledWith(key interface{}, value interface{}) (found bool) {
+	for _, call := range _f78.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
 			found = true
 			break
@@ -1743,10 +2049,10 @@ func (_f44 *FakeContext) WithValueCalledWith(key interface{}, value interface{})
 }
 
 // AssertWithValueCalledWith calls t.Error if FakeContext.WithValue was not called with the given values
-func (_f45 *FakeContext) AssertWithValueCalledWith(t ContextTestingT, key interface{}, value interface{}) {
+func (_f79 *FakeContext) AssertWithValueCalledWith(t ContextTestingT, key interface{}, value interface{}) {
 	t.Helper()
 	var found bool
-	for _, call := range _f45.WithValueCalls {
+	for _, call := range _f79.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
 			found = true
 			break
@@ -1759,9 +2065,9 @@ func (_f45 *FakeContext) AssertWithValueCalledWith(t ContextTestingT, key interf
 }
 
 // WithValueCalledOnceWith returns true if FakeContext.WithValue was called exactly once with the given values
-func (_f46 *FakeContext) WithValueCalledOnceWith(key interface{}, value interface{}) bool {
+func (_f80 *FakeContext) WithValueCalledOnceWith(key interface{}, value interface{}) bool {
 	var count int
-	for _, call := range _f46.WithValueCalls {
+	for _, call := range _f80.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
 			count++
 		}
@@ -1771,10 +2077,10 @@ func (_f46 *FakeContext) WithValueCalledOnceWith(key interface{}, value interfac
 }
 
 // AssertWithValueCalledOnceWith calls t.Error if FakeContext.WithValue was not called exactly once with the given values
-func (_f47 *FakeContext) AssertWithValueCalledOnceWith(t ContextTestingT, key interface{}, value interface{}) {
+func (_f81 *FakeContext) AssertWithValueCalledOnceWith(t ContextTestingT, key interface{}, value interface{}) {
 	t.Helper()
 	var count int
-	for _, call := range _f47.WithValueCalls {
+	for _, call := range _f81.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
 			count++
 		}
@@ -1786,8 +2092,8 @@ func (_f47 *FakeContext) AssertWithValueCalledOnceWith(t ContextTestingT, key in
 }
 
 // WithValueResultsForCall returns the result values for the first call to FakeContext.WithValue with the given values
-func (_f48 *FakeContext) WithValueResultsForCall(key interface{}, value interface{}) (ident1 Context, found bool) {
-	for _, call := range _f48.WithValueCalls {
+func (_f82 *FakeContext) WithValueResultsForCall(key interface{}, value interface{}) (ident1 Context, found bool) {
+	for _, call := range _f82.WithValueCalls {
 		if reflect.DeepEqual(call.Parameters.Key, key) && reflect.DeepEqual(call.Parameters.Value, value) {
 			ident1 = call.Results.Ident1
 			found = true
@@ -1798,20 +2104,27 @@ func (_f48 *FakeContext) WithValueResultsForCall(key interface{}, value interfac
 	return
 }
 
-func (_f49 *FakeContext) WithCancel() (ident1 Context, ident2 context.CancelFunc) {
-	if _f49.WithCancelHook == nil {
+func (_f83 *FakeContext) WithCancel() (ident1 Context, ident2 context.CancelFunc) {
+	if _f83.WithCancelHook == nil {
 		panic("Context.WithCancel() called but FakeContext.WithCancelHook is nil")
 	}
 
 	invocation := new(ContextWithCancelInvocation)
-	_f49.WithCancelCalls = append(_f49.WithCancelCalls, invocation)
+	_f83.WithCancelCalls = append(_f83.WithCancelCalls, invocation)
 
-	ident1, ident2 = _f49.WithCancelHook()
+	ident1, ident2 = _f83.WithCancelHook()
 
 	invocation.Results.Ident1 = ident1
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetWithCancelStub configures Context.WithCancel to always return the given values
+func (_f84 *FakeContext) SetWithCancelStub(ident1 Context, ident2 context.CancelFunc) {
+	_f84.WithCancelHook = func() (Context, context.CancelFunc) {
+		return ident1, ident2
+	}
 }
 
 // WithCancelCalled returns true if FakeContext.WithCancel was called
@@ -1866,22 +2179,46 @@ func (f *FakeContext) AssertWithCancelCalledN(t ContextTestingT, n int) {
 	}
 }
 
-func (_f50 *FakeContext) WithDeadline(ident1 time.Time) (ident2 Context, ident3 context.CancelFunc) {
-	if _f50.WithDeadlineHook == nil {
+func (_f85 *FakeContext) WithDeadline(ident1 time.Time) (ident2 Context, ident3 context.CancelFunc) {
+	if _f85.WithDeadlineHook == nil {
 		panic("Context.WithDeadline() called but FakeContext.WithDeadlineHook is nil")
 	}
 
 	invocation := new(ContextWithDeadlineInvocation)
-	_f50.WithDeadlineCalls = append(_f50.WithDeadlineCalls, invocation)
+	_f85.WithDeadlineCalls = append(_f85.WithDeadlineCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2, ident3 = _f50.WithDeadlineHook(ident1)
+	ident2, ident3 = _f85.WithDeadlineHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
 
 	return
+}
+
+// SetWithDeadlineStub configures Context.WithDeadline to always return the given values
+func (_f86 *FakeContext) SetWithDeadlineStub(ident2 Context, ident3 context.CancelFunc) {
+	_f86.WithDeadlineHook = func(time.Time) (Context, context.CancelFunc) {
+		return ident2, ident3
+	}
+}
+
+// SetWithDeadlineInvocation configures Context.WithDeadline to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f87 *FakeContext) SetWithDeadlineInvocation(calls_f88 []*ContextWithDeadlineInvocation, fallback_f89 func() (Context, context.CancelFunc)) {
+	_f87.WithDeadlineHook = func(ident1 time.Time) (ident2 Context, ident3 context.CancelFunc) {
+		for _, call := range calls_f88 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f89()
+	}
 }
 
 // WithDeadlineCalled returns true if FakeContext.WithDeadline was called
@@ -1937,8 +2274,8 @@ func (f *FakeContext) AssertWithDeadlineCalledN(t ContextTestingT, n int) {
 }
 
 // WithDeadlineCalledWith returns true if FakeContext.WithDeadline was called with the given values
-func (_f51 *FakeContext) WithDeadlineCalledWith(ident1 time.Time) (found bool) {
-	for _, call := range _f51.WithDeadlineCalls {
+func (_f90 *FakeContext) WithDeadlineCalledWith(ident1 time.Time) (found bool) {
+	for _, call := range _f90.WithDeadlineCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1949,10 +2286,10 @@ func (_f51 *FakeContext) WithDeadlineCalledWith(ident1 time.Time) (found bool) {
 }
 
 // AssertWithDeadlineCalledWith calls t.Error if FakeContext.WithDeadline was not called with the given values
-func (_f52 *FakeContext) AssertWithDeadlineCalledWith(t ContextTestingT, ident1 time.Time) {
+func (_f91 *FakeContext) AssertWithDeadlineCalledWith(t ContextTestingT, ident1 time.Time) {
 	t.Helper()
 	var found bool
-	for _, call := range _f52.WithDeadlineCalls {
+	for _, call := range _f91.WithDeadlineCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -1965,9 +2302,9 @@ func (_f52 *FakeContext) AssertWithDeadlineCalledWith(t ContextTestingT, ident1 
 }
 
 // WithDeadlineCalledOnceWith returns true if FakeContext.WithDeadline was called exactly once with the given values
-func (_f53 *FakeContext) WithDeadlineCalledOnceWith(ident1 time.Time) bool {
+func (_f92 *FakeContext) WithDeadlineCalledOnceWith(ident1 time.Time) bool {
 	var count int
-	for _, call := range _f53.WithDeadlineCalls {
+	for _, call := range _f92.WithDeadlineCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1977,10 +2314,10 @@ func (_f53 *FakeContext) WithDeadlineCalledOnceWith(ident1 time.Time) bool {
 }
 
 // AssertWithDeadlineCalledOnceWith calls t.Error if FakeContext.WithDeadline was not called exactly once with the given values
-func (_f54 *FakeContext) AssertWithDeadlineCalledOnceWith(t ContextTestingT, ident1 time.Time) {
+func (_f93 *FakeContext) AssertWithDeadlineCalledOnceWith(t ContextTestingT, ident1 time.Time) {
 	t.Helper()
 	var count int
-	for _, call := range _f54.WithDeadlineCalls {
+	for _, call := range _f93.WithDeadlineCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -1992,8 +2329,8 @@ func (_f54 *FakeContext) AssertWithDeadlineCalledOnceWith(t ContextTestingT, ide
 }
 
 // WithDeadlineResultsForCall returns the result values for the first call to FakeContext.WithDeadline with the given values
-func (_f55 *FakeContext) WithDeadlineResultsForCall(ident1 time.Time) (ident2 Context, ident3 context.CancelFunc, found bool) {
-	for _, call := range _f55.WithDeadlineCalls {
+func (_f94 *FakeContext) WithDeadlineResultsForCall(ident1 time.Time) (ident2 Context, ident3 context.CancelFunc, found bool) {
+	for _, call := range _f94.WithDeadlineCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			ident3 = call.Results.Ident3
@@ -2005,22 +2342,46 @@ func (_f55 *FakeContext) WithDeadlineResultsForCall(ident1 time.Time) (ident2 Co
 	return
 }
 
-func (_f56 *FakeContext) WithTimeout(ident1 time.Duration) (ident2 Context, ident3 context.CancelFunc) {
-	if _f56.WithTimeoutHook == nil {
+func (_f95 *FakeContext) WithTimeout(ident1 time.Duration) (ident2 Context, ident3 context.CancelFunc) {
+	if _f95.WithTimeoutHook == nil {
 		panic("Context.WithTimeout() called but FakeContext.WithTimeoutHook is nil")
 	}
 
 	invocation := new(ContextWithTimeoutInvocation)
-	_f56.WithTimeoutCalls = append(_f56.WithTimeoutCalls, invocation)
+	_f95.WithTimeoutCalls = append(_f95.WithTimeoutCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2, ident3 = _f56.WithTimeoutHook(ident1)
+	ident2, ident3 = _f95.WithTimeoutHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
 
 	return
+}
+
+// SetWithTimeoutStub configures Context.WithTimeout to always return the given values
+func (_f96 *FakeContext) SetWithTimeoutStub(ident2 Context, ident3 context.CancelFunc) {
+	_f96.WithTimeoutHook = func(time.Duration) (Context, context.CancelFunc) {
+		return ident2, ident3
+	}
+}
+
+// SetWithTimeoutInvocation configures Context.WithTimeout to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f97 *FakeContext) SetWithTimeoutInvocation(calls_f98 []*ContextWithTimeoutInvocation, fallback_f99 func() (Context, context.CancelFunc)) {
+	_f97.WithTimeoutHook = func(ident1 time.Duration) (ident2 Context, ident3 context.CancelFunc) {
+		for _, call := range calls_f98 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f99()
+	}
 }
 
 // WithTimeoutCalled returns true if FakeContext.WithTimeout was called
@@ -2076,8 +2437,8 @@ func (f *FakeContext) AssertWithTimeoutCalledN(t ContextTestingT, n int) {
 }
 
 // WithTimeoutCalledWith returns true if FakeContext.WithTimeout was called with the given values
-func (_f57 *FakeContext) WithTimeoutCalledWith(ident1 time.Duration) (found bool) {
-	for _, call := range _f57.WithTimeoutCalls {
+func (_f100 *FakeContext) WithTimeoutCalledWith(ident1 time.Duration) (found bool) {
+	for _, call := range _f100.WithTimeoutCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -2088,10 +2449,10 @@ func (_f57 *FakeContext) WithTimeoutCalledWith(ident1 time.Duration) (found bool
 }
 
 // AssertWithTimeoutCalledWith calls t.Error if FakeContext.WithTimeout was not called with the given values
-func (_f58 *FakeContext) AssertWithTimeoutCalledWith(t ContextTestingT, ident1 time.Duration) {
+func (_f101 *FakeContext) AssertWithTimeoutCalledWith(t ContextTestingT, ident1 time.Duration) {
 	t.Helper()
 	var found bool
-	for _, call := range _f58.WithTimeoutCalls {
+	for _, call := range _f101.WithTimeoutCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -2104,9 +2465,9 @@ func (_f58 *FakeContext) AssertWithTimeoutCalledWith(t ContextTestingT, ident1 t
 }
 
 // WithTimeoutCalledOnceWith returns true if FakeContext.WithTimeout was called exactly once with the given values
-func (_f59 *FakeContext) WithTimeoutCalledOnceWith(ident1 time.Duration) bool {
+func (_f102 *FakeContext) WithTimeoutCalledOnceWith(ident1 time.Duration) bool {
 	var count int
-	for _, call := range _f59.WithTimeoutCalls {
+	for _, call := range _f102.WithTimeoutCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -2116,10 +2477,10 @@ func (_f59 *FakeContext) WithTimeoutCalledOnceWith(ident1 time.Duration) bool {
 }
 
 // AssertWithTimeoutCalledOnceWith calls t.Error if FakeContext.WithTimeout was not called exactly once with the given values
-func (_f60 *FakeContext) AssertWithTimeoutCalledOnceWith(t ContextTestingT, ident1 time.Duration) {
+func (_f103 *FakeContext) AssertWithTimeoutCalledOnceWith(t ContextTestingT, ident1 time.Duration) {
 	t.Helper()
 	var count int
-	for _, call := range _f60.WithTimeoutCalls {
+	for _, call := range _f103.WithTimeoutCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -2131,8 +2492,8 @@ func (_f60 *FakeContext) AssertWithTimeoutCalledOnceWith(t ContextTestingT, iden
 }
 
 // WithTimeoutResultsForCall returns the result values for the first call to FakeContext.WithTimeout with the given values
-func (_f61 *FakeContext) WithTimeoutResultsForCall(ident1 time.Duration) (ident2 Context, ident3 context.CancelFunc, found bool) {
-	for _, call := range _f61.WithTimeoutCalls {
+func (_f104 *FakeContext) WithTimeoutResultsForCall(ident1 time.Duration) (ident2 Context, ident3 context.CancelFunc, found bool) {
+	for _, call := range _f104.WithTimeoutCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			ident3 = call.Results.Ident3

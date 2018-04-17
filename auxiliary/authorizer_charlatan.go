@@ -19,6 +19,19 @@ type AuthorizerAuthorizeInvocation struct {
 	}
 }
 
+// NewAuthorizerAuthorizeInvocation creates a new instance of AuthorizerAuthorizeInvocation
+func NewAuthorizerAuthorizeInvocation(ident1 context.Context, ident2 *httpx.Request, ident3 bool, ident4 merry.Error) *AuthorizerAuthorizeInvocation {
+	invocation := new(AuthorizerAuthorizeInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+	invocation.Parameters.Ident2 = ident2
+
+	invocation.Results.Ident3 = ident3
+	invocation.Results.Ident4 = ident4
+
+	return invocation
+}
+
 // AuthorizerTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
 type AuthorizerTestingT interface {
 	Error(...interface{})
@@ -109,6 +122,30 @@ func (_f1 *FakeAuthorizer) Authorize(ident1 context.Context, ident2 *httpx.Reque
 	return
 }
 
+// SetAuthorizeStub configures Authorizer.Authorize to always return the given values
+func (_f2 *FakeAuthorizer) SetAuthorizeStub(ident3 bool, ident4 merry.Error) {
+	_f2.AuthorizeHook = func(context.Context, *httpx.Request) (bool, merry.Error) {
+		return ident3, ident4
+	}
+}
+
+// SetAuthorizeInvocation configures Authorizer.Authorize to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeAuthorizer) SetAuthorizeInvocation(calls_f4 []*AuthorizerAuthorizeInvocation, fallback_f5 func() (bool, merry.Error)) {
+	_f3.AuthorizeHook = func(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+				ident3 = call.Results.Ident3
+				ident4 = call.Results.Ident4
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // AuthorizeCalled returns true if FakeAuthorizer.Authorize was called
 func (f *FakeAuthorizer) AuthorizeCalled() bool {
 	return len(f.AuthorizeCalls) != 0
@@ -162,8 +199,8 @@ func (f *FakeAuthorizer) AssertAuthorizeCalledN(t AuthorizerTestingT, n int) {
 }
 
 // AuthorizeCalledWith returns true if FakeAuthorizer.Authorize was called with the given values
-func (_f2 *FakeAuthorizer) AuthorizeCalledWith(ident1 context.Context, ident2 *httpx.Request) (found bool) {
-	for _, call := range _f2.AuthorizeCalls {
+func (_f6 *FakeAuthorizer) AuthorizeCalledWith(ident1 context.Context, ident2 *httpx.Request) (found bool) {
+	for _, call := range _f6.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -174,10 +211,10 @@ func (_f2 *FakeAuthorizer) AuthorizeCalledWith(ident1 context.Context, ident2 *h
 }
 
 // AssertAuthorizeCalledWith calls t.Error if FakeAuthorizer.Authorize was not called with the given values
-func (_f3 *FakeAuthorizer) AssertAuthorizeCalledWith(t AuthorizerTestingT, ident1 context.Context, ident2 *httpx.Request) {
+func (_f7 *FakeAuthorizer) AssertAuthorizeCalledWith(t AuthorizerTestingT, ident1 context.Context, ident2 *httpx.Request) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.AuthorizeCalls {
+	for _, call := range _f7.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -190,9 +227,9 @@ func (_f3 *FakeAuthorizer) AssertAuthorizeCalledWith(t AuthorizerTestingT, ident
 }
 
 // AuthorizeCalledOnceWith returns true if FakeAuthorizer.Authorize was called exactly once with the given values
-func (_f4 *FakeAuthorizer) AuthorizeCalledOnceWith(ident1 context.Context, ident2 *httpx.Request) bool {
+func (_f8 *FakeAuthorizer) AuthorizeCalledOnceWith(ident1 context.Context, ident2 *httpx.Request) bool {
 	var count int
-	for _, call := range _f4.AuthorizeCalls {
+	for _, call := range _f8.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -202,10 +239,10 @@ func (_f4 *FakeAuthorizer) AuthorizeCalledOnceWith(ident1 context.Context, ident
 }
 
 // AssertAuthorizeCalledOnceWith calls t.Error if FakeAuthorizer.Authorize was not called exactly once with the given values
-func (_f5 *FakeAuthorizer) AssertAuthorizeCalledOnceWith(t AuthorizerTestingT, ident1 context.Context, ident2 *httpx.Request) {
+func (_f9 *FakeAuthorizer) AssertAuthorizeCalledOnceWith(t AuthorizerTestingT, ident1 context.Context, ident2 *httpx.Request) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.AuthorizeCalls {
+	for _, call := range _f9.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -217,8 +254,8 @@ func (_f5 *FakeAuthorizer) AssertAuthorizeCalledOnceWith(t AuthorizerTestingT, i
 }
 
 // AuthorizeResultsForCall returns the result values for the first call to FakeAuthorizer.Authorize with the given values
-func (_f6 *FakeAuthorizer) AuthorizeResultsForCall(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error, found bool) {
-	for _, call := range _f6.AuthorizeCalls {
+func (_f10 *FakeAuthorizer) AuthorizeResultsForCall(ident1 context.Context, ident2 *httpx.Request) (ident3 bool, ident4 merry.Error, found bool) {
+	for _, call := range _f10.AuthorizeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3
 			ident4 = call.Results.Ident4

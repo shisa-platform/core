@@ -44,6 +44,17 @@ type ServerShutdownInvocation struct {
 	}
 }
 
+// NewServerShutdownInvocation creates a new instance of ServerShutdownInvocation
+func NewServerShutdownInvocation(ident1 time.Duration, ident2 error) *ServerShutdownInvocation {
+	invocation := new(ServerShutdownInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // ServerTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
 type ServerTestingT interface {
 	Error(...interface{})
@@ -186,6 +197,13 @@ func (_f1 *FakeServer) Name() (ident1 string) {
 	return
 }
 
+// SetNameStub configures Server.Name to always return the given values
+func (_f2 *FakeServer) SetNameStub(ident1 string) {
+	_f2.NameHook = func() string {
+		return ident1
+	}
+}
+
 // NameCalled returns true if FakeServer.Name was called
 func (f *FakeServer) NameCalled() bool {
 	return len(f.NameCalls) != 0
@@ -238,19 +256,26 @@ func (f *FakeServer) AssertNameCalledN(t ServerTestingT, n int) {
 	}
 }
 
-func (_f2 *FakeServer) Address() (ident1 string) {
-	if _f2.AddressHook == nil {
+func (_f3 *FakeServer) Address() (ident1 string) {
+	if _f3.AddressHook == nil {
 		panic("Server.Address() called but FakeServer.AddressHook is nil")
 	}
 
 	invocation := new(ServerAddressInvocation)
-	_f2.AddressCalls = append(_f2.AddressCalls, invocation)
+	_f3.AddressCalls = append(_f3.AddressCalls, invocation)
 
-	ident1 = _f2.AddressHook()
+	ident1 = _f3.AddressHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetAddressStub configures Server.Address to always return the given values
+func (_f4 *FakeServer) SetAddressStub(ident1 string) {
+	_f4.AddressHook = func() string {
+		return ident1
+	}
 }
 
 // AddressCalled returns true if FakeServer.Address was called
@@ -305,19 +330,26 @@ func (f *FakeServer) AssertAddressCalledN(t ServerTestingT, n int) {
 	}
 }
 
-func (_f3 *FakeServer) Listen() (ident1 error) {
-	if _f3.ListenHook == nil {
+func (_f5 *FakeServer) Listen() (ident1 error) {
+	if _f5.ListenHook == nil {
 		panic("Server.Listen() called but FakeServer.ListenHook is nil")
 	}
 
 	invocation := new(ServerListenInvocation)
-	_f3.ListenCalls = append(_f3.ListenCalls, invocation)
+	_f5.ListenCalls = append(_f5.ListenCalls, invocation)
 
-	ident1 = _f3.ListenHook()
+	ident1 = _f5.ListenHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetListenStub configures Server.Listen to always return the given values
+func (_f6 *FakeServer) SetListenStub(ident1 error) {
+	_f6.ListenHook = func() error {
+		return ident1
+	}
 }
 
 // ListenCalled returns true if FakeServer.Listen was called
@@ -372,19 +404,26 @@ func (f *FakeServer) AssertListenCalledN(t ServerTestingT, n int) {
 	}
 }
 
-func (_f4 *FakeServer) Serve() (ident1 error) {
-	if _f4.ServeHook == nil {
+func (_f7 *FakeServer) Serve() (ident1 error) {
+	if _f7.ServeHook == nil {
 		panic("Server.Serve() called but FakeServer.ServeHook is nil")
 	}
 
 	invocation := new(ServerServeInvocation)
-	_f4.ServeCalls = append(_f4.ServeCalls, invocation)
+	_f7.ServeCalls = append(_f7.ServeCalls, invocation)
 
-	ident1 = _f4.ServeHook()
+	ident1 = _f7.ServeHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetServeStub configures Server.Serve to always return the given values
+func (_f8 *FakeServer) SetServeStub(ident1 error) {
+	_f8.ServeHook = func() error {
+		return ident1
+	}
 }
 
 // ServeCalled returns true if FakeServer.Serve was called
@@ -439,21 +478,44 @@ func (f *FakeServer) AssertServeCalledN(t ServerTestingT, n int) {
 	}
 }
 
-func (_f5 *FakeServer) Shutdown(ident1 time.Duration) (ident2 error) {
-	if _f5.ShutdownHook == nil {
+func (_f9 *FakeServer) Shutdown(ident1 time.Duration) (ident2 error) {
+	if _f9.ShutdownHook == nil {
 		panic("Server.Shutdown() called but FakeServer.ShutdownHook is nil")
 	}
 
 	invocation := new(ServerShutdownInvocation)
-	_f5.ShutdownCalls = append(_f5.ShutdownCalls, invocation)
+	_f9.ShutdownCalls = append(_f9.ShutdownCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f5.ShutdownHook(ident1)
+	ident2 = _f9.ShutdownHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetShutdownStub configures Server.Shutdown to always return the given values
+func (_f10 *FakeServer) SetShutdownStub(ident2 error) {
+	_f10.ShutdownHook = func(time.Duration) error {
+		return ident2
+	}
+}
+
+// SetShutdownInvocation configures Server.Shutdown to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f11 *FakeServer) SetShutdownInvocation(calls_f12 []*ServerShutdownInvocation, fallback_f13 func() error) {
+	_f11.ShutdownHook = func(ident1 time.Duration) (ident2 error) {
+		for _, call := range calls_f12 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f13()
+	}
 }
 
 // ShutdownCalled returns true if FakeServer.Shutdown was called
@@ -509,8 +571,8 @@ func (f *FakeServer) AssertShutdownCalledN(t ServerTestingT, n int) {
 }
 
 // ShutdownCalledWith returns true if FakeServer.Shutdown was called with the given values
-func (_f6 *FakeServer) ShutdownCalledWith(ident1 time.Duration) (found bool) {
-	for _, call := range _f6.ShutdownCalls {
+func (_f14 *FakeServer) ShutdownCalledWith(ident1 time.Duration) (found bool) {
+	for _, call := range _f14.ShutdownCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -521,10 +583,10 @@ func (_f6 *FakeServer) ShutdownCalledWith(ident1 time.Duration) (found bool) {
 }
 
 // AssertShutdownCalledWith calls t.Error if FakeServer.Shutdown was not called with the given values
-func (_f7 *FakeServer) AssertShutdownCalledWith(t ServerTestingT, ident1 time.Duration) {
+func (_f15 *FakeServer) AssertShutdownCalledWith(t ServerTestingT, ident1 time.Duration) {
 	t.Helper()
 	var found bool
-	for _, call := range _f7.ShutdownCalls {
+	for _, call := range _f15.ShutdownCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -537,9 +599,9 @@ func (_f7 *FakeServer) AssertShutdownCalledWith(t ServerTestingT, ident1 time.Du
 }
 
 // ShutdownCalledOnceWith returns true if FakeServer.Shutdown was called exactly once with the given values
-func (_f8 *FakeServer) ShutdownCalledOnceWith(ident1 time.Duration) bool {
+func (_f16 *FakeServer) ShutdownCalledOnceWith(ident1 time.Duration) bool {
 	var count int
-	for _, call := range _f8.ShutdownCalls {
+	for _, call := range _f16.ShutdownCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -549,10 +611,10 @@ func (_f8 *FakeServer) ShutdownCalledOnceWith(ident1 time.Duration) bool {
 }
 
 // AssertShutdownCalledOnceWith calls t.Error if FakeServer.Shutdown was not called exactly once with the given values
-func (_f9 *FakeServer) AssertShutdownCalledOnceWith(t ServerTestingT, ident1 time.Duration) {
+func (_f17 *FakeServer) AssertShutdownCalledOnceWith(t ServerTestingT, ident1 time.Duration) {
 	t.Helper()
 	var count int
-	for _, call := range _f9.ShutdownCalls {
+	for _, call := range _f17.ShutdownCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -564,8 +626,8 @@ func (_f9 *FakeServer) AssertShutdownCalledOnceWith(t ServerTestingT, ident1 tim
 }
 
 // ShutdownResultsForCall returns the result values for the first call to FakeServer.Shutdown with the given values
-func (_f10 *FakeServer) ShutdownResultsForCall(ident1 time.Duration) (ident2 error, found bool) {
-	for _, call := range _f10.ShutdownCalls {
+func (_f18 *FakeServer) ShutdownResultsForCall(ident1 time.Duration) (ident2 error, found bool) {
+	for _, call := range _f18.ShutdownCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
