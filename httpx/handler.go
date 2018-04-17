@@ -86,9 +86,9 @@ func (r *responseBuffer) WriteHeader(statusCode int) {
 func AdaptStandardHandler(handler http.Handler) Handler {
 	return func(ctx context.Context, request *Request) Response {
 		w := responseBuffer{
-			code: http.StatusOK,
+			code:    http.StatusOK,
 			headers: make(http.Header),
-			body: new(bytes.Buffer),
+			body:    new(bytes.Buffer),
 		}
 		r := request.Request.WithContext(ctx)
 
