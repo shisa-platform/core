@@ -6,9 +6,9 @@ import (
 	"github.com/ansel1/merry"
 )
 
-const (
-	sentinel = "panic"
-)
+type panicSentinel struct{}
+
+var sentinel = new(panicSentinel)
 
 func CapturePanic(arg interface{}, message string) (err merry.Error) {
 	if err1, ok := arg.(error); ok {
