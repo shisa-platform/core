@@ -23,13 +23,26 @@ func TestPanicError(t *testing.T) {
 
 func TestPanicNonError(t *testing.T) {
 	var exception merry.Error
+
+	defer func() {
+		assert.Error(t, exception)
+		assert.Equal(t, "uh-oh: somebody set us up the bomb!", exception.Error())
+		assert.True(t, IsPanic(exception))
+	}()
+
 	defer CapturePanic(&exception, "uh-oh")
 
 	panic("somebody set us up the bomb!")
+}
 
-	assert.Error(t, exception)
-	assert.Equal(t, "uh-oh: somebody set us up the bomb!", exception.Error())
-	assert.True(t, IsPanic(exception))
+func TestPanicNoError(t *testing.T) {
+	var exception merry.Error
+
+	defer func() {
+		assert.NoError(t, exception)
+	}()
+
+	defer CapturePanic(&exception, "uh-oh")
 }
 
 func TestIsPanic(t *testing.T) {
