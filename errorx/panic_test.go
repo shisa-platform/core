@@ -9,13 +9,16 @@ import (
 
 func TestPanicError(t *testing.T) {
 	var exception merry.Error
+
+	defer func() {
+		assert.Error(t, exception)
+		assert.Equal(t, "uh-oh: i blewed up!", exception.Error())
+		assert.True(t, IsPanic(exception))
+	}()
+
 	defer CapturePanic(&exception, "uh-oh")
 
 	panic(merry.New("i blewed up!"))
-
-	assert.Error(t, exception)
-	assert.Equal(t, "uh-oh: i blewed up!", exception.Error())
-	assert.True(t, IsPanic(exception))
 }
 
 func TestPanicNonError(t *testing.T) {
