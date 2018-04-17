@@ -42,7 +42,12 @@ func (s *SentryReporter) Report(ctx context.Context, r *httpx.Request, err merry
 	}
 
 	exception := raven.NewException(err, merryToStacktrace(err))
-	user := &raven.User{ID: ctx.Actor().ID()}
+
+	user := &raven.User{}
+	actor := ctx.Actor()
+	if actor != nil {
+		user.ID = actor.ID()
+	}
 
 	sentryInterfaces := []raven.Interface{exception, user, raven.NewHttp(r.Request)}
 
