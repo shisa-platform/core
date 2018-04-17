@@ -8,24 +8,25 @@ import (
 )
 
 func TestPanicError(t *testing.T) {
-	cut := CapturePanic(merry.New("i blewed up!"), "uh-oh")
-	assert.NotNil(t, cut)
-	assert.Equal(t, "uh-oh: i blewed up!", cut.Error())
-	assert.True(t, IsPanic(cut))
+	var exception merry.Error
+	defer CapturePanic(&exception, "uh-oh")
+
+	panic(merry.New("i blewed up!"))
+
+	assert.Error(t, exception)
+	assert.Equal(t, "uh-oh: i blewed up!", exception.Error())
+	assert.True(t, IsPanic(exception))
 }
 
 func TestPanicNonError(t *testing.T) {
-	cut := CapturePanic("somebody set us up the bomb!", "uh-oh")
-	assert.NotNil(t, cut)
-	assert.Equal(t, "uh-oh: somebody set us up the bomb!", cut.Error())
-	assert.True(t, IsPanic(cut))
-}
+	var exception merry.Error
+	defer CapturePanic(&exception, "uh-oh")
 
-func TestPanicf(t *testing.T) {
-	cut := CapturePanicf("uh-oh", "zalgo: %q", "he comes")
-	assert.NotNil(t, cut)
-	assert.Equal(t, "zalgo: \"he comes\": uh-oh", cut.Error())
-	assert.True(t, IsPanic(cut))
+	panic("somebody set us up the bomb!")
+
+	assert.Error(t, exception)
+	assert.Equal(t, "uh-oh: somebody set us up the bomb!", exception.Error())
+	assert.True(t, IsPanic(exception))
 }
 
 func TestIsPanic(t *testing.T) {
@@ -34,5 +35,13 @@ func TestIsPanic(t *testing.T) {
 	assert.False(t, IsPanic(merry.New("i blewed up!").WithValue(sentinel, "fake")))
 	assert.False(t, IsPanic(merry.New("i blewed up!").WithValue(sentinel, false)))
 
-	assert.True(t, IsPanic(CapturePanic(merry.New("i blewed up!"), "uh-oh")))
+	var exception merry.Error
+
+	defer func() {
+		assert.True(t, IsPanic(exception))
+	}()
+
+	defer CapturePanic(&exception, "uh-oh")
+
+	panic(merry.New("i blewed up!"))
 }
