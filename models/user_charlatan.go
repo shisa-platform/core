@@ -116,6 +116,13 @@ func (_f1 *FakeUser) String() (ident5 string) {
 	return
 }
 
+// SetStringStub configures User.String to always return the given values
+func (_f2 *FakeUser) SetStringStub(ident5 string) {
+	_f2.StringHook = func() string {
+		return ident5
+	}
+}
+
 // StringCalled returns true if FakeUser.String was called
 func (f *FakeUser) StringCalled() bool {
 	return len(f.StringCalls) != 0
@@ -168,19 +175,26 @@ func (f *FakeUser) AssertStringCalledN(t UserTestingT, n int) {
 	}
 }
 
-func (_f2 *FakeUser) ID() (ident1 string) {
-	if _f2.IDHook == nil {
+func (_f3 *FakeUser) ID() (ident1 string) {
+	if _f3.IDHook == nil {
 		panic("User.ID() called but FakeUser.IDHook is nil")
 	}
 
 	invocation := new(UserIDInvocation)
-	_f2.IDCalls = append(_f2.IDCalls, invocation)
+	_f3.IDCalls = append(_f3.IDCalls, invocation)
 
-	ident1 = _f2.IDHook()
+	ident1 = _f3.IDHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetIDStub configures User.ID to always return the given values
+func (_f4 *FakeUser) SetIDStub(ident1 string) {
+	_f4.IDHook = func() string {
+		return ident1
+	}
 }
 
 // IDCalled returns true if FakeUser.ID was called

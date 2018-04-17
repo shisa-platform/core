@@ -16,6 +16,17 @@ type consulRegistryServiceRegisterInvocation struct {
 	}
 }
 
+// NewconsulRegistryServiceRegisterInvocation creates a new instance of consulRegistryServiceRegisterInvocation
+func NewconsulRegistryServiceRegisterInvocation(ident1 *consul.AgentServiceRegistration, ident2 error) *consulRegistryServiceRegisterInvocation {
+	invocation := new(consulRegistryServiceRegisterInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // consulRegistryServiceDeregisterInvocation represents a single call of FakeconsulRegistry.ServiceDeregister
 type consulRegistryServiceDeregisterInvocation struct {
 	Parameters struct {
@@ -24,6 +35,17 @@ type consulRegistryServiceDeregisterInvocation struct {
 	Results struct {
 		Ident2 error
 	}
+}
+
+// NewconsulRegistryServiceDeregisterInvocation creates a new instance of consulRegistryServiceDeregisterInvocation
+func NewconsulRegistryServiceDeregisterInvocation(ident1 string, ident2 error) *consulRegistryServiceDeregisterInvocation {
+	invocation := new(consulRegistryServiceDeregisterInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
 }
 
 // consulRegistryCheckRegisterInvocation represents a single call of FakeconsulRegistry.CheckRegister
@@ -36,6 +58,17 @@ type consulRegistryCheckRegisterInvocation struct {
 	}
 }
 
+// NewconsulRegistryCheckRegisterInvocation creates a new instance of consulRegistryCheckRegisterInvocation
+func NewconsulRegistryCheckRegisterInvocation(ident1 *consul.AgentCheckRegistration, ident2 error) *consulRegistryCheckRegisterInvocation {
+	invocation := new(consulRegistryCheckRegisterInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // consulRegistryCheckDeregisterInvocation represents a single call of FakeconsulRegistry.CheckDeregister
 type consulRegistryCheckDeregisterInvocation struct {
 	Parameters struct {
@@ -44,6 +77,17 @@ type consulRegistryCheckDeregisterInvocation struct {
 	Results struct {
 		Ident2 error
 	}
+}
+
+// NewconsulRegistryCheckDeregisterInvocation creates a new instance of consulRegistryCheckDeregisterInvocation
+func NewconsulRegistryCheckDeregisterInvocation(ident1 string, ident2 error) *consulRegistryCheckDeregisterInvocation {
+	invocation := new(consulRegistryCheckDeregisterInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
 }
 
 // consulRegistryTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
@@ -176,6 +220,29 @@ func (_f1 *FakeconsulRegistry) ServiceRegister(ident1 *consul.AgentServiceRegist
 	return
 }
 
+// SetServiceRegisterStub configures consulRegistry.ServiceRegister to always return the given values
+func (_f2 *FakeconsulRegistry) SetServiceRegisterStub(ident2 error) {
+	_f2.ServiceRegisterHook = func(*consul.AgentServiceRegistration) error {
+		return ident2
+	}
+}
+
+// SetServiceRegisterInvocation configures consulRegistry.ServiceRegister to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeconsulRegistry) SetServiceRegisterInvocation(calls_f4 []*consulRegistryServiceRegisterInvocation, fallback_f5 func() error) {
+	_f3.ServiceRegisterHook = func(ident1 *consul.AgentServiceRegistration) (ident2 error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // ServiceRegisterCalled returns true if FakeconsulRegistry.ServiceRegister was called
 func (f *FakeconsulRegistry) ServiceRegisterCalled() bool {
 	return len(f.ServiceRegisterCalls) != 0
@@ -229,8 +296,8 @@ func (f *FakeconsulRegistry) AssertServiceRegisterCalledN(t consulRegistryTestin
 }
 
 // ServiceRegisterCalledWith returns true if FakeconsulRegistry.ServiceRegister was called with the given values
-func (_f2 *FakeconsulRegistry) ServiceRegisterCalledWith(ident1 *consul.AgentServiceRegistration) (found bool) {
-	for _, call := range _f2.ServiceRegisterCalls {
+func (_f6 *FakeconsulRegistry) ServiceRegisterCalledWith(ident1 *consul.AgentServiceRegistration) (found bool) {
+	for _, call := range _f6.ServiceRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -241,10 +308,10 @@ func (_f2 *FakeconsulRegistry) ServiceRegisterCalledWith(ident1 *consul.AgentSer
 }
 
 // AssertServiceRegisterCalledWith calls t.Error if FakeconsulRegistry.ServiceRegister was not called with the given values
-func (_f3 *FakeconsulRegistry) AssertServiceRegisterCalledWith(t consulRegistryTestingT, ident1 *consul.AgentServiceRegistration) {
+func (_f7 *FakeconsulRegistry) AssertServiceRegisterCalledWith(t consulRegistryTestingT, ident1 *consul.AgentServiceRegistration) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.ServiceRegisterCalls {
+	for _, call := range _f7.ServiceRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -257,9 +324,9 @@ func (_f3 *FakeconsulRegistry) AssertServiceRegisterCalledWith(t consulRegistryT
 }
 
 // ServiceRegisterCalledOnceWith returns true if FakeconsulRegistry.ServiceRegister was called exactly once with the given values
-func (_f4 *FakeconsulRegistry) ServiceRegisterCalledOnceWith(ident1 *consul.AgentServiceRegistration) bool {
+func (_f8 *FakeconsulRegistry) ServiceRegisterCalledOnceWith(ident1 *consul.AgentServiceRegistration) bool {
 	var count int
-	for _, call := range _f4.ServiceRegisterCalls {
+	for _, call := range _f8.ServiceRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -269,10 +336,10 @@ func (_f4 *FakeconsulRegistry) ServiceRegisterCalledOnceWith(ident1 *consul.Agen
 }
 
 // AssertServiceRegisterCalledOnceWith calls t.Error if FakeconsulRegistry.ServiceRegister was not called exactly once with the given values
-func (_f5 *FakeconsulRegistry) AssertServiceRegisterCalledOnceWith(t consulRegistryTestingT, ident1 *consul.AgentServiceRegistration) {
+func (_f9 *FakeconsulRegistry) AssertServiceRegisterCalledOnceWith(t consulRegistryTestingT, ident1 *consul.AgentServiceRegistration) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.ServiceRegisterCalls {
+	for _, call := range _f9.ServiceRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -284,8 +351,8 @@ func (_f5 *FakeconsulRegistry) AssertServiceRegisterCalledOnceWith(t consulRegis
 }
 
 // ServiceRegisterResultsForCall returns the result values for the first call to FakeconsulRegistry.ServiceRegister with the given values
-func (_f6 *FakeconsulRegistry) ServiceRegisterResultsForCall(ident1 *consul.AgentServiceRegistration) (ident2 error, found bool) {
-	for _, call := range _f6.ServiceRegisterCalls {
+func (_f10 *FakeconsulRegistry) ServiceRegisterResultsForCall(ident1 *consul.AgentServiceRegistration) (ident2 error, found bool) {
+	for _, call := range _f10.ServiceRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -296,21 +363,44 @@ func (_f6 *FakeconsulRegistry) ServiceRegisterResultsForCall(ident1 *consul.Agen
 	return
 }
 
-func (_f7 *FakeconsulRegistry) ServiceDeregister(ident1 string) (ident2 error) {
-	if _f7.ServiceDeregisterHook == nil {
+func (_f11 *FakeconsulRegistry) ServiceDeregister(ident1 string) (ident2 error) {
+	if _f11.ServiceDeregisterHook == nil {
 		panic("consulRegistry.ServiceDeregister() called but FakeconsulRegistry.ServiceDeregisterHook is nil")
 	}
 
 	invocation := new(consulRegistryServiceDeregisterInvocation)
-	_f7.ServiceDeregisterCalls = append(_f7.ServiceDeregisterCalls, invocation)
+	_f11.ServiceDeregisterCalls = append(_f11.ServiceDeregisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f7.ServiceDeregisterHook(ident1)
+	ident2 = _f11.ServiceDeregisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetServiceDeregisterStub configures consulRegistry.ServiceDeregister to always return the given values
+func (_f12 *FakeconsulRegistry) SetServiceDeregisterStub(ident2 error) {
+	_f12.ServiceDeregisterHook = func(string) error {
+		return ident2
+	}
+}
+
+// SetServiceDeregisterInvocation configures consulRegistry.ServiceDeregister to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f13 *FakeconsulRegistry) SetServiceDeregisterInvocation(calls_f14 []*consulRegistryServiceDeregisterInvocation, fallback_f15 func() error) {
+	_f13.ServiceDeregisterHook = func(ident1 string) (ident2 error) {
+		for _, call := range calls_f14 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f15()
+	}
 }
 
 // ServiceDeregisterCalled returns true if FakeconsulRegistry.ServiceDeregister was called
@@ -366,8 +456,8 @@ func (f *FakeconsulRegistry) AssertServiceDeregisterCalledN(t consulRegistryTest
 }
 
 // ServiceDeregisterCalledWith returns true if FakeconsulRegistry.ServiceDeregister was called with the given values
-func (_f8 *FakeconsulRegistry) ServiceDeregisterCalledWith(ident1 string) (found bool) {
-	for _, call := range _f8.ServiceDeregisterCalls {
+func (_f16 *FakeconsulRegistry) ServiceDeregisterCalledWith(ident1 string) (found bool) {
+	for _, call := range _f16.ServiceDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -378,10 +468,10 @@ func (_f8 *FakeconsulRegistry) ServiceDeregisterCalledWith(ident1 string) (found
 }
 
 // AssertServiceDeregisterCalledWith calls t.Error if FakeconsulRegistry.ServiceDeregister was not called with the given values
-func (_f9 *FakeconsulRegistry) AssertServiceDeregisterCalledWith(t consulRegistryTestingT, ident1 string) {
+func (_f17 *FakeconsulRegistry) AssertServiceDeregisterCalledWith(t consulRegistryTestingT, ident1 string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f9.ServiceDeregisterCalls {
+	for _, call := range _f17.ServiceDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -394,9 +484,9 @@ func (_f9 *FakeconsulRegistry) AssertServiceDeregisterCalledWith(t consulRegistr
 }
 
 // ServiceDeregisterCalledOnceWith returns true if FakeconsulRegistry.ServiceDeregister was called exactly once with the given values
-func (_f10 *FakeconsulRegistry) ServiceDeregisterCalledOnceWith(ident1 string) bool {
+func (_f18 *FakeconsulRegistry) ServiceDeregisterCalledOnceWith(ident1 string) bool {
 	var count int
-	for _, call := range _f10.ServiceDeregisterCalls {
+	for _, call := range _f18.ServiceDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -406,10 +496,10 @@ func (_f10 *FakeconsulRegistry) ServiceDeregisterCalledOnceWith(ident1 string) b
 }
 
 // AssertServiceDeregisterCalledOnceWith calls t.Error if FakeconsulRegistry.ServiceDeregister was not called exactly once with the given values
-func (_f11 *FakeconsulRegistry) AssertServiceDeregisterCalledOnceWith(t consulRegistryTestingT, ident1 string) {
+func (_f19 *FakeconsulRegistry) AssertServiceDeregisterCalledOnceWith(t consulRegistryTestingT, ident1 string) {
 	t.Helper()
 	var count int
-	for _, call := range _f11.ServiceDeregisterCalls {
+	for _, call := range _f19.ServiceDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -421,8 +511,8 @@ func (_f11 *FakeconsulRegistry) AssertServiceDeregisterCalledOnceWith(t consulRe
 }
 
 // ServiceDeregisterResultsForCall returns the result values for the first call to FakeconsulRegistry.ServiceDeregister with the given values
-func (_f12 *FakeconsulRegistry) ServiceDeregisterResultsForCall(ident1 string) (ident2 error, found bool) {
-	for _, call := range _f12.ServiceDeregisterCalls {
+func (_f20 *FakeconsulRegistry) ServiceDeregisterResultsForCall(ident1 string) (ident2 error, found bool) {
+	for _, call := range _f20.ServiceDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -433,21 +523,44 @@ func (_f12 *FakeconsulRegistry) ServiceDeregisterResultsForCall(ident1 string) (
 	return
 }
 
-func (_f13 *FakeconsulRegistry) CheckRegister(ident1 *consul.AgentCheckRegistration) (ident2 error) {
-	if _f13.CheckRegisterHook == nil {
+func (_f21 *FakeconsulRegistry) CheckRegister(ident1 *consul.AgentCheckRegistration) (ident2 error) {
+	if _f21.CheckRegisterHook == nil {
 		panic("consulRegistry.CheckRegister() called but FakeconsulRegistry.CheckRegisterHook is nil")
 	}
 
 	invocation := new(consulRegistryCheckRegisterInvocation)
-	_f13.CheckRegisterCalls = append(_f13.CheckRegisterCalls, invocation)
+	_f21.CheckRegisterCalls = append(_f21.CheckRegisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f13.CheckRegisterHook(ident1)
+	ident2 = _f21.CheckRegisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetCheckRegisterStub configures consulRegistry.CheckRegister to always return the given values
+func (_f22 *FakeconsulRegistry) SetCheckRegisterStub(ident2 error) {
+	_f22.CheckRegisterHook = func(*consul.AgentCheckRegistration) error {
+		return ident2
+	}
+}
+
+// SetCheckRegisterInvocation configures consulRegistry.CheckRegister to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f23 *FakeconsulRegistry) SetCheckRegisterInvocation(calls_f24 []*consulRegistryCheckRegisterInvocation, fallback_f25 func() error) {
+	_f23.CheckRegisterHook = func(ident1 *consul.AgentCheckRegistration) (ident2 error) {
+		for _, call := range calls_f24 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f25()
+	}
 }
 
 // CheckRegisterCalled returns true if FakeconsulRegistry.CheckRegister was called
@@ -503,8 +616,8 @@ func (f *FakeconsulRegistry) AssertCheckRegisterCalledN(t consulRegistryTestingT
 }
 
 // CheckRegisterCalledWith returns true if FakeconsulRegistry.CheckRegister was called with the given values
-func (_f14 *FakeconsulRegistry) CheckRegisterCalledWith(ident1 *consul.AgentCheckRegistration) (found bool) {
-	for _, call := range _f14.CheckRegisterCalls {
+func (_f26 *FakeconsulRegistry) CheckRegisterCalledWith(ident1 *consul.AgentCheckRegistration) (found bool) {
+	for _, call := range _f26.CheckRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -515,10 +628,10 @@ func (_f14 *FakeconsulRegistry) CheckRegisterCalledWith(ident1 *consul.AgentChec
 }
 
 // AssertCheckRegisterCalledWith calls t.Error if FakeconsulRegistry.CheckRegister was not called with the given values
-func (_f15 *FakeconsulRegistry) AssertCheckRegisterCalledWith(t consulRegistryTestingT, ident1 *consul.AgentCheckRegistration) {
+func (_f27 *FakeconsulRegistry) AssertCheckRegisterCalledWith(t consulRegistryTestingT, ident1 *consul.AgentCheckRegistration) {
 	t.Helper()
 	var found bool
-	for _, call := range _f15.CheckRegisterCalls {
+	for _, call := range _f27.CheckRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -531,9 +644,9 @@ func (_f15 *FakeconsulRegistry) AssertCheckRegisterCalledWith(t consulRegistryTe
 }
 
 // CheckRegisterCalledOnceWith returns true if FakeconsulRegistry.CheckRegister was called exactly once with the given values
-func (_f16 *FakeconsulRegistry) CheckRegisterCalledOnceWith(ident1 *consul.AgentCheckRegistration) bool {
+func (_f28 *FakeconsulRegistry) CheckRegisterCalledOnceWith(ident1 *consul.AgentCheckRegistration) bool {
 	var count int
-	for _, call := range _f16.CheckRegisterCalls {
+	for _, call := range _f28.CheckRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -543,10 +656,10 @@ func (_f16 *FakeconsulRegistry) CheckRegisterCalledOnceWith(ident1 *consul.Agent
 }
 
 // AssertCheckRegisterCalledOnceWith calls t.Error if FakeconsulRegistry.CheckRegister was not called exactly once with the given values
-func (_f17 *FakeconsulRegistry) AssertCheckRegisterCalledOnceWith(t consulRegistryTestingT, ident1 *consul.AgentCheckRegistration) {
+func (_f29 *FakeconsulRegistry) AssertCheckRegisterCalledOnceWith(t consulRegistryTestingT, ident1 *consul.AgentCheckRegistration) {
 	t.Helper()
 	var count int
-	for _, call := range _f17.CheckRegisterCalls {
+	for _, call := range _f29.CheckRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -558,8 +671,8 @@ func (_f17 *FakeconsulRegistry) AssertCheckRegisterCalledOnceWith(t consulRegist
 }
 
 // CheckRegisterResultsForCall returns the result values for the first call to FakeconsulRegistry.CheckRegister with the given values
-func (_f18 *FakeconsulRegistry) CheckRegisterResultsForCall(ident1 *consul.AgentCheckRegistration) (ident2 error, found bool) {
-	for _, call := range _f18.CheckRegisterCalls {
+func (_f30 *FakeconsulRegistry) CheckRegisterResultsForCall(ident1 *consul.AgentCheckRegistration) (ident2 error, found bool) {
+	for _, call := range _f30.CheckRegisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true
@@ -570,21 +683,44 @@ func (_f18 *FakeconsulRegistry) CheckRegisterResultsForCall(ident1 *consul.Agent
 	return
 }
 
-func (_f19 *FakeconsulRegistry) CheckDeregister(ident1 string) (ident2 error) {
-	if _f19.CheckDeregisterHook == nil {
+func (_f31 *FakeconsulRegistry) CheckDeregister(ident1 string) (ident2 error) {
+	if _f31.CheckDeregisterHook == nil {
 		panic("consulRegistry.CheckDeregister() called but FakeconsulRegistry.CheckDeregisterHook is nil")
 	}
 
 	invocation := new(consulRegistryCheckDeregisterInvocation)
-	_f19.CheckDeregisterCalls = append(_f19.CheckDeregisterCalls, invocation)
+	_f31.CheckDeregisterCalls = append(_f31.CheckDeregisterCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f19.CheckDeregisterHook(ident1)
+	ident2 = _f31.CheckDeregisterHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetCheckDeregisterStub configures consulRegistry.CheckDeregister to always return the given values
+func (_f32 *FakeconsulRegistry) SetCheckDeregisterStub(ident2 error) {
+	_f32.CheckDeregisterHook = func(string) error {
+		return ident2
+	}
+}
+
+// SetCheckDeregisterInvocation configures consulRegistry.CheckDeregister to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f33 *FakeconsulRegistry) SetCheckDeregisterInvocation(calls_f34 []*consulRegistryCheckDeregisterInvocation, fallback_f35 func() error) {
+	_f33.CheckDeregisterHook = func(ident1 string) (ident2 error) {
+		for _, call := range calls_f34 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f35()
+	}
 }
 
 // CheckDeregisterCalled returns true if FakeconsulRegistry.CheckDeregister was called
@@ -640,8 +776,8 @@ func (f *FakeconsulRegistry) AssertCheckDeregisterCalledN(t consulRegistryTestin
 }
 
 // CheckDeregisterCalledWith returns true if FakeconsulRegistry.CheckDeregister was called with the given values
-func (_f20 *FakeconsulRegistry) CheckDeregisterCalledWith(ident1 string) (found bool) {
-	for _, call := range _f20.CheckDeregisterCalls {
+func (_f36 *FakeconsulRegistry) CheckDeregisterCalledWith(ident1 string) (found bool) {
+	for _, call := range _f36.CheckDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -652,10 +788,10 @@ func (_f20 *FakeconsulRegistry) CheckDeregisterCalledWith(ident1 string) (found 
 }
 
 // AssertCheckDeregisterCalledWith calls t.Error if FakeconsulRegistry.CheckDeregister was not called with the given values
-func (_f21 *FakeconsulRegistry) AssertCheckDeregisterCalledWith(t consulRegistryTestingT, ident1 string) {
+func (_f37 *FakeconsulRegistry) AssertCheckDeregisterCalledWith(t consulRegistryTestingT, ident1 string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f21.CheckDeregisterCalls {
+	for _, call := range _f37.CheckDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -668,9 +804,9 @@ func (_f21 *FakeconsulRegistry) AssertCheckDeregisterCalledWith(t consulRegistry
 }
 
 // CheckDeregisterCalledOnceWith returns true if FakeconsulRegistry.CheckDeregister was called exactly once with the given values
-func (_f22 *FakeconsulRegistry) CheckDeregisterCalledOnceWith(ident1 string) bool {
+func (_f38 *FakeconsulRegistry) CheckDeregisterCalledOnceWith(ident1 string) bool {
 	var count int
-	for _, call := range _f22.CheckDeregisterCalls {
+	for _, call := range _f38.CheckDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -680,10 +816,10 @@ func (_f22 *FakeconsulRegistry) CheckDeregisterCalledOnceWith(ident1 string) boo
 }
 
 // AssertCheckDeregisterCalledOnceWith calls t.Error if FakeconsulRegistry.CheckDeregister was not called exactly once with the given values
-func (_f23 *FakeconsulRegistry) AssertCheckDeregisterCalledOnceWith(t consulRegistryTestingT, ident1 string) {
+func (_f39 *FakeconsulRegistry) AssertCheckDeregisterCalledOnceWith(t consulRegistryTestingT, ident1 string) {
 	t.Helper()
 	var count int
-	for _, call := range _f23.CheckDeregisterCalls {
+	for _, call := range _f39.CheckDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -695,8 +831,8 @@ func (_f23 *FakeconsulRegistry) AssertCheckDeregisterCalledOnceWith(t consulRegi
 }
 
 // CheckDeregisterResultsForCall returns the result values for the first call to FakeconsulRegistry.CheckDeregister with the given values
-func (_f24 *FakeconsulRegistry) CheckDeregisterResultsForCall(ident1 string) (ident2 error, found bool) {
-	for _, call := range _f24.CheckDeregisterCalls {
+func (_f40 *FakeconsulRegistry) CheckDeregisterResultsForCall(ident1 string) (ident2 error, found bool) {
+	for _, call := range _f40.CheckDeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true

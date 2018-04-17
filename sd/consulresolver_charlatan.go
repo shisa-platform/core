@@ -20,6 +20,22 @@ type consulResolverServiceInvocation struct {
 	}
 }
 
+// NewconsulResolverServiceInvocation creates a new instance of consulResolverServiceInvocation
+func NewconsulResolverServiceInvocation(service string, tag string, passingOnly bool, q *consul.QueryOptions, ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error) *consulResolverServiceInvocation {
+	invocation := new(consulResolverServiceInvocation)
+
+	invocation.Parameters.Service = service
+	invocation.Parameters.Tag = tag
+	invocation.Parameters.PassingOnly = passingOnly
+	invocation.Parameters.Q = q
+
+	invocation.Results.Ident1 = ident1
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
+
+	return invocation
+}
+
 // consulResolverTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
 type consulResolverTestingT interface {
 	Error(...interface{})
@@ -113,6 +129,31 @@ func (_f1 *FakeconsulResolver) Service(service string, tag string, passingOnly b
 	return
 }
 
+// SetServiceStub configures consulResolver.Service to always return the given values
+func (_f2 *FakeconsulResolver) SetServiceStub(ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error) {
+	_f2.ServiceHook = func(string, string, bool, *consul.QueryOptions) ([]*consul.ServiceEntry, *consul.QueryMeta, error) {
+		return ident1, ident2, ident3
+	}
+}
+
+// SetServiceInvocation configures consulResolver.Service to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeconsulResolver) SetServiceInvocation(calls_f4 []*consulResolverServiceInvocation, fallback_f5 func() ([]*consul.ServiceEntry, *consul.QueryMeta, error)) {
+	_f3.ServiceHook = func(service string, tag string, passingOnly bool, q *consul.QueryOptions) (ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Tag, tag) && reflect.DeepEqual(call.Parameters.PassingOnly, passingOnly) && reflect.DeepEqual(call.Parameters.Q, q) {
+				ident1 = call.Results.Ident1
+				ident2 = call.Results.Ident2
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // ServiceCalled returns true if FakeconsulResolver.Service was called
 func (f *FakeconsulResolver) ServiceCalled() bool {
 	return len(f.ServiceCalls) != 0
@@ -166,8 +207,8 @@ func (f *FakeconsulResolver) AssertServiceCalledN(t consulResolverTestingT, n in
 }
 
 // ServiceCalledWith returns true if FakeconsulResolver.Service was called with the given values
-func (_f2 *FakeconsulResolver) ServiceCalledWith(service string, tag string, passingOnly bool, q *consul.QueryOptions) (found bool) {
-	for _, call := range _f2.ServiceCalls {
+func (_f6 *FakeconsulResolver) ServiceCalledWith(service string, tag string, passingOnly bool, q *consul.QueryOptions) (found bool) {
+	for _, call := range _f6.ServiceCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Tag, tag) && reflect.DeepEqual(call.Parameters.PassingOnly, passingOnly) && reflect.DeepEqual(call.Parameters.Q, q) {
 			found = true
 			break
@@ -178,10 +219,10 @@ func (_f2 *FakeconsulResolver) ServiceCalledWith(service string, tag string, pas
 }
 
 // AssertServiceCalledWith calls t.Error if FakeconsulResolver.Service was not called with the given values
-func (_f3 *FakeconsulResolver) AssertServiceCalledWith(t consulResolverTestingT, service string, tag string, passingOnly bool, q *consul.QueryOptions) {
+func (_f7 *FakeconsulResolver) AssertServiceCalledWith(t consulResolverTestingT, service string, tag string, passingOnly bool, q *consul.QueryOptions) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.ServiceCalls {
+	for _, call := range _f7.ServiceCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Tag, tag) && reflect.DeepEqual(call.Parameters.PassingOnly, passingOnly) && reflect.DeepEqual(call.Parameters.Q, q) {
 			found = true
 			break
@@ -194,9 +235,9 @@ func (_f3 *FakeconsulResolver) AssertServiceCalledWith(t consulResolverTestingT,
 }
 
 // ServiceCalledOnceWith returns true if FakeconsulResolver.Service was called exactly once with the given values
-func (_f4 *FakeconsulResolver) ServiceCalledOnceWith(service string, tag string, passingOnly bool, q *consul.QueryOptions) bool {
+func (_f8 *FakeconsulResolver) ServiceCalledOnceWith(service string, tag string, passingOnly bool, q *consul.QueryOptions) bool {
 	var count int
-	for _, call := range _f4.ServiceCalls {
+	for _, call := range _f8.ServiceCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Tag, tag) && reflect.DeepEqual(call.Parameters.PassingOnly, passingOnly) && reflect.DeepEqual(call.Parameters.Q, q) {
 			count++
 		}
@@ -206,10 +247,10 @@ func (_f4 *FakeconsulResolver) ServiceCalledOnceWith(service string, tag string,
 }
 
 // AssertServiceCalledOnceWith calls t.Error if FakeconsulResolver.Service was not called exactly once with the given values
-func (_f5 *FakeconsulResolver) AssertServiceCalledOnceWith(t consulResolverTestingT, service string, tag string, passingOnly bool, q *consul.QueryOptions) {
+func (_f9 *FakeconsulResolver) AssertServiceCalledOnceWith(t consulResolverTestingT, service string, tag string, passingOnly bool, q *consul.QueryOptions) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.ServiceCalls {
+	for _, call := range _f9.ServiceCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Tag, tag) && reflect.DeepEqual(call.Parameters.PassingOnly, passingOnly) && reflect.DeepEqual(call.Parameters.Q, q) {
 			count++
 		}
@@ -221,8 +262,8 @@ func (_f5 *FakeconsulResolver) AssertServiceCalledOnceWith(t consulResolverTesti
 }
 
 // ServiceResultsForCall returns the result values for the first call to FakeconsulResolver.Service with the given values
-func (_f6 *FakeconsulResolver) ServiceResultsForCall(service string, tag string, passingOnly bool, q *consul.QueryOptions) (ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error, found bool) {
-	for _, call := range _f6.ServiceCalls {
+func (_f10 *FakeconsulResolver) ServiceResultsForCall(service string, tag string, passingOnly bool, q *consul.QueryOptions) (ident1 []*consul.ServiceEntry, ident2 *consul.QueryMeta, ident3 error, found bool) {
+	for _, call := range _f10.ServiceCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Tag, tag) && reflect.DeepEqual(call.Parameters.PassingOnly, passingOnly) && reflect.DeepEqual(call.Parameters.Q, q) {
 			ident1 = call.Results.Ident1
 			ident2 = call.Results.Ident2

@@ -48,6 +48,17 @@ type ResponseSerializeInvocation struct {
 	}
 }
 
+// NewResponseSerializeInvocation creates a new instance of ResponseSerializeInvocation
+func NewResponseSerializeInvocation(ident1 io.Writer, ident2 merry.Error) *ResponseSerializeInvocation {
+	invocation := new(ResponseSerializeInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+
+	return invocation
+}
+
 // ResponseTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
 type ResponseTestingT interface {
 	Error(...interface{})
@@ -190,6 +201,13 @@ func (_f1 *FakeResponse) StatusCode() (ident1 int) {
 	return
 }
 
+// SetStatusCodeStub configures Response.StatusCode to always return the given values
+func (_f2 *FakeResponse) SetStatusCodeStub(ident1 int) {
+	_f2.StatusCodeHook = func() int {
+		return ident1
+	}
+}
+
 // StatusCodeCalled returns true if FakeResponse.StatusCode was called
 func (f *FakeResponse) StatusCodeCalled() bool {
 	return len(f.StatusCodeCalls) != 0
@@ -242,19 +260,26 @@ func (f *FakeResponse) AssertStatusCodeCalledN(t ResponseTestingT, n int) {
 	}
 }
 
-func (_f2 *FakeResponse) Headers() (ident1 http.Header) {
-	if _f2.HeadersHook == nil {
+func (_f3 *FakeResponse) Headers() (ident1 http.Header) {
+	if _f3.HeadersHook == nil {
 		panic("Response.Headers() called but FakeResponse.HeadersHook is nil")
 	}
 
 	invocation := new(ResponseHeadersInvocation)
-	_f2.HeadersCalls = append(_f2.HeadersCalls, invocation)
+	_f3.HeadersCalls = append(_f3.HeadersCalls, invocation)
 
-	ident1 = _f2.HeadersHook()
+	ident1 = _f3.HeadersHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetHeadersStub configures Response.Headers to always return the given values
+func (_f4 *FakeResponse) SetHeadersStub(ident1 http.Header) {
+	_f4.HeadersHook = func() http.Header {
+		return ident1
+	}
 }
 
 // HeadersCalled returns true if FakeResponse.Headers was called
@@ -309,19 +334,26 @@ func (f *FakeResponse) AssertHeadersCalledN(t ResponseTestingT, n int) {
 	}
 }
 
-func (_f3 *FakeResponse) Trailers() (ident1 http.Header) {
-	if _f3.TrailersHook == nil {
+func (_f5 *FakeResponse) Trailers() (ident1 http.Header) {
+	if _f5.TrailersHook == nil {
 		panic("Response.Trailers() called but FakeResponse.TrailersHook is nil")
 	}
 
 	invocation := new(ResponseTrailersInvocation)
-	_f3.TrailersCalls = append(_f3.TrailersCalls, invocation)
+	_f5.TrailersCalls = append(_f5.TrailersCalls, invocation)
 
-	ident1 = _f3.TrailersHook()
+	ident1 = _f5.TrailersHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetTrailersStub configures Response.Trailers to always return the given values
+func (_f6 *FakeResponse) SetTrailersStub(ident1 http.Header) {
+	_f6.TrailersHook = func() http.Header {
+		return ident1
+	}
 }
 
 // TrailersCalled returns true if FakeResponse.Trailers was called
@@ -376,19 +408,26 @@ func (f *FakeResponse) AssertTrailersCalledN(t ResponseTestingT, n int) {
 	}
 }
 
-func (_f4 *FakeResponse) Err() (ident1 error) {
-	if _f4.ErrHook == nil {
+func (_f7 *FakeResponse) Err() (ident1 error) {
+	if _f7.ErrHook == nil {
 		panic("Response.Err() called but FakeResponse.ErrHook is nil")
 	}
 
 	invocation := new(ResponseErrInvocation)
-	_f4.ErrCalls = append(_f4.ErrCalls, invocation)
+	_f7.ErrCalls = append(_f7.ErrCalls, invocation)
 
-	ident1 = _f4.ErrHook()
+	ident1 = _f7.ErrHook()
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetErrStub configures Response.Err to always return the given values
+func (_f8 *FakeResponse) SetErrStub(ident1 error) {
+	_f8.ErrHook = func() error {
+		return ident1
+	}
 }
 
 // ErrCalled returns true if FakeResponse.Err was called
@@ -443,21 +482,44 @@ func (f *FakeResponse) AssertErrCalledN(t ResponseTestingT, n int) {
 	}
 }
 
-func (_f5 *FakeResponse) Serialize(ident1 io.Writer) (ident2 merry.Error) {
-	if _f5.SerializeHook == nil {
+func (_f9 *FakeResponse) Serialize(ident1 io.Writer) (ident2 merry.Error) {
+	if _f9.SerializeHook == nil {
 		panic("Response.Serialize() called but FakeResponse.SerializeHook is nil")
 	}
 
 	invocation := new(ResponseSerializeInvocation)
-	_f5.SerializeCalls = append(_f5.SerializeCalls, invocation)
+	_f9.SerializeCalls = append(_f9.SerializeCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2 = _f5.SerializeHook(ident1)
+	ident2 = _f9.SerializeHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 
 	return
+}
+
+// SetSerializeStub configures Response.Serialize to always return the given values
+func (_f10 *FakeResponse) SetSerializeStub(ident2 merry.Error) {
+	_f10.SerializeHook = func(io.Writer) merry.Error {
+		return ident2
+	}
+}
+
+// SetSerializeInvocation configures Response.Serialize to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f11 *FakeResponse) SetSerializeInvocation(calls_f12 []*ResponseSerializeInvocation, fallback_f13 func() merry.Error) {
+	_f11.SerializeHook = func(ident1 io.Writer) (ident2 merry.Error) {
+		for _, call := range calls_f12 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+
+				return
+			}
+		}
+
+		return fallback_f13()
+	}
 }
 
 // SerializeCalled returns true if FakeResponse.Serialize was called
@@ -513,8 +575,8 @@ func (f *FakeResponse) AssertSerializeCalledN(t ResponseTestingT, n int) {
 }
 
 // SerializeCalledWith returns true if FakeResponse.Serialize was called with the given values
-func (_f6 *FakeResponse) SerializeCalledWith(ident1 io.Writer) (found bool) {
-	for _, call := range _f6.SerializeCalls {
+func (_f14 *FakeResponse) SerializeCalledWith(ident1 io.Writer) (found bool) {
+	for _, call := range _f14.SerializeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -525,10 +587,10 @@ func (_f6 *FakeResponse) SerializeCalledWith(ident1 io.Writer) (found bool) {
 }
 
 // AssertSerializeCalledWith calls t.Error if FakeResponse.Serialize was not called with the given values
-func (_f7 *FakeResponse) AssertSerializeCalledWith(t ResponseTestingT, ident1 io.Writer) {
+func (_f15 *FakeResponse) AssertSerializeCalledWith(t ResponseTestingT, ident1 io.Writer) {
 	t.Helper()
 	var found bool
-	for _, call := range _f7.SerializeCalls {
+	for _, call := range _f15.SerializeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -541,9 +603,9 @@ func (_f7 *FakeResponse) AssertSerializeCalledWith(t ResponseTestingT, ident1 io
 }
 
 // SerializeCalledOnceWith returns true if FakeResponse.Serialize was called exactly once with the given values
-func (_f8 *FakeResponse) SerializeCalledOnceWith(ident1 io.Writer) bool {
+func (_f16 *FakeResponse) SerializeCalledOnceWith(ident1 io.Writer) bool {
 	var count int
-	for _, call := range _f8.SerializeCalls {
+	for _, call := range _f16.SerializeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -553,10 +615,10 @@ func (_f8 *FakeResponse) SerializeCalledOnceWith(ident1 io.Writer) bool {
 }
 
 // AssertSerializeCalledOnceWith calls t.Error if FakeResponse.Serialize was not called exactly once with the given values
-func (_f9 *FakeResponse) AssertSerializeCalledOnceWith(t ResponseTestingT, ident1 io.Writer) {
+func (_f17 *FakeResponse) AssertSerializeCalledOnceWith(t ResponseTestingT, ident1 io.Writer) {
 	t.Helper()
 	var count int
-	for _, call := range _f9.SerializeCalls {
+	for _, call := range _f17.SerializeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -568,8 +630,8 @@ func (_f9 *FakeResponse) AssertSerializeCalledOnceWith(t ResponseTestingT, ident
 }
 
 // SerializeResultsForCall returns the result values for the first call to FakeResponse.Serialize with the given values
-func (_f10 *FakeResponse) SerializeResultsForCall(ident1 io.Writer) (ident2 merry.Error, found bool) {
-	for _, call := range _f10.SerializeCalls {
+func (_f18 *FakeResponse) SerializeResultsForCall(ident1 io.Writer) (ident2 merry.Error, found bool) {
+	for _, call := range _f18.SerializeCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			found = true

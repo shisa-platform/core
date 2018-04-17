@@ -18,6 +18,18 @@ type RegistrarRegisterInvocation struct {
 	}
 }
 
+// NewRegistrarRegisterInvocation creates a new instance of RegistrarRegisterInvocation
+func NewRegistrarRegisterInvocation(serviceID string, url *url.URL, ident1 merry.Error) *RegistrarRegisterInvocation {
+	invocation := new(RegistrarRegisterInvocation)
+
+	invocation.Parameters.ServiceID = serviceID
+	invocation.Parameters.Url = url
+
+	invocation.Results.Ident1 = ident1
+
+	return invocation
+}
+
 // RegistrarDeregisterInvocation represents a single call of FakeRegistrar.Deregister
 type RegistrarDeregisterInvocation struct {
 	Parameters struct {
@@ -26,6 +38,17 @@ type RegistrarDeregisterInvocation struct {
 	Results struct {
 		Ident1 merry.Error
 	}
+}
+
+// NewRegistrarDeregisterInvocation creates a new instance of RegistrarDeregisterInvocation
+func NewRegistrarDeregisterInvocation(serviceID string, ident1 merry.Error) *RegistrarDeregisterInvocation {
+	invocation := new(RegistrarDeregisterInvocation)
+
+	invocation.Parameters.ServiceID = serviceID
+
+	invocation.Results.Ident1 = ident1
+
+	return invocation
 }
 
 // RegistrarAddCheckInvocation represents a single call of FakeRegistrar.AddCheck
@@ -39,6 +62,18 @@ type RegistrarAddCheckInvocation struct {
 	}
 }
 
+// NewRegistrarAddCheckInvocation creates a new instance of RegistrarAddCheckInvocation
+func NewRegistrarAddCheckInvocation(service string, url *url.URL, ident1 merry.Error) *RegistrarAddCheckInvocation {
+	invocation := new(RegistrarAddCheckInvocation)
+
+	invocation.Parameters.Service = service
+	invocation.Parameters.Url = url
+
+	invocation.Results.Ident1 = ident1
+
+	return invocation
+}
+
 // RegistrarRemoveChecksInvocation represents a single call of FakeRegistrar.RemoveChecks
 type RegistrarRemoveChecksInvocation struct {
 	Parameters struct {
@@ -47,6 +82,17 @@ type RegistrarRemoveChecksInvocation struct {
 	Results struct {
 		Ident1 merry.Error
 	}
+}
+
+// NewRegistrarRemoveChecksInvocation creates a new instance of RegistrarRemoveChecksInvocation
+func NewRegistrarRemoveChecksInvocation(service string, ident1 merry.Error) *RegistrarRemoveChecksInvocation {
+	invocation := new(RegistrarRemoveChecksInvocation)
+
+	invocation.Parameters.Service = service
+
+	invocation.Results.Ident1 = ident1
+
+	return invocation
 }
 
 // RegistrarTestingT represents the methods of "testing".T used by charlatan Fakes.  It avoids importing the testing package.
@@ -180,6 +226,29 @@ func (_f1 *FakeRegistrar) Register(serviceID string, url *url.URL) (ident1 merry
 	return
 }
 
+// SetRegisterStub configures Registrar.Register to always return the given values
+func (_f2 *FakeRegistrar) SetRegisterStub(ident1 merry.Error) {
+	_f2.RegisterHook = func(string, *url.URL) merry.Error {
+		return ident1
+	}
+}
+
+// SetRegisterInvocation configures Registrar.Register to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeRegistrar) SetRegisterInvocation(calls_f4 []*RegistrarRegisterInvocation, fallback_f5 func() merry.Error) {
+	_f3.RegisterHook = func(serviceID string, url *url.URL) (ident1 merry.Error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
+				ident1 = call.Results.Ident1
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // RegisterCalled returns true if FakeRegistrar.Register was called
 func (f *FakeRegistrar) RegisterCalled() bool {
 	return len(f.RegisterCalls) != 0
@@ -233,8 +302,8 @@ func (f *FakeRegistrar) AssertRegisterCalledN(t RegistrarTestingT, n int) {
 }
 
 // RegisterCalledWith returns true if FakeRegistrar.Register was called with the given values
-func (_f2 *FakeRegistrar) RegisterCalledWith(serviceID string, url *url.URL) (found bool) {
-	for _, call := range _f2.RegisterCalls {
+func (_f6 *FakeRegistrar) RegisterCalledWith(serviceID string, url *url.URL) (found bool) {
+	for _, call := range _f6.RegisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			found = true
 			break
@@ -245,10 +314,10 @@ func (_f2 *FakeRegistrar) RegisterCalledWith(serviceID string, url *url.URL) (fo
 }
 
 // AssertRegisterCalledWith calls t.Error if FakeRegistrar.Register was not called with the given values
-func (_f3 *FakeRegistrar) AssertRegisterCalledWith(t RegistrarTestingT, serviceID string, url *url.URL) {
+func (_f7 *FakeRegistrar) AssertRegisterCalledWith(t RegistrarTestingT, serviceID string, url *url.URL) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.RegisterCalls {
+	for _, call := range _f7.RegisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			found = true
 			break
@@ -261,9 +330,9 @@ func (_f3 *FakeRegistrar) AssertRegisterCalledWith(t RegistrarTestingT, serviceI
 }
 
 // RegisterCalledOnceWith returns true if FakeRegistrar.Register was called exactly once with the given values
-func (_f4 *FakeRegistrar) RegisterCalledOnceWith(serviceID string, url *url.URL) bool {
+func (_f8 *FakeRegistrar) RegisterCalledOnceWith(serviceID string, url *url.URL) bool {
 	var count int
-	for _, call := range _f4.RegisterCalls {
+	for _, call := range _f8.RegisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			count++
 		}
@@ -273,10 +342,10 @@ func (_f4 *FakeRegistrar) RegisterCalledOnceWith(serviceID string, url *url.URL)
 }
 
 // AssertRegisterCalledOnceWith calls t.Error if FakeRegistrar.Register was not called exactly once with the given values
-func (_f5 *FakeRegistrar) AssertRegisterCalledOnceWith(t RegistrarTestingT, serviceID string, url *url.URL) {
+func (_f9 *FakeRegistrar) AssertRegisterCalledOnceWith(t RegistrarTestingT, serviceID string, url *url.URL) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.RegisterCalls {
+	for _, call := range _f9.RegisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			count++
 		}
@@ -288,8 +357,8 @@ func (_f5 *FakeRegistrar) AssertRegisterCalledOnceWith(t RegistrarTestingT, serv
 }
 
 // RegisterResultsForCall returns the result values for the first call to FakeRegistrar.Register with the given values
-func (_f6 *FakeRegistrar) RegisterResultsForCall(serviceID string, url *url.URL) (ident1 merry.Error, found bool) {
-	for _, call := range _f6.RegisterCalls {
+func (_f10 *FakeRegistrar) RegisterResultsForCall(serviceID string, url *url.URL) (ident1 merry.Error, found bool) {
+	for _, call := range _f10.RegisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) && reflect.DeepEqual(call.Parameters.Url, url) {
 			ident1 = call.Results.Ident1
 			found = true
@@ -300,21 +369,44 @@ func (_f6 *FakeRegistrar) RegisterResultsForCall(serviceID string, url *url.URL)
 	return
 }
 
-func (_f7 *FakeRegistrar) Deregister(serviceID string) (ident1 merry.Error) {
-	if _f7.DeregisterHook == nil {
+func (_f11 *FakeRegistrar) Deregister(serviceID string) (ident1 merry.Error) {
+	if _f11.DeregisterHook == nil {
 		panic("Registrar.Deregister() called but FakeRegistrar.DeregisterHook is nil")
 	}
 
 	invocation := new(RegistrarDeregisterInvocation)
-	_f7.DeregisterCalls = append(_f7.DeregisterCalls, invocation)
+	_f11.DeregisterCalls = append(_f11.DeregisterCalls, invocation)
 
 	invocation.Parameters.ServiceID = serviceID
 
-	ident1 = _f7.DeregisterHook(serviceID)
+	ident1 = _f11.DeregisterHook(serviceID)
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetDeregisterStub configures Registrar.Deregister to always return the given values
+func (_f12 *FakeRegistrar) SetDeregisterStub(ident1 merry.Error) {
+	_f12.DeregisterHook = func(string) merry.Error {
+		return ident1
+	}
+}
+
+// SetDeregisterInvocation configures Registrar.Deregister to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f13 *FakeRegistrar) SetDeregisterInvocation(calls_f14 []*RegistrarDeregisterInvocation, fallback_f15 func() merry.Error) {
+	_f13.DeregisterHook = func(serviceID string) (ident1 merry.Error) {
+		for _, call := range calls_f14 {
+			if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) {
+				ident1 = call.Results.Ident1
+
+				return
+			}
+		}
+
+		return fallback_f15()
+	}
 }
 
 // DeregisterCalled returns true if FakeRegistrar.Deregister was called
@@ -370,8 +462,8 @@ func (f *FakeRegistrar) AssertDeregisterCalledN(t RegistrarTestingT, n int) {
 }
 
 // DeregisterCalledWith returns true if FakeRegistrar.Deregister was called with the given values
-func (_f8 *FakeRegistrar) DeregisterCalledWith(serviceID string) (found bool) {
-	for _, call := range _f8.DeregisterCalls {
+func (_f16 *FakeRegistrar) DeregisterCalledWith(serviceID string) (found bool) {
+	for _, call := range _f16.DeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) {
 			found = true
 			break
@@ -382,10 +474,10 @@ func (_f8 *FakeRegistrar) DeregisterCalledWith(serviceID string) (found bool) {
 }
 
 // AssertDeregisterCalledWith calls t.Error if FakeRegistrar.Deregister was not called with the given values
-func (_f9 *FakeRegistrar) AssertDeregisterCalledWith(t RegistrarTestingT, serviceID string) {
+func (_f17 *FakeRegistrar) AssertDeregisterCalledWith(t RegistrarTestingT, serviceID string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f9.DeregisterCalls {
+	for _, call := range _f17.DeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) {
 			found = true
 			break
@@ -398,9 +490,9 @@ func (_f9 *FakeRegistrar) AssertDeregisterCalledWith(t RegistrarTestingT, servic
 }
 
 // DeregisterCalledOnceWith returns true if FakeRegistrar.Deregister was called exactly once with the given values
-func (_f10 *FakeRegistrar) DeregisterCalledOnceWith(serviceID string) bool {
+func (_f18 *FakeRegistrar) DeregisterCalledOnceWith(serviceID string) bool {
 	var count int
-	for _, call := range _f10.DeregisterCalls {
+	for _, call := range _f18.DeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) {
 			count++
 		}
@@ -410,10 +502,10 @@ func (_f10 *FakeRegistrar) DeregisterCalledOnceWith(serviceID string) bool {
 }
 
 // AssertDeregisterCalledOnceWith calls t.Error if FakeRegistrar.Deregister was not called exactly once with the given values
-func (_f11 *FakeRegistrar) AssertDeregisterCalledOnceWith(t RegistrarTestingT, serviceID string) {
+func (_f19 *FakeRegistrar) AssertDeregisterCalledOnceWith(t RegistrarTestingT, serviceID string) {
 	t.Helper()
 	var count int
-	for _, call := range _f11.DeregisterCalls {
+	for _, call := range _f19.DeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) {
 			count++
 		}
@@ -425,8 +517,8 @@ func (_f11 *FakeRegistrar) AssertDeregisterCalledOnceWith(t RegistrarTestingT, s
 }
 
 // DeregisterResultsForCall returns the result values for the first call to FakeRegistrar.Deregister with the given values
-func (_f12 *FakeRegistrar) DeregisterResultsForCall(serviceID string) (ident1 merry.Error, found bool) {
-	for _, call := range _f12.DeregisterCalls {
+func (_f20 *FakeRegistrar) DeregisterResultsForCall(serviceID string) (ident1 merry.Error, found bool) {
+	for _, call := range _f20.DeregisterCalls {
 		if reflect.DeepEqual(call.Parameters.ServiceID, serviceID) {
 			ident1 = call.Results.Ident1
 			found = true
@@ -437,22 +529,45 @@ func (_f12 *FakeRegistrar) DeregisterResultsForCall(serviceID string) (ident1 me
 	return
 }
 
-func (_f13 *FakeRegistrar) AddCheck(service string, url *url.URL) (ident1 merry.Error) {
-	if _f13.AddCheckHook == nil {
+func (_f21 *FakeRegistrar) AddCheck(service string, url *url.URL) (ident1 merry.Error) {
+	if _f21.AddCheckHook == nil {
 		panic("Registrar.AddCheck() called but FakeRegistrar.AddCheckHook is nil")
 	}
 
 	invocation := new(RegistrarAddCheckInvocation)
-	_f13.AddCheckCalls = append(_f13.AddCheckCalls, invocation)
+	_f21.AddCheckCalls = append(_f21.AddCheckCalls, invocation)
 
 	invocation.Parameters.Service = service
 	invocation.Parameters.Url = url
 
-	ident1 = _f13.AddCheckHook(service, url)
+	ident1 = _f21.AddCheckHook(service, url)
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetAddCheckStub configures Registrar.AddCheck to always return the given values
+func (_f22 *FakeRegistrar) SetAddCheckStub(ident1 merry.Error) {
+	_f22.AddCheckHook = func(string, *url.URL) merry.Error {
+		return ident1
+	}
+}
+
+// SetAddCheckInvocation configures Registrar.AddCheck to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f23 *FakeRegistrar) SetAddCheckInvocation(calls_f24 []*RegistrarAddCheckInvocation, fallback_f25 func() merry.Error) {
+	_f23.AddCheckHook = func(service string, url *url.URL) (ident1 merry.Error) {
+		for _, call := range calls_f24 {
+			if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Url, url) {
+				ident1 = call.Results.Ident1
+
+				return
+			}
+		}
+
+		return fallback_f25()
+	}
 }
 
 // AddCheckCalled returns true if FakeRegistrar.AddCheck was called
@@ -508,8 +623,8 @@ func (f *FakeRegistrar) AssertAddCheckCalledN(t RegistrarTestingT, n int) {
 }
 
 // AddCheckCalledWith returns true if FakeRegistrar.AddCheck was called with the given values
-func (_f14 *FakeRegistrar) AddCheckCalledWith(service string, url *url.URL) (found bool) {
-	for _, call := range _f14.AddCheckCalls {
+func (_f26 *FakeRegistrar) AddCheckCalledWith(service string, url *url.URL) (found bool) {
+	for _, call := range _f26.AddCheckCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Url, url) {
 			found = true
 			break
@@ -520,10 +635,10 @@ func (_f14 *FakeRegistrar) AddCheckCalledWith(service string, url *url.URL) (fou
 }
 
 // AssertAddCheckCalledWith calls t.Error if FakeRegistrar.AddCheck was not called with the given values
-func (_f15 *FakeRegistrar) AssertAddCheckCalledWith(t RegistrarTestingT, service string, url *url.URL) {
+func (_f27 *FakeRegistrar) AssertAddCheckCalledWith(t RegistrarTestingT, service string, url *url.URL) {
 	t.Helper()
 	var found bool
-	for _, call := range _f15.AddCheckCalls {
+	for _, call := range _f27.AddCheckCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Url, url) {
 			found = true
 			break
@@ -536,9 +651,9 @@ func (_f15 *FakeRegistrar) AssertAddCheckCalledWith(t RegistrarTestingT, service
 }
 
 // AddCheckCalledOnceWith returns true if FakeRegistrar.AddCheck was called exactly once with the given values
-func (_f16 *FakeRegistrar) AddCheckCalledOnceWith(service string, url *url.URL) bool {
+func (_f28 *FakeRegistrar) AddCheckCalledOnceWith(service string, url *url.URL) bool {
 	var count int
-	for _, call := range _f16.AddCheckCalls {
+	for _, call := range _f28.AddCheckCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Url, url) {
 			count++
 		}
@@ -548,10 +663,10 @@ func (_f16 *FakeRegistrar) AddCheckCalledOnceWith(service string, url *url.URL) 
 }
 
 // AssertAddCheckCalledOnceWith calls t.Error if FakeRegistrar.AddCheck was not called exactly once with the given values
-func (_f17 *FakeRegistrar) AssertAddCheckCalledOnceWith(t RegistrarTestingT, service string, url *url.URL) {
+func (_f29 *FakeRegistrar) AssertAddCheckCalledOnceWith(t RegistrarTestingT, service string, url *url.URL) {
 	t.Helper()
 	var count int
-	for _, call := range _f17.AddCheckCalls {
+	for _, call := range _f29.AddCheckCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Url, url) {
 			count++
 		}
@@ -563,8 +678,8 @@ func (_f17 *FakeRegistrar) AssertAddCheckCalledOnceWith(t RegistrarTestingT, ser
 }
 
 // AddCheckResultsForCall returns the result values for the first call to FakeRegistrar.AddCheck with the given values
-func (_f18 *FakeRegistrar) AddCheckResultsForCall(service string, url *url.URL) (ident1 merry.Error, found bool) {
-	for _, call := range _f18.AddCheckCalls {
+func (_f30 *FakeRegistrar) AddCheckResultsForCall(service string, url *url.URL) (ident1 merry.Error, found bool) {
+	for _, call := range _f30.AddCheckCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) && reflect.DeepEqual(call.Parameters.Url, url) {
 			ident1 = call.Results.Ident1
 			found = true
@@ -575,21 +690,44 @@ func (_f18 *FakeRegistrar) AddCheckResultsForCall(service string, url *url.URL) 
 	return
 }
 
-func (_f19 *FakeRegistrar) RemoveChecks(service string) (ident1 merry.Error) {
-	if _f19.RemoveChecksHook == nil {
+func (_f31 *FakeRegistrar) RemoveChecks(service string) (ident1 merry.Error) {
+	if _f31.RemoveChecksHook == nil {
 		panic("Registrar.RemoveChecks() called but FakeRegistrar.RemoveChecksHook is nil")
 	}
 
 	invocation := new(RegistrarRemoveChecksInvocation)
-	_f19.RemoveChecksCalls = append(_f19.RemoveChecksCalls, invocation)
+	_f31.RemoveChecksCalls = append(_f31.RemoveChecksCalls, invocation)
 
 	invocation.Parameters.Service = service
 
-	ident1 = _f19.RemoveChecksHook(service)
+	ident1 = _f31.RemoveChecksHook(service)
 
 	invocation.Results.Ident1 = ident1
 
 	return
+}
+
+// SetRemoveChecksStub configures Registrar.RemoveChecks to always return the given values
+func (_f32 *FakeRegistrar) SetRemoveChecksStub(ident1 merry.Error) {
+	_f32.RemoveChecksHook = func(string) merry.Error {
+		return ident1
+	}
+}
+
+// SetRemoveChecksInvocation configures Registrar.RemoveChecks to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f33 *FakeRegistrar) SetRemoveChecksInvocation(calls_f34 []*RegistrarRemoveChecksInvocation, fallback_f35 func() merry.Error) {
+	_f33.RemoveChecksHook = func(service string) (ident1 merry.Error) {
+		for _, call := range calls_f34 {
+			if reflect.DeepEqual(call.Parameters.Service, service) {
+				ident1 = call.Results.Ident1
+
+				return
+			}
+		}
+
+		return fallback_f35()
+	}
 }
 
 // RemoveChecksCalled returns true if FakeRegistrar.RemoveChecks was called
@@ -645,8 +783,8 @@ func (f *FakeRegistrar) AssertRemoveChecksCalledN(t RegistrarTestingT, n int) {
 }
 
 // RemoveChecksCalledWith returns true if FakeRegistrar.RemoveChecks was called with the given values
-func (_f20 *FakeRegistrar) RemoveChecksCalledWith(service string) (found bool) {
-	for _, call := range _f20.RemoveChecksCalls {
+func (_f36 *FakeRegistrar) RemoveChecksCalledWith(service string) (found bool) {
+	for _, call := range _f36.RemoveChecksCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) {
 			found = true
 			break
@@ -657,10 +795,10 @@ func (_f20 *FakeRegistrar) RemoveChecksCalledWith(service string) (found bool) {
 }
 
 // AssertRemoveChecksCalledWith calls t.Error if FakeRegistrar.RemoveChecks was not called with the given values
-func (_f21 *FakeRegistrar) AssertRemoveChecksCalledWith(t RegistrarTestingT, service string) {
+func (_f37 *FakeRegistrar) AssertRemoveChecksCalledWith(t RegistrarTestingT, service string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f21.RemoveChecksCalls {
+	for _, call := range _f37.RemoveChecksCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) {
 			found = true
 			break
@@ -673,9 +811,9 @@ func (_f21 *FakeRegistrar) AssertRemoveChecksCalledWith(t RegistrarTestingT, ser
 }
 
 // RemoveChecksCalledOnceWith returns true if FakeRegistrar.RemoveChecks was called exactly once with the given values
-func (_f22 *FakeRegistrar) RemoveChecksCalledOnceWith(service string) bool {
+func (_f38 *FakeRegistrar) RemoveChecksCalledOnceWith(service string) bool {
 	var count int
-	for _, call := range _f22.RemoveChecksCalls {
+	for _, call := range _f38.RemoveChecksCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) {
 			count++
 		}
@@ -685,10 +823,10 @@ func (_f22 *FakeRegistrar) RemoveChecksCalledOnceWith(service string) bool {
 }
 
 // AssertRemoveChecksCalledOnceWith calls t.Error if FakeRegistrar.RemoveChecks was not called exactly once with the given values
-func (_f23 *FakeRegistrar) AssertRemoveChecksCalledOnceWith(t RegistrarTestingT, service string) {
+func (_f39 *FakeRegistrar) AssertRemoveChecksCalledOnceWith(t RegistrarTestingT, service string) {
 	t.Helper()
 	var count int
-	for _, call := range _f23.RemoveChecksCalls {
+	for _, call := range _f39.RemoveChecksCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) {
 			count++
 		}
@@ -700,8 +838,8 @@ func (_f23 *FakeRegistrar) AssertRemoveChecksCalledOnceWith(t RegistrarTestingT,
 }
 
 // RemoveChecksResultsForCall returns the result values for the first call to FakeRegistrar.RemoveChecks with the given values
-func (_f24 *FakeRegistrar) RemoveChecksResultsForCall(service string) (ident1 merry.Error, found bool) {
-	for _, call := range _f24.RemoveChecksCalls {
+func (_f40 *FakeRegistrar) RemoveChecksResultsForCall(service string) (ident1 merry.Error, found bool) {
+	for _, call := range _f40.RemoveChecksCalls {
 		if reflect.DeepEqual(call.Parameters.Service, service) {
 			ident1 = call.Results.Ident1
 			found = true

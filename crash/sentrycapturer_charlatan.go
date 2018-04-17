@@ -18,6 +18,19 @@ type capturerCaptureInvocation struct {
 	}
 }
 
+// NewcapturerCaptureInvocation creates a new instance of capturerCaptureInvocation
+func NewcapturerCaptureInvocation(ident1 *raven.Packet, ident2 map[string]string, ident3 string, ident4 chan error) *capturerCaptureInvocation {
+	invocation := new(capturerCaptureInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+	invocation.Parameters.Ident2 = ident2
+
+	invocation.Results.Ident3 = ident3
+	invocation.Results.Ident4 = ident4
+
+	return invocation
+}
+
 // capturerCloseInvocation represents a single call of Fakecapturer.Close
 type capturerCloseInvocation struct {
 }
@@ -126,6 +139,30 @@ func (_f1 *Fakecapturer) Capture(ident1 *raven.Packet, ident2 map[string]string)
 	return
 }
 
+// SetCaptureStub configures capturer.Capture to always return the given values
+func (_f2 *Fakecapturer) SetCaptureStub(ident3 string, ident4 chan error) {
+	_f2.CaptureHook = func(*raven.Packet, map[string]string) (string, chan error) {
+		return ident3, ident4
+	}
+}
+
+// SetCaptureInvocation configures capturer.Capture to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *Fakecapturer) SetCaptureInvocation(calls_f4 []*capturerCaptureInvocation, fallback_f5 func() (string, chan error)) {
+	_f3.CaptureHook = func(ident1 *raven.Packet, ident2 map[string]string) (ident3 string, ident4 chan error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
+				ident3 = call.Results.Ident3
+				ident4 = call.Results.Ident4
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // CaptureCalled returns true if Fakecapturer.Capture was called
 func (f *Fakecapturer) CaptureCalled() bool {
 	return len(f.CaptureCalls) != 0
@@ -179,8 +216,8 @@ func (f *Fakecapturer) AssertCaptureCalledN(t capturerTestingT, n int) {
 }
 
 // CaptureCalledWith returns true if Fakecapturer.Capture was called with the given values
-func (_f2 *Fakecapturer) CaptureCalledWith(ident1 *raven.Packet, ident2 map[string]string) (found bool) {
-	for _, call := range _f2.CaptureCalls {
+func (_f6 *Fakecapturer) CaptureCalledWith(ident1 *raven.Packet, ident2 map[string]string) (found bool) {
+	for _, call := range _f6.CaptureCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -191,10 +228,10 @@ func (_f2 *Fakecapturer) CaptureCalledWith(ident1 *raven.Packet, ident2 map[stri
 }
 
 // AssertCaptureCalledWith calls t.Error if Fakecapturer.Capture was not called with the given values
-func (_f3 *Fakecapturer) AssertCaptureCalledWith(t capturerTestingT, ident1 *raven.Packet, ident2 map[string]string) {
+func (_f7 *Fakecapturer) AssertCaptureCalledWith(t capturerTestingT, ident1 *raven.Packet, ident2 map[string]string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.CaptureCalls {
+	for _, call := range _f7.CaptureCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -207,9 +244,9 @@ func (_f3 *Fakecapturer) AssertCaptureCalledWith(t capturerTestingT, ident1 *rav
 }
 
 // CaptureCalledOnceWith returns true if Fakecapturer.Capture was called exactly once with the given values
-func (_f4 *Fakecapturer) CaptureCalledOnceWith(ident1 *raven.Packet, ident2 map[string]string) bool {
+func (_f8 *Fakecapturer) CaptureCalledOnceWith(ident1 *raven.Packet, ident2 map[string]string) bool {
 	var count int
-	for _, call := range _f4.CaptureCalls {
+	for _, call := range _f8.CaptureCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -219,10 +256,10 @@ func (_f4 *Fakecapturer) CaptureCalledOnceWith(ident1 *raven.Packet, ident2 map[
 }
 
 // AssertCaptureCalledOnceWith calls t.Error if Fakecapturer.Capture was not called exactly once with the given values
-func (_f5 *Fakecapturer) AssertCaptureCalledOnceWith(t capturerTestingT, ident1 *raven.Packet, ident2 map[string]string) {
+func (_f9 *Fakecapturer) AssertCaptureCalledOnceWith(t capturerTestingT, ident1 *raven.Packet, ident2 map[string]string) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.CaptureCalls {
+	for _, call := range _f9.CaptureCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -234,8 +271,8 @@ func (_f5 *Fakecapturer) AssertCaptureCalledOnceWith(t capturerTestingT, ident1 
 }
 
 // CaptureResultsForCall returns the result values for the first call to Fakecapturer.Capture with the given values
-func (_f6 *Fakecapturer) CaptureResultsForCall(ident1 *raven.Packet, ident2 map[string]string) (ident3 string, ident4 chan error, found bool) {
-	for _, call := range _f6.CaptureCalls {
+func (_f10 *Fakecapturer) CaptureResultsForCall(ident1 *raven.Packet, ident2 map[string]string) (ident3 string, ident4 chan error, found bool) {
+	for _, call := range _f10.CaptureCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			ident3 = call.Results.Ident3
 			ident4 = call.Results.Ident4
@@ -247,15 +284,15 @@ func (_f6 *Fakecapturer) CaptureResultsForCall(ident1 *raven.Packet, ident2 map[
 	return
 }
 
-func (_f7 *Fakecapturer) Close() {
-	if _f7.CloseHook == nil {
+func (_f11 *Fakecapturer) Close() {
+	if _f11.CloseHook == nil {
 		panic("capturer.Close() called but Fakecapturer.CloseHook is nil")
 	}
 
 	invocation := new(capturerCloseInvocation)
-	_f7.CloseCalls = append(_f7.CloseCalls, invocation)
+	_f11.CloseCalls = append(_f11.CloseCalls, invocation)
 
-	_f7.CloseHook()
+	_f11.CloseHook()
 
 	return
 }

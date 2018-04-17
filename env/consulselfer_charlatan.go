@@ -97,6 +97,13 @@ func (_f1 *Fakeselfer) Self() (ident1 map[string]map[string]interface{}, ident2 
 	return
 }
 
+// SetSelfStub configures selfer.Self to always return the given values
+func (_f2 *Fakeselfer) SetSelfStub(ident1 map[string]map[string]interface{}, ident2 error) {
+	_f2.SelfHook = func() (map[string]map[string]interface{}, error) {
+		return ident1, ident2
+	}
+}
+
 // SelfCalled returns true if Fakeselfer.Self was called
 func (f *Fakeselfer) SelfCalled() bool {
 	return len(f.SelfCalls) != 0

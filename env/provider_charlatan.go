@@ -17,6 +17,18 @@ type ProviderGetInvocation struct {
 	}
 }
 
+// NewProviderGetInvocation creates a new instance of ProviderGetInvocation
+func NewProviderGetInvocation(ident1 string, ident2 string, ident3 merry.Error) *ProviderGetInvocation {
+	invocation := new(ProviderGetInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
+
+	return invocation
+}
+
 // ProviderGetIntInvocation represents a single call of FakeProvider.GetInt
 type ProviderGetIntInvocation struct {
 	Parameters struct {
@@ -28,6 +40,18 @@ type ProviderGetIntInvocation struct {
 	}
 }
 
+// NewProviderGetIntInvocation creates a new instance of ProviderGetIntInvocation
+func NewProviderGetIntInvocation(ident1 string, ident2 int, ident3 merry.Error) *ProviderGetIntInvocation {
+	invocation := new(ProviderGetIntInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
+
+	return invocation
+}
+
 // ProviderGetBoolInvocation represents a single call of FakeProvider.GetBool
 type ProviderGetBoolInvocation struct {
 	Parameters struct {
@@ -37,6 +61,18 @@ type ProviderGetBoolInvocation struct {
 		Ident2 bool
 		Ident3 merry.Error
 	}
+}
+
+// NewProviderGetBoolInvocation creates a new instance of ProviderGetBoolInvocation
+func NewProviderGetBoolInvocation(ident1 string, ident2 bool, ident3 merry.Error) *ProviderGetBoolInvocation {
+	invocation := new(ProviderGetBoolInvocation)
+
+	invocation.Parameters.Ident1 = ident1
+
+	invocation.Results.Ident2 = ident2
+	invocation.Results.Ident3 = ident3
+
+	return invocation
 }
 
 // ProviderMonitorInvocation represents a single call of FakeProvider.Monitor
@@ -178,6 +214,30 @@ func (_f1 *FakeProvider) Get(ident1 string) (ident2 string, ident3 merry.Error) 
 	return
 }
 
+// SetGetStub configures Provider.Get to always return the given values
+func (_f2 *FakeProvider) SetGetStub(ident2 string, ident3 merry.Error) {
+	_f2.GetHook = func(string) (string, merry.Error) {
+		return ident2, ident3
+	}
+}
+
+// SetGetInvocation configures Provider.Get to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f3 *FakeProvider) SetGetInvocation(calls_f4 []*ProviderGetInvocation, fallback_f5 func() (string, merry.Error)) {
+	_f3.GetHook = func(ident1 string) (ident2 string, ident3 merry.Error) {
+		for _, call := range calls_f4 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f5()
+	}
+}
+
 // GetCalled returns true if FakeProvider.Get was called
 func (f *FakeProvider) GetCalled() bool {
 	return len(f.GetCalls) != 0
@@ -231,8 +291,8 @@ func (f *FakeProvider) AssertGetCalledN(t ProviderTestingT, n int) {
 }
 
 // GetCalledWith returns true if FakeProvider.Get was called with the given values
-func (_f2 *FakeProvider) GetCalledWith(ident1 string) (found bool) {
-	for _, call := range _f2.GetCalls {
+func (_f6 *FakeProvider) GetCalledWith(ident1 string) (found bool) {
+	for _, call := range _f6.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -243,10 +303,10 @@ func (_f2 *FakeProvider) GetCalledWith(ident1 string) (found bool) {
 }
 
 // AssertGetCalledWith calls t.Error if FakeProvider.Get was not called with the given values
-func (_f3 *FakeProvider) AssertGetCalledWith(t ProviderTestingT, ident1 string) {
+func (_f7 *FakeProvider) AssertGetCalledWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f3.GetCalls {
+	for _, call := range _f7.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -259,9 +319,9 @@ func (_f3 *FakeProvider) AssertGetCalledWith(t ProviderTestingT, ident1 string) 
 }
 
 // GetCalledOnceWith returns true if FakeProvider.Get was called exactly once with the given values
-func (_f4 *FakeProvider) GetCalledOnceWith(ident1 string) bool {
+func (_f8 *FakeProvider) GetCalledOnceWith(ident1 string) bool {
 	var count int
-	for _, call := range _f4.GetCalls {
+	for _, call := range _f8.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -271,10 +331,10 @@ func (_f4 *FakeProvider) GetCalledOnceWith(ident1 string) bool {
 }
 
 // AssertGetCalledOnceWith calls t.Error if FakeProvider.Get was not called exactly once with the given values
-func (_f5 *FakeProvider) AssertGetCalledOnceWith(t ProviderTestingT, ident1 string) {
+func (_f9 *FakeProvider) AssertGetCalledOnceWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
-	for _, call := range _f5.GetCalls {
+	for _, call := range _f9.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -286,8 +346,8 @@ func (_f5 *FakeProvider) AssertGetCalledOnceWith(t ProviderTestingT, ident1 stri
 }
 
 // GetResultsForCall returns the result values for the first call to FakeProvider.Get with the given values
-func (_f6 *FakeProvider) GetResultsForCall(ident1 string) (ident2 string, ident3 merry.Error, found bool) {
-	for _, call := range _f6.GetCalls {
+func (_f10 *FakeProvider) GetResultsForCall(ident1 string) (ident2 string, ident3 merry.Error, found bool) {
+	for _, call := range _f10.GetCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			ident3 = call.Results.Ident3
@@ -299,22 +359,46 @@ func (_f6 *FakeProvider) GetResultsForCall(ident1 string) (ident2 string, ident3
 	return
 }
 
-func (_f7 *FakeProvider) GetInt(ident1 string) (ident2 int, ident3 merry.Error) {
-	if _f7.GetIntHook == nil {
+func (_f11 *FakeProvider) GetInt(ident1 string) (ident2 int, ident3 merry.Error) {
+	if _f11.GetIntHook == nil {
 		panic("Provider.GetInt() called but FakeProvider.GetIntHook is nil")
 	}
 
 	invocation := new(ProviderGetIntInvocation)
-	_f7.GetIntCalls = append(_f7.GetIntCalls, invocation)
+	_f11.GetIntCalls = append(_f11.GetIntCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2, ident3 = _f7.GetIntHook(ident1)
+	ident2, ident3 = _f11.GetIntHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
 
 	return
+}
+
+// SetGetIntStub configures Provider.GetInt to always return the given values
+func (_f12 *FakeProvider) SetGetIntStub(ident2 int, ident3 merry.Error) {
+	_f12.GetIntHook = func(string) (int, merry.Error) {
+		return ident2, ident3
+	}
+}
+
+// SetGetIntInvocation configures Provider.GetInt to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f13 *FakeProvider) SetGetIntInvocation(calls_f14 []*ProviderGetIntInvocation, fallback_f15 func() (int, merry.Error)) {
+	_f13.GetIntHook = func(ident1 string) (ident2 int, ident3 merry.Error) {
+		for _, call := range calls_f14 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f15()
+	}
 }
 
 // GetIntCalled returns true if FakeProvider.GetInt was called
@@ -370,8 +454,8 @@ func (f *FakeProvider) AssertGetIntCalledN(t ProviderTestingT, n int) {
 }
 
 // GetIntCalledWith returns true if FakeProvider.GetInt was called with the given values
-func (_f8 *FakeProvider) GetIntCalledWith(ident1 string) (found bool) {
-	for _, call := range _f8.GetIntCalls {
+func (_f16 *FakeProvider) GetIntCalledWith(ident1 string) (found bool) {
+	for _, call := range _f16.GetIntCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -382,10 +466,10 @@ func (_f8 *FakeProvider) GetIntCalledWith(ident1 string) (found bool) {
 }
 
 // AssertGetIntCalledWith calls t.Error if FakeProvider.GetInt was not called with the given values
-func (_f9 *FakeProvider) AssertGetIntCalledWith(t ProviderTestingT, ident1 string) {
+func (_f17 *FakeProvider) AssertGetIntCalledWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f9.GetIntCalls {
+	for _, call := range _f17.GetIntCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -398,9 +482,9 @@ func (_f9 *FakeProvider) AssertGetIntCalledWith(t ProviderTestingT, ident1 strin
 }
 
 // GetIntCalledOnceWith returns true if FakeProvider.GetInt was called exactly once with the given values
-func (_f10 *FakeProvider) GetIntCalledOnceWith(ident1 string) bool {
+func (_f18 *FakeProvider) GetIntCalledOnceWith(ident1 string) bool {
 	var count int
-	for _, call := range _f10.GetIntCalls {
+	for _, call := range _f18.GetIntCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -410,10 +494,10 @@ func (_f10 *FakeProvider) GetIntCalledOnceWith(ident1 string) bool {
 }
 
 // AssertGetIntCalledOnceWith calls t.Error if FakeProvider.GetInt was not called exactly once with the given values
-func (_f11 *FakeProvider) AssertGetIntCalledOnceWith(t ProviderTestingT, ident1 string) {
+func (_f19 *FakeProvider) AssertGetIntCalledOnceWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
-	for _, call := range _f11.GetIntCalls {
+	for _, call := range _f19.GetIntCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -425,8 +509,8 @@ func (_f11 *FakeProvider) AssertGetIntCalledOnceWith(t ProviderTestingT, ident1 
 }
 
 // GetIntResultsForCall returns the result values for the first call to FakeProvider.GetInt with the given values
-func (_f12 *FakeProvider) GetIntResultsForCall(ident1 string) (ident2 int, ident3 merry.Error, found bool) {
-	for _, call := range _f12.GetIntCalls {
+func (_f20 *FakeProvider) GetIntResultsForCall(ident1 string) (ident2 int, ident3 merry.Error, found bool) {
+	for _, call := range _f20.GetIntCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			ident3 = call.Results.Ident3
@@ -438,22 +522,46 @@ func (_f12 *FakeProvider) GetIntResultsForCall(ident1 string) (ident2 int, ident
 	return
 }
 
-func (_f13 *FakeProvider) GetBool(ident1 string) (ident2 bool, ident3 merry.Error) {
-	if _f13.GetBoolHook == nil {
+func (_f21 *FakeProvider) GetBool(ident1 string) (ident2 bool, ident3 merry.Error) {
+	if _f21.GetBoolHook == nil {
 		panic("Provider.GetBool() called but FakeProvider.GetBoolHook is nil")
 	}
 
 	invocation := new(ProviderGetBoolInvocation)
-	_f13.GetBoolCalls = append(_f13.GetBoolCalls, invocation)
+	_f21.GetBoolCalls = append(_f21.GetBoolCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 
-	ident2, ident3 = _f13.GetBoolHook(ident1)
+	ident2, ident3 = _f21.GetBoolHook(ident1)
 
 	invocation.Results.Ident2 = ident2
 	invocation.Results.Ident3 = ident3
 
 	return
+}
+
+// SetGetBoolStub configures Provider.GetBool to always return the given values
+func (_f22 *FakeProvider) SetGetBoolStub(ident2 bool, ident3 merry.Error) {
+	_f22.GetBoolHook = func(string) (bool, merry.Error) {
+		return ident2, ident3
+	}
+}
+
+// SetGetBoolInvocation configures Provider.GetBool to return the given results when called with the given parameters
+// If no match is found for an invocation the result(s) of the fallback function are returned
+func (_f23 *FakeProvider) SetGetBoolInvocation(calls_f24 []*ProviderGetBoolInvocation, fallback_f25 func() (bool, merry.Error)) {
+	_f23.GetBoolHook = func(ident1 string) (ident2 bool, ident3 merry.Error) {
+		for _, call := range calls_f24 {
+			if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
+				ident2 = call.Results.Ident2
+				ident3 = call.Results.Ident3
+
+				return
+			}
+		}
+
+		return fallback_f25()
+	}
 }
 
 // GetBoolCalled returns true if FakeProvider.GetBool was called
@@ -509,8 +617,8 @@ func (f *FakeProvider) AssertGetBoolCalledN(t ProviderTestingT, n int) {
 }
 
 // GetBoolCalledWith returns true if FakeProvider.GetBool was called with the given values
-func (_f14 *FakeProvider) GetBoolCalledWith(ident1 string) (found bool) {
-	for _, call := range _f14.GetBoolCalls {
+func (_f26 *FakeProvider) GetBoolCalledWith(ident1 string) (found bool) {
+	for _, call := range _f26.GetBoolCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -521,10 +629,10 @@ func (_f14 *FakeProvider) GetBoolCalledWith(ident1 string) (found bool) {
 }
 
 // AssertGetBoolCalledWith calls t.Error if FakeProvider.GetBool was not called with the given values
-func (_f15 *FakeProvider) AssertGetBoolCalledWith(t ProviderTestingT, ident1 string) {
+func (_f27 *FakeProvider) AssertGetBoolCalledWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var found bool
-	for _, call := range _f15.GetBoolCalls {
+	for _, call := range _f27.GetBoolCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			found = true
 			break
@@ -537,9 +645,9 @@ func (_f15 *FakeProvider) AssertGetBoolCalledWith(t ProviderTestingT, ident1 str
 }
 
 // GetBoolCalledOnceWith returns true if FakeProvider.GetBool was called exactly once with the given values
-func (_f16 *FakeProvider) GetBoolCalledOnceWith(ident1 string) bool {
+func (_f28 *FakeProvider) GetBoolCalledOnceWith(ident1 string) bool {
 	var count int
-	for _, call := range _f16.GetBoolCalls {
+	for _, call := range _f28.GetBoolCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -549,10 +657,10 @@ func (_f16 *FakeProvider) GetBoolCalledOnceWith(ident1 string) bool {
 }
 
 // AssertGetBoolCalledOnceWith calls t.Error if FakeProvider.GetBool was not called exactly once with the given values
-func (_f17 *FakeProvider) AssertGetBoolCalledOnceWith(t ProviderTestingT, ident1 string) {
+func (_f29 *FakeProvider) AssertGetBoolCalledOnceWith(t ProviderTestingT, ident1 string) {
 	t.Helper()
 	var count int
-	for _, call := range _f17.GetBoolCalls {
+	for _, call := range _f29.GetBoolCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			count++
 		}
@@ -564,8 +672,8 @@ func (_f17 *FakeProvider) AssertGetBoolCalledOnceWith(t ProviderTestingT, ident1
 }
 
 // GetBoolResultsForCall returns the result values for the first call to FakeProvider.GetBool with the given values
-func (_f18 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ident3 merry.Error, found bool) {
-	for _, call := range _f18.GetBoolCalls {
+func (_f30 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ident3 merry.Error, found bool) {
+	for _, call := range _f30.GetBoolCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) {
 			ident2 = call.Results.Ident2
 			ident3 = call.Results.Ident3
@@ -577,18 +685,18 @@ func (_f18 *FakeProvider) GetBoolResultsForCall(ident1 string) (ident2 bool, ide
 	return
 }
 
-func (_f19 *FakeProvider) Monitor(ident1 string, ident2 chan<- Value) {
-	if _f19.MonitorHook == nil {
+func (_f31 *FakeProvider) Monitor(ident1 string, ident2 chan<- Value) {
+	if _f31.MonitorHook == nil {
 		panic("Provider.Monitor() called but FakeProvider.MonitorHook is nil")
 	}
 
 	invocation := new(ProviderMonitorInvocation)
-	_f19.MonitorCalls = append(_f19.MonitorCalls, invocation)
+	_f31.MonitorCalls = append(_f31.MonitorCalls, invocation)
 
 	invocation.Parameters.Ident1 = ident1
 	invocation.Parameters.Ident2 = ident2
 
-	_f19.MonitorHook(ident1, ident2)
+	_f31.MonitorHook(ident1, ident2)
 
 	return
 }
@@ -646,8 +754,8 @@ func (f *FakeProvider) AssertMonitorCalledN(t ProviderTestingT, n int) {
 }
 
 // MonitorCalledWith returns true if FakeProvider.Monitor was called with the given values
-func (_f20 *FakeProvider) MonitorCalledWith(ident1 string, ident2 chan<- Value) (found bool) {
-	for _, call := range _f20.MonitorCalls {
+func (_f32 *FakeProvider) MonitorCalledWith(ident1 string, ident2 chan<- Value) (found bool) {
+	for _, call := range _f32.MonitorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -658,10 +766,10 @@ func (_f20 *FakeProvider) MonitorCalledWith(ident1 string, ident2 chan<- Value) 
 }
 
 // AssertMonitorCalledWith calls t.Error if FakeProvider.Monitor was not called with the given values
-func (_f21 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 string, ident2 chan<- Value) {
+func (_f33 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 string, ident2 chan<- Value) {
 	t.Helper()
 	var found bool
-	for _, call := range _f21.MonitorCalls {
+	for _, call := range _f33.MonitorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			found = true
 			break
@@ -674,9 +782,9 @@ func (_f21 *FakeProvider) AssertMonitorCalledWith(t ProviderTestingT, ident1 str
 }
 
 // MonitorCalledOnceWith returns true if FakeProvider.Monitor was called exactly once with the given values
-func (_f22 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 chan<- Value) bool {
+func (_f34 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 chan<- Value) bool {
 	var count int
-	for _, call := range _f22.MonitorCalls {
+	for _, call := range _f34.MonitorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
@@ -686,10 +794,10 @@ func (_f22 *FakeProvider) MonitorCalledOnceWith(ident1 string, ident2 chan<- Val
 }
 
 // AssertMonitorCalledOnceWith calls t.Error if FakeProvider.Monitor was not called exactly once with the given values
-func (_f23 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1 string, ident2 chan<- Value) {
+func (_f35 *FakeProvider) AssertMonitorCalledOnceWith(t ProviderTestingT, ident1 string, ident2 chan<- Value) {
 	t.Helper()
 	var count int
-	for _, call := range _f23.MonitorCalls {
+	for _, call := range _f35.MonitorCalls {
 		if reflect.DeepEqual(call.Parameters.Ident1, ident1) && reflect.DeepEqual(call.Parameters.Ident2, ident2) {
 			count++
 		}
