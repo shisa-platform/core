@@ -72,14 +72,7 @@ func (m *Authentication) Service(ctx context.Context, request *httpx.Request) ht
 }
 
 func (m *Authentication) authenticate(ctx context.Context, request *httpx.Request) (user models.User, err merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in authenticator")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in authenticator")
 
 	user, err = m.Authenticator.Authenticate(ctx, request)
 
@@ -150,7 +143,7 @@ type PassiveAuthentication struct {
 	Authenticator authn.Authenticator
 }
 
-func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Request) (response httpx.Response) {
+func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Request) httpx.Response {
 	subCtx := ctx
 	span := noopSpan
 	if ctx.Span() != nil {
@@ -159,25 +152,26 @@ func (m *PassiveAuthentication) Service(ctx context.Context, request *httpx.Requ
 		ext.Component.Set(span, "middleware")
 	}
 
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err := errorx.CapturePanic(arg, "passive authentication middleware: authenticate: panic in authenticator")
-		span.LogFields(otlog.String("exception", err.Error()))
-		response = httpx.NewEmptyError(http.StatusInternalServerError, err)
-	}()
-
 	if m.Authenticator == nil {
 		err := merry.New("passive authentication middleware: check invariants: authenticator nil")
+		span.LogFields(otlog.String("error", err.Error()))
 		return httpx.NewEmptyError(http.StatusInternalServerError, err)
 	}
 
-	if user, _ := m.Authenticator.Authenticate(subCtx, request); user != nil {
+	if user, exception := m.authenticate(subCtx, request); exception != nil {
+		span.LogFields(otlog.String("exception", exception.Error()))
+		return httpx.NewEmptyError(http.StatusInternalServerError, exception)
+	} else {
 		ctx = ctx.WithActor(user)
 	}
 
 	return nil
+}
+
+func (m *PassiveAuthentication) authenticate(ctx context.Context, request *httpx.Request) (user models.User, exception merry.Error) {
+	defer errorx.CapturePanic(&exception, "passive authentication middleware: authenticate: panic in authenticator")
+
+	user, _ = m.Authenticator.Authenticate(ctx, request)
+
+	return
 }

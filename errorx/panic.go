@@ -1,31 +1,41 @@
 package errorx
 
 import (
-	"fmt"
-
 	"github.com/ansel1/merry"
 )
 
-const (
-	sentinel = "panic"
-)
+type panicSentinel struct{}
 
-func CapturePanic(arg interface{}, message string) (err merry.Error) {
-	if err1, ok := arg.(error); ok {
-		err = merry.Prepend(err1, message)
-	} else {
-		err = merry.Errorf("%s: %v", message, arg)
+var sentinel = new(panicSentinel)
+
+/*
+CapturePanic will capture a panic, create a merry.Error and set
+exception to the error.  The error has message prepended to the value
+originall passed to `panic`.
+
+Use it like this:
+
+    defer errorx.CapturePanic(&err, "panic while doing a thing")
+*/
+func CapturePanic(exception *merry.Error, message string) {
+	arg := recover()
+	if arg == nil {
+		return
 	}
 
-	err = err.WithValue(sentinel, true)
+	var ex merry.Error
+	if err1, ok := arg.(error); ok {
+		ex = merry.Prepend(err1, message)
+	} else {
+		ex = merry.Errorf("%s: %v", message, arg)
+	}
+
+	*exception = ex.WithValue(sentinel, true)
 
 	return
 }
 
-func CapturePanicf(arg interface{}, format string, args ...interface{}) merry.Error {
-	return CapturePanic(arg, fmt.Sprintf(format, args...))
-}
-
+// IsPanic returns true if the given error was created by CapturePanic
 func IsPanic(err merry.Error) bool {
 	value := merry.Value(err, sentinel)
 	if value == nil {

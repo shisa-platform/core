@@ -14,7 +14,7 @@ func (h ErrorHook) InvokeSafely(ctx context.Context, request *Request, err merry
 		return
 	}
 
-	defer hookRecovery(&exception)
+	defer errorx.CapturePanic(&exception, "panic in hook")
 	h(ctx, request, err)
 
 	return
@@ -27,17 +27,8 @@ func (h CompletionHook) InvokeSafely(ctx context.Context, request *Request, snap
 		return
 	}
 
-	defer hookRecovery(&exception)
+	defer errorx.CapturePanic(&exception, "panic in hook")
 	h(ctx, request, snapshot)
 
 	return
-}
-
-func hookRecovery(exception *merry.Error) {
-	arg := recover()
-	if arg == nil {
-		return
-	}
-
-	*exception = errorx.CapturePanic(arg, "panic in hook")
 }

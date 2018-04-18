@@ -33,14 +33,7 @@ var (
 type Router func(context.Context, *httpx.Request) (*httpx.Request, merry.Error)
 
 func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (out *httpx.Request, err merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in router")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in router")
 
 	out, err = r(ctx, request)
 
@@ -51,14 +44,7 @@ func (r Router) InvokeSafely(ctx context.Context, request *httpx.Request) (out *
 type Invoker func(context.Context, *httpx.Request) (httpx.Response, merry.Error)
 
 func (i Invoker) InvokeSafely(ctx context.Context, request *httpx.Request) (response httpx.Response, err merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in invoker")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in invoker")
 
 	response, err = i(ctx, request)
 
@@ -69,14 +55,7 @@ func (i Invoker) InvokeSafely(ctx context.Context, request *httpx.Request) (resp
 type Responder func(context.Context, *httpx.Request, httpx.Response) (httpx.Response, merry.Error)
 
 func (r Responder) InvokeSafely(ctx context.Context, request *httpx.Request, in httpx.Response) (out httpx.Response, err merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in responder")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in responder")
 
 	out, err = r(ctx, request, in)
 

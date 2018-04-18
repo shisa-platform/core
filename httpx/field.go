@@ -20,14 +20,7 @@ var (
 type Validator func([]string) merry.Error
 
 func (v Validator) InvokeSafely(values []string) (_ merry.Error, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in validator")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in validator")
 
 	return v(values), nil
 }

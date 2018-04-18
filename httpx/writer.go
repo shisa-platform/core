@@ -15,14 +15,7 @@ import (
 // `ResponseWriter` after calling this function.
 // Any error returned from `Response.Serialize` will be returned.
 func WriteResponse(w http.ResponseWriter, response Response) (err merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		err = errorx.CapturePanic(arg, "panic in response serializer")
-	}()
+	defer errorx.CapturePanic(&err, "panic in response serializer")
 
 	for k, vs := range response.Headers() {
 		w.Header()[k] = vs
