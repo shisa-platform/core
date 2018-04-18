@@ -17,7 +17,7 @@ import (
 type Handler func(context.Context, *Request) Response
 
 func (h Handler) InvokeSafely(ctx context.Context, request *Request) (_ Response, exception merry.Error) {
-	defer handlerRecovery(&exception)
+	defer errorx.CapturePanic(&exception, "panic in handler")
 	return h(ctx, request), nil
 }
 
@@ -25,7 +25,7 @@ func (h Handler) InvokeSafely(ctx context.Context, request *Request) (_ Response
 type ErrorHandler func(context.Context, *Request, merry.Error) Response
 
 func (h ErrorHandler) InvokeSafely(ctx context.Context, request *Request, err merry.Error) (_ Response, exception merry.Error) {
-	defer handlerRecovery(&exception)
+	defer errorx.CapturePanic(&exception, "panic in handler")
 	return h(ctx, request, err), nil
 }
 

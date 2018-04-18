@@ -26,14 +26,7 @@ const (
 type CheckOrigin func(expected, actual *url.URL) bool
 
 func (h CheckOrigin) InvokeSafely(expected, actual *url.URL) (ok bool, exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-
-		exception = errorx.CapturePanic(arg, "panic in check origin hook")
-	}()
+	defer errorx.CapturePanic(&exception, "panic in check origin hook")
 
 	return h(expected, actual), nil
 }

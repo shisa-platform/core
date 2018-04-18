@@ -52,9 +52,16 @@ func TestSentryReportPanic(t *testing.T) {
 	ctx := context.WithActor(nil, u).WithRequestID("req_id")
 	r := httpx.GetRequest(httptest.NewRequest("GET", "/", nil))
 
-	sr.Report(ctx, r, errorx.CapturePanic(merry.New("i blewed up"), "caused panic"))
+	var exception merry.Error
 
-	client.AssertCaptureCalledOnce(t)
+	defer func() {
+		sr.Report(ctx, r, exception)
+		client.AssertCaptureCalledOnce(t)
+	}()
+
+	defer errorx.CapturePanic(&exception, "uh-oh")
+
+	panic(merry.New("i blewed up!"))
 }
 
 func TestClose(t *testing.T) {

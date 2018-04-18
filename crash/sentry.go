@@ -59,13 +59,7 @@ func (s *SentryReporter) Report(ctx context.Context, r *httpx.Request, err merry
 
 // Close safely closes the *raven.Client
 func (s *SentryReporter) Close() (exception merry.Error) {
-	defer func() {
-		arg := recover()
-		if arg == nil {
-			return
-		}
-		exception = errorx.CapturePanic(arg, "crash: panic in sentry reporter close")
-	}()
+	defer errorx.CapturePanic(&exception, "crash: panic in sentry reporter close")
 
 	s.client.Close()
 
