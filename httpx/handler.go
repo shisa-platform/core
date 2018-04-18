@@ -29,15 +29,6 @@ func (h ErrorHandler) InvokeSafely(ctx context.Context, request *Request, err me
 	return h(ctx, request, err), nil
 }
 
-func handlerRecovery(exception *merry.Error) {
-	arg := recover()
-	if arg == nil {
-		return
-	}
-
-	*exception = errorx.CapturePanic(arg, "panic in handler")
-}
-
 type responseBuffer struct {
 	code    int
 	headers http.Header
