@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -98,4 +99,56 @@ func TestErrorHandlerOK(t *testing.T) {
 	assert.NoError(t, exception)
 	assert.NotNil(t, response)
 	assert.Equal(t, http.StatusTeapot, response.StatusCode())
+}
+
+func TestAdaptStdHandlerNoOutput(t *testing.T) {
+	ctx := context.NewFakeContextDefaultFatal(t)
+	request := &Request{Request: httptest.NewRequest(http.MethodGet, "/test", nil)}
+
+	handler := &FakeHandler{
+		ServeHTTPHook: func(w http.ResponseWriter, r *http.Request) {
+			assert.NotNil(t, w)
+			assert.Equal(t, ctx, r.Context())
+			assert.NotEqual(t, request.Request, r)
+			return
+		},
+	}
+	cut := AdaptStandardHandler(handler)
+
+	response := cut(ctx, request)
+	assert.Nil(t, response)
+	handler.AssertServeHTTPCalledOnce(t)
+}
+
+func TestAdaptStdHandlerWithResponse(t *testing.T) {
+	status := http.StatusTeapot
+	payload := "here is my handle"
+	ctx := context.NewFakeContextDefaultFatal(t)
+	request := &Request{Request: httptest.NewRequest(http.MethodGet, "/test", nil)}
+
+	handler := &FakeHandler{
+		ServeHTTPHook: func(w http.ResponseWriter, r *http.Request) {
+			assert.NotNil(t, w)
+			assert.Equal(t, ctx, r.Context())
+			assert.NotEqual(t, request.Request, r)
+			w.Header().Set("x-zalgo", "he comes")
+			w.WriteHeader(status)
+			w.Write([]byte(payload))
+			return
+		},
+	}
+	cut := AdaptStandardHandler(handler)
+
+	response := cut(ctx, request)
+	assert.NotNil(t, response)
+	handler.AssertServeHTTPCalledOnce(t)
+	assert.Equal(t, status, response.StatusCode())
+	assert.Nil(t, response.Err())
+	assert.Equal(t, "he comes", response.Headers().Get("x-zalgo"))
+	assert.Nil(t, response.Trailers())
+
+	var bs bytes.Buffer
+	err := response.Serialize(&bs)
+	assert.NoError(t, err)
+	assert.Equal(t, payload, bs.String())
 }
