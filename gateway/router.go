@@ -30,8 +30,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ri := httpx.NewInterceptor(w)
 
-	ctx := context.Get(r.Context())
-	defer context.Put(ctx)
+	ctx := context.New(r.Context())
 	ctx = ctx.WithSpan(parent)
 
 	request := httpx.GetRequest(r)
