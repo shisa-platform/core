@@ -116,8 +116,7 @@ type Goodbye struct {
 func (s *Goodbye) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ri := httpx.NewInterceptor(w)
 
-	ctx := context.Get(req.Context())
-	defer context.Put(ctx)
+	ctx := context.New(req.Context())
 
 	request := &httpx.Request{Request: req}
 	request.ParseQueryParameters()

@@ -180,33 +180,39 @@ func (ctx *shisaCtx) WithTimeout(timeout time.Duration) (Context, context.Cancel
 
 // New returns a new instance with the given parent
 func New(parent context.Context) Context {
-	return get(parent)
+	return newShisaCtx(parent)
+}
+
+func newShisaCtx(parent context.Context) *shisaCtx {
+	return &shisaCtx{
+		Context: parent,
+	}
 }
 
 // WithActor returns a new instance with the given parent and actor
 func WithActor(parent context.Context, value models.User) Context {
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	ctx.actor = value
 	return ctx
 }
 
 // WithRequestID returns a new instance with the given parent and request id
 func WithRequestID(parent context.Context, value string) Context {
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	ctx.requestID = value
 	return ctx
 }
 
 // WithSpan returns a new instance with the given parent and span
 func WithSpan(parent context.Context, value opentracing.Span) Context {
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	ctx.span = value
 	return ctx
 }
 
 // StartSpan returns a new instance with the given parent and a span created using the given operation name and options
 func StartSpan(parent Context, operationName string, opts ...opentracing.StartSpanOption) (opentracing.Span, Context) {
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	ctx.span = parent.StartSpan(operationName, opts...)
 
 	return ctx.span, ctx
@@ -214,7 +220,7 @@ func StartSpan(parent Context, operationName string, opts ...opentracing.StartSp
 
 // WithValue returns a new instance with the given parent and value
 func WithValue(parent context.Context, key, value interface{}) Context {
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 
 	switch key {
 	case IDKey:
@@ -233,20 +239,20 @@ func WithValue(parent context.Context, key, value interface{}) Context {
 // WithCancel returns a new instance and its cancel function with the given parent
 func WithCancel(grandParent context.Context) (Context, context.CancelFunc) {
 	parent, cancel := context.WithCancel(grandParent)
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	return ctx, cancel
 }
 
 // WithDeadline returns a new instance with the given deadline
 func WithDeadline(grandParent context.Context, deadline time.Time) (Context, context.CancelFunc) {
 	parent, cancel := context.WithDeadline(grandParent, deadline)
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	return ctx, cancel
 }
 
 // WithTimeout returns a new instance with the given timeout
 func WithTimeout(grandParent context.Context, timeout time.Duration) (Context, context.CancelFunc) {
 	parent, cancel := context.WithTimeout(grandParent, timeout)
-	ctx := get(parent)
+	ctx := newShisaCtx(parent)
 	return ctx, cancel
 }
