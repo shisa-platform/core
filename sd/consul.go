@@ -105,8 +105,6 @@ func (r *consulSD) AddCheck(service string, u *url.URL) merry.Error {
 	}
 
 	switch u.Scheme {
-	// TODO: wait for https://github.com/hashicorp/consul/commit/c3e94970a09db21b1a3de947ae28577980a18161
-	// to get released before handling GRPC
 	case "grpc":
 		if len(u.Host) == 0 {
 			return merry.New("consul sd: add check: grpc scheme requres host")
@@ -115,8 +113,8 @@ func (r *consulSD) AddCheck(service string, u *url.URL) merry.Error {
 			return err.Prepend("consul sd: add check: grpc scheme")
 		}
 		acr.AgentServiceCheck.Interval = popQueryString(q, "interval")
-		// acr.AgentServiceCheck.GRPC = u.Host
-		// acr.AgentServiceCheck.GRPCUseTLS = popQueryBool(q, "grpcusetls")
+		acr.AgentServiceCheck.GRPC = u.Host
+		acr.AgentServiceCheck.GRPCUseTLS = popQueryBool(q, "grpcusetls")
 	case "docker":
 		if err := validateKeysExist(q, "dockercontainerid", "args", "interval"); err != nil {
 			return err.Prepend("consul sd: add check: docker scheme")
