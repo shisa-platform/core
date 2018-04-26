@@ -265,6 +265,62 @@ func TestIntValidatorMinMax(t *testing.T) {
 	assert.Error(t, cut.Validate([]string{"5", "666"}))
 }
 
+func TestUIntValidatorEmpty(t *testing.T) {
+	cut := UIntValidator{}
+
+	assert.NoError(t, cut.Validate([]string{"1"}))
+	assert.NoError(t, cut.Validate([]string(nil)))
+	assert.NoError(t, cut.Validate([]string{}))
+	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
+}
+
+func TestUIntValidatorMin(t *testing.T) {
+	min := uint(5)
+	cut := UIntValidator{
+		Min: &min,
+	}
+
+	assert.NoError(t, cut.Validate([]string{"5", "666"}))
+	assert.NoError(t, cut.Validate([]string(nil)))
+	assert.NoError(t, cut.Validate([]string{}))
+	assert.Error(t, cut.Validate([]string{"1"}))
+	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
+}
+
+func TestUIntValidatorMax(t *testing.T) {
+	max := uint(5)
+	cut := UIntValidator{
+		Max: &max,
+	}
+
+	assert.NoError(t, cut.Validate([]string{"2", "3"}))
+	assert.NoError(t, cut.Validate([]string(nil)))
+	assert.NoError(t, cut.Validate([]string{}))
+	assert.Error(t, cut.Validate([]string{"666"}))
+	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
+	assert.Error(t, cut.Validate([]string{"5", "666"}))
+}
+
+func TestUIntValidatorMinMax(t *testing.T) {
+	min := uint(2)
+	max := uint(5)
+	cut := UIntValidator{
+		Min: &min,
+		Max: &max,
+	}
+
+	assert.NoError(t, cut.Validate([]string{"2", "3"}))
+	assert.NoError(t, cut.Validate([]string(nil)))
+	assert.NoError(t, cut.Validate([]string{}))
+	assert.Error(t, cut.Validate([]string{"666"}))
+	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
+	assert.Error(t, cut.Validate([]string{"5", "666"}))
+}
+
 func TestBoolValidator(t *testing.T) {
 	assert.NoError(t, BoolValidator([]string{}))
 	assert.NoError(t, BoolValidator([]string(nil)))
