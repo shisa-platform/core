@@ -272,6 +272,7 @@ func TestUIntValidatorEmpty(t *testing.T) {
 	assert.NoError(t, cut.Validate([]string(nil)))
 	assert.NoError(t, cut.Validate([]string{}))
 	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"-10"}))
 	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
 }
 
@@ -286,6 +287,7 @@ func TestUIntValidatorMin(t *testing.T) {
 	assert.NoError(t, cut.Validate([]string{}))
 	assert.Error(t, cut.Validate([]string{"1"}))
 	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"-10"}))
 	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
 }
 
@@ -317,6 +319,7 @@ func TestUIntValidatorMinMax(t *testing.T) {
 	assert.NoError(t, cut.Validate([]string{}))
 	assert.Error(t, cut.Validate([]string{"666"}))
 	assert.Error(t, cut.Validate([]string{"one"}))
+	assert.Error(t, cut.Validate([]string{"-10"}))
 	assert.Error(t, cut.Validate([]string{"1", "forty two"}))
 	assert.Error(t, cut.Validate([]string{"5", "666"}))
 }
