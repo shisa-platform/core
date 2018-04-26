@@ -159,6 +159,37 @@ func (v IntValidator) Validate(values []string) merry.Error {
 	return merry.Wrap(err)
 }
 
+// UIntValidator enforces that all input values are parsable as
+// uints.  It also optionally enforces that values are within
+// a range.
+type UIntValidator struct {
+	Min *uint
+	Max *uint
+}
+
+func (v UIntValidator) Validate(values []string) merry.Error {
+	var err error
+	for _, value := range values {
+		i, parseErr := strconv.ParseUint(value, 10, 0)
+		if parseErr != nil {
+			err1 := UnexpectedValue.Appendf("%q is not a uint", value)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.Min != nil && uint(i) < *v.Min {
+			err1 := UnexpectedValue.Appendf("%q is less than minimum: %d", value, v.Min)
+			err = multierr.Combine(err, err1)
+			continue
+		}
+		if v.Max != nil && uint(i) > *v.Max {
+			err1 := UnexpectedValue.Appendf("%q is greater than maximum: %d", value, v.Max)
+			err = multierr.Combine(err, err1)
+		}
+	}
+
+	return merry.Wrap(err)
+}
+
 // BoolValidator enforces that all input values are parsable as a
 // boolean
 func BoolValidator(values []string) merry.Error {
