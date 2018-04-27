@@ -54,7 +54,7 @@ func NewRpcService(bal lb.Balancer) *RpcService {
 	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
-	greeting.Get.QueryFields = []httpx.ParameterSchema{
+	greeting.Get.QuerySchemas = []httpx.ParameterSchema{
 		language,
 		{Name: "name", Multiplicity: 1},
 	}

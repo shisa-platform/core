@@ -173,7 +173,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	span = ctx.StartSpan("ValidateQueryParameters")
-	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QueryFields); exception != nil {
+	if malformed, unknown, exception := request.ValidateQueryParameters(pipeline.QuerySchemas); exception != nil {
 		response, exception = endpoint.handleError(ctx, request, exception)
 		if exception != nil {
 			g.invokeErrorHookSafely(ctx, request, exception)

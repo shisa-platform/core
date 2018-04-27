@@ -13,9 +13,9 @@ import (
 // user agent.  If no response is produced an Internal Service
 // Error handler will be invoked.
 type Pipeline struct {
-	Policy      Policy                  // customizes automated behavior
-	Handlers    []httpx.Handler         // the pipline steps, minimum one
-	QueryFields []httpx.ParameterSchema // optional query parameter validation
+	Policy       Policy                  // customizes automated behavior
+	Handlers     []httpx.Handler         // the pipline steps, minimum one
+	QuerySchemas []httpx.ParameterSchema // optional query parameter validation
 }
 
 func (p Pipeline) jsonify(buf *bytes.Buffer) {
@@ -24,9 +24,9 @@ func (p Pipeline) jsonify(buf *bytes.Buffer) {
 	enc.Encode(p.Policy)
 	buf.WriteString(",\"Handlers\":")
 	buf.WriteString(strconv.Itoa(len(p.Handlers)))
-	if len(p.QueryFields) != 0 {
-		buf.WriteString(",\"QueryFields\":")
-		enc.Encode(p.QueryFields)
+	if len(p.QuerySchemas) != 0 {
+		buf.WriteString(",\"QuerySchemas\":")
+		enc.Encode(p.QuerySchemas)
 	}
 	buf.WriteByte('}')
 }

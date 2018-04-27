@@ -191,7 +191,7 @@ func TestDeleteEndpointWithPolicy(t *testing.T) {
 
 func TestEndpointExpvarStringExerciseComma(t *testing.T) {
 	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
-	cut.Get.QueryFields = []httpx.ParameterSchema{
+	cut.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "thing", Required: true},
 	}
 	cut.Put = &Pipeline{
@@ -207,7 +207,7 @@ func TestEndpointExpvarStringExerciseComma(t *testing.T) {
       "AllowTrailingSlashRedirects": true
     },
     "Handlers": 1,
-    "QueryFields": [
+    "QuerySchemas": [
       {"Name": "thing", "Regex": null, "Required": true}
     ]
   },
@@ -221,7 +221,7 @@ func TestEndpointExpvarStringExerciseComma(t *testing.T) {
 
 func TestEndpointExpvarString(t *testing.T) {
 	cut := GetEndpointWithPolicy(expectedRoute, expectedPolicy, testHandler)
-	cut.Get.QueryFields = []httpx.ParameterSchema{
+	cut.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "thing", Required: true},
 	}
 	cut.Head = &Pipeline{
@@ -262,7 +262,7 @@ func TestEndpointExpvarString(t *testing.T) {
       "AllowTrailingSlashRedirects": true
     },
     "Handlers": 1,
-    "QueryFields": [
+    "QuerySchemas": [
       {"Name": "thing", "Regex": null, "Required": true}
     ]
   },
