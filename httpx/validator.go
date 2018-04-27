@@ -145,12 +145,12 @@ func (v IntValidator) Validate(p QueryParameter) merry.Error {
 			continue
 		}
 		if v.Min != nil && i < *v.Min {
-			err1 := UnexpectedValue.Appendf("%q is less than minimum: %d", value, v.Min)
+			err1 := UnexpectedValue.Appendf("%q is less than minimum: %d", value, *v.Min)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.Max != nil && i > *v.Max {
-			err1 := UnexpectedValue.Appendf("%q is greater than maximum: %d", value, v.Max)
+			err1 := UnexpectedValue.Appendf("%q is greater than maximum: %d", value, *v.Max)
 			err = multierr.Combine(err, err1)
 		}
 	}
@@ -176,12 +176,12 @@ func (v UIntValidator) Validate(p QueryParameter) merry.Error {
 			continue
 		}
 		if v.Min != nil && uint(i) < *v.Min {
-			err1 := UnexpectedValue.Appendf("%q is less than minimum: %d", value, v.Min)
+			err1 := UnexpectedValue.Appendf("%q is less than minimum: %d", value, *v.Min)
 			err = multierr.Combine(err, err1)
 			continue
 		}
 		if v.Max != nil && uint(i) > *v.Max {
-			err1 := UnexpectedValue.Appendf("%q is greater than maximum: %d", value, v.Max)
+			err1 := UnexpectedValue.Appendf("%q is greater than maximum: %d", value, *v.Max)
 			err = multierr.Combine(err, err1)
 		}
 	}

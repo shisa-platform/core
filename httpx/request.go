@@ -62,7 +62,7 @@ func (r *Request) ParseQueryParameters() bool {
 	query := r.URL.RawQuery
 	ok := true
 
-	for i := 0; query != ""; {
+	for query != "" {
 		key := query
 		if idx := strings.IndexAny(key, "&;"); idx >= 0 {
 			key, query = key[:idx], key[idx+1:]
@@ -82,13 +82,14 @@ func (r *Request) ParseQueryParameters() bool {
 			key = key1
 		}
 
-		index, found := indices[key]
-		if !found {
-			indices[key] = i
-			index = i
-			r.QueryParams = append(r.QueryParams, &QueryParameter{Name: key})
+		var parameter *QueryParameter
+		if index, found := indices[key]; !found {
+			parameter = &QueryParameter{Name: key}
+			indices[key] = len(r.QueryParams)
+			r.QueryParams = append(r.QueryParams, parameter)
+		} else {
+			parameter = r.QueryParams[index]
 		}
-		parameter := r.QueryParams[index]
 
 		if err != nil {
 			parameter.Err = InvalidParameterNameEscape.Append(err.Error())
@@ -104,7 +105,6 @@ func (r *Request) ParseQueryParameters() bool {
 		}
 
 		parameter.Values = append(parameter.Values, value)
-		i++
 	}
 
 	return ok
