@@ -17,21 +17,20 @@ var (
 
 // Validator ensures that the given strings all meet certain
 // criteria.
-type Validator func([]string) merry.Error
+type Validator func(QueryParameter) merry.Error
 
-func (v Validator) InvokeSafely(values []string) (_ merry.Error, exception merry.Error) {
+func (v Validator) InvokeSafely(p QueryParameter) (_ merry.Error, exception merry.Error) {
 	defer errorx.CapturePanic(&exception, "panic in validator")
 
-	return v(values), nil
+	return v(p), nil
 }
 
-// Field is the schema to validate a query parameter or request
-// body.
+// ParameterSchema is the schema to validate a query parameter or request.
 // Either `Name` or `Regex` _should_ be provided.
 // Providing `Default` *requires* `Name`.
 // If `Default` is provided and a matching input is not presented
 // then a syntheitic value will be created.
-type Field struct {
+type ParameterSchema struct {
 	Name         string         // Match keys by exact value
 	Regex        *regexp.Regexp // Match keys by pattern
 	Default      string         `json:",omitempty"` // Default value for `Name`
@@ -40,8 +39,8 @@ type Field struct {
 	Required     bool           // Is this input mandatory?
 }
 
-// Match returns true if the given key name is for this Field
-func (f Field) Match(name string) bool {
+// Match returns true if the given key name is for this ParameterSchema
+func (f ParameterSchema) Match(name string) bool {
 	if f.Regex != nil {
 		return f.Regex.MatchString(name)
 	}
@@ -50,14 +49,14 @@ func (f Field) Match(name string) bool {
 }
 
 // Validate returns an error if all input values don't meet the
-// criteria of `Field.Validator`.  If the validator panics an
+// criteria of `ParameterSchema.Validator`.  If the validator panics an
 // error will be returned in the second result parameter.
-func (f Field) Validate(values []string) (merry.Error, merry.Error) {
-	if f.Multiplicity != 0 && uint(len(values)) > f.Multiplicity {
+func (f ParameterSchema) Validate(p QueryParameter) (merry.Error, merry.Error) {
+	if f.Multiplicity != 0 && uint(len(p.Values)) > f.Multiplicity {
 		return merry.New("too many values"), nil
 	}
 	if f.Validator != nil {
-		return f.Validator.InvokeSafely(values)
+		return f.Validator.InvokeSafely(p)
 	}
 
 	return nil, nil
@@ -69,8 +68,8 @@ type FixedStringValidator struct {
 	Target string
 }
 
-func (v FixedStringValidator) Validate(values []string) merry.Error {
-	for _, value := range values {
+func (v FixedStringValidator) Validate(p QueryParameter) merry.Error {
+	for _, value := range p.Values {
 		if v.Target != value {
 			return UnexpectedValue.Append(value)
 		}
@@ -85,9 +84,9 @@ type StringSliceValidator struct {
 	Target []string
 }
 
-func (v StringSliceValidator) Validate(values []string) merry.Error {
+func (v StringSliceValidator) Validate(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		var found bool
 		for _, t := range v.Target {
 			if value == t {
@@ -111,9 +110,9 @@ type StringValidator struct {
 	MaxLen uint
 }
 
-func (v StringValidator) Validate(values []string) merry.Error {
+func (v StringValidator) Validate(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		if v.MinLen != 0 && uint(len(value)) < v.MinLen {
 			err1 := UnexpectedValue.Appendf("%q is shorter than minimum: %d", value, v.MinLen)
 			err = multierr.Combine(err, err1)
@@ -136,9 +135,9 @@ type IntValidator struct {
 	Max *int
 }
 
-func (v IntValidator) Validate(values []string) merry.Error {
+func (v IntValidator) Validate(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		i, parseErr := strconv.Atoi(value)
 		if parseErr != nil {
 			err1 := UnexpectedValue.Appendf("%q is not an integer", value)
@@ -167,9 +166,9 @@ type UIntValidator struct {
 	Max *uint
 }
 
-func (v UIntValidator) Validate(values []string) merry.Error {
+func (v UIntValidator) Validate(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		i, parseErr := strconv.ParseUint(value, 10, 0)
 		if parseErr != nil {
 			err1 := UnexpectedValue.Appendf("%q is not a uint", value)
@@ -192,9 +191,9 @@ func (v UIntValidator) Validate(values []string) merry.Error {
 
 // BoolValidator enforces that all input values are parsable as a
 // boolean
-func BoolValidator(values []string) merry.Error {
+func BoolValidator(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		if _, parseErr := strconv.ParseBool(value); parseErr != nil {
 			err1 := UnexpectedValue.Appendf("%q is not a boolean", value)
 			err = multierr.Combine(err, err1)
@@ -213,9 +212,9 @@ type TimestampValidator struct {
 	Max    *time.Time
 }
 
-func (v TimestampValidator) Validate(values []string) merry.Error {
+func (v TimestampValidator) Validate(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		t, parseErr := time.Parse(v.Format, value)
 		if parseErr != nil {
 			err1 := UnexpectedValue.Appendf("%q is not a timestamp", value)
@@ -242,9 +241,9 @@ type RegexValidator struct {
 	Regex *regexp.Regexp
 }
 
-func (v RegexValidator) Validate(values []string) merry.Error {
+func (v RegexValidator) Validate(p QueryParameter) merry.Error {
 	var err error
-	for _, value := range values {
+	for _, value := range p.Values {
 		if !v.Regex.MatchString(value) {
 			err1 := UnexpectedValue.Append(value)
 			err = multierr.Combine(err, err1)

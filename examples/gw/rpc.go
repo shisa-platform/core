@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	language = httpx.Field{
+	language = httpx.ParameterSchema{
 		Name:         "language",
 		Default:      hello.AmericanEnglish,
 		Validator:    httpx.StringSliceValidator{Target: hello.SupportedLanguages}.Validate,
@@ -54,7 +54,7 @@ func NewRpcService(bal lb.Balancer) *RpcService {
 	}
 
 	greeting := service.GetEndpointWithPolicy("/api/greeting", policy, svc.Greeting)
-	greeting.Get.QueryFields = []httpx.Field{
+	greeting.Get.QueryFields = []httpx.ParameterSchema{
 		language,
 		{Name: "name", Multiplicity: 1},
 	}
