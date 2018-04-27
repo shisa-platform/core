@@ -147,8 +147,8 @@ func (p byName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // paramters fail validation or do not match a field,
 // respectively.  If a validator panics an error will be returned
 // in `err`.
-func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unknown bool, exception merry.Error) {
-	if len(fields) == 0 {
+func (r *Request) ValidateQueryParameters(schemas []ParameterSchema) (malformed bool, unknown bool, exception merry.Error) {
+	if len(schemas) == 0 {
 		return
 	}
 
@@ -156,20 +156,20 @@ func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unkno
 	copy(params, r.QueryParams)
 	sort.Sort(byName(params))
 
-	for _, field := range fields {
+	for _, schema := range schemas {
 		var found bool
 		for j, param := range params {
 			if param.Err != nil {
 				malformed = true
 			}
-			if field.Match(param.Name) {
+			if schema.Match(param.Name) {
 				found = true
 				params = append(params[:j], params[j+1:]...)
 				if param.Err != nil {
 					break
 				}
 
-				param.Err, exception = field.Validate(param.Values)
+				param.Err, exception = schema.Validate(*param)
 				if param.Err != nil {
 					param.Err = MalformedQueryParamter.Append(param.Err.Error())
 					malformed = true
@@ -182,14 +182,14 @@ func (r *Request) ValidateQueryParameters(fields []Field) (malformed bool, unkno
 		}
 
 		if !found {
-			if field.Default != "" {
+			if schema.Default != "" {
 				r.QueryParams = append(r.QueryParams, &QueryParameter{
-					Name:   field.Name,
-					Values: []string{field.Default},
+					Name:   schema.Name,
+					Values: []string{schema.Default},
 				})
-			} else if field.Required {
+			} else if schema.Required {
 				r.QueryParams = append(r.QueryParams, &QueryParameter{
-					Name: field.Name,
+					Name: schema.Name,
 					Err:  MissingQueryParamter,
 				})
 				malformed = true

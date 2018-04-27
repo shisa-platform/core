@@ -1439,7 +1439,7 @@ func TestRouterQueryParametersAllowMalformed(t *testing.T) {
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
 	endpoint.Get.Policy = service.Policy{AllowMalformedQueryParameters: true}
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "good"}, {Name: "bad"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "good"}, {Name: "bad"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1509,7 +1509,7 @@ func TestRouterQueryParametersWithRequiredFieldMissing(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Required: true},
 		{Name: "waits"},
 	}
@@ -1557,7 +1557,7 @@ func TestRouterQueryParametersRequiredFieldMissingAllowMalformed(t *testing.T) {
 
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Required: true},
 		{Name: "waits"},
 	}
@@ -1588,7 +1588,7 @@ func TestRouterQueryParametersWithFieldMalformedQuery(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1616,7 +1616,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryCustomHandler(t *testing.T)
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 
 	var queryHandlerCalled bool
 	svc := newFakeService([]service.Endpoint{endpoint})
@@ -1670,7 +1670,7 @@ func TestRouterQueryParametersWithFieldMalformedQueryAllowMalformed(t *testing.T
 
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1714,7 +1714,7 @@ func TestRouterQueryParametersWithRequiredFieldPresent(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Required: true},
 		{Name: "waits"},
 	}
@@ -1761,7 +1761,7 @@ func TestRouterQueryParametersWithFields(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -1788,15 +1788,15 @@ func TestRouterQueryParametersFieldValidationFails(t *testing.T) {
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	validator := func(v []string) merry.Error {
-		if v[0] != "he:comes" {
+	validator := func(p httpx.QueryParameter) merry.Error {
+		if p.Values[0] != "he:comes" {
 			return merry.New("can't you feel it?")
 		}
 
 		return nil
 	}
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Validator: validator},
 		{Name: "waits"},
 	}
@@ -1826,11 +1826,11 @@ func TestRouterQueryParametersFieldValidationPanic(t *testing.T) {
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	validator := func([]string) merry.Error {
+	validator := func(httpx.QueryParameter) merry.Error {
 		panic(merry.New("i blewed up!"))
 	}
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Validator: validator},
 		{Name: "waits"},
 	}
@@ -1860,12 +1860,12 @@ func TestRouterQueryParametersFieldValidationPanicErrorHandlerPanic(t *testing.T
 		return httpx.NewEmpty(http.StatusOK)
 	}
 
-	validator := func([]string) merry.Error {
+	validator := func(httpx.QueryParameter) merry.Error {
 		panic(merry.New("i blewed up!"))
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Validator: validator},
 		{Name: "waits"},
 	}
@@ -1922,14 +1922,14 @@ func TestRouterQueryParametersFieldValidationFailsAllowMalformed(t *testing.T) {
 
 	policy := service.Policy{AllowMalformedQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	validator := func(v []string) merry.Error {
-		if v[0] != "he:comes" {
+	validator := func(p httpx.QueryParameter) merry.Error {
+		if p.Values[0] != "he:comes" {
 			return merry.New("can't you feel it?")
 		}
 
 		return nil
 	}
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo", Validator: validator},
 		{Name: "waits"},
 	}
@@ -1960,7 +1960,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterForbid(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -2011,7 +2011,7 @@ func TestRouterQueryParametersWithFieldUnknownParameterAllow(t *testing.T) {
 
 	policy := service.Policy{AllowUnknownQueryParameters: true}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -2065,7 +2065,7 @@ func TestRouterQueryParametersWithFieldUnknownInvalidParameterAllow(t *testing.T
 		AllowUnknownQueryParameters:   true,
 	}
 	endpoint := service.GetEndpointWithPolicy(expectedRoute, policy, handler)
-	endpoint.Get.QueryFields = []httpx.Field{{Name: "zalgo"}, {Name: "waits"}}
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 	installEndpoints(t, cut, []service.Endpoint{endpoint})
 
 	w := httptest.NewRecorder()
@@ -2109,7 +2109,7 @@ func TestRouterQueryParametersWithFieldDefault(t *testing.T) {
 	}
 
 	endpoint := service.GetEndpoint(expectedRoute, handler)
-	endpoint.Get.QueryFields = []httpx.Field{
+	endpoint.Get.QuerySchemas = []httpx.ParameterSchema{
 		{Name: "zalgo"},
 		{Name: "waits", Default: "behind the walls"},
 	}
@@ -2612,7 +2612,7 @@ func TestRouterEndpointHandlerTimeout(t *testing.T) {
 	cut.ServeHTTP(w, fakeRequest)
 	end := time.Now().UTC()
 
-	assert.WithinDuration(t, start, end, time.Millisecond*50)
+	assert.WithinDuration(t, start, end, time.Millisecond*100)
 	assert.True(t, handlerCalled, "handler not called")
 	errHook.assertCalledN(t, 1)
 	assert.Equal(t, http.StatusGatewayTimeout, w.Code)

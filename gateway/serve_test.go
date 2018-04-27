@@ -109,8 +109,8 @@ func TestGatewayFieldDefaultMissingName(t *testing.T) {
 	}
 
 	pipeline := &service.Pipeline{
-		Handlers:    []httpx.Handler{dummyHandler},
-		QueryFields: []httpx.Field{{Default: "zalgo"}},
+		Handlers:     []httpx.Handler{dummyHandler},
+		QuerySchemas: []httpx.ParameterSchema{{Default: "zalgo"}},
 	}
 	endpoints := []service.Endpoint{
 		{Route: "/", Head: pipeline},

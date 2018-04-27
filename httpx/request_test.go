@@ -76,10 +76,10 @@ func TestRequestValidateQueryParametersPanic(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 2)
 
-	validator := func([]string) merry.Error {
+	validator := func(QueryParameter) merry.Error {
 		panic(merry.New("i blewed up!"))
 	}
-	fields := []Field{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
 
 	_, _, exception := cut.ValidateQueryParameters(fields)
 	assert.Error(t, exception)
@@ -98,10 +98,10 @@ func TestRequestValidateQueryParametersAlreadyBad(t *testing.T) {
 	expectedErr := merry.New("something bad")
 	cut.QueryParams[1].Err = expectedErr
 
-	validator := func([]string) merry.Error {
+	validator := func(QueryParameter) merry.Error {
 		return merry.New("meh")
 	}
-	fields := []Field{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
@@ -120,10 +120,10 @@ func TestRequestValidateQueryParametersInvalidParameter(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 2)
 
-	validator := func([]string) merry.Error {
+	validator := func(QueryParameter) merry.Error {
 		return merry.New("meh")
 	}
-	fields := []Field{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits", Validator: validator}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
@@ -142,7 +142,7 @@ func TestRequestValidateQueryParametersUnknownParameter(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 2)
 
-	fields := []Field{{Name: "zalgo"}}
+	fields := []ParameterSchema{{Name: "zalgo"}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
@@ -161,10 +161,10 @@ func TestRequestValidateQueryParametersInvalidAndUnknownParameters(t *testing.T)
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 2)
 
-	validator := func([]string) merry.Error {
+	validator := func(QueryParameter) merry.Error {
 		return merry.New("meh")
 	}
-	fields := []Field{{Name: "zalgo", Validator: validator}}
+	fields := []ParameterSchema{{Name: "zalgo", Validator: validator}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
@@ -184,7 +184,7 @@ func TestRequestValidateQueryParametersMissingParameterWithDefault(t *testing.T)
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 1)
 
-	fields := []Field{{Name: "zalgo"}, {Name: "waits", Default: "behind the walls"}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits", Default: "behind the walls"}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
@@ -205,7 +205,7 @@ func TestRequestValidateQueryParametersMissingRequiredParameter(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 1)
 
-	fields := []Field{{Name: "zalgo"}, {Name: "waits", Required: true}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits", Required: true}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.True(t, malformed)
@@ -226,7 +226,7 @@ func TestRequestValidateQueryParametersMissingParameter(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 1)
 
-	fields := []Field{{Name: "zalgo"}, {Name: "waits"}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
@@ -244,7 +244,7 @@ func TestRequestValidateQueryParameters(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 2)
 
-	fields := []Field{{Name: "zalgo"}, {Name: "waits"}}
+	fields := []ParameterSchema{{Name: "zalgo"}, {Name: "waits"}}
 
 	malformed, unknown, exception := cut.ValidateQueryParameters(fields)
 	assert.False(t, malformed)
@@ -262,7 +262,7 @@ func TestRequestValidateQueryParametersNoFields(t *testing.T) {
 	assert.True(t, cut.ParseQueryParameters())
 	assert.Len(t, cut.QueryParams, 2)
 
-	malformed, unknown, exception := cut.ValidateQueryParameters([]Field{})
+	malformed, unknown, exception := cut.ValidateQueryParameters([]ParameterSchema{})
 	assert.False(t, malformed)
 	assert.False(t, unknown)
 	assert.NoError(t, exception)

@@ -15,7 +15,7 @@ import (
 	"github.com/percolate/shisa/service"
 )
 
-type byName []httpx.Field
+type byName []httpx.ParameterSchema
 
 func (p byName) Len() int           { return len(p) }
 func (p byName) Less(i, j int) bool { return p[i].Name < p[j].Name }
@@ -233,18 +233,18 @@ func (g *Gateway) installServices(services []*service.Service) merry.Error {
 }
 
 func installPipeline(handlers []httpx.Handler, pipeline *service.Pipeline) (*service.Pipeline, merry.Error) {
-	for _, field := range pipeline.QueryFields {
+	for _, field := range pipeline.QuerySchemas {
 		if field.Default != "" && field.Name == "" {
 			return nil, merry.New("gateway: check invariants: field default requires name")
 		}
 	}
 
 	result := &service.Pipeline{
-		Policy:      pipeline.Policy,
-		Handlers:    append(handlers, pipeline.Handlers...),
-		QueryFields: append([]httpx.Field(nil), pipeline.QueryFields...),
+		Policy:       pipeline.Policy,
+		Handlers:     append(handlers, pipeline.Handlers...),
+		QuerySchemas: append([]httpx.ParameterSchema(nil), pipeline.QuerySchemas...),
 	}
-	sort.Sort(byName(result.QueryFields))
+	sort.Sort(byName(result.QuerySchemas))
 
 	return result, nil
 }

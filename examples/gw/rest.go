@@ -46,7 +46,7 @@ func NewRestService(res lb.Balancer) *RestService {
 		Responder: svc.responder,
 	}
 	farewell := service.GetEndpointWithPolicy("/api/farewell", policy, proxy.Service)
-	farewell.Get.QueryFields = []httpx.Field{{Name: "name", Multiplicity: 1}}
+	farewell.Get.QuerySchemas = []httpx.ParameterSchema{{Name: "name", Multiplicity: 1}}
 
 	svc.Endpoints = []service.Endpoint{farewell}
 
