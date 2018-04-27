@@ -68,6 +68,31 @@ func TestRequestParseQueryParametersBadEscapeCodes(t *testing.T) {
 	}
 }
 
+func TestRequestParseQueryParametersMultiplicity(t *testing.T) {
+	url := "http://example.com/test?name=me&name=you&he=too"
+	request := httptest.NewRequest(http.MethodGet, url, nil)
+	cut := &Request{Request: request}
+
+	assert.True(t, cut.ParseQueryParameters())
+
+	assert.Len(t, cut.QueryParams, 2)
+	for i, p := range cut.QueryParams {
+		switch i {
+		case 0:
+			assert.Len(t, p.Values, 2)
+			assert.Equal(t, "name", p.Name)
+			assert.Equal(t, "me", p.Values[0])
+			assert.Equal(t, "you", p.Values[1])
+			assert.NoError(t, p.Err)
+		case 1:
+			assert.Len(t, p.Values, 1)
+			assert.Equal(t, "he", p.Name)
+			assert.Equal(t, "too", p.Values[0])
+			assert.NoError(t, p.Err)
+		}
+	}
+}
+
 func TestRequestValidateQueryParametersPanic(t *testing.T) {
 	url := "http://example.com/test?zalgo=he:comes&waits=behind%20the%20walls"
 	request := httptest.NewRequest(http.MethodGet, url, nil)

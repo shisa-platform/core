@@ -87,6 +87,7 @@ func (r *Request) ParseQueryParameters() bool {
 			indices[key] = i
 			index = i
 			r.QueryParams = append(r.QueryParams, &QueryParameter{Name: key})
+			i++
 		}
 		parameter := r.QueryParams[index]
 
@@ -104,7 +105,6 @@ func (r *Request) ParseQueryParameters() bool {
 		}
 
 		parameter.Values = append(parameter.Values, value)
-		i++
 	}
 
 	return ok
