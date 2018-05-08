@@ -12,14 +12,30 @@ import (
 	"github.com/percolate/shisa/context"
 )
 
-const defaultKey = "DEFAULT_KEY"
-
 var (
-	defaultVal     = []byte("DEFAULT_VAL")
-	defaultIntVal  = []byte("1")
-	defaultInt     = 1
-	defaultBoolVal = []byte("true")
+	missingConsul = newFakeConsul([]byte(""), merry.New("missing"))
+	emptyConsul   = newFakeConsul([]byte(""), nil)
+	defaultConsul = newFakeConsul(defaultVal, nil)
+	intConsul     = newFakeConsul(defaultIntVal, nil)
+	boolConsul    = newFakeConsul(defaultBoolVal, nil)
 )
+
+func newFakeConsul(val []byte, err error) *ConsulProvider {
+	s := &Fakeselfer{}
+	kvg := &FakekvGetter{
+		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+			if err != nil {
+				return nil, nil, err
+			}
+			return &consulapi.KVPair{Value: val}, nil, nil
+		},
+	}
+	c := &ConsulProvider{
+		agent: s,
+		kv:    kvg,
+	}
+	return c
+}
 
 func TestMemberStatusString(t *testing.T) {
 	tests := []struct {
