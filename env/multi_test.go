@@ -7,7 +7,7 @@ import (
 )
 
 func TestMultiProviderGetMissing(t *testing.T) {
-	p := NewMulti(emptyConsul, missingConsul)
+	p := MultiProvider{emptyConsul, missingConsul}
 
 	value, err := p.Get(defaultKey)
 
@@ -16,7 +16,7 @@ func TestMultiProviderGetMissing(t *testing.T) {
 }
 
 func TestMultiProviderGetEmpty(t *testing.T) {
-	p := NewMulti(emptyConsul, emptyConsul)
+	p := MultiProvider{emptyConsul, emptyConsul}
 
 	value, err := p.Get(defaultKey)
 
@@ -25,7 +25,7 @@ func TestMultiProviderGetEmpty(t *testing.T) {
 }
 
 func TestMultiProviderGetSuccess(t *testing.T) {
-	p := NewMulti(emptyConsul, defaultConsul)
+	p := MultiProvider{emptyConsul, defaultConsul}
 
 	value, err := p.Get(defaultKey)
 
@@ -33,7 +33,7 @@ func TestMultiProviderGetSuccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 func TestMultiProviderGetIntMissing(t *testing.T) {
-	p := NewMulti(emptyConsul, missingConsul)
+	p := MultiProvider{emptyConsul, missingConsul}
 
 	value, err := p.GetInt(defaultKey)
 
@@ -42,7 +42,7 @@ func TestMultiProviderGetIntMissing(t *testing.T) {
 }
 
 func TestMultiProviderGetIntInvalid(t *testing.T) {
-	p := NewMulti(emptyConsul, defaultConsul)
+	p := MultiProvider{emptyConsul, defaultConsul}
 
 	value, err := p.GetInt(defaultKey)
 
@@ -51,7 +51,7 @@ func TestMultiProviderGetIntInvalid(t *testing.T) {
 }
 
 func TestMultiProviderGetIntSuccess(t *testing.T) {
-	p := NewMulti(emptyConsul, intConsul)
+	p := MultiProvider{emptyConsul, intConsul}
 
 	value, err := p.GetInt(defaultKey)
 
@@ -60,7 +60,7 @@ func TestMultiProviderGetIntSuccess(t *testing.T) {
 }
 
 func TestMultiProviderGetBoolMissing(t *testing.T) {
-	p := NewMulti(emptyConsul, missingConsul)
+	p := MultiProvider{emptyConsul, missingConsul}
 
 	value, err := p.GetBool(defaultKey)
 
@@ -69,7 +69,7 @@ func TestMultiProviderGetBoolMissing(t *testing.T) {
 }
 
 func TestMultiProviderGetBoolInvalid(t *testing.T) {
-	p := NewMulti(emptyConsul, defaultConsul)
+	p := MultiProvider{emptyConsul, defaultConsul}
 
 	value, err := p.GetBool(defaultKey)
 
@@ -78,7 +78,7 @@ func TestMultiProviderGetBoolInvalid(t *testing.T) {
 }
 
 func TestMultiProviderGetBoolSuccess(t *testing.T) {
-	p := NewMulti(emptyConsul, boolConsul)
+	p := MultiProvider{emptyConsul, boolConsul}
 
 	value, err := p.GetBool(defaultKey)
 

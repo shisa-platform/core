@@ -21,20 +21,17 @@ var (
 )
 
 func newFakeConsul(val []byte, err error) *ConsulProvider {
-	s := &Fakeselfer{}
-	kvg := &FakekvGetter{
-		GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
-			if err != nil {
-				return nil, nil, err
-			}
-			return &consulapi.KVPair{Value: val}, nil, nil
+	return &ConsulProvider{
+		agent: &Fakeselfer{},
+		kv: &FakekvGetter{
+			GetHook: func(s string, options *consulapi.QueryOptions) (*consulapi.KVPair, *consulapi.QueryMeta, error) {
+				if err != nil {
+					return nil, nil, err
+				}
+				return &consulapi.KVPair{Value: val}, nil, nil
+			},
 		},
 	}
-	c := &ConsulProvider{
-		agent: s,
-		kv:    kvg,
-	}
-	return c
 }
 
 func TestMemberStatusString(t *testing.T) {
