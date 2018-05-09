@@ -66,8 +66,9 @@ func (s memberStatus) String() string {
 }
 
 type ConsulProvider struct {
-	agent selfer
-	kv    kvGetter
+	agent  selfer
+	kv     kvGetter
+	prefix string
 
 	mux   sync.Mutex
 	once  sync.Once
@@ -81,15 +82,16 @@ type ConsulProvider struct {
 	ErrorHandler ErrorHandler
 }
 
-func NewConsul(c *consul.Client) *ConsulProvider {
+func NewConsul(c *consul.Client, prefix string) *ConsulProvider {
 	return &ConsulProvider{
-		agent: c.Agent(),
-		kv:    c.KV(),
+		agent:  c.Agent(),
+		kv:     c.KV(),
+		prefix: prefix,
 	}
 }
 
 func (p *ConsulProvider) Get(name string) (string, merry.Error) {
-	kvp, _, err := p.kv.Get(name, nil)
+	kvp, _, err := p.kv.Get(p.prefix+name, nil)
 	if err != nil {
 		return "", merry.Prepend(err, "consul env provider: get").Append(name)
 	}
@@ -106,7 +108,7 @@ func (p *ConsulProvider) Get(name string) (string, merry.Error) {
 }
 
 func (p *ConsulProvider) GetInt(name string) (int, merry.Error) {
-	kvp, _, err := p.kv.Get(name, nil)
+	kvp, _, err := p.kv.Get(p.prefix+name, nil)
 	if err != nil {
 		return 0, merry.Prepend(err, "consul env provider: get int").Append(name)
 	}
@@ -123,7 +125,7 @@ func (p *ConsulProvider) GetInt(name string) (int, merry.Error) {
 }
 
 func (p *ConsulProvider) GetBool(name string) (bool, merry.Error) {
-	kvp, _, err := p.kv.Get(name, nil)
+	kvp, _, err := p.kv.Get(p.prefix+name, nil)
 	if err != nil {
 		return false, merry.Prepend(err, "consul env provider: get bool").Append(name)
 	}
@@ -147,7 +149,7 @@ func (p *ConsulProvider) Monitor(key string, v chan<- Value) {
 	})
 
 	p.mux.Lock()
-	p.kvMap[key] = &kvMonitor{ch: v, init: true}
+	p.kvMap[p.prefix+key] = &kvMonitor{ch: v, init: true}
 	p.mux.Unlock()
 
 	return

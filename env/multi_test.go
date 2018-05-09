@@ -34,6 +34,7 @@ func TestMultiProviderGetSuccess(t *testing.T) {
 	assert.Equal(t, value, string(defaultVal))
 	assert.NoError(t, err)
 }
+
 func TestMultiProviderGetIntMissing(t *testing.T) {
 	p := MultiProvider{emptyConsul, missingConsul}
 
