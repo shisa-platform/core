@@ -55,12 +55,14 @@ func TestMemberStatusString(t *testing.T) {
 
 func TestNewConsul(t *testing.T) {
 	ac := &consulapi.Client{}
+	prefix := "environment/prefix/"
 
-	c := NewConsul(ac)
+	c := NewConsul(ac, prefix)
 
 	assert.NotNil(t, c)
 	assert.NotNil(t, c.agent)
 	assert.NotNil(t, c.kv)
+	assert.Equal(t, prefix, c.prefix)
 }
 
 func TestConsulProviderGet(t *testing.T) {
