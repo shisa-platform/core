@@ -24,14 +24,18 @@ var (
 	}
 )
 
+type Serializer interface {
+	Serialize(io.Writer) merry.Error
+}
+
 //go:generate charlatan -output=./response_charlatan.go Response
 
 type Response interface {
+	Serializer
 	StatusCode() int
 	Headers() http.Header
 	Trailers() http.Header
 	Err() error
-	Serialize(io.Writer) merry.Error
 }
 
 type BasicResponse struct {
