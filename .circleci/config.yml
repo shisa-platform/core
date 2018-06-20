@@ -22,7 +22,7 @@ jobs:
 
   mdl:
     docker:
-      - image: prclt/cci-mdl:1.0.0
+      - image: rsrchboy/mdl
     steps:
       - checkout
       - run:
