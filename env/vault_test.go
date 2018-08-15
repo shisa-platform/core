@@ -108,6 +108,23 @@ func TestVaultProviderGetMissing(t *testing.T) {
 	reader.AssertReadCalledOnceWith(t, defaultKey)
 }
 
+func TestVaultProviderGetNil(t *testing.T) {
+	reader := &FakelogicalReader{
+		ReadHook: func(s string) (*vaultapi.Secret, error) {
+			return nil, nil
+		},
+	}
+	vaultProvider := &VaultProvider{
+		logical: reader,
+	}
+
+	r, err := vaultProvider.Get(defaultKey)
+
+	assert.Equal(t, "", r)
+	assert.Error(t, err)
+	reader.AssertReadCalledOnceWith(t, defaultKey)
+}
+
 func TestVaultProviderGetBadString(t *testing.T) {
 	data := map[string]interface{}{string(defaultKey): vaultapi.Secret{}}
 	reader := &FakelogicalReader{
