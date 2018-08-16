@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	defaultPrefix = "zalgo"
+)
+
 var (
 	missingVault = newFakeVault([]byte(""), merry.New("missing"))
 	emptyVault   = newFakeVault([]byte(""), nil)
@@ -46,13 +50,14 @@ func TestVaultProviderGet(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
 
 	assert.Equal(t, string(defaultVal), r)
 	assert.NoError(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetError(t *testing.T) {
@@ -63,13 +68,14 @@ func TestVaultProviderGetError(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetEmpty(t *testing.T) {
@@ -81,13 +87,14 @@ func TestVaultProviderGetEmpty(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetMissing(t *testing.T) {
@@ -99,13 +106,14 @@ func TestVaultProviderGetMissing(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetNil(t *testing.T) {
@@ -116,13 +124,14 @@ func TestVaultProviderGetNil(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetBadString(t *testing.T) {
@@ -134,13 +143,14 @@ func TestVaultProviderGetBadString(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetInt(t *testing.T) {
@@ -152,13 +162,14 @@ func TestVaultProviderGetInt(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetInt(defaultKey)
 
 	assert.Equal(t, defaultInt, r)
 	assert.NoError(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetIntError(t *testing.T) {
@@ -169,13 +180,14 @@ func TestVaultProviderGetIntError(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetInt(defaultKey)
 
 	assert.Equal(t, 0, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetIntParseFailure(t *testing.T) {
@@ -187,13 +199,14 @@ func TestVaultProviderGetIntParseFailure(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetInt(defaultKey)
 
 	assert.Equal(t, 0, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetBool(t *testing.T) {
@@ -205,13 +218,14 @@ func TestVaultProviderGetBool(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetBool(defaultKey)
 
 	assert.Equal(t, true, r)
 	assert.NoError(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetBoolError(t *testing.T) {
@@ -222,13 +236,14 @@ func TestVaultProviderGetBoolError(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetBool(defaultKey)
 
 	assert.Equal(t, false, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
 
 func TestVaultProviderGetBoolParseFailure(t *testing.T) {
@@ -240,11 +255,12 @@ func TestVaultProviderGetBoolParseFailure(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
+		prefix: defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetBool(defaultKey)
 
 	assert.Equal(t, false, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultKey)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix)
 }
