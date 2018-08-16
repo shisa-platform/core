@@ -50,7 +50,7 @@ func TestVaultProviderGet(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
@@ -68,7 +68,7 @@ func TestVaultProviderGetError(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
@@ -87,7 +87,7 @@ func TestVaultProviderGetEmpty(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
@@ -106,7 +106,7 @@ func TestVaultProviderGetMissing(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
@@ -124,7 +124,7 @@ func TestVaultProviderGetNil(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
@@ -143,7 +143,7 @@ func TestVaultProviderGetBadString(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.Get(defaultKey)
@@ -162,7 +162,7 @@ func TestVaultProviderGetInt(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetInt(defaultKey)
@@ -180,7 +180,7 @@ func TestVaultProviderGetIntError(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetInt(defaultKey)
@@ -199,7 +199,7 @@ func TestVaultProviderGetIntParseFailure(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetInt(defaultKey)
@@ -218,7 +218,7 @@ func TestVaultProviderGetBool(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetBool(defaultKey)
@@ -236,7 +236,7 @@ func TestVaultProviderGetBoolError(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetBool(defaultKey)
@@ -255,7 +255,7 @@ func TestVaultProviderGetBoolParseFailure(t *testing.T) {
 	}
 	vaultProvider := &VaultProvider{
 		logical: reader,
-		prefix: defaultPrefix,
+		prefix:  defaultPrefix,
 	}
 
 	r, err := vaultProvider.GetBool(defaultKey)
