@@ -33,6 +33,9 @@ func (v *VaultProvider) Get(name string) (string, merry.Error) {
 	if err != nil {
 		return "", merry.Prepend(err, "vault env provider: get").Append(name)
 	}
+	if secret == nil {
+		return "", NameNotSet.Prepend("vault env provider: get").Append(name)
+	}
 
 	rawVal, ok := secret.Data[v.prefix+name]
 	if !ok {
