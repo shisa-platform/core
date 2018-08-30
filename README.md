@@ -1,7 +1,7 @@
 # Shisa
 
-[![Circle CI](https://circleci.com/gh/percolate/shisa.svg?style=svg)](https://circleci.com/gh/percolate/shisa)
-[![codecov](https://codecov.io/gh/percolate/shisa/branch/master/graph/badge.svg?token=SwfoLAaaS2)](https://codecov.io/gh/percolate/shisa)
+[![Circle CI](https://circleci.com/gh/shisa-platform/core.svg?style=svg)](https://circleci.com/gh/shisa-platform/core)
+[![codecov](https://codecov.io/gh/shisa-platform/core/branch/master/graph/badge.svg?token=SwfoLAaaS2)](https://codecov.io/gh/shisa-platform/core)
 
 ## Overview
 
@@ -21,16 +21,12 @@ The project has these high-level goals:
 - Robustness
 - Speed
 
-## Architecture
-
-![architecture](doc/diagram/architecture.png)
-
-### Service Discovery
+## Service Discovery
 
 Shisa has built-in support for service discovery and load balancing,
 and provides an implementation using [Consul](https://www.consul.io/).
 
-### Distributed Tracing
+## Distributed Tracing
 
 Shisa has built-in support for [OpenTracing](http://opentracing.io/)
 systems such as [Jaeger](https://www.jaegertracing.io/).  By default
