@@ -57,7 +57,7 @@ func TestVaultProviderGet(t *testing.T) {
 
 	assert.Equal(t, string(defaultVal), r)
 	assert.NoError(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetError(t *testing.T) {
@@ -75,7 +75,7 @@ func TestVaultProviderGetError(t *testing.T) {
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetEmpty(t *testing.T) {
@@ -94,7 +94,7 @@ func TestVaultProviderGetEmpty(t *testing.T) {
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetMissing(t *testing.T) {
@@ -113,7 +113,7 @@ func TestVaultProviderGetMissing(t *testing.T) {
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetNil(t *testing.T) {
@@ -131,7 +131,7 @@ func TestVaultProviderGetNil(t *testing.T) {
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetBadString(t *testing.T) {
@@ -150,7 +150,7 @@ func TestVaultProviderGetBadString(t *testing.T) {
 
 	assert.Equal(t, "", r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetInt(t *testing.T) {
@@ -169,7 +169,7 @@ func TestVaultProviderGetInt(t *testing.T) {
 
 	assert.Equal(t, defaultInt, r)
 	assert.NoError(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetIntError(t *testing.T) {
@@ -187,7 +187,7 @@ func TestVaultProviderGetIntError(t *testing.T) {
 
 	assert.Equal(t, 0, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetIntParseFailure(t *testing.T) {
@@ -206,7 +206,7 @@ func TestVaultProviderGetIntParseFailure(t *testing.T) {
 
 	assert.Equal(t, 0, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetBool(t *testing.T) {
@@ -225,7 +225,7 @@ func TestVaultProviderGetBool(t *testing.T) {
 
 	assert.Equal(t, true, r)
 	assert.NoError(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetBoolError(t *testing.T) {
@@ -243,7 +243,7 @@ func TestVaultProviderGetBoolError(t *testing.T) {
 
 	assert.Equal(t, false, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
 
 func TestVaultProviderGetBoolParseFailure(t *testing.T) {
@@ -262,5 +262,5 @@ func TestVaultProviderGetBoolParseFailure(t *testing.T) {
 
 	assert.Equal(t, false, r)
 	assert.Error(t, err)
-	reader.AssertReadCalledOnceWith(t, defaultPrefix)
+	reader.AssertReadCalledOnceWith(t, defaultPrefix+defaultKey)
 }
