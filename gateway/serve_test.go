@@ -10,10 +10,10 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/sd"
-	"github.com/percolate/shisa/service"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/sd"
+	"github.com/shisa-platform/core/service"
 )
 
 func TestGatewayNoServices(t *testing.T) {

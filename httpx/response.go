@@ -8,7 +8,7 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/contenttype"
+	"github.com/shisa-platform/core/contenttype"
 )
 
 const (

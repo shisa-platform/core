@@ -7,8 +7,8 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/errorx"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/errorx"
 )
 
 // Handler is a block of logic to apply to a request.

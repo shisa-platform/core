@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/httpx"
 )
 
 func addCommonHeaders(response httpx.Response) {

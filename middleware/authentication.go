@@ -8,11 +8,11 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
 
-	"github.com/percolate/shisa/authn"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/errorx"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/models"
+	"github.com/shisa-platform/core/authn"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/errorx"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/models"
 )
 
 const (

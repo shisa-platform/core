@@ -11,7 +11,7 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/uuid"
+	"github.com/shisa-platform/core/uuid"
 )
 
 var (

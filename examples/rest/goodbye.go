@@ -16,10 +16,10 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/examples/idp/service"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/lb"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/examples/idp/service"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/lb"
 )
 
 const idpServiceName = "idp"

@@ -9,14 +9,14 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/percolate/shisa/authn"
-	"github.com/percolate/shisa/auxiliary"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/gateway"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/lb"
-	"github.com/percolate/shisa/middleware"
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/authn"
+	"github.com/shisa-platform/core/auxiliary"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/gateway"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/lb"
+	"github.com/shisa-platform/core/middleware"
+	"github.com/shisa-platform/core/sd"
 )
 
 func serve(logger *zap.Logger, addr, debugAddr, healthcheckAddr string) {

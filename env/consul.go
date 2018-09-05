@@ -8,7 +8,7 @@ import (
 	"github.com/ansel1/merry"
 	consul "github.com/hashicorp/consul/api"
 
-	"github.com/percolate/shisa/context"
+	"github.com/shisa-platform/core/context"
 )
 
 //go:generate charlatan -output=./consulselfer_charlatan.go selfer

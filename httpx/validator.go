@@ -8,7 +8,7 @@ import (
 	"github.com/ansel1/merry"
 	"go.uber.org/multierr"
 
-	"github.com/percolate/shisa/errorx"
+	"github.com/shisa-platform/core/errorx"
 )
 
 var (

@@ -3,7 +3,7 @@ package lb
 import (
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/sd"
 )
 
 // Cache encapsulates the stateful parts of a load balancer

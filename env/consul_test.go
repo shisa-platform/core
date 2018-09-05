@@ -9,7 +9,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/context"
+	"github.com/shisa-platform/core/context"
 )
 
 var (

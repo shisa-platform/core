@@ -14,9 +14,9 @@ import (
 	consul "github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/examples/idp/service"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/examples/idp/service"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/sd"
 )
 
 func serve(logger *zap.Logger, addr string) {

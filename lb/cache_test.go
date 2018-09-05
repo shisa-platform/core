@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/sd"
 )
 
 func TestRRCache(t *testing.T) {

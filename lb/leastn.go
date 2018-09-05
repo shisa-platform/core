@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/sd"
 )
 
 var _ Cache = &leastConnsCache{}
