@@ -29,7 +29,7 @@ func NewVault(c *vault.Client, prefix string) *VaultProvider {
 }
 
 func (v *VaultProvider) Get(name string) (string, merry.Error) {
-	secret, err := v.logical.Read(v.prefix)
+	secret, err := v.logical.Read(v.prefix+name)
 	if err != nil {
 		return "", merry.Prepend(err, "vault env provider: get").Append(name)
 	}
