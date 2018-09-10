@@ -10,11 +10,11 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/authn"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/middleware"
-	"github.com/percolate/shisa/models"
+	"github.com/shisa-platform/core/authn"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/middleware"
+	"github.com/shisa-platform/core/models"
 )
 
 func TestDebugServerEmpty(t *testing.T) {

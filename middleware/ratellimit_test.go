@@ -13,10 +13,10 @@ import (
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/models"
-	"github.com/percolate/shisa/ratelimit"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/models"
+	"github.com/shisa-platform/core/ratelimit"
 )
 
 func lolExtractor(context.Context, *httpx.Request) (string, merry.Error) {

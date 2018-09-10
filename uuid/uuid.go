@@ -11,7 +11,7 @@ var (
 	NamespaceDNS = mustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 	NamespaceURL = mustParse("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
 
-	// URL Namespace and "https://github.com/percolate/shisa"
+	// URL Namespace and "https://github.com/shisa-platform/core"
 	ShisaNS = mustParse("e06bac7c-4f4b-5c54-a632-d48a16695027")
 )
 

@@ -6,7 +6,7 @@ import "reflect"
 import "context"
 import "time"
 import "github.com/opentracing/opentracing-go"
-import "github.com/percolate/shisa/models"
+import "github.com/shisa-platform/core/models"
 
 // ContextDeadlineInvocation represents a single call of FakeContext.Deadline
 type ContextDeadlineInvocation struct {

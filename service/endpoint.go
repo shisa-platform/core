@@ -3,7 +3,7 @@ package service
 import (
 	"bytes"
 
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/httpx"
 )
 
 // Endpoint is collection of pipelines for a route (URL path),

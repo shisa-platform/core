@@ -5,7 +5,7 @@ package ratelimit
 import "reflect"
 import "github.com/ansel1/merry"
 import "time"
-import "github.com/percolate/shisa/context"
+import "github.com/shisa-platform/core/context"
 
 // ProviderLimitInvocation represents a single call of FakeProvider.Limit
 type ProviderLimitInvocation struct {

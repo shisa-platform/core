@@ -11,9 +11,9 @@ import (
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/contenttype"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/contenttype"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
 )
 
 type contentTypeTest struct {

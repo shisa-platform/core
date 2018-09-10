@@ -4,8 +4,8 @@ import (
 	"github.com/ansel1/merry"
 	"strings"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
 )
 
 // AuthenticationHeaderTokenExtractor returns the token from the

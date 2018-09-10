@@ -9,9 +9,9 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
 
-	"github.com/percolate/shisa/contenttype"
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/contenttype"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
 )
 
 const (

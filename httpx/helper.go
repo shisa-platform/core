@@ -3,8 +3,8 @@ package httpx
 import (
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/errorx"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/errorx"
 )
 
 // StringExtractor is a function type that extracts a string from

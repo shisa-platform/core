@@ -9,7 +9,7 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/context"
+	"github.com/shisa-platform/core/context"
 )
 
 func TestHandlerPanic(t *testing.T) {

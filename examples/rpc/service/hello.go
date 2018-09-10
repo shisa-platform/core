@@ -10,8 +10,8 @@ import (
 	otlog "github.com/opentracing/opentracing-go/log"
 	"go.uber.org/zap"
 
-	"github.com/percolate/shisa/examples/idp/service"
-	"github.com/percolate/shisa/lb"
+	"github.com/shisa-platform/core/examples/idp/service"
+	"github.com/shisa-platform/core/lb"
 )
 
 const idpServiceName = "idp"

@@ -4,7 +4,7 @@ import (
 	"github.com/ansel1/merry"
 	"time"
 
-	"github.com/percolate/shisa/context"
+	"github.com/shisa-platform/core/context"
 )
 
 //go:generate charlatan -output=./provider_charlatan.go Provider

@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/service"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/service"
 )
 
 var (

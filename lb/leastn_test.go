@@ -6,7 +6,7 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/sd"
 )
 
 func TestLeastNBalance(t *testing.T) {

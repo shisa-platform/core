@@ -4,8 +4,8 @@ package auxiliary
 
 import "reflect"
 import "github.com/ansel1/merry"
-import "github.com/percolate/shisa/context"
-import "github.com/percolate/shisa/httpx"
+import "github.com/shisa-platform/core/context"
+import "github.com/shisa-platform/core/httpx"
 
 // AuthorizerAuthorizeInvocation represents a single call of FakeAuthorizer.Authorize
 type AuthorizerAuthorizeInvocation struct {

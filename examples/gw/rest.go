@@ -8,11 +8,11 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/lb"
-	"github.com/percolate/shisa/middleware"
-	"github.com/percolate/shisa/service"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/lb"
+	"github.com/shisa-platform/core/middleware"
+	"github.com/shisa-platform/core/service"
 )
 
 type Farewell struct {

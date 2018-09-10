@@ -3,9 +3,9 @@
 package authn
 
 import "github.com/ansel1/merry"
-import "github.com/percolate/shisa/context"
+import "github.com/shisa-platform/core/context"
 
-import "github.com/percolate/shisa/models"
+import "github.com/shisa-platform/core/models"
 import "reflect"
 
 // IdentityProviderAuthenticateInvocation represents a single call of FakeIdentityProvider.Authenticate

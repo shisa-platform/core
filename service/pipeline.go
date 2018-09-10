@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/httpx"
 )
 
 // Pipeline is a chain of handlers to be invoked in order on a

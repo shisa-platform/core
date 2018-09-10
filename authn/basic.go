@@ -7,9 +7,9 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/context"
-	"github.com/percolate/shisa/httpx"
-	"github.com/percolate/shisa/models"
+	"github.com/shisa-platform/core/context"
+	"github.com/shisa-platform/core/httpx"
+	"github.com/shisa-platform/core/models"
 )
 
 // BasicAuthTokenExtractor returns the decoded credentials from

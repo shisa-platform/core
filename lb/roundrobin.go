@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/sd"
 )
 
 var _ Cache = &rrCache{}

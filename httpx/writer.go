@@ -5,7 +5,7 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/errorx"
+	"github.com/shisa-platform/core/errorx"
 )
 
 // WriteResponse serializes a response instance to the

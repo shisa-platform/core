@@ -4,9 +4,9 @@ package authn
 
 import "reflect"
 import "github.com/ansel1/merry"
-import "github.com/percolate/shisa/context"
-import "github.com/percolate/shisa/httpx"
-import "github.com/percolate/shisa/models"
+import "github.com/shisa-platform/core/context"
+import "github.com/shisa-platform/core/httpx"
+import "github.com/shisa-platform/core/models"
 
 // AuthenticatorAuthenticateInvocation represents a single call of FakeAuthenticator.Authenticate
 type AuthenticatorAuthenticateInvocation struct {

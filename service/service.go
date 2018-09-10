@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/httpx"
 )
 
 // Service is a logical grouping of related endpoints.

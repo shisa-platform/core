@@ -43,10 +43,10 @@ gen:
 test: ${COVERAGE_DIR} ${SHISA_TEST_PKGS}
 
 examples:
-	go build -o $(TOP_DIR)/$(BUILD_DIR)/rest github.com/percolate/shisa/examples/rest
-	go build -o $(TOP_DIR)/$(BUILD_DIR)/rpc github.com/percolate/shisa/examples/rpc
-	go build -o $(TOP_DIR)/$(BUILD_DIR)/idp github.com/percolate/shisa/examples/idp
-	go build -o $(TOP_DIR)/$(BUILD_DIR)/gw github.com/percolate/shisa/examples/gw
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/rest github.com/shisa-platform/core/examples/rest
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/rpc github.com/shisa-platform/core/examples/rpc
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/idp github.com/shisa-platform/core/examples/idp
+	go build -o $(TOP_DIR)/$(BUILD_DIR)/gw github.com/shisa-platform/core/examples/gw
 
 docker:
 	docker build --tag shisa/examples/gw -f examples/gw/Dockerfile .
@@ -55,6 +55,9 @@ docker:
 	docker build --tag shisa/examples/rpc -f examples/rpc/Dockerfile .
 
 coverage/%:
-	go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic github.com/percolate/shisa/$(@F)
+	go test -v -coverprofile=$(TOP_DIR)/$(COVERAGE_DIR)/$(@F)_coverage.out -covermode=atomic github.com/shisa-platform/core/$(@F)
+
+t:
+	echo $(SHISA_PKGS)
 
 .PHONY: clean doc vet fmt test examples docker

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
-	"github.com/percolate/shisa/sd"
+	"github.com/shisa-platform/core/sd"
 	"github.com/stretchr/testify/assert"
 )
 

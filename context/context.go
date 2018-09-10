@@ -6,7 +6,7 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/percolate/shisa/models"
+	"github.com/shisa-platform/core/models"
 )
 
 type idKey struct{}

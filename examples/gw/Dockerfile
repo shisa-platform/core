@@ -2,11 +2,11 @@ FROM alpine:3.7
 
 RUN apk --no-cache --update add go musl-dev
 
-COPY ./ /root/go/src/github.com/percolate/shisa
+COPY ./ /root/go/src/github.com/shisa-platform/core
 
-WORKDIR /root/go/src/github.com/percolate/shisa/examples/gw
+WORKDIR /root/go/src/github.com/shisa-platform/core/examples/gw
 
-RUN go build -ldflags '-linkmode external -extldflags "-static" -s' -o /root/go/bin/gw github.com/percolate/shisa/examples/gw
+RUN go build -ldflags '-linkmode external -extldflags "-static" -s' -o /root/go/bin/gw github.com/shisa-platform/core/examples/gw
 
 FROM alpine:3.7
 

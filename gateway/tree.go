@@ -10,7 +10,7 @@ import (
 
 	"github.com/ansel1/merry"
 
-	"github.com/percolate/shisa/httpx"
+	"github.com/shisa-platform/core/httpx"
 )
 
 func min(a, b int) int {
