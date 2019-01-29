@@ -2,6 +2,8 @@
 *.o
 *.a
 *.so
+*.dylib
+
 build
 
 # go noise
@@ -18,6 +20,8 @@ _testmain.go
 *.prof
 _obj/
 _test/
+*.test
+*.out
 
 # macos noise
 .DS_Store
