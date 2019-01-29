@@ -33,17 +33,9 @@
   version = "v1.1.0"
 
 [[constraint]]
-  name = "go.uber.org/zap"
-  version = "v1.7.1"
-
-[[constraint]]
   name = "github.com/hashicorp/consul"
   version = "1.0.2"
 
 [[constraint]]
   name = "github.com/opentracing/opentracing-go"
   version = "v1.0.2"
-
-[[constraint]]
-  name = "github.com/uber/jaeger-client-go"
-  version = "v2.12.0"
