@@ -42,14 +42,6 @@ func (h panicHealthchecker) Healthcheck(context.Context) merry.Error {
 	panic(h.arg)
 }
 
-func TestHealthcheckServerEmpty(t *testing.T) {
-	cut := HealthcheckServer{}
-
-	err := cut.Listen()
-	assert.Error(t, err)
-	assert.False(t, merry.Is(err, http.ErrServerClosed))
-}
-
 func TestHealthcheckServerAddress(t *testing.T) {
 	cut := HealthcheckServer{
 		HTTPServer: HTTPServer{

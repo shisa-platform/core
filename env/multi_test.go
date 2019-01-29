@@ -4,12 +4,53 @@ import (
 	"testing"
 
 	"github.com/ansel1/merry"
-	consul "github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	missingProvider = newFakeProvider("", NameNotSet)
+	emptyProvider   = newFakeProvider("", NameEmpty)
+	defaultProvider = newFakeProvider(defaultVal, nil)
+	intProvider     = &FakeProvider{
+		GetIntHook: func(string) (int, merry.Error) {
+			return defaultInt, nil
+		},
+	}
+	boolProvider = &FakeProvider{
+		GetBoolHook: func(string) (bool, merry.Error) {
+			return defaultBool, nil
+		},
+	}
+)
+
+func newFakeProvider(val string, err merry.Error) Provider {
+	return &FakeProvider{
+		GetHook: func(s string) (string, merry.Error) {
+			if err != nil {
+				return "", err
+			}
+
+			return val, nil
+		},
+		GetIntHook: func(string) (int, merry.Error) {
+			if err != nil {
+				return 0, err
+			}
+
+			return defaultInt, nil
+		},
+		GetBoolHook: func(string) (bool, merry.Error) {
+			if err != nil {
+				return false, err
+			}
+
+			return defaultBool, nil
+		},
+	}
+}
+
 func TestMultiProviderGetMissing(t *testing.T) {
-	p := MultiProvider{emptyConsul, missingConsul}
+	p := MultiProvider{emptyProvider, missingProvider}
 
 	value, err := p.Get(defaultKey)
 
@@ -18,7 +59,7 @@ func TestMultiProviderGetMissing(t *testing.T) {
 }
 
 func TestMultiProviderGetEmpty(t *testing.T) {
-	p := MultiProvider{emptyConsul, emptyConsul}
+	p := MultiProvider{emptyProvider, emptyProvider}
 
 	value, err := p.Get(defaultKey)
 
@@ -26,8 +67,8 @@ func TestMultiProviderGetEmpty(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMultiProviderGetSuccess(t *testing.T) {
-	p := MultiProvider{emptyConsul, defaultConsul}
+func TestMultiProviderGet(t *testing.T) {
+	p := MultiProvider{emptyProvider, defaultProvider}
 
 	value, err := p.Get(defaultKey)
 
@@ -36,7 +77,12 @@ func TestMultiProviderGetSuccess(t *testing.T) {
 }
 
 func TestMultiProviderGetIntMissing(t *testing.T) {
-	p := MultiProvider{emptyConsul, missingConsul}
+	errorIntProvider := &FakeProvider{
+		GetIntHook: func(string) (int, merry.Error) {
+			return 0, NameNotSet
+		},
+	}
+	p := MultiProvider{emptyProvider, errorIntProvider}
 
 	value, err := p.GetInt(defaultKey)
 
@@ -45,7 +91,12 @@ func TestMultiProviderGetIntMissing(t *testing.T) {
 }
 
 func TestMultiProviderGetIntInvalid(t *testing.T) {
-	p := MultiProvider{emptyConsul, defaultConsul}
+	errorIntProvider := &FakeProvider{
+		GetIntHook: func(string) (int, merry.Error) {
+			return 0, merry.New("not an integer")
+		},
+	}
+	p := MultiProvider{emptyProvider, errorIntProvider}
 
 	value, err := p.GetInt(defaultKey)
 
@@ -53,8 +104,8 @@ func TestMultiProviderGetIntInvalid(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMultiProviderGetIntSuccess(t *testing.T) {
-	p := MultiProvider{emptyConsul, intConsul}
+func TestMultiProviderGetInt(t *testing.T) {
+	p := MultiProvider{emptyProvider, intProvider}
 
 	value, err := p.GetInt(defaultKey)
 
@@ -63,7 +114,12 @@ func TestMultiProviderGetIntSuccess(t *testing.T) {
 }
 
 func TestMultiProviderGetBoolMissing(t *testing.T) {
-	p := MultiProvider{emptyConsul, missingConsul}
+	errorBoolProvider := &FakeProvider{
+		GetBoolHook: func(string) (bool, merry.Error) {
+			return false, NameNotSet
+		},
+	}
+	p := MultiProvider{emptyProvider, errorBoolProvider}
 
 	value, err := p.GetBool(defaultKey)
 
@@ -72,7 +128,12 @@ func TestMultiProviderGetBoolMissing(t *testing.T) {
 }
 
 func TestMultiProviderGetBoolInvalid(t *testing.T) {
-	p := MultiProvider{emptyConsul, defaultConsul}
+	errorBoolProvider := &FakeProvider{
+		GetBoolHook: func(string) (bool, merry.Error) {
+			return false, merry.New("not a boolean")
+		},
+	}
+	p := MultiProvider{emptyProvider, errorBoolProvider}
 
 	value, err := p.GetBool(defaultKey)
 
@@ -80,46 +141,11 @@ func TestMultiProviderGetBoolInvalid(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMultiProviderGetBoolSuccess(t *testing.T) {
-	p := MultiProvider{emptyConsul, boolConsul}
+func TestMultiProviderGetBool(t *testing.T) {
+	p := MultiProvider{emptyProvider, boolProvider}
 
 	value, err := p.GetBool(defaultKey)
 
 	assert.True(t, value)
 	assert.NoError(t, err)
-}
-
-func TestMultiProviderMonitor(t *testing.T) {
-	i := uint64(0)
-	expected1 := []byte("not empty")
-	expected2 := []byte("also not empty")
-	kv := &FakekvGetter{
-		ListHook: func(string, *consul.QueryOptions) (consul.KVPairs, *consul.QueryMeta, error) {
-			defer func() { i++ }()
-			switch i {
-			case 0:
-				return consul.KVPairs{{Key: defaultKey, Value: []byte{}}}, &consul.QueryMeta{LastIndex: i + 1}, nil
-			case 1:
-				return consul.KVPairs{{Key: defaultKey, Value: expected1}}, &consul.QueryMeta{LastIndex: i + 1}, nil
-			case 2:
-				return consul.KVPairs{{Key: defaultKey, Value: expected2}}, &consul.QueryMeta{LastIndex: i + 1}, nil
-			default:
-				return nil, nil, merry.New("stop")
-			}
-		},
-	}
-	monitorConsul := &ConsulProvider{
-		agent: NewFakeselferDefaultPanic(),
-		kv:    kv,
-	}
-
-	p := MultiProvider{NewSystem(), monitorConsul}
-	v := make(chan Value, 2)
-
-	p.Monitor(defaultKey, v)
-	val1 := <-v
-	val2 := <-v
-
-	assert.Equal(t, string(expected1), val1.Value)
-	assert.Equal(t, string(expected2), val2.Value)
 }
