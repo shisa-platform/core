@@ -17,14 +17,6 @@ import (
 	"github.com/shisa-platform/core/models"
 )
 
-func TestDebugServerEmpty(t *testing.T) {
-	cut := DebugServer{}
-
-	err := cut.Listen()
-	assert.Error(t, err)
-	assert.False(t, merry.Is(err, http.ErrServerClosed))
-}
-
 func TestDebugServerAddress(t *testing.T) {
 	cut := DebugServer{
 		HTTPServer: HTTPServer{
