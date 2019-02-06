@@ -111,7 +111,7 @@ type Gateway struct {
 
 	// HandlersTimeout is the maximum amount of time to wait for
 	// all gateway-level handlers to complete.
-	// If the timeout is exceeded the entire request is aborted.
+	// If the timeout is exceeded the entire request is canceled.
 	HandlersTimeout time.Duration
 
 	// InternalServerErrorHandler optionally customizes the

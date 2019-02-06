@@ -96,7 +96,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-pipelineCtx.Done():
 			cancel()
-			err = merry.Prepend(pipelineCtx.Err(), "gateway: route: request aborted")
+			err = merry.Prepend(pipelineCtx.Err(), "gateway: route: request canceled")
 			if merry.Is(pipelineCtx.Err(), stdctx.DeadlineExceeded) {
 				err = err.WithHTTPCode(http.StatusGatewayTimeout)
 			}
@@ -222,7 +222,7 @@ endpointHandlers:
 		}()
 		select {
 		case <-pipelineCtx.Done():
-			err = merry.Prepend(pipelineCtx.Err(), "gateway: route: request aborted")
+			err = merry.Prepend(pipelineCtx.Err(), "gateway: route: request canceled")
 			if merry.Is(pipelineCtx.Err(), stdctx.DeadlineExceeded) {
 				err = err.WithHTTPCode(http.StatusGatewayTimeout)
 			}
