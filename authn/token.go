@@ -1,9 +1,9 @@
 package authn
 
 import (
-	"github.com/ansel1/merry"
 	"strings"
 
+	"github.com/ansel1/merry"
 	"github.com/shisa-platform/core/context"
 	"github.com/shisa-platform/core/httpx"
 )
